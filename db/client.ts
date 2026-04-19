@@ -22,8 +22,17 @@ import mysql from "mysql2/promise";
 import { drizzle } from "drizzle-orm/mysql2";
 import * as schema from "./schema";
 
-const connectionString =
+// Force IPv4 loopback. On Hostinger / managed Node hosts, the MySQL user is
+// frequently granted from `@127.0.0.1` only, but mysql2 resolves `localhost`
+// via Node's DNS which prefers `::1` (IPv6) on this host — producing
+// "Access denied for user '...'@'::1'" even when the password is correct.
+// Rewriting the URL at boot is durable across hPanel env-var edits.
+const rawConnectionString =
   process.env.MYSQL_URL ?? "mysql://build:build@127.0.0.1:3306/build";
+const connectionString = rawConnectionString.replace(
+  /@localhost(:\d+)?\//,
+  (_m, port) => `@127.0.0.1${port ?? ":3306"}/`
+);
 
 declare global {
   // eslint-disable-next-line no-var
