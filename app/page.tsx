@@ -2,6 +2,14 @@ import Link from "next/link";
 import { I } from "@/components/icons/Icons";
 import { HeroDemo } from "@/components/landing/HeroDemo";
 import { ToolsShowcase } from "@/components/landing/ToolsShowcase";
+import {
+  AgentPromo,
+  MacrosPromo,
+  HowItWorks,
+  Audience,
+  Security,
+  FinalCTA,
+} from "@/components/landing/LandingSections";
 
 export default function HomePage() {
   return (
@@ -97,35 +105,23 @@ export default function HomePage() {
       {/* ===== Tools showcase ===== */}
       <ToolsShowcase />
 
-      {/* ===== CTA ===== */}
-      <section className="section">
-        <div
-          className="container-x"
-          style={{
-            textAlign: "center",
-            background: "var(--bg-1)",
-            border: "1px solid var(--border)",
-            borderRadius: 14,
-            padding: "64px 28px",
-          }}
-        >
-          <h2 style={{ fontSize: 36, maxWidth: 640, margin: "0 auto" }}>
-            Stop pasting into five different tools.
-          </h2>
-          <p className="muted" style={{ fontSize: 17, marginTop: 16, maxWidth: 520, margin: "16px auto 0" }}>
-            One workspace for every PDF job — free forever for the basics, credits only when AI does the
-            heavy lifting.
-          </p>
-          <div className="row" style={{ justifyContent: "center", gap: 12, marginTop: 32 }}>
-            <Link href="/signup" className="btn btn-lg btn-accent">
-              Get started free <I.ArrowRight size={16} />
-            </Link>
-            <Link href="/tools" className="btn btn-lg btn-outline">
-              Browse all tools
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* ===== Agent promo ===== */}
+      <AgentPromo />
+
+      {/* ===== Macros / Workflow Studio promo ===== */}
+      <MacrosPromo />
+
+      {/* ===== How credits work ===== */}
+      <HowItWorks />
+
+      {/* ===== Built for ===== */}
+      <Audience />
+
+      {/* ===== Security ===== */}
+      <Security />
+
+      {/* ===== Final CTA ===== */}
+      <FinalCTA />
     </main>
   );
 }
