@@ -3,7 +3,7 @@
 _Structured matrix of every feature area in the product: what's Done, what's Partial, what's Pending._
 _Pair this with `STATUS.md` (operational punch list) — this file answers "does the site have X?", STATUS answers "who owns the next step on X?"._
 
-**Last updated:** 2026-04-20 (post-auth-UX-and-marketing-routes session)
+**Last updated:** 2026-04-20 (post-page-numbers-watermark-runner session)
 
 ---
 
@@ -67,7 +67,14 @@ _Pair this with `STATUS.md` (operational punch list) — this file answers "does
 |---|---|---|---|
 | App dashboard | `/app/dashboard` | Partial | Layout ships; data plumbing depends on logged-in DB reads. |
 | Account | `/account` | Partial | BYOK configure UI stub; needs wiring. |
-| 8 free tools (WASM) | `/tools/...` | Partial | Routes exist; individual tool fidelity varies — tracked in TEST_PLAN.md (to be written). |
+| Free tool: Merge | `/tool/merge` | Done | Client-side pdf-lib runner. |
+| Free tool: Split | `/tool/split` | Done | Client-side; per-page ZIP. |
+| Free tool: Compress | `/tool/compress` | Done | Client-side pdf-lib pass. |
+| Free tool: Rotate | `/tool/rotate` | Done | 90/180/270° per-page. |
+| Free tool: Page Numbers + Watermark | `/tool/page-numbers` | Done | Two modes in one runner: numbered overlay (4 formats × 6 positions) + diagonal watermark (adjustable opacity/size). Client-side pdf-lib + StandardFonts. Shipped 2026-04-20. |
+| Free tool: Protect / Unlock | `/tool/protect` | Pending | Needs client-side crypto wiring. |
+| Free tool: PDF↔Office | `/tool/pdf-to-office`, `/tool/to-pdf` | Pending | Needs LibreOffice conversion worker. |
+| Free tools (other WASM) | `/tool/...` | Partial | Reorder / delete / extract / crop routes exist; runners not yet shipped. |
 | AI tools | `/tools/chat`, `/summarize`, `/translate`, `/ocr`, `/redact` | Partial | UI present; model routing + credit debit logic needs E2E test. |
 
 ## Analytics / monitoring

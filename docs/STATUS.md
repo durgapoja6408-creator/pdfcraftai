@@ -3,7 +3,7 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-04-20 (post-theme-toggle + test-plan session)
+**Last updated:** 2026-04-20 (post-page-numbers/watermark runner ship)
 
 ---
 
@@ -56,6 +56,10 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 - [x] `/status` — Service health board with incident log. (2026-04-20)
 - [x] `/careers` — Values + open-roles empty state w/ intro mailto. (2026-04-20)
 - [x] `/gdpr` — Rights, data categories, sub-processors, DPO contact. (2026-04-20)
+
+### Free tools (client-side WASM)
+
+- [x] **`/tool/page-numbers` runner live.** New `PageNumbersTool` component ships two modes in one runner: (a) **Page numbers** — 4 formats (`1`, `1 / N`, `Page 1`, `Page 1 of N`) × 6 positions (TL/TC/TR/BL/BC/BR), adjustable font size 8–24pt; (b) **Watermark** — user-entered text (≤40 chars) drawn diagonally at 45° across page center, adjustable font size 24–96pt, adjustable opacity 5–60%. Built on `pdf-lib` with `StandardFonts.Helvetica` / `HelveticaBold`; fully client-side, no server round-trip. Wired into `LIVE_TOOL_IDS` in `app/tool/[id]/page.tsx`. Flips T5 in TEST_PLAN.md from Pending → Ready-to-test. (2026-04-20)
 
 ### Theme + testing infrastructure
 
