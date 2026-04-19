@@ -3,7 +3,7 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-04-20 (post-auth-UX-and-marketing-routes session)
+**Last updated:** 2026-04-20 (post-theme-toggle + test-plan session)
 
 ---
 
@@ -56,6 +56,12 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 - [x] `/status` — Service health board with incident log. (2026-04-20)
 - [x] `/careers` — Values + open-roles empty state w/ intro mailto. (2026-04-20)
 - [x] `/gdpr` — Rights, data categories, sub-processors, DPO contact. (2026-04-20)
+
+### Theme + testing infrastructure
+
+- [x] **Light/dark theme toggle** shipped in TopNav via new `ThemeToggle` component. Uses the existing pre-hydration script in `app/layout.tsx` + `[data-theme]` CSS variables in `globals.css`. Stored in `pdfcraft_state.theme`. (2026-04-20)
+- [x] **`docs/TEST_PLAN.md` created** — P0–P6 batches (auth, free tools, AI tools, authed app, marketing/SEO, error/edge cases, a11y/perf). (2026-04-20)
+- [x] **`docs/FEATURE_TRACKER.md` created** — Done / Partial / Pending matrix across marketing, auth, API, product, analytics, SEO, security. (2026-04-20)
 
 ### Stubs for follow-up email wiring
 

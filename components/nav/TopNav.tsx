@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { I } from "@/components/icons/Icons";
+import { ThemeToggle } from "@/components/nav/ThemeToggle";
 
 type NavLink = { href: string; label: string; accent?: boolean; eyebrow?: React.ReactNode };
 
@@ -102,6 +103,7 @@ export function TopNav() {
       <div className="spacer" />
 
       <div className="actions">
+        <ThemeToggle />
         {status === "loading" ? (
           // Reserve width to prevent layout shift while the session resolves.
           <div
