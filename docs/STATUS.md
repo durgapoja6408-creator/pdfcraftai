@@ -3,7 +3,7 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-04-20
+**Last updated:** 2026-04-20 (post-auth-UX-and-marketing-routes session)
 
 ---
 
@@ -36,6 +36,31 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 - [x] **GA4 (`G-2Y8PS0S93F`) tag added to `app/layout.tsx`, committed in `36034eb`, deployed, verified rendering.** (2026-04-20)
 - [x] **Microsoft Clarity (`wcsbv536zv`) tag added to `app/layout.tsx`, committed in `36034eb`, deployed, verified rendering.** (2026-04-20)
+
+### Auth UX (sitewide)
+
+- [x] **TopNav rewrite: session-aware actions, avatar image (Google profile photo via `next/image` `unoptimized`), click-outside + Escape close, mobile hamburger menu.** (2026-04-20)
+- [x] **Middleware (`auth.config.ts`) redirects logged-in users away from `/login`, `/register`, `/signup`, `/forgot-password`.** (2026-04-20)
+- [x] **`MarketingChrome` hides marketing TopNav/Footer on all auth pages exactly.** (2026-04-20)
+- [x] **Shared `AuthShell` + `AuthBits` design tokens across Login / Register / Signup / Forgot Password.** (2026-04-20)
+- [x] **Session-aware CTAs (`SmartCta`) on the homepage final CTA and the pricing hero.** (2026-04-20)
+
+### Marketing routes (filled 404s from footer + nav)
+
+- [x] `/agent` — Agent mode landing. (2026-04-20)
+- [x] `/macros` — Workflow Studio landing. (2026-04-20)
+- [x] `/bulk` — Batch-processing landing. (2026-04-20)
+- [x] `/about` — Mission + values. (2026-04-20)
+- [x] `/contact` — Client form + mailto cards, posts to `/api/contact`. (2026-04-20)
+- [x] `/changelog` — Release notes, tagged. (2026-04-20)
+- [x] `/status` — Service health board with incident log. (2026-04-20)
+- [x] `/careers` — Values + open-roles empty state w/ intro mailto. (2026-04-20)
+- [x] `/gdpr` — Rights, data categories, sub-processors, DPO contact. (2026-04-20)
+
+### Stubs for follow-up email wiring
+
+- [x] **`/api/contact` route** — Zod-validated, in-memory rate-limited, logs submissions until SendGrid/Postmark lands. (2026-04-20)
+- [x] **`/api/auth/forgot-password` route** — acks identically on success/miss (anti-enumeration), per-email rate limited, logs for reset-link wiring. `ForgotPasswordForm` now POSTs here instead of the local `setTimeout` mock. (2026-04-20)
 
 ### Search engines
 

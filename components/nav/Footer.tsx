@@ -7,9 +7,12 @@ const COLS: Col[] = [
     title: "Product",
     links: [
       ["Tools", "/tools"],
+      ["Agent", "/agent"],
+      ["Macros", "/macros"],
+      ["Bulk", "/bulk"],
       ["Pricing", "/pricing"],
       ["API", "/api"],
-      ["Changelog", "/blog"],
+      ["Changelog", "/changelog"],
     ],
   },
   {
@@ -24,10 +27,12 @@ const COLS: Col[] = [
   {
     title: "Company",
     links: [
+      ["About", "/about"],
       ["Blog", "/blog"],
       ["Help", "/help"],
-      ["Careers", "/help"],
-      ["Contact", "/help"],
+      ["Careers", "/careers"],
+      ["Contact", "/contact"],
+      ["Status", "/status"],
     ],
   },
   {
@@ -37,6 +42,7 @@ const COLS: Col[] = [
       ["Terms", "/terms"],
       ["Security", "/security"],
       ["DPA", "/dpa"],
+      ["GDPR", "/gdpr"],
     ],
   },
 ];

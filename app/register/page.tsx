@@ -12,13 +12,14 @@ export const metadata: Metadata = {
 export default function RegisterPage() {
   return (
     <AuthShell
-      eyebrow="GET STARTED"
-      title="Create your account"
-      subtitle="Free forever for merge, split, convert, and compress."
+      eyebrow="GET STARTED — FREE"
+      title="Create your pdfcraft ai account"
+      subtitle="Free forever for merge, split, convert, and compress. 25 AI credits on signup."
+      sidePanel="register"
       footer={
         <>
           Already have an account?{" "}
-          <Link href="/login" style={{ color: "var(--accent)", textDecoration: "none" }}>
+          <Link href="/login" style={{ color: "var(--accent)", textDecoration: "none", fontWeight: 500 }}>
             Sign in
           </Link>
         </>

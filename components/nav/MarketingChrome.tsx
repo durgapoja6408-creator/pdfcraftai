@@ -6,17 +6,23 @@ import { Footer } from "./Footer";
 
 /**
  * Conditionally renders the marketing TopNav + Footer.
- * Authenticated app routes (/app/*) and auth pages (/login, /register)
- * render their own chrome inside their own layout, so we hide the
- * marketing chrome there.
+ * Authenticated app routes (/app/*) and auth pages (login/register/signup/
+ * forgot-password) render their own chrome inside their own layout, so we
+ * hide the marketing chrome there.
  */
-const HIDDEN_PREFIXES = ["/app", "/login", "/register"];
+const HIDDEN_EXACT = new Set([
+  "/login",
+  "/register",
+  "/signup",
+  "/forgot-password",
+]);
+const HIDDEN_PREFIXES = ["/app"];
 
 export function MarketingChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "/";
-  const isAppRoute = HIDDEN_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`)
-  );
+  const isAppRoute =
+    HIDDEN_EXACT.has(pathname) ||
+    HIDDEN_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
   if (isAppRoute) {
     return <>{children}</>;

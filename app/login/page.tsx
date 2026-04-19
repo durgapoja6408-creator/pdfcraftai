@@ -15,11 +15,12 @@ export default function LoginPage() {
       eyebrow="WELCOME BACK"
       title="Sign in to pdfcraft ai"
       subtitle="Use your email and password, or continue with Google."
+      sidePanel="default"
       footer={
         <>
           New here?{" "}
-          <Link href="/register" style={{ color: "var(--accent)", textDecoration: "none" }}>
-            Create an account
+          <Link href="/register" style={{ color: "var(--accent)", textDecoration: "none", fontWeight: 500 }}>
+            Create a free account
           </Link>
         </>
       }

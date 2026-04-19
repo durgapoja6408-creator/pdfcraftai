@@ -4,6 +4,7 @@
 
 import Link from "next/link";
 import { I } from "@/components/icons/Icons";
+import { SmartCta } from "@/components/marketing/SmartCta";
 
 type IconKey = keyof typeof I;
 
@@ -700,9 +701,13 @@ export function FinalCTA() {
           <Link href="/tools" className="btn btn-lg btn-primary">
             Open a tool <I.ArrowRight size={16} />
           </Link>
-          <Link href="/signup" className="btn btn-lg btn-ghost">
-            Create account
-          </Link>
+          <SmartCta
+            anon={{ href: "/register", label: "Create account" }}
+            authed={{ href: "/app/dashboard", label: "Go to dashboard" }}
+            className="btn btn-lg btn-ghost"
+          >
+            {(label) => <>{label}</>}
+          </SmartCta>
         </div>
       </div>
     </section>

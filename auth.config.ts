@@ -7,6 +7,8 @@
 
 import type { NextAuthConfig } from "next-auth";
 
+const AUTH_PAGES = ["/login", "/register", "/signup", "/forgot-password"];
+
 export const authConfig = {
   pages: {
     signIn: "/login",
@@ -30,7 +32,8 @@ export const authConfig = {
       if (isAppRoute) return isLoggedIn;
 
       // Auth pages redirect signed-in users to the dashboard.
-      if ((pathname === "/login" || pathname === "/register") && isLoggedIn) {
+      // This covers /login, /register, /signup (alias), and /forgot-password.
+      if (AUTH_PAGES.includes(pathname) && isLoggedIn) {
         return Response.redirect(new URL("/app/dashboard", request.nextUrl));
       }
 

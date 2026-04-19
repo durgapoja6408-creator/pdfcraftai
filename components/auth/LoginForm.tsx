@@ -1,8 +1,12 @@
 "use client";
 
+import Link from "next/link";
+import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { loginAction, type LoginState } from "@/lib/auth-actions";
 import { signIn } from "next-auth/react";
+import { I } from "@/components/icons/Icons";
+import { GoogleMark, Divider, Field, PasswordField } from "@/components/auth/AuthBits";
 
 const initial: LoginState = { ok: false };
 
@@ -12,81 +16,95 @@ function SubmitButton() {
     <button
       type="submit"
       className="btn btn-primary"
-      style={{ width: "100%", marginTop: 8 }}
+      style={{ width: "100%", marginTop: 14, justifyContent: "center", height: 44 }}
       disabled={pending}
     >
-      {pending ? "Signing in…" : "Sign in"}
+      {pending ? "Signing in…" : "Sign in"}{" "}
+      {!pending && <I.ArrowRight size={14} />}
     </button>
   );
 }
 
 export function LoginForm() {
   const [state, formAction] = useFormState(loginAction, initial);
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <>
       <button
         type="button"
-        className="btn btn-ghost"
-        style={{ width: "100%", marginBottom: 16 }}
+        className="btn btn-outline"
+        style={{ width: "100%", marginBottom: 4, justifyContent: "center", height: 44 }}
         onClick={() => signIn("google", { callbackUrl: "/app/dashboard" })}
       >
-        <span style={{ marginRight: 8 }}>
-          <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden>
-            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-          </svg>
-        </span>
-        Continue with Google
+        <GoogleMark />
+        <span style={{ marginLeft: 10 }}>Continue with Google</span>
       </button>
 
-      <div
-        aria-hidden
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          margin: "16px 0",
-          color: "var(--fg-subtle)",
-          fontSize: 12,
-        }}
-      >
-        <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
-        OR
-        <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
-      </div>
+      <Divider label="OR CONTINUE WITH EMAIL" />
 
-      <form action={formAction}>
-        <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6 }}>
-          Email
-        </label>
-        <input
-          className="input"
-          type="email"
+      <form action={formAction} noValidate>
+        <Field
+          label="Email"
           name="email"
+          type="email"
           autoComplete="email"
           required
           placeholder="you@example.com"
-          style={{ width: "100%", marginBottom: 14 }}
+          icon={<I.Send size={14} />}
         />
 
-        <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 6 }}>
-          Password
-        </label>
-        <input
-          className="input"
-          type="password"
+        <div style={{ height: 14 }} />
+
+        <PasswordField
+          label="Password"
           name="password"
           autoComplete="current-password"
           required
-          placeholder="••••••••"
-          style={{ width: "100%", marginBottom: 4 }}
+          placeholder="Your password"
+          show={showPassword}
+          onToggle={() => setShowPassword((v) => !v)}
+          rightLabel={
+            <Link
+              href="/forgot-password"
+              style={{
+                color: "var(--accent)",
+                textDecoration: "none",
+                fontSize: 12,
+                fontWeight: 500,
+              }}
+            >
+              Forgot password?
+            </Link>
+          }
         />
 
+        <label
+          className="row"
+          style={{ marginTop: 14, gap: 8, fontSize: 13, cursor: "pointer", color: "var(--fg)" }}
+        >
+          <input
+            type="checkbox"
+            name="remember"
+            defaultChecked
+            style={{ accentColor: "var(--accent)" }}
+          />
+          Keep me signed in
+        </label>
+
         {state.error && (
-          <p role="alert" style={{ color: "var(--danger, #ef4444)", fontSize: 13, marginTop: 10 }}>
+          <p
+            role="alert"
+            style={{
+              color: "var(--danger, #ef4444)",
+              background: "color-mix(in oklab, var(--danger, #ef4444) 10%, transparent)",
+              border: "1px solid color-mix(in oklab, var(--danger, #ef4444) 30%, transparent)",
+              borderRadius: 8,
+              padding: "10px 12px",
+              fontSize: 13,
+              marginTop: 14,
+            }}
+          >
             {state.error}
           </p>
         )}

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { I } from "@/components/icons/Icons";
 import { FaqItem } from "@/components/marketing/FaqItem";
 import { CheckoutButton } from "@/components/billing/CheckoutButton";
+import { SmartCta } from "@/components/marketing/SmartCta";
 import { CREDIT_PACKS, PRICING_FAQ } from "@/lib/pricing";
 import { TOOLS } from "@/lib/tools";
 
@@ -39,6 +40,22 @@ export default function PricingPage() {
             <span className="chip chip-free">8 tools · always free</span>
             <span className="chip chip-new">Client-side WASM · no server cost</span>
             <span className="chip chip-ai">AI priced per use</span>
+          </div>
+          <div className="row" style={{ justifyContent: "center", gap: 12, marginTop: 28 }}>
+            <SmartCta
+              anon={{ href: "/register", label: "Start free — no card" }}
+              authed={{ href: "/app/dashboard", label: "Open dashboard" }}
+              className="btn btn-lg btn-primary"
+            >
+              {(label) => (
+                <>
+                  {label} <I.ArrowRight size={16} />
+                </>
+              )}
+            </SmartCta>
+            <Link href="/tools" className="btn btn-lg btn-outline">
+              Browse tools
+            </Link>
           </div>
         </div>
       </section>

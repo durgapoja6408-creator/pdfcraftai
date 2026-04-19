@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { I } from "@/components/icons/Icons";
 
@@ -18,16 +19,54 @@ const NAV: NavLink[] = [
   { href: "/api", label: "API" },
 ];
 
+/**
+ * Marketing top nav with full session awareness:
+ *   - Skeleton placeholder during `status === "loading"` to prevent CLS.
+ *   - Avatar image (Google profile photo) when available; fallback to initial.
+ *   - Click-outside + Esc close the account menu.
+ *   - Mobile: collapsible nav with a hamburger; sign-in state preserved.
+ */
 export function TopNav() {
   const pathname = usePathname() ?? "/";
   const { data: session, status } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const mobileRef = useRef<HTMLDivElement | null>(null);
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
     if (href === "/macros") return pathname === "/macros" || pathname.startsWith("/studio");
     return pathname === href || pathname.startsWith(href + "/");
   };
+
+  // Close menus on route change.
+  useEffect(() => {
+    setMenuOpen(false);
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Click outside + Esc close the account menu.
+  useEffect(() => {
+    if (!menuOpen && !mobileOpen) return;
+    function onDocClick(e: MouseEvent) {
+      const t = e.target as Node;
+      if (menuOpen && menuRef.current && !menuRef.current.contains(t)) setMenuOpen(false);
+      if (mobileOpen && mobileRef.current && !mobileRef.current.contains(t)) setMobileOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+        setMobileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen, mobileOpen]);
 
   const user = session?.user;
   const loggedIn = status === "authenticated" && !!user;
@@ -41,7 +80,8 @@ export function TopNav() {
           pdfcraft<span style={{ color: "var(--accent)" }}>ai</span>
         </span>
       </Link>
-      <nav>
+
+      <nav className="topnav-links">
         {NAV.map((item) => (
           <Link
             key={item.href}
@@ -58,13 +98,24 @@ export function TopNav() {
           </Link>
         ))}
       </nav>
+
       <div className="spacer" />
+
       <div className="actions">
         {status === "loading" ? (
-          // Reserve space to prevent layout shift while session loads
-          <div style={{ width: 160, height: 32 }} aria-hidden />
+          // Reserve width to prevent layout shift while the session resolves.
+          <div
+            aria-hidden
+            style={{
+              width: 160,
+              height: 32,
+              background: "var(--bg-2)",
+              borderRadius: 8,
+              opacity: 0.6,
+            }}
+          />
         ) : loggedIn ? (
-          <div style={{ position: "relative" }}>
+          <div ref={menuRef} style={{ position: "relative" }}>
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
@@ -73,21 +124,7 @@ export function TopNav() {
               className="btn btn-sm btn-ghost"
               style={{ padding: "4px 10px 4px 4px", gap: 8 }}
             >
-              <span
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: "50%",
-                  background: "var(--accent-soft)",
-                  color: "var(--accent)",
-                  display: "inline-grid",
-                  placeItems: "center",
-                  fontSize: 11,
-                  fontWeight: 600,
-                }}
-              >
-                {initial}
-              </span>
+              <AvatarCircle user={user} initial={initial} size={24} />
               <span style={{ fontSize: 13 }}>
                 {user?.name?.split(" ")[0] ?? "Account"}
               </span>
@@ -97,12 +134,11 @@ export function TopNav() {
             {menuOpen && (
               <div
                 role="menu"
-                onMouseLeave={() => setMenuOpen(false)}
                 style={{
                   position: "absolute",
                   top: "calc(100% + 6px)",
                   right: 0,
-                  minWidth: 200,
+                  minWidth: 240,
                   background: "var(--bg-1)",
                   border: "1px solid var(--border)",
                   borderRadius: "var(--radius)",
@@ -111,52 +147,240 @@ export function TopNav() {
                   zIndex: 50,
                 }}
               >
-                <div style={{ padding: "8px 10px 10px", borderBottom: "1px solid var(--border)", marginBottom: 4 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.2 }}>
-                    {user?.name ?? "Account"}
-                  </div>
-                  <div className="subtle" style={{ fontSize: 11, lineHeight: 1.2, marginTop: 2 }}>
-                    {user?.email}
+                <div
+                  style={{
+                    padding: "10px 12px 12px",
+                    borderBottom: "1px solid var(--border)",
+                    marginBottom: 4,
+                    display: "flex",
+                    gap: 10,
+                    alignItems: "center",
+                  }}
+                >
+                  <AvatarCircle user={user} initial={initial} size={32} />
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 500,
+                        lineHeight: 1.2,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {user?.name ?? "Account"}
+                    </div>
+                    <div
+                      className="subtle"
+                      style={{
+                        fontSize: 11,
+                        lineHeight: 1.2,
+                        marginTop: 2,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {user?.email}
+                    </div>
                   </div>
                 </div>
-                <Link href="/app/dashboard" role="menuitem" onClick={() => setMenuOpen(false)} style={menuItem}>
-                  Dashboard
+                <Link href="/app/dashboard" role="menuitem" style={menuItem}>
+                  <I.Layers size={14} /> Dashboard
                 </Link>
-                <Link href="/app/files" role="menuitem" onClick={() => setMenuOpen(false)} style={menuItem}>
-                  Files
+                <Link href="/app/files" role="menuitem" style={menuItem}>
+                  <I.File size={14} /> Files
                 </Link>
-                <Link href="/app/settings" role="menuitem" onClick={() => setMenuOpen(false)} style={menuItem}>
-                  Settings
+                <Link href="/app/billing" role="menuitem" style={menuItem}>
+                  <I.Receipt size={14} /> Billing &amp; credits
                 </Link>
+                <Link href="/app/settings" role="menuitem" style={menuItem}>
+                  <I.Settings size={14} /> Settings
+                </Link>
+                <div
+                  style={{
+                    height: 1,
+                    background: "var(--border)",
+                    margin: "4px 0",
+                  }}
+                  aria-hidden
+                />
                 <button
                   type="button"
                   role="menuitem"
                   onClick={() => signOut({ callbackUrl: "/" })}
-                  style={{ ...menuItem, background: "transparent", border: "none", width: "100%", textAlign: "left", cursor: "pointer" }}
+                  style={{
+                    ...menuItem,
+                    background: "transparent",
+                    border: "none",
+                    width: "100%",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    color: "var(--danger, #ef4444)",
+                  }}
                 >
-                  Sign out
+                  <I.LogOut size={14} /> Sign out
                 </button>
               </div>
             )}
           </div>
         ) : (
-          <>
+          <div className="auth-ctas">
             <Link href="/login" className="btn btn-sm btn-ghost">
               Log in
             </Link>
             <Link href="/register" className="btn btn-sm btn-primary">
               Get started
             </Link>
-          </>
+          </div>
         )}
+
+        <button
+          type="button"
+          className="topnav-hamburger btn btn-sm btn-ghost"
+          aria-label="Open menu"
+          aria-expanded={mobileOpen}
+          onClick={() => setMobileOpen((v) => !v)}
+        >
+          <I.Menu size={16} />
+        </button>
       </div>
+
+      {mobileOpen && (
+        <div ref={mobileRef} className="topnav-mobile">
+          <nav className="col" style={{ gap: 2 }}>
+            {NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={isActive(item.href) ? "active" : ""}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: "var(--radius)",
+                  fontSize: 14,
+                  color: item.accent ? "var(--accent)" : "var(--fg)",
+                  textDecoration: "none",
+                }}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          <div
+            style={{
+              borderTop: "1px solid var(--border)",
+              paddingTop: 12,
+              marginTop: 12,
+              display: "flex",
+              gap: 8,
+            }}
+          >
+            {loggedIn ? (
+              <>
+                <Link href="/app/dashboard" className="btn btn-sm btn-primary" style={{ flex: 1, justifyContent: "center" }}>
+                  Dashboard
+                </Link>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                  style={{ flex: 1, justifyContent: "center" }}
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="btn btn-sm btn-ghost" style={{ flex: 1, justifyContent: "center" }}>
+                  Log in
+                </Link>
+                <Link href="/register" className="btn btn-sm btn-primary" style={{ flex: 1, justifyContent: "center" }}>
+                  Get started
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        .topnav-links { display: none; }
+        .topnav-hamburger { display: inline-flex; }
+        .topnav-mobile {
+          position: absolute;
+          left: 12px;
+          right: 12px;
+          top: calc(100% + 6px);
+          background: var(--bg-1);
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
+          box-shadow: var(--shadow);
+          padding: 10px;
+          z-index: 40;
+        }
+        @media (min-width: 880px) {
+          .topnav-links { display: flex; gap: 14px; align-items: center; }
+          .topnav-hamburger { display: none; }
+          .topnav-mobile { display: none; }
+        }
+      `}</style>
     </header>
   );
 }
 
+function AvatarCircle({
+  user,
+  initial,
+  size,
+}: {
+  user: { image?: string | null; name?: string | null } | undefined;
+  initial: string;
+  size: number;
+}) {
+  if (user?.image) {
+    return (
+      <Image
+        src={user.image}
+        alt={user.name ?? "You"}
+        width={size}
+        height={size}
+        unoptimized
+        style={{
+          width: size,
+          height: size,
+          borderRadius: "50%",
+          objectFit: "cover",
+          flexShrink: 0,
+        }}
+      />
+    );
+  }
+  return (
+    <span
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        background: "var(--accent-soft)",
+        color: "var(--accent)",
+        display: "inline-grid",
+        placeItems: "center",
+        fontSize: Math.round(size * 0.45),
+        fontWeight: 600,
+        flexShrink: 0,
+      }}
+    >
+      {initial}
+    </span>
+  );
+}
+
 const menuItem: React.CSSProperties = {
-  display: "block",
-  padding: "8px 10px",
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  padding: "8px 12px",
   fontSize: 13,
   color: "var(--fg-muted)",
   textDecoration: "none",
