@@ -38,3 +38,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# cowork/claude session secrets — never commit
+.claude/secrets.env
+.claude/*.key
+.claude/*.pem
+.claude/id_ed25519*
+.claude/id_rsa*
+.claude/*.pub
+
+# Claude (Cowork) session state — secrets, SSH keys, scratch images
+.claude/
