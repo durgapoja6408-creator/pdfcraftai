@@ -26,13 +26,39 @@ import * as schema from "./schema";
 // frequently granted from `@127.0.0.1` only, but mysql2 resolves `localhost`
 // via Node's DNS which prefers `::1` (IPv6) on this host — producing
 // "Access denied for user '...'@'::1'" even when the password is correct.
-// Rewriting the URL at boot is durable across hPanel env-var edits.
+// We also parse the URI manually so percent-encoded characters in the
+// password (e.g. `%40` → `@`) are decoded properly — mysql2's built-in URI
+// parser leaves them literal, which produces spurious "Access denied" errors
+// for any password containing reserved URL characters.
 const rawConnectionString =
   process.env.MYSQL_URL ?? "mysql://build:build@127.0.0.1:3306/build";
-const connectionString = rawConnectionString.replace(
-  /@localhost(:\d+)?\//,
-  (_m, port) => `@127.0.0.1${port ?? ":3306"}/`
-);
+
+function parseMysqlUri(uri: string) {
+  // Expect shape: mysql://user:password@host:port/database
+  const m =
+    /^mysql:\/\/([^:@\/]+)(?::([^@]*))?@([^:\/]+)(?::(\d+))?\/([^?]+)/.exec(uri);
+  if (!m) {
+    return {
+      host: "127.0.0.1",
+      port: 3306,
+      user: "build",
+      password: "build",
+      database: "build",
+    };
+  }
+  const [, user, password = "", rawHost, port, database] = m;
+  // IPv4-loopback coercion — see header comment.
+  const host = rawHost === "localhost" ? "127.0.0.1" : rawHost;
+  return {
+    host,
+    port: port ? Number(port) : 3306,
+    user: decodeURIComponent(user),
+    password: decodeURIComponent(password),
+    database: decodeURIComponent(database),
+  };
+}
+
+const mysqlConfig = parseMysqlUri(rawConnectionString);
 
 declare global {
   // eslint-disable-next-line no-var
@@ -42,7 +68,7 @@ declare global {
 const pool =
   global.__pdfcraftMysqlPool ??
   mysql.createPool({
-    uri: connectionString,
+    ...mysqlConfig,
     connectionLimit: 10,
     waitForConnections: true,
     enableKeepAlive: true,
