@@ -166,6 +166,29 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    // Platform-level redirects. These are handled by Next BEFORE the app
+    // router runs, so the browser sees a proper 3xx + Location header even
+    // on direct HTTP hits (search engines, external links, bookmarks).
+    //
+    // We used to implement /signup → /register with a server component that
+    // called `redirect("/register")` from next/navigation. Next's static
+    // prerender cached that response as a 307 with NO Location header and
+    // an `<html id="__next_error__">` body — so in-app RSC nav worked, but
+    // `curl -L` and crawlers hit a dead 307. Moving the alias here fixes
+    // both paths with one entry.
+    //
+    // `permanent: false` (307) because /signup is a marketing-friendly
+    // alias we may want to reclaim later; 308 would let browsers cache the
+    // redirect forever.
+    return [
+      {
+        source: "/signup",
+        destination: "/register",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
