@@ -3,7 +3,7 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-04-20 (post rotate-and-reorder upgrade)
+**Last updated:** 2026-04-20 (post a11y-contrast-and-headings pass)
 
 ---
 
@@ -77,6 +77,10 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 - [x] **`docs/TEST_PLAN.md` created** — P0–P6 batches (auth, free tools, AI tools, authed app, marketing/SEO, error/edge cases, a11y/perf). (2026-04-20)
 - [x] **`docs/FEATURE_TRACKER.md` created** — Done / Partial / Pending matrix across marketing, auth, API, product, analytics, SEO, security. (2026-04-20)
 
+### Accessibility pass (Lighthouse-driven)
+
+- [x] **Lighthouse mobile audit run on home, /pricing, /tool/page-numbers, /tool/to-pdf, /tool/rotate.** Before scores (a11y): 93 / 94 / 96 / 96 / 96. Commit `aca48fb` shipped three fixes: (a) `--fg-subtle` bumped in `app/globals.css` from `oklch(0.55 0.01 260)` → `oklch(0.68 0.01 260)` in dark mode and `0.58` → `0.45` in light mode — resolved 48 color-contrast failures across all five audited pages (muted metadata, mono captions, pricing footnotes); (b) heading order on home (`components/landing/LandingSections.tsx:592`) promoted from `<h4>` → `<h3>` inside the Audience section after a sibling `<h2>`, and on `/pricing` (`app/pricing/page.tsx:83, 203`) the two top-level `<h3>` section headers (Monthly Plus hero, BYOK) promoted to `<h2>` to sit directly under the page `<h1>`; (c) the `POPULAR` chip on `/pricing` switched from `color:"white"` on `var(--accent)` (2.51 contrast, WCAG fail) to `var(--accent-fg)`. After re-audit: a11y **100** on all five pages. Home perf also moved 79 → 88. Verified live by grepping the production CSS bundle for the new `oklch` value. (2026-04-20)
+
 ### Stubs for follow-up email wiring
 
 - [x] **`/api/contact` route** — Zod-validated, in-memory rate-limited, logs submissions until SendGrid/Postmark lands. (2026-04-20)
@@ -99,7 +103,9 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ## Pending (Claude can do — pick these up first)
 
-- [ ] **(quality) Run a Lighthouse / accessibility pass** on home + a few tool pages, surface top-3 fixes.
+- [ ] **(quality) Home-page Performance is still 88.** Biggest outstanding levers (from the post-fix Lighthouse): LCP 2.8s and TBT 500–600ms. Likely culprits: GA4 + Clarity scripts loaded without `strategy="lazyOnload"` in `app/layout.tsx`, hero image not marked `priority` / correctly sized, and the landing-page client components. A focused perf session could probably clear 95+.
+- [ ] **(quality) Wire a `commit` env var on Hostinger** so `/api/health` returns the deployed SHA. Currently `commit:null`, which forces us to verify deploys by grepping CSS bundles instead of polling the health endpoint.
+- [ ] **(cleanup) Workspace has uncommitted `SmartCta` render-prop edits** in `app/pricing/page.tsx` and `components/landing/LandingSections.tsx` (a render-prop `children={(label) => ...}` pattern replacing the `iconAfter` prop). The a11y commit deliberately excluded these. Decide whether `SmartCta`'s API actually accepts children and ship — or revert the workspace copy.
 - [ ] **(SEO) Verify `metadata.openGraph` and `twitter` cards on key pages** — open `https://pdfcraftai.com` in Twitter/Facebook share validators.
 - [ ] **(monitoring) Wire Cloudflare origin health check at `/api/health`.** Endpoint is live (see Done above); this is just the last-mile step of pointing CF at it in the dashboard.
 
