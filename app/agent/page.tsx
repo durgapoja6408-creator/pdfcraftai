@@ -16,6 +16,8 @@ export const metadata: Metadata = {
     title: "Agent Mode · pdfcraft ai",
     description:
       "Describe the outcome. Agent plans the steps, shows the cost, and runs it end-to-end.",
+    url: "/agent",
+    type: "website",
   },
   twitter: {
     card: "summary_large_image",

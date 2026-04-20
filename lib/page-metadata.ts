@@ -52,6 +52,14 @@ export function pageMetadata(input: PageMetadataInput): Metadata {
     openGraph: {
       title: ogTitle,
       description: ogDescription,
+      // Set og:url whenever we have a canonical path. Without this,
+      // scrapers that rely on og:url (Slack, LinkedIn, some indexers)
+      // fall back to the request URL — which is fine for direct hits
+      // but drops query params / can disagree with our canonical. Also
+      // lets the helper drive og:type consistently ("website" is the
+      // right default for marketing + legal pages that call through
+      // this helper).
+      ...(input.canonical ? { url: input.canonical, type: "website" } : {}),
     },
     twitter: {
       card: "summary_large_image",
