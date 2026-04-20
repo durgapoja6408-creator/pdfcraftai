@@ -46,7 +46,9 @@
 **Critical unknowns still blocking:**
 1. `ANTHROPIC_API_KEY` not on Hostinger (task #72) — every AI call 503s today.
 2. Razorpay KYC in progress, PayPal business account not yet created (task #81).
-3. Six founder decisions open (see §4).
+3. **Nine** founder decisions open (see §4) — D1–D6 on pricing/margin + **D7–D9** on cost-guardrail thresholds.
+
+**Loss-bounding guarantees added 2026-04-20:** See `COST_GUARDRAILS.md`. A 500-page PDF × 10-turn Sonnet chat goes from −$7.23/session loss to either bounded positive margin or forced BYOK. Max per-turn cost is mathematically capped by Layer 1 (20k input-token gate).
 
 ---
 
@@ -81,7 +83,8 @@ Read these in dependency order:
 | 5 | [`docs/ai/MODELS_AND_MULTI_KEY.md`](./ai/MODELS_AND_MULTI_KEY.md) | Per-op routing matrix (which model handles which tool) | 28 KB |
 | 6 | [`docs/ai/BYOK_DECISION_MATRIX.md`](./ai/BYOK_DECISION_MATRIX.md) | 7-step decision flow for every request: platform key vs user key | 29 KB |
 | 7 | [`docs/ai/REVENUE_LEAK_AUDIT.md`](./ai/REVENUE_LEAK_AUDIT.md) | 28 ways money can leak + mitigations, mapped to phase | 47 KB |
-| 8 | [`docs/ai/architecture.md`](./ai/architecture.md) | Existing system design (pre-BYOK; still authoritative on adapters) | 90 KB |
+| 8 | [`docs/ai/COST_GUARDRAILS.md`](./ai/COST_GUARDRAILS.md) | Nine-layer defense against chat-whale + 100-page-PDF attacks — worked math, phase map, D7–D9 | 17 KB |
+| 9 | [`docs/ai/architecture.md`](./ai/architecture.md) | Existing system design (pre-BYOK; still authoritative on adapters) | 90 KB |
 
 ### 2.4 Verification / ops
 
@@ -139,7 +142,7 @@ Everything below is tested against one rule: **adding a new provider (payment or
 
 ## 4. Open decisions requiring founder sign-off
 
-These six are blocking the public pricing copy and the A2/A3 builds:
+These nine are blocking the public pricing copy and the A2/A3 builds:
 
 | # | Decision | Recommendation | Blocks |
 |---|---|---|---|
@@ -149,8 +152,11 @@ These six are blocking the public pricing copy and the A2/A3 builds:
 | D4 | Context-token cap on `chat_turn`? | **20k input tokens (~12 pages).** Larger → redirect to `summarize`. | Phase A2 |
 | D5 | Free-tier credit count + routing? | **10 credits, force Gemini Flash.** Reduces abuse cost 43×. | Phase A2 |
 | D6 | Public margin copy before A4 green? | **"Up to 88%" wording.** Revisit after 7 consecutive daily-rollup green days. | Pricing page deploy |
+| D7 | `MAX_CREDITS_PER_TURN` cap value? | **10 credits (= $0.50 revenue ceiling).** Covers Haiku 100k-token turn; bounds estimate-miss risk. | Phase A2 (Layer 5 reconciliation) |
+| D8 | Margin threshold that auto-flips user to BYOK-required? | **30%** — any user whose 24-hour spend exceeds 70% of their revenue gets moved to BYOK-only. Chronic whales stop costing the platform within 24 hours. | Phase A4 (Layer 7 circuit breaker) |
+| D9 | Trigger threshold for pre-send cost confirmation UI? | **≥ 2 credits** — silent for normal 1-credit turns, explicit confirmation for anything larger. | Phase A2 (Layer 4) |
 
-All six are tracked in task [#87](#) with individual action items.
+D1–D6 tracked in task [#87](#). D7–D9 added 2026-04-20 from `COST_GUARDRAILS.md` §8 — they gate Phase A2 Layer 1/3/5/7 implementation.
 
 ---
 
@@ -163,9 +169,9 @@ Assuming D1–D6 resolve this week and Razorpay KYC clears by 2026-04-25:
 | W0 (now — 04-20) | Planning complete | This doc + AI_API_MASTER_PLAN + PAYMENT_GATEWAY_PLAN + MARGIN_VERIFICATION — all committed |
 | W1 (04-21 — 04-27) | Payments Phase 0 + AI Phase A0 | KYC docs, legal pages, GSTIN, PayPal business; ANTHROPIC/OPENAI/GEMINI keys on Hostinger; `margin:` field + pricing copy fixed |
 | W2 (04-28 — 05-04) | Payments Phase 1 + AI Phase A1 | Webhook routes + checkout UI with per-pack processor policy; `ai_usage` table + `withCreditSpend`; spend-race fix |
-| W3 (05-05 — 05-11) | AI Phase A2 | Rate limits + body guards + **context-token cap** + **Gemini adapter** + **router.ts with cheap routing** |
+| W3 (05-05 — 05-11) | AI Phase A2 | Rate limits + body guards + **context-token cap (Layer 1)** + **Gemini adapter + router.ts (Layer 6)** + **dynamic credit multiplier (Layer 3)** + **pre-send confirmation UI (Layer 4)** + **post-hoc reconcile (Layer 5)** + **streaming early-stop (Layer 8)** + **doc-ops /summarize-document (Layer 10)** — see COST_GUARDRAILS.md |
 | W4 (05-12 — 05-17) | AI Phase A3 (BYOK) | `user_api_keys` table, `lib/ai/byok/keystore.ts`, `/app/api-keys` UI, Pro/Studio paths |
-| W5 (05-18 — 05-21) | AI Phase A4 | Daily margin rollup cron, `/admin/ai-spend` page, per-provider cost dashboard |
+| W5 (05-18 — 05-21) | AI Phase A4 | Daily margin rollup cron, `/admin/ai-spend` page, per-provider cost dashboard, **per-user margin circuit breaker (Layer 7)**, **provider invoice reconcile** |
 | W5+ | GA readiness | 7 consecutive green days on margin rollup before "up to" copy becomes flat claim |
 
 **Zero-leak bar:** hit when every row in §12 of AI_API_MASTER_PLAN.md's definition-of-done turns green. Planned for 2026-05-21.
@@ -211,6 +217,8 @@ Until all eight are green, the site is **not** ready to advertise the full margi
 
 | SHA | Title | Files |
 |---|---|---|
+| `8ee3a62` | docs(ai): cost guardrails — nine-layer defense against chat-whale + large-PDF attacks | COST_GUARDRAILS |
+| `5e0026c` | docs: consolidate all planning work into MASTER_PLAN.md front-door index | MASTER_PLAN |
 | `f4751af` | docs(ai): expand margin verification to 11 scenarios + wire gaps into master plan | AI_API_MASTER_PLAN, MARGIN_VERIFICATION, margin_scenarios.py |
 | `2264712` | docs(ai): verify claimed margins against provider + processor costs | MARGIN_VERIFICATION (initial) |
 | `24cf61c` | docs(ai): master plan for AI API + BYOK — zero-leak, portable, shippable | AI_API_MASTER_PLAN (initial) |
