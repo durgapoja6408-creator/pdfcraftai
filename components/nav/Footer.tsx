@@ -40,6 +40,9 @@ const COLS: Col[] = [
     links: [
       ["Privacy", "/privacy"],
       ["Terms", "/terms"],
+      ["Refund Policy", "/refund-policy"],
+      ["Cancellation", "/cancellation-policy"],
+      ["Shipping & Delivery", "/shipping-policy"],
       ["Security", "/security"],
       ["DPA", "/dpa"],
       ["GDPR", "/gdpr"],
@@ -64,6 +67,38 @@ export function Footer() {
           <p className="muted" style={{ fontSize: 13, maxWidth: 280 }}>
             Every PDF tool you need, free. Add credits for AI superpowers.
           </p>
+          <address
+            className="subtle"
+            style={{
+              fontSize: 12,
+              lineHeight: 1.55,
+              marginTop: 14,
+              fontStyle: "normal",
+              maxWidth: 280,
+            }}
+          >
+            Operated by Rajasekar Selvam
+            <br />
+            No. 311, 3rd Cross Street
+            <br />
+            Eswari Nagar, Chromepet
+            <br />
+            Chennai, Tamil Nadu 600044, India
+            <br />
+            <a
+              href="tel:+919498498011"
+              style={{ color: "inherit", textDecoration: "none" }}
+            >
+              +91 94984 98011
+            </a>
+            {" · "}
+            <a
+              href="mailto:support@pdfcraftai.com"
+              style={{ color: "inherit", textDecoration: "none" }}
+            >
+              support@pdfcraftai.com
+            </a>
+          </address>
         </div>
 
         {COLS.map((col) => (
@@ -92,7 +127,9 @@ export function Footer() {
         className="container-x row"
         style={{ justifyContent: "space-between", fontSize: 12, color: "var(--fg-subtle)" }}
       >
-        <span className="mono">© {new Date().getFullYear()} PDFCRAFT AI, INC.</span>
+        <span className="mono">
+          © {new Date().getFullYear()} pdfcraft ai · Operated by Rajasekar Selvam
+        </span>
         <span className="mono">Files deleted after 1h · End-to-end encrypted</span>
       </div>
     </footer>

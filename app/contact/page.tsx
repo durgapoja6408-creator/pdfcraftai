@@ -111,6 +111,50 @@ export default function ContactPage() {
               style={{
                 padding: 16,
                 marginTop: 16,
+                fontSize: 13,
+                lineHeight: 1.6,
+              }}
+            >
+              <div className="eyebrow" style={{ marginBottom: 10 }}>
+                REGISTERED OFFICE
+              </div>
+              <address style={{ fontStyle: "normal", fontSize: 13, lineHeight: 1.6 }}>
+                <div style={{ fontWeight: 500, marginBottom: 4 }}>
+                  pdfcraft ai
+                </div>
+                <div className="muted">
+                  Operated by Rajasekar Selvam
+                </div>
+                <div className="muted" style={{ marginTop: 6 }}>
+                  No. 311, 3rd Cross Street
+                  <br />
+                  Eswari Nagar, Chromepet
+                  <br />
+                  Chennai, Tamil Nadu 600044
+                  <br />
+                  India
+                </div>
+                <div style={{ marginTop: 10 }}>
+                  <a
+                    href="tel:+919498498011"
+                    className="mono"
+                    style={{
+                      color: "var(--accent)",
+                      textDecoration: "none",
+                      fontSize: 12,
+                    }}
+                  >
+                    +91 94984 98011
+                  </a>
+                </div>
+              </address>
+            </div>
+
+            <div
+              className="card"
+              style={{
+                padding: 16,
+                marginTop: 16,
                 background: "var(--bg-2)",
                 fontSize: 13,
                 lineHeight: 1.6,

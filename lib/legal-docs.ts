@@ -2,11 +2,23 @@
 // softened per Phase 1 decision:
 //   - "SOC 2 Type II certified (2025 audit by Prescient Assurance)"
 //     -> "SOC 2 Type II readiness in progress"
-//   - specific physical address removed
+//   - specific physical address removed from top-of-page disclaimers (still on /contact)
 //   - dpo@, privacy@, security@ collapsed to support@pdfcraftai.com
 //   - subprocessor list kept but marked as "current working draft"
+//
+// 2026-04-20 — refund-policy, cancellation-policy, shipping-policy added and
+// "Working draft" disclaimer banners removed from privacy + terms ahead of the
+// Razorpay payment-gateway application. Stripe reference swapped to a
+// vendor-agnostic phrasing until the gateway is live.
 
-export type LegalSlug = "privacy" | "terms" | "security" | "dpa";
+export type LegalSlug =
+  | "privacy"
+  | "terms"
+  | "security"
+  | "dpa"
+  | "refund-policy"
+  | "cancellation-policy"
+  | "shipping-policy";
 
 export type LegalSection = { h: string; p: string };
 
@@ -23,15 +35,13 @@ const SUPPORT_EMAIL = "support@pdfcraftai.com";
 export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = {
   privacy: {
     title: "Privacy Policy",
-    updated: "April 2, 2026",
+    updated: "April 20, 2026",
     intro:
       "We designed pdfcraft ai to do the least possible with your data. This policy tells you exactly what that means.",
-    disclaimer:
-      "Working draft. This policy is actively being reviewed. Please contact us if you rely on it for compliance.",
     sections: [
       {
         h: "What we collect",
-        p: "Account info (email, name, password hash), usage metadata (tool name, credits spent, timestamps), and billing info processed by Stripe. We do not store document contents after processing — see Retention.",
+        p: "Account info (email, name, password hash), usage metadata (tool name, credits spent, timestamps), and billing info processed by our payment gateway partner. We do not store document contents after processing — see Retention.",
       },
       {
         h: "Retention",
@@ -57,11 +67,9 @@ export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = {
   },
   terms: {
     title: "Terms of Service",
-    updated: "April 2, 2026",
+    updated: "April 20, 2026",
     intro:
       "Plain-English terms for using pdfcraft ai. If anything is unclear, ask support — we read every message.",
-    disclaimer:
-      "Working draft. This agreement is actively being reviewed. Use at your own discretion and contact us with questions.",
     sections: [
       {
         h: "Your account",
@@ -73,7 +81,11 @@ export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = {
       },
       {
         h: "Credits & billing",
-        p: `Credits are consumed as you use AI tools. Paid credits never expire. Bonus credits expire per the offer terms. Refunds available within 14 days for unused credit packs — email ${SUPPORT_EMAIL}.`,
+        p: `Credits are consumed as you use AI tools. Paid credits never expire. Bonus credits expire per the offer terms. Refunds for unused credit packs are available within 14 days — see the Refund Policy or email ${SUPPORT_EMAIL}.`,
+      },
+      {
+        h: "Cancellation",
+        p: "You can stop using pdfcraft ai at any time. Account deletion is self-serve from Settings. See the Cancellation Policy for details on subscriptions and credit packs.",
       },
       {
         h: "Service availability",
@@ -86,6 +98,10 @@ export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = {
       {
         h: "Limitation of liability",
         p: "To the maximum extent permitted by law, our liability is limited to the amount you paid us in the 12 months preceding the incident.",
+      },
+      {
+        h: "Governing law",
+        p: "These terms are governed by the laws of India. Disputes will be resolved in the courts of Chennai, Tamil Nadu.",
       },
     ],
   },
@@ -157,6 +173,110 @@ export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = {
       },
     ],
   },
+  "refund-policy": {
+    title: "Refund Policy",
+    updated: "April 20, 2026",
+    intro:
+      "We want you to be happy with pdfcraft ai. This page explains exactly when and how refunds work.",
+    sections: [
+      {
+        h: "Credit packs",
+        p: "Credit packs are one-time purchases. You can request a refund for any unused credits within 14 days of purchase. Credits that have already been consumed on AI tool runs are not refundable.",
+      },
+      {
+        h: "Bonus credits",
+        p: "Promotional or bonus credits granted for free are not eligible for refund. Only credits you paid for are refundable.",
+      },
+      {
+        h: "How to request a refund",
+        p: `Email ${SUPPORT_EMAIL} from the address associated with your account. Include the order reference or transaction ID from your receipt. Most refund requests are processed within 2 business days.`,
+      },
+      {
+        h: "How refunds are returned",
+        p: "Refunds are issued to the original payment method used for the purchase. Depending on your bank or card issuer, the money typically appears in your account within 5–10 business days after we process the refund.",
+      },
+      {
+        h: "Failed or duplicate payments",
+        p: `If you were charged but no credits appeared in your account, or if you see a duplicate charge, email ${SUPPORT_EMAIL} with the transaction ID. Duplicate or failed-transaction refunds are processed on priority, typically within 1 business day.`,
+      },
+      {
+        h: "Chargebacks",
+        p: "If you believe a charge is incorrect, please contact us before filing a chargeback with your bank. We resolve almost all billing questions within 1 business day and would rather sort it out with you directly.",
+      },
+      {
+        h: "Contact",
+        p: `Refund questions: ${SUPPORT_EMAIL}. Reply within 1 business day.`,
+      },
+    ],
+  },
+  "cancellation-policy": {
+    title: "Cancellation Policy",
+    updated: "April 20, 2026",
+    intro:
+      "You can stop using pdfcraft ai at any time. This page covers how cancellation works for credit packs, subscriptions, and accounts.",
+    sections: [
+      {
+        h: "Credit packs",
+        p: "Credit packs are one-time purchases — there is nothing to cancel on an ongoing basis. You simply stop using the service. Unused paid credits are refundable within 14 days of purchase per our Refund Policy.",
+      },
+      {
+        h: "Subscriptions (Plus plan)",
+        p: "You can cancel your subscription at any time from Settings → Billing. Cancellation takes effect at the end of your current billing period — you keep access until then. We do not pro-rate mid-period cancellations, but we do honor refund requests in good faith within the first 14 days of a new subscription.",
+      },
+      {
+        h: "Account deletion",
+        p: "You can delete your account instantly from Settings. Deletion is permanent and removes your files, usage history, and any remaining credits. If you have unused paid credits and want them refunded, request the refund before deleting the account.",
+      },
+      {
+        h: "Cancellation by us",
+        p: "We reserve the right to suspend or terminate accounts that violate our Terms (abuse, fraud, illegal use). In those cases we will notify you at the email on file and, where appropriate, refund any unused paid credits.",
+      },
+      {
+        h: "Contact",
+        p: `Cancellation questions: ${SUPPORT_EMAIL}.`,
+      },
+    ],
+  },
+  "shipping-policy": {
+    title: "Shipping & Delivery Policy",
+    updated: "April 20, 2026",
+    intro:
+      "pdfcraft ai is a digital service. There is nothing physical to ship — but here is exactly how delivery works.",
+    sections: [
+      {
+        h: "Digital service — no physical shipment",
+        p: "pdfcraft ai is a software-as-a-service product delivered entirely over the internet. No physical goods are shipped to you at any time. The \"shipping\" terminology on this page is used only because payment regulators require it for every merchant website.",
+      },
+      {
+        h: "Credit delivery timeline",
+        p: "Credits are added to your account balance instantly after a successful payment — typically within 30 seconds. You will see the updated balance in Settings → Billing and receive an email receipt at the address on your account.",
+      },
+      {
+        h: "If credits do not appear",
+        p: `If credits do not appear within 15 minutes of a successful payment, email ${SUPPORT_EMAIL} with your transaction ID. We will investigate and either credit your account or issue a refund within 1 business day.`,
+      },
+      {
+        h: "Service availability",
+        p: "We target 99.9% uptime. Planned maintenance is announced at our status page. Unplanned outages are disclosed promptly; any credits or subscription time lost to prolonged outages will be restored or refunded in good faith.",
+      },
+      {
+        h: "Geographic availability",
+        p: "pdfcraft ai is available globally over the public internet. Some AI features may be unavailable in jurisdictions where the underlying model providers restrict access; where that is the case, we do not charge for the restricted feature.",
+      },
+      {
+        h: "Contact",
+        p: `Delivery questions: ${SUPPORT_EMAIL}.`,
+      },
+    ],
+  },
 };
 
-export const LEGAL_SLUGS: LegalSlug[] = ["privacy", "terms", "security", "dpa"];
+export const LEGAL_SLUGS: LegalSlug[] = [
+  "privacy",
+  "terms",
+  "refund-policy",
+  "cancellation-policy",
+  "shipping-policy",
+  "security",
+  "dpa",
+];
