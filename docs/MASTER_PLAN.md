@@ -252,6 +252,8 @@ Until all eight are green, the site is **not** ready to advertise the full margi
 
 | SHA | Title | Files |
 |---|---|---|
+| `89e9775` | docs: Phase 0 foundation — MoR eval + geo policy + India tax & GST | MOR_EVALUATION, GEO_LAUNCH_POLICY, india/TAX_MODEL, india/GST_SETUP, MASTER_PLAN, STATUS |
+| `b1c2bce` | docs: master plan v3 — integrate PLAN_GAP_ANALYSIS + 3 new decisions D10-D12 | MASTER_PLAN |
 | `d5ca52a` | docs: add PLAN_GAP_ANALYSIS.md — 42-gap deep audit across all 3 tiers | PLAN_GAP_ANALYSIS |
 | `f569c3c` | docs: update MASTER_PLAN.md to v2 — integrate COST_GUARDRAILS refs + D7–D9 | MASTER_PLAN |
 | `8ee3a62` | docs(ai): cost guardrails — nine-layer defense against chat-whale + large-PDF attacks | COST_GUARDRAILS |
