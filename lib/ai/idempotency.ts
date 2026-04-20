@@ -33,7 +33,17 @@ import { db, schema } from "@/db/client";
 export type StoredAiOutput = {
   fileId: string;
   fileName: string;
-  kind: "summary" | "translation" | "ocr" | "comparison";
+  kind:
+    | "summary"
+    | "translation"
+    | "ocr"
+    | "comparison"
+    // Phase 5.6 — five new AI tools.
+    | "rewrite"
+    | "table"
+    | "redaction"
+    | "generation"
+    | "signing";
   contentMd: string;
   /** Free-form per-op meta blob; callers cast to their op-specific type. */
   meta: Record<string, unknown> | null;

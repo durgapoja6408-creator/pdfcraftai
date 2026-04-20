@@ -96,7 +96,13 @@ export type AIOperationId =
   | "summarize"
   | "translate"
   | "ocr"
-  | "compare";
+  | "compare"
+  // Phase 5.6 — five new AI tools.
+  | "rewrite"
+  | "table"
+  | "redact"
+  | "generate"
+  | "sign";
 
 /**
  * Flat per-operation credit cost. Single number, no metered variant —
@@ -123,6 +129,17 @@ export const AI_OPERATION_COSTS: Record<AIOperationId, number> = {
   // bounded by a combined-char budget on the input side and a single
   // structured prompt on the output side — independent of page count.
   compare: 15,
+  // Phase 5.6 — flat per-doc costs to match the registry's user-facing
+  // labels. ai-rewrite/ai-redact charge per-doc (not per-page) for v1
+  // simplicity; the metered "~3/page" / "~2/page" UI strings in
+  // lib/tools.ts are aspirational. We can switch to multiplier-based
+  // metering by calling spendCredits({ multiplier: pageCount }) once we
+  // have a pricing committee.
+  rewrite: 3,
+  table: 3,
+  redact: 5,
+  generate: 20,
+  sign: 10,
 };
 
 export const PRICING_FAQ: ReadonlyArray<{ q: string; a: string }> = [

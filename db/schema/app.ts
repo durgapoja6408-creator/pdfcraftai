@@ -415,7 +415,18 @@ export const aiOutputs = mysqlTable(
     fileId: varchar("file_id", { length: 36 })
       .primaryKey()
       .references(() => files.id, { onDelete: "cascade" }),
-    kind: mysqlEnum("kind", ["summary", "translation", "ocr", "comparison"]).notNull(),
+    kind: mysqlEnum("kind", [
+      "summary",
+      "translation",
+      "ocr",
+      "comparison",
+      // Phase 5.6 — five new AI tools. Migration: 0003_extend_ai_output_kinds.sql
+      "rewrite",
+      "table",
+      "redaction",
+      "generation",
+      "signing",
+    ]).notNull(),
     // Rendered markdown. `mediumtext` = 16MB, chosen in Phase 5.2 when
     // chunked translation shipped — translated output can be up to 1.5×
     // the source, and a 600k-char source can exceed the 64KB `text`
