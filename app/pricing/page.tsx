@@ -18,6 +18,11 @@ export const metadata: Metadata = {
     url: "/pricing",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Pricing — pdfcraft ai",
+    description: "Free PDF tools forever. AI tools pay-as-you-go from $5.",
+  },
 };
 
 export default function PricingPage() {

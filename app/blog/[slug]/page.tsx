@@ -28,6 +28,11 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
       publishedTime: post.iso,
       authors: [post.author.name],
     },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.excerpt,
+    },
   };
 }
 

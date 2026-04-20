@@ -30,7 +30,7 @@ export function generateMetadata({ params }: Params): Metadata {
       siteName: "pdfcraft ai",
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: article.title,
       description: article.summary,
     },

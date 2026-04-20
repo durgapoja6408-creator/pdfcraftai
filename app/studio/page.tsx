@@ -16,6 +16,11 @@ export const metadata: Metadata = {
     title: "Workflow Studio · pdfcraft ai",
     description: "Design multi-tool PDF macros visually. Drag, connect, run.",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Workflow Studio · pdfcraft ai",
+    description: "Design multi-tool PDF macros visually. Drag, connect, run.",
+  },
   alternates: { canonical: "/studio" },
 };
 

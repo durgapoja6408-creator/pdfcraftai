@@ -1,14 +1,14 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingHero } from "@/components/marketing/MarketingHero";
 import { I } from "@/components/icons/Icons";
+import { pageMetadata } from "@/lib/page-metadata";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: "About pdfcraft ai",
   description:
     "Why we built pdfcraft ai: every PDF tool you need in one place, free forever for the basics, pay-as-you-go for AI.",
-  alternates: { canonical: "/about" },
-};
+  canonical: "/about",
+});
 
 const VALUES: Array<{ icon: keyof typeof I; title: string; body: string }> = [
   {

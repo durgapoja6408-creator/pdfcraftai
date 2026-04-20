@@ -1,14 +1,14 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingHero } from "@/components/marketing/MarketingHero";
 import { I } from "@/components/icons/Icons";
+import { pageMetadata } from "@/lib/page-metadata";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: "Changelog — pdfcraft ai",
   description:
     "Every shipped change to pdfcraft ai. New tools, performance wins, security improvements, and bug fixes — sorted newest first.",
-  alternates: { canonical: "/changelog" },
-};
+  canonical: "/changelog",
+});
 
 type Tag = "NEW" | "IMPROVED" | "FIXED" | "SECURITY";
 

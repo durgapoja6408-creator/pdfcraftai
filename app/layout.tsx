@@ -17,16 +17,29 @@ export const metadata: Metadata = {
   },
   description:
     "Merge, split, convert, compress — always free. Chat, summarize, translate, redact with AI — pay only for what you use.",
+  // openGraph.title + twitter.title use the same `{ default, template }`
+  // shape as the root title. Next.js applies the template when a child
+  // page sets `title: "About"` so og:title / twitter:title resolve to
+  // "About · pdfcraft ai" without every page needing to repeat itself.
+  // Pages can still fully override openGraph / twitter when they need
+  // a bespoke share card (hero images, long-form descriptions, etc.).
+  // Fixes SEV-2 from the 2026-04-20 production readiness audit.
   openGraph: {
     type: "website",
     siteName: "pdfcraft ai",
-    title: "pdfcraft ai — Every PDF tool you need",
+    title: {
+      default: "pdfcraft ai — Every PDF tool you need",
+      template: "%s · pdfcraft ai",
+    },
     description:
       "Every PDF tool you need. Plus the ones you didn't know existed.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "pdfcraft ai",
+    title: {
+      default: "pdfcraft ai — Every PDF tool you need",
+      template: "%s · pdfcraft ai",
+    },
     description: "Every PDF tool you need. Plus the ones you didn't know existed.",
   },
   icons: {

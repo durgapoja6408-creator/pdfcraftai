@@ -15,6 +15,11 @@ export const metadata: Metadata = {
     url: "/help",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Help center — pdfcraft ai",
+    description: "Answers, guides, and troubleshooting for pdfcraft ai.",
+  },
 };
 
 export default function HelpPage() {

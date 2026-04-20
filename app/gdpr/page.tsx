@@ -1,14 +1,14 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingHero } from "@/components/marketing/MarketingHero";
 import { I } from "@/components/icons/Icons";
+import { pageMetadata } from "@/lib/page-metadata";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: "GDPR — pdfcraft ai",
   description:
     "How pdfcraft ai handles GDPR: legal basis, data categories, retention, sub-processors, your rights as a data subject, and how to exercise them.",
-  alternates: { canonical: "/gdpr" },
-};
+  canonical: "/gdpr",
+});
 
 const RIGHTS: Array<{ icon: keyof typeof I; title: string; body: string }> = [
   {

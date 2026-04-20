@@ -1,14 +1,14 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingHero } from "@/components/marketing/MarketingHero";
 import { I } from "@/components/icons/Icons";
+import { pageMetadata } from "@/lib/page-metadata";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: "Bulk processing — process 1,000 files in one drop",
   description:
     "Drop a zip, a folder, or a glob. pdfcraft ai fans the job out in parallel and hands you a manifest when it&apos;s done.",
-  alternates: { canonical: "/bulk" },
-};
+  canonical: "/bulk",
+});
 
 const CAPABILITIES: Array<{ icon: keyof typeof I; title: string; body: string }> = [
   {

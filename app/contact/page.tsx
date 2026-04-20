@@ -1,15 +1,15 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingHero } from "@/components/marketing/MarketingHero";
 import { ContactForm } from "@/components/marketing/ContactForm";
 import { I } from "@/components/icons/Icons";
+import { pageMetadata } from "@/lib/page-metadata";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: "Contact pdfcraft ai",
   description:
     "Reach support, sales, security, or the press team. We reply within one business day.",
-  alternates: { canonical: "/contact" },
-};
+  canonical: "/contact",
+});
 
 const CHANNELS: Array<{ icon: keyof typeof I; title: string; email: string; sla: string }> = [
   { icon: "Help", title: "Support", email: "support@pdfcraftai.com", sla: "within 24h" },

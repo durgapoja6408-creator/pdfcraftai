@@ -14,6 +14,11 @@ export const metadata: Metadata = {
     url: "/tools",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "All tools — pdfcraft ai",
+    description: "Every PDF tool you need. 8 free forever, 10 AI-powered.",
+  },
 };
 
 export default function ToolsPage() {

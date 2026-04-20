@@ -17,6 +17,12 @@ export const metadata: Metadata = {
     description:
       "Describe the outcome. Agent plans the steps, shows the cost, and runs it end-to-end.",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Agent Mode · pdfcraft ai",
+    description:
+      "Describe the outcome. Agent plans the steps, shows the cost, and runs it end-to-end.",
+  },
   alternates: { canonical: "/agent" },
 };
 

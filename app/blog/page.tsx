@@ -9,6 +9,7 @@ export const metadata: Metadata = {
     "Field notes from the PDF factory. Product updates, guides, engineering deep-dives, and security thinking from the pdfcraft ai team.",
   alternates: { canonical: "/blog" },
   openGraph: { title: "Blog — pdfcraft ai", description: "Field notes from the PDF factory.", url: "/blog", type: "website" },
+  twitter: { card: "summary_large_image", title: "Blog — pdfcraft ai", description: "Field notes from the PDF factory." },
 };
 
 export default function BlogPage() {

@@ -63,10 +63,22 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: Params): Metadata {
   const tool = toolById(params.id);
   if (!tool) return { title: "Tool not found — pdfcraft ai" };
+  const title = `${tool.name} — pdfcraft ai`;
   return {
-    title: `${tool.name} — pdfcraft ai`,
+    title,
     description: tool.desc,
     alternates: { canonical: `/tool/${tool.id}` },
+    openGraph: {
+      title,
+      description: tool.desc,
+      url: `/tool/${tool.id}`,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: tool.desc,
+    },
   };
 }
 

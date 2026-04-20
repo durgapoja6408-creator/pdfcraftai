@@ -14,6 +14,11 @@ export const metadata: Metadata = {
     url: "/dpa",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: `${doc.title} — pdfcraft ai`,
+    description: doc.intro,
+  },
 };
 
 export default function Page() {

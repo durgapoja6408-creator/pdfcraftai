@@ -4,17 +4,17 @@
 // localStorage). The marketing feature grid + CTA remain as secondary sections
 // under the library for visitors who haven't scrolled through the home page.
 
-import type { Metadata } from "next";
 import Link from "next/link";
 import { I } from "@/components/icons/Icons";
 import { MacroLibrary } from "@/components/workflow/MacroLibrary";
+import { pageMetadata } from "@/lib/page-metadata";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: "Macros — record once, replay forever",
   description:
     "Record a multi-step PDF workflow once, then replay it on any folder. Share with your team, schedule it, or trigger it from the API.",
-  alternates: { canonical: "/macros" },
-};
+  canonical: "/macros",
+});
 
 const FEATURES: Array<{ icon: keyof typeof I; title: string; body: string }> = [
   {

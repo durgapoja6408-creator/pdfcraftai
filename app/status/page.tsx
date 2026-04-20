@@ -1,14 +1,14 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingHero } from "@/components/marketing/MarketingHero";
 import { I } from "@/components/icons/Icons";
+import { pageMetadata } from "@/lib/page-metadata";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: "Status — pdfcraft ai",
   description:
     "Live service status for pdfcraft ai. Web app, API, file processing, and AI features — updated in real time when something goes wrong.",
-  alternates: { canonical: "/status" },
-};
+  canonical: "/status",
+});
 
 type Health = "operational" | "degraded" | "down";
 
