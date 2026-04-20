@@ -16,14 +16,14 @@ export function generateStaticParams() {
 
 export function generateMetadata({ params }: Params): Metadata {
   const found = findHelpArticle(params.slug);
-  if (!found) return { title: "Article not found — pdfcraft ai" };
+  if (!found) return { title: "Article not found" };
   const { article, topic } = found;
   return {
-    title: `${article.title} — pdfcraft ai help`,
+    title: `${article.title} — help`,
     description: article.summary,
     alternates: { canonical: `/help/${article.slug}` },
     openGraph: {
-      title: `${article.title} — pdfcraft ai help`,
+      title: `${article.title} — help`,
       description: article.summary,
       url: `/help/${article.slug}`,
       type: "article",

@@ -4,7 +4,7 @@ import { I } from "@/components/icons/Icons";
 import { pageMetadata } from "@/lib/page-metadata";
 
 export const metadata = pageMetadata({
-  title: "Careers — pdfcraft ai",
+  title: "Careers",
   description:
     "Small team, distributed, shipping fast. See open roles or send us your story if you don't see a fit — we'll still read it.",
   canonical: "/careers",

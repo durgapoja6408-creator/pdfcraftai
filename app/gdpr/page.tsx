@@ -4,7 +4,7 @@ import { I } from "@/components/icons/Icons";
 import { pageMetadata } from "@/lib/page-metadata";
 
 export const metadata = pageMetadata({
-  title: "GDPR — pdfcraft ai",
+  title: "GDPR",
   description:
     "How pdfcraft ai handles GDPR: legal basis, data categories, retention, sub-processors, your rights as a data subject, and how to exercise them.",
   canonical: "/gdpr",

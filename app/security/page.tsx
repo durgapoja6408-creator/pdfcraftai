@@ -5,18 +5,18 @@ import { LEGAL_DOCS } from "@/lib/legal-docs";
 const doc = LEGAL_DOCS.security;
 
 export const metadata: Metadata = {
-  title: `${doc.title} — pdfcraft ai`,
+  title: doc.title,
   description: doc.intro,
   alternates: { canonical: "/security" },
   openGraph: {
-    title: `${doc.title} — pdfcraft ai`,
+    title: doc.title,
     description: doc.intro,
     url: "/security",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${doc.title} — pdfcraft ai`,
+    title: doc.title,
     description: doc.intro,
   },
 };

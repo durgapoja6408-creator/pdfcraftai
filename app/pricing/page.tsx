@@ -8,19 +8,19 @@ import { CREDIT_PACKS, PRICING_FAQ } from "@/lib/pricing";
 import { TOOLS } from "@/lib/tools";
 
 export const metadata: Metadata = {
-  title: "Pricing — pdfcraft ai",
+  title: "Pricing",
   description:
     "Credits, not commitments. 8 free PDF tools forever. AI tools from $5/100 credits. Paid credits never expire.",
   alternates: { canonical: "/pricing" },
   openGraph: {
-    title: "Pricing — pdfcraft ai",
+    title: "Pricing",
     description: "Free PDF tools forever. AI tools pay-as-you-go from $5.",
     url: "/pricing",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Pricing — pdfcraft ai",
+    title: "Pricing",
     description: "Free PDF tools forever. AI tools pay-as-you-go from $5.",
   },
 };

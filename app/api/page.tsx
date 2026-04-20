@@ -15,12 +15,12 @@ import {
 } from "@/lib/api-endpoints";
 
 export const metadata: Metadata = {
-  title: "API reference — pdfcraft ai",
+  title: "API reference",
   description:
     "REST endpoints, typed SDKs, webhooks, rate limits, and error codes. Build with PDFs like you build with Stripe.",
   alternates: { canonical: "/api" },
   openGraph: {
-    title: "API reference — pdfcraft ai",
+    title: "API reference",
     description:
       "REST endpoints, typed SDKs, webhooks, rate limits, and error codes for pdfcraft ai.",
     url: "/api",
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     // route shipping `summary` — standardising it avoids a jarring smaller
     // card when someone shares the API reference on Twitter/X.
     card: "summary_large_image",
-    title: "API reference — pdfcraft ai",
+    title: "API reference",
     description: "REST endpoints, typed SDKs, webhooks, rate limits, and error codes.",
   },
 };

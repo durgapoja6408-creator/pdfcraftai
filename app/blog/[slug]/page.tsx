@@ -13,11 +13,11 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const post = postBySlug(params.slug);
   if (!post) {
-    return { title: "Post not found — pdfcraft ai" };
+    return { title: "Post not found" };
   }
   const url = `/blog/${post.slug}`;
   return {
-    title: `${post.title} — pdfcraft ai`,
+    title: post.title,
     description: post.excerpt,
     alternates: { canonical: url },
     openGraph: {

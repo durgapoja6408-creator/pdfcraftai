@@ -5,19 +5,19 @@ import { HelpSearch } from "@/components/marketing/HelpSearch";
 import { HELP_TOPICS } from "@/lib/help-topics";
 
 export const metadata: Metadata = {
-  title: "Help center — pdfcraft ai",
+  title: "Help center",
   description:
     "Answers, guides, and troubleshooting for pdfcraft ai. Search articles or browse topics.",
   alternates: { canonical: "/help" },
   openGraph: {
-    title: "Help center — pdfcraft ai",
+    title: "Help center",
     description: "Answers, guides, and troubleshooting for pdfcraft ai.",
     url: "/help",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Help center — pdfcraft ai",
+    title: "Help center",
     description: "Answers, guides, and troubleshooting for pdfcraft ai.",
   },
 };

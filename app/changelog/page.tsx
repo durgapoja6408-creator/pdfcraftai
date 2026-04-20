@@ -4,7 +4,7 @@ import { I } from "@/components/icons/Icons";
 import { pageMetadata } from "@/lib/page-metadata";
 
 export const metadata = pageMetadata({
-  title: "Changelog — pdfcraft ai",
+  title: "Changelog",
   description:
     "Every shipped change to pdfcraft ai. New tools, performance wins, security improvements, and bug fixes — sorted newest first.",
   canonical: "/changelog",

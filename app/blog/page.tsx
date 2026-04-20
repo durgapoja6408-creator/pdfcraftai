@@ -4,12 +4,12 @@ import { I } from "@/components/icons/Icons";
 import { BLOG_POSTS } from "@/lib/blog-posts";
 
 export const metadata: Metadata = {
-  title: "Blog — pdfcraft ai",
+  title: "Blog",
   description:
     "Field notes from the PDF factory. Product updates, guides, engineering deep-dives, and security thinking from the pdfcraft ai team.",
   alternates: { canonical: "/blog" },
-  openGraph: { title: "Blog — pdfcraft ai", description: "Field notes from the PDF factory.", url: "/blog", type: "website" },
-  twitter: { card: "summary_large_image", title: "Blog — pdfcraft ai", description: "Field notes from the PDF factory." },
+  openGraph: { title: "Blog", description: "Field notes from the PDF factory.", url: "/blog", type: "website" },
+  twitter: { card: "summary_large_image", title: "Blog", description: "Field notes from the PDF factory." },
 };
 
 export default function BlogPage() {

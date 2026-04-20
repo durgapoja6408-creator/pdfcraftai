@@ -4,19 +4,19 @@ import { I } from "@/components/icons/Icons";
 import { ToolFilter } from "@/components/marketing/ToolFilter";
 
 export const metadata: Metadata = {
-  title: "All tools — pdfcraft ai",
+  title: "All tools",
   description:
     "Every PDF tool you need — 8 free forever, 10 AI-powered. Merge, split, compress, convert, chat, summarize, translate, redact.",
   alternates: { canonical: "/tools" },
   openGraph: {
-    title: "All tools — pdfcraft ai",
+    title: "All tools",
     description: "Every PDF tool you need. 8 free forever, 10 AI-powered.",
     url: "/tools",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "All tools — pdfcraft ai",
+    title: "All tools",
     description: "Every PDF tool you need. 8 free forever, 10 AI-powered.",
   },
 };

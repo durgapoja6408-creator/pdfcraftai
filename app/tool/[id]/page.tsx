@@ -62,8 +62,8 @@ export function generateStaticParams() {
 
 export function generateMetadata({ params }: Params): Metadata {
   const tool = toolById(params.id);
-  if (!tool) return { title: "Tool not found — pdfcraft ai" };
-  const title = `${tool.name} — pdfcraft ai`;
+  if (!tool) return { title: "Tool not found" };
+  const title = tool.name;
   return {
     title,
     description: tool.desc,
