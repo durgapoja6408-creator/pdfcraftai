@@ -3,7 +3,7 @@
 _Structured matrix of every feature area in the product: what's Done, what's Partial, what's Pending._
 _Pair this with `STATUS.md` (operational punch list) — this file answers "does the site have X?", STATUS answers "who owns the next step on X?"._
 
-**Last updated:** 2026-04-20 (post password-reset redemption flow)
+**Last updated:** 2026-04-20 (post password-reset redemption + /tool/protect)
 
 ---
 
@@ -74,7 +74,7 @@ _Pair this with `STATUS.md` (operational punch list) — this file answers "does
 | Free tool: Rotate & Reorder | `/tool/rotate` | Done | True three-op runner: per-page rotate (with bulk row), reorder via up/down arrows (with reverse-all bulk), per-page delete. Tracks edits as a delta from source so "Undo all edits" rebuilds cleanly. Output filename suffixed `-rotated` / `-reordered` / `-edited` based on what changed. (2026-04-20 second pass) |
 | Free tool: Page Numbers + Watermark | `/tool/page-numbers` | Done | Two modes in one runner: numbered overlay (4 formats × 6 positions) + diagonal watermark (adjustable opacity/size). Client-side pdf-lib + StandardFonts. Shipped 2026-04-20. |
 | Free tool: Image → PDF | `/tool/to-pdf` | Done | JPG + PNG (≤20 MB each), 3 layout modes (fit/Letter/A4), adjustable margin, multi-file reorder. Shipped 2026-04-20. |
-| Free tool: Protect / Unlock | `/tool/protect` | Pending | Needs client-side crypto wiring. |
+| Free tool: Protect / Unlock | `/tool/protect` | Done | Two modes in one runner: **Protect** (set user password + optional owner password + per-permission grid: print/copy/edit/annotate) and **Unlock** (provide current password, strip encryption). Auto-detects whether the dropped file is already encrypted and nudges mode. Built on `@cantoo/pdf-lib` (maintained pdf-lib fork that adds RC4/AES PDF encryption); dynamic-imported only on this runner so the rest of the tool bundles aren't impacted. Fully client-side — passwords never leave the browser. Shipped 2026-04-20. |
 | Free tool: PDF → Office | `/tool/pdf-to-office` | Pending | Needs LibreOffice conversion worker. |
 | Free tool: Word → PDF | `/tool/to-pdf` (Word-branch) | Pending | Image branch shipped; Word needs server-side pipeline. |
 | Free tools (other WASM) | `/tool/...` | Partial | Reorder + delete now folded into `/tool/rotate` (see Rotate & Reorder above). Extract / crop / single-page deletion as a standalone tool still pending. |

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { LoginForm } from "@/components/auth/LoginForm";
 
@@ -25,7 +26,12 @@ export default function LoginPage() {
         </>
       }
     >
-      <LoginForm />
+      {/* LoginForm calls useSearchParams() to read ?reset=1 flash, which
+          Next 14 requires be wrapped in Suspense so static prerender can
+          bail out cleanly. */}
+      <Suspense fallback={null}>
+        <LoginForm />
+      </Suspense>
     </AuthShell>
   );
 }
