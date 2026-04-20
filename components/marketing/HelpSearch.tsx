@@ -1,10 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { I } from "@/components/icons/Icons";
-import { HELP_TOPICS } from "@/lib/help-topics";
+import { ALL_HELP_ARTICLES } from "@/lib/help-topics";
 
-type Match = { topic: string; article: string };
+type Match = {
+  topicName: string;
+  articleTitle: string;
+  articleSummary: string;
+  href: string;
+};
 
 export function HelpSearch() {
   const [q, setQ] = useState("");
@@ -13,12 +19,24 @@ export function HelpSearch() {
     if (!q.trim()) return [];
     const qq = q.toLowerCase();
     const out: Match[] = [];
-    for (const topic of HELP_TOPICS) {
-      for (const art of topic.arts) {
-        if (art.toLowerCase().includes(qq)) {
-          out.push({ topic: topic.name, article: art });
-          if (out.length >= 6) return out;
-        }
+    for (const { topic, article } of ALL_HELP_ARTICLES) {
+      const haystack = (
+        article.title +
+        " " +
+        article.summary +
+        " " +
+        article.body.join(" ") +
+        " " +
+        topic.name
+      ).toLowerCase();
+      if (haystack.includes(qq)) {
+        out.push({
+          topicName: topic.name,
+          articleTitle: article.title,
+          articleSummary: article.summary,
+          href: `/help/${article.slug}`,
+        });
+        if (out.length >= 6) return out;
       }
     }
     return out;
@@ -65,25 +83,39 @@ export function HelpSearch() {
             padding: 8,
             zIndex: 20,
             background: "var(--bg-1)",
+            textAlign: "left",
           }}
         >
           {matches.map((m, i) => (
-            <div
-              key={`${m.topic}-${m.article}-${i}`}
+            <Link
+              key={`${m.topicName}-${m.articleTitle}-${i}`}
+              href={m.href}
               className="row"
               style={{
                 justifyContent: "space-between",
                 padding: "10px 12px",
                 borderRadius: 8,
-                cursor: "pointer",
+                textDecoration: "none",
+                color: "inherit",
+                gap: 12,
               }}
             >
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 500 }}>{m.article}</div>
-                <div className="muted" style={{ fontSize: 12 }}>{m.topic}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 500 }}>{m.articleTitle}</div>
+                <div
+                  className="muted"
+                  style={{
+                    fontSize: 12,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {m.topicName} · {m.articleSummary}
+                </div>
               </div>
               <I.ArrowRight size={14} />
-            </div>
+            </Link>
           ))}
         </div>
       )}

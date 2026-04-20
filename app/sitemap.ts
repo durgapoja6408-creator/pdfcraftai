@@ -3,6 +3,7 @@ import { TOOLS } from "@/lib/tools";
 import { BLOG_POSTS } from "@/lib/blog-posts";
 import { SEO_SLUGS } from "@/lib/seo-pages";
 import { LEGAL_SLUGS } from "@/lib/legal-docs";
+import { ALL_HELP_ARTICLES } from "@/lib/help-topics";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://pdfcraftai.com";
@@ -47,11 +48,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.3,
   }));
 
+  const helpRoutes: MetadataRoute.Sitemap = ALL_HELP_ARTICLES.map(({ article }) => ({
+    url: `${SITE_URL}/help/${article.slug}`,
+    lastModified: now,
+    changeFrequency: "monthly",
+    priority: 0.5,
+  }));
+
   return [
     ...staticRoutes,
     ...toolRoutes,
     ...seoRoutes,
     ...blogRoutes,
     ...legalRoutes,
+    ...helpRoutes,
   ];
 }

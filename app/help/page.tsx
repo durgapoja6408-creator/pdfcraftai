@@ -58,10 +58,15 @@ export default function HelpPage() {
             {HELP_TOPICS.map((topic) => {
               const Icon = I[topic.icon];
               return (
-                <div key={topic.name} className="card" style={{ padding: 28 }}>
+                <div
+                  key={topic.slug}
+                  id={topic.slug}
+                  className="card"
+                  style={{ padding: 28, scrollMarginTop: 100 }}
+                >
                   <div
                     className="row"
-                    style={{ gap: 12, marginBottom: 18, alignItems: "center" }}
+                    style={{ gap: 12, marginBottom: 10, alignItems: "center" }}
                   >
                     <div
                       style={{
@@ -79,20 +84,35 @@ export default function HelpPage() {
                     </div>
                     <h3 style={{ fontSize: 18, margin: 0 }}>{topic.name}</h3>
                   </div>
+                  <p
+                    className="muted"
+                    style={{ fontSize: 13, lineHeight: 1.5, margin: "0 0 14px" }}
+                  >
+                    {topic.blurb}
+                  </p>
                   <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
                     {topic.arts.map((art) => (
                       <li
-                        key={art}
+                        key={art.slug}
                         style={{
-                          padding: "10px 0",
                           borderTop: "1px solid var(--border)",
                           fontSize: 14,
                         }}
                       >
-                        <span className="row" style={{ justifyContent: "space-between", gap: 10 }}>
-                          <span>{art}</span>
+                        <Link
+                          href={`/help/${art.slug}`}
+                          className="row"
+                          style={{
+                            justifyContent: "space-between",
+                            gap: 10,
+                            padding: "10px 0",
+                            textDecoration: "none",
+                            color: "inherit",
+                          }}
+                        >
+                          <span>{art.title}</span>
                           <I.ArrowRight size={13} />
-                        </span>
+                        </Link>
                       </li>
                     ))}
                   </ul>

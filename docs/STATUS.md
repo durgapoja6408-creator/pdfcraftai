@@ -3,7 +3,7 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-04-20 (post a11y-contrast-and-headings pass)
+**Last updated:** 2026-04-20 (post Help Center depth + a11y-contrast-and-headings pass)
 
 ---
 
@@ -65,7 +65,11 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ### API / monitoring
 
-- [x] **`/api/health` endpoint shipped.** Pings the DB with `SELECT 1`, returns `{ ok, service, commit, uptimeSec, db: { ok, latencyMs|error }, ts }`. Status code 200 on healthy / 503 on DB failure. `cache-control: no-store` so Cloudflare never serves a stale probe. Consumed by the status page and safe to bind as the Cloudflare origin health check. Error strings sanitized — never echoes DSN fragments. (2026-04-20)
+- [x] **`/api/health` endpoint shipped.** Pings the DB with `SELECT 1`, returns `{ ok, service, commit, uptimeSec, db: { ok, latencyMs|error }, ts }`. Status code 200 on healthy / 503 on DB failure. `cache-control: no-store` so Cloudflare never serves a stale probe. Consumed by the status page and safe to bind as the Cloudflare origin health check. Error strings sanitized — never echoes DSN fragments. **Verified live 2026-04-20 01:50 UTC: `{ "ok": true, "db": { "ok": true, "latencyMs": 48 }}`.** (2026-04-20)
+
+### Deploy recovery
+
+- [x] **Hostinger deploy unstuck — SmartCta RSC serialization bug fixed.** Hostinger's Next build had been failing silently since commit `6941953` because the new `SmartCta` client component accepted `children` as a render-prop function `(label) => ReactNode`, and both consumers (`app/pricing/page.tsx`, `components/landing/LandingSections.tsx` FinalCTA) are Server Components — passing a closure across the Server→Client boundary tripped `Error: Functions cannot be passed directly to Client Components` and timed out static generation of `/`. Diagnosed via SSH-fetched deploy log `~/public_html/.builds/logs/.../2026-04-19_21-23-38_deploy.log`. Fix in commit `322e55b`: replaced render-prop with serialisable `iconBefore` / `iconAfter` slots, updated both call-sites, added a header comment so future hands don't reintroduce the pattern. Deploy `BUILD_ID` flipped `NgDx0xN2ZJtuJfWWuVLl7` → `P5OkoPR8soHHEdoZBCyWi`; `/api/health`, `/api/contact`, `/api/auth/forgot-password`, `/forgot-password`, `/tool/page-numbers`, `/tool/to-pdf`, `/tool/rotate` all verified 200 in prod. Four commits' worth of features unblocked in one push. (2026-04-20)
 
 ### Legal content audit
 
