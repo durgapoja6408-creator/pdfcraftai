@@ -20,8 +20,9 @@ Node.js application on Hostinger Business hosting.
 **Phase 5.4 — Vision OCR (scanned-PDF unlock) — DONE.**
 **Phase 5.5 — Replay-on-dup key (idempotent re-run) — DONE.**
 **Phase 6.1 — Macros (saved param presets per tool) — DONE.**
-**Phase 6.2 — Studio (batch runner) — DONE.**
-**Phase 6.3 — Smart mode (agent on /app/studio) — DONE.**
+**Phase 6.2 — Studio (batch runner) — REMOVED 2026-04-20** (replaced by public `/studio` canvas + per-tool pages; see `docs/STATUS.md`).
+**Phase 6.3 — Smart mode (agent on /app/studio) — REMOVED 2026-04-20** (replaced by public `/agent` plan-then-review demo; see `docs/STATUS.md`).
+**Phase 6.4 — Public Agent / Macros / Studio (Claude Design parity) — DONE 2026-04-20.**
 
 What's new in Phase 6.3:
 

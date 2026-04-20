@@ -68,10 +68,9 @@ Assume: test account with ≥100 credits on file.
 | D2 | `/app/files` | Lists user's files with download buttons |
 | D3 | `/app/files/[id]` | Detail view renders for user's own file; 404 for someone else's |
 | D4 | `/app/chat` | Chat list renders (may be empty); creating a chat works end-to-end |
-| D5 | `/app/studio` | Workflow Studio loads |
-| D6 | `/app/billing` | Balance shown; credit packs → CheckoutButton reaches Stripe/Razorpay but no real charge in test |
-| D7 | `/app/api-keys` | Key create/revoke UI works; no real keys issued without provider wiring |
-| D8 | `/app/settings` | Form saves; validation on invalid inputs |
+| D5 | `/app/billing` | Balance shown; credit packs → CheckoutButton reaches Stripe/Razorpay but no real charge in test |
+| D6 | `/app/api-keys` | Key create/revoke UI works; no real keys issued without provider wiring |
+| D7 | `/app/settings` | Form saves; validation on invalid inputs |
 
 ## P4 — Marketing + SEO
 

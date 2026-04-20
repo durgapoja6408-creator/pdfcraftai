@@ -1,13 +1,15 @@
 "use client";
 
 // components/agent/AgentInteractive.tsx
-// Public, demo-mode Agent surface (the post-login real Agent lives at
-// /app/studio under AgentSmartMode). This is a stateless client demo:
+// Public, demo-mode Agent surface (Claude Design parity port). Stateless
+// client demo, no auth, no DB:
 //  • Prompt → deterministic plan via lib/workflow/agent-plan.buildPlan
 //  • Plan review with editable steps
 //  • Mocked execution loop with terminal-style log
 //  • Optional "save as macro" flow (?saveAsMacro=1) → localStorage
 // Ported from the Claude Design handoff bundle (project/agent.jsx).
+// (The earlier server-backed /app/studio "Smart mode" runner was removed
+// on 2026-04-20; per-tool pages remain the real execution surface.)
 
 import * as React from "react";
 import Link from "next/link";
@@ -910,7 +912,7 @@ export default function AgentInteractive() {
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => alert("Demo: real download lives at /app/studio after sign-in.")}
+                onClick={() => alert("Demo only — run each step on its individual /tool/* page for real downloads.")}
               >
                 <I.Download size={14} /> Download
               </button>

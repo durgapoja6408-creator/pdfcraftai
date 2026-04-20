@@ -25,13 +25,6 @@
  *                  translations" → {targetLang: "es"}). Currently scoped
  *                  to ai-summarize + ai-translate because those are the
  *                  only tools with user-facing parameters today.
- * - agentRuns /    Phase 6.3 Agent ("Smart mode" on /app/studio) — a
- *   agentRunSteps: user prompt + file queue → LLM-planned chain of tool
- *                  invocations the user approves once and we then execute
- *                  step-by-step against each file. `agentRuns` holds the
- *                  plan + quote + status; `agentRunSteps` holds one row
- *                  per (run × file × step) unit of execution so the UI
- *                  can surface a live grid ("file 2, step 3: running").
  */
 
 import {
@@ -521,246 +514,23 @@ export const userMacros = mysqlTable(
   })
 );
 
-// --- Phase 6.3: Agent ("Smart mode" on /app/studio) -------------------
-
-/**
- * One row per agent plan the user creates.
- *
- * Lifecycle:
- *   plan_drafted (planner returned a plan, awaiting user approval)
- *     └─ approved  → running → {succeeded | failed | cancelled}
- *     └─ cancelled (user rejected before running)
- *
- * A run is PENDING_APPROVAL until the user clicks Approve. Once approved,
- * the runner transitions it to `running` and writes per-step rows into
- * `agent_run_steps`. The `paused` state covers the cost-cap breach case:
- * an individual step's actual spend would push cumulative > `quoteCredits`,
- * so the runner stops mid-plan and surfaces a "re-approve +N credits" card.
- *
- * Why no per-file plan: Phase 6.3 locks one plan per run, applied to every
- * file in the queue. Users who need per-file logic can run the agent
- * multiple times. (Revisit if telemetry shows this pattern is common.)
- *
- * `fileIdsJson` captures the queue snapshot at plan time — a user can't
- * add files to an in-flight run, and removing a file from /app/files
- * doesn't quietly shrink the plan.
- *
- * `plannerProviderId` / `plannerModel` track which LLM planned this run,
- * not which one executed the steps. Each `ai-*` step carries its own
- * provider info in the resulting `ai_outputs.meta`.
- *
- * `quoteCredits` is the upper-bound total at approval time — equal to the
- * sum of every step's upper-bound estimate across every file. The runner
- * enforces `spentCredits <= quoteCredits` between steps; if the next
- * step's estimate would breach the cap, the run flips to `paused` and
- * waits for an explicit re-approval with a higher cap.
- */
-export const agentRuns = mysqlTable(
-  "agent_runs",
-  {
-    id: varchar("id", { length: 36 }).primaryKey(),
-    userId: varchar("user_id", { length: 255 })
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    // The user's natural-language description that seeded the plan.
-    // Kept verbatim for audit + for showing in the run's history card.
-    promptText: text("prompt_text").notNull(),
-    // Structured plan as returned by `lib/agent/planner.ts`. Shape is
-    // `AgentPlan` in `lib/agent/types.ts` — steps[], fileCount, totalQuote,
-    // etc. Denormalized into agent_run_steps at approval time so mid-run
-    // queries don't have to parse JSON on every tick.
-    planJson: json("plan_json").notNull(),
-    // Snapshot of file ids the plan applies to, captured at plan time.
-    // Array<string> of files.id values. Kept here (not joined) because
-    // a file can be deleted between plan + execute; we want the run to
-    // fail deterministically per-file rather than silently shrink.
-    fileIdsJson: json("file_ids_json").notNull(),
-    // Upper-bound total at approval time. Runner enforces
-    // spent_credits <= quote_credits; breach → status='paused'.
-    quoteCredits: int("quote_credits").notNull(),
-    // Running total. Incremented by reportStepOutcomeAction after each
-    // `ai-*` step reports its `creditCost`. Client-side free tools (merge,
-    // split, rotate, compress) contribute 0.
-    spentCredits: int("spent_credits").notNull().default(0),
-    // Which provider/model planned this run. Informational — the
-    // executor never switches, and a provider flip mid-run doesn't
-    // re-plan.
-    plannerProviderId: varchar("planner_provider_id", { length: 32 }),
-    plannerModel: varchar("planner_model", { length: 128 }),
-    status: mysqlEnum("status", [
-      "pending_approval",
-      "approved",
-      "running",
-      "paused",
-      "succeeded",
-      "failed",
-      "cancelled",
-    ])
-      .notNull()
-      .default("pending_approval"),
-    // Populated when status='failed'. One of a fixed set
-    // (planner_refused, quote_exceeded, provider_error, insufficient_credits,
-    // validation_error, …) so the UI can map to friendly copy.
-    errorCode: varchar("error_code", { length: 64 }),
-    startedAt: timestamp("started_at", { fsp: 3 }),
-    completedAt: timestamp("completed_at", { fsp: 3 }),
-    createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
-  },
-  (t) => ({
-    userIdx: index("agent_runs_user_idx").on(t.userId),
-    statusIdx: index("agent_runs_status_idx").on(t.status),
-    createdIdx: index("agent_runs_created_idx").on(t.createdAt),
-  })
-);
-
-/**
- * One row per (run × file × step) unit of execution. The cardinality is
- * `planSteps.length × fileIdsJson.length`, inserted lazily — rows land
- * with status='pending' when the run is approved, then flip to 'running'
- * / 'succeeded' / 'failed' as the runner walks them.
- *
- * Index layout note: `(run_id, file_bucket_index, step_index)` is the
- * primary query shape ("show me all steps for file 2 of run X in order")
- * so the UI grid can render without an in-memory sort. A separate
- * `(run_id, status)` covers "how many steps still pending?" without
- * scanning every row.
- *
- * `fileId` is the INPUT file for this step — for step 0 it matches the
- * user's original queue entry; for later steps that chain off the
- * previous step's output (e.g. OCR → Summarize), it points at the
- * derived files.id (an ai-output file or a tool result file).
- * `outputFileId` is the OUTPUT — some steps produce both a new file row
- * and an ai_outputs row (summarize/translate/compare/ocr); pdf-lib tool
- * steps (merge/split/rotate/compress) only produce a new file row; a
- * `chat`-as-tool step produces neither (its output lives in
- * `output_text`).
- *
- * `aiOutputId` FK is soft (no references clause) because ai_outputs is
- * keyed off file_id not its own PK, and adding a FK would force a
- * second lookup. We trust the server actions to set it correctly.
- *
- * `idempotencyKey` is generated once per step row and sent to /api/ai/*
- * on every retry, so Phase 5.5 replay kicks in automatically.
- *
- * Migration:
- *   CREATE TABLE agent_runs (
- *     id VARCHAR(36) PRIMARY KEY,
- *     user_id VARCHAR(255) NOT NULL,
- *     prompt_text TEXT NOT NULL,
- *     plan_json JSON NOT NULL,
- *     file_ids_json JSON NOT NULL,
- *     quote_credits INT NOT NULL,
- *     spent_credits INT NOT NULL DEFAULT 0,
- *     planner_provider_id VARCHAR(32),
- *     planner_model VARCHAR(128),
- *     status ENUM('pending_approval','approved','running','paused',
- *                 'succeeded','failed','cancelled')
- *            NOT NULL DEFAULT 'pending_approval',
- *     error_code VARCHAR(64),
- *     started_at TIMESTAMP(3),
- *     completed_at TIMESTAMP(3),
- *     created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
- *     INDEX agent_runs_user_idx (user_id),
- *     INDEX agent_runs_status_idx (status),
- *     INDEX agent_runs_created_idx (created_at),
- *     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
- *   );
- *
- *   CREATE TABLE agent_run_steps (
- *     id VARCHAR(36) PRIMARY KEY,
- *     run_id VARCHAR(36) NOT NULL,
- *     file_bucket_index INT NOT NULL,
- *     step_index INT NOT NULL,
- *     tool_id VARCHAR(64) NOT NULL,
- *     file_id VARCHAR(36),
- *     input_json JSON NOT NULL,
- *     status ENUM('pending','running','succeeded','failed','cancelled','skipped')
- *            NOT NULL DEFAULT 'pending',
- *     ai_output_id VARCHAR(36),
- *     output_file_id VARCHAR(36),
- *     output_text MEDIUMTEXT,
- *     spent_credits INT NOT NULL DEFAULT 0,
- *     idempotency_key VARCHAR(128),
- *     error_code VARCHAR(64),
- *     error_note TEXT,
- *     started_at TIMESTAMP(3),
- *     completed_at TIMESTAMP(3),
- *     created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
- *     INDEX agent_run_steps_run_order_idx (run_id, file_bucket_index, step_index),
- *     INDEX agent_run_steps_run_status_idx (run_id, status),
- *     INDEX agent_run_steps_file_idx (file_id),
- *     UNIQUE INDEX agent_run_steps_idempotency_idx (idempotency_key),
- *     FOREIGN KEY (run_id) REFERENCES agent_runs(id) ON DELETE CASCADE
- *   );
- */
-export const agentRunSteps = mysqlTable(
-  "agent_run_steps",
-  {
-    id: varchar("id", { length: 36 }).primaryKey(),
-    runId: varchar("run_id", { length: 36 })
-      .notNull()
-      .references(() => agentRuns.id, { onDelete: "cascade" }),
-    // Which file in the queue this step is for (0..N-1).
-    fileBucketIndex: int("file_bucket_index").notNull(),
-    // 0-based position within the plan.
-    stepIndex: int("step_index").notNull(),
-    // "ai-summarize" / "ai-translate" / "ai-compare" / "ai-ocr" /
-    // "merge" / "split" / "rotate" / "compress" / "chat".
-    toolId: varchar("tool_id", { length: 64 }).notNull(),
-    // Current INPUT file for this step. Nullable because steps may
-    // reference another step's output that hasn't landed yet (value
-    // stays null until the predecessor succeeds and the runner patches
-    // it). For step 0, this is the user's original queued file.
-    fileId: varchar("file_id", { length: 36 }),
-    // Full step input: params + any refs to other step outputs. Shape
-    // depends on toolId; cast at the executor site.
-    inputJson: json("input_json").notNull(),
-    status: mysqlEnum("status", [
-      "pending",
-      "running",
-      "succeeded",
-      "failed",
-      "cancelled",
-      "skipped",
-    ])
-      .notNull()
-      .default("pending"),
-    // Populated for ai-summarize / ai-translate / ai-compare / ai-ocr
-    // steps once the output is persisted. Soft FK — see table JSDoc.
-    aiOutputId: varchar("ai_output_id", { length: 36 }),
-    // Populated when the step produced a new `files` row (every AI
-    // step, plus the pdf-lib tool steps). Lets the next step chain
-    // against it without a second lookup.
-    outputFileId: varchar("output_file_id", { length: 36 }),
-    // For `chat`-as-tool steps (and future text-only tool steps) that
-    // produce no file / ai_output. Mediumtext because chat responses
-    // may run long.
-    outputText: mediumtext("output_text"),
-    spentCredits: int("spent_credits").notNull().default(0),
-    // Generated once when the step row is inserted; stable across
-    // retries so Phase 5.5's replay path kicks in for the ai-* tools.
-    idempotencyKey: varchar("idempotency_key", { length: 128 }),
-    errorCode: varchar("error_code", { length: 64 }),
-    errorNote: text("error_note"),
-    startedAt: timestamp("started_at", { fsp: 3 }),
-    completedAt: timestamp("completed_at", { fsp: 3 }),
-    createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
-  },
-  (t) => ({
-    // Primary query pattern: list steps of run R for file K in plan order.
-    runOrderIdx: index("agent_run_steps_run_order_idx").on(
-      t.runId,
-      t.fileBucketIndex,
-      t.stepIndex
-    ),
-    // "Any pending steps left?" / "which ones failed?" — covered without
-    // re-scanning every row.
-    runStatusIdx: index("agent_run_steps_run_status_idx").on(t.runId, t.status),
-    fileIdx: index("agent_run_steps_file_idx").on(t.fileId),
-    // Unique to collapse retries to the same row. Nullable so pre-insert
-    // placeholder rows (if any) don't conflict with each other.
-    idempotencyIdx: uniqueIndex("agent_run_steps_idempotency_idx").on(
-      t.idempotencyKey
-    ),
-  })
-);
+// --- Phase 6.3 Agent tables — REMOVED on 2026-04-20 ---------------------
+//
+// `agent_runs` + `agent_run_steps` powered the authenticated /app/studio
+// "Smart mode" runner. That route was deleted (see docs/STATUS.md entry
+// "Delete /app/studio + drop agent tables") because it duplicated the new
+// public /agent + /studio Claude-design surfaces and added complexity
+// without proportional value.
+//
+// DROP migration: db/migrations/0002_drop_agent_runs.sql
+//
+// What's preserved:
+//   - userMacros (above) — the per-tool MacroBar on /tool/ai-summarize
+//     and /tool/ai-translate still saves & loads presets here.
+//   - public /agent — pure client-side plan/review demo (no DB).
+//   - public /macros — pure client-side library (no DB).
+//   - public /studio — pure client-side workflow canvas (no DB).
+//
+// If a future Smart-mode runner returns, copy the original schema from
+// git history (commit before 2026-04-20) rather than reconstructing.
+// -----------------------------------------------------------------------

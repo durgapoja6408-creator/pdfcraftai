@@ -1,8 +1,9 @@
 // lib/workflow/nodes.ts
 // Shared node-type registry for the public workflow product surfaces (/macros, /studio).
 // Ported from the Claude Design handoff bundle (project/workflow.jsx, NODE_TYPES).
-// This is demo-product metadata — the real server-backed studio lives at /app/studio
-// and uses its own action set.
+// This is demo-product metadata — for real execution users still hit the
+// individual /tool/* pages. (The previous server-backed /app/studio runner
+// was retired on 2026-04-20.)
 
 import type { I } from "@/components/icons/Icons";
 

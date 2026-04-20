@@ -1,9 +1,8 @@
 "use client";
 
 // components/workflow/WorkflowStudio.tsx
-// Public, demo-mode Workflow Studio (the post-login real Studio lives at
-// /app/studio under StudioModeSwitcher → MacroBuilderMode). This is a stateless
-// client demo:
+// Public, demo-mode Workflow Studio (Claude Design parity port). Stateless
+// client demo, no auth, no DB:
 //  • Loads a template via ?t=<id> (or starts from Invoice Intake by default)
 //  • Drag nodes to reposition; drag the right handle to connect
 //  • Click an edge to delete it; click a node to inspect & configure

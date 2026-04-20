@@ -1653,7 +1653,13 @@ Phase 6.1 — Macros:
 50. Delete the user account → `ON DELETE CASCADE` removes all their
     `user_macros` rows. No orphaned presets.
 
-## Phase 6.2 — Studio (batch runner)
+## Phase 6.2 — Studio (batch runner) — REMOVED 2026-04-20
+
+> **STATUS: REMOVED.** `/app/studio` was deleted on 2026-04-20 when the
+> public `/studio` (workflow canvas) + per-tool pages fully replaced it.
+> `components/studio/StudioRunner.tsx` and `app/app/studio/page.tsx` are
+> gone. Section kept for historical context. See `docs/STATUS.md` for
+> the decision record.
 
 Studio is a single authenticated page (`/app/studio`) that runs an AI
 tool across up to 25 PDFs at a time. The architecture is deliberately
@@ -1809,7 +1815,15 @@ Phase 6.2 — Studio:
     `/app/files/[id]/preview` and renders the AI output exactly as
     the single-file tool would.
 
-## Phase 6.3 — Smart mode (agent on /app/studio)
+## Phase 6.3 — Smart mode (agent on /app/studio) — REMOVED 2026-04-20
+
+> **STATUS: REMOVED.** The authenticated Smart-mode runner at
+> `/app/studio` was retired on 2026-04-20. Its replacement is the public
+> `/agent` plan-then-review demo (pure client-side, no DB). The
+> `agent_runs` + `agent_run_steps` tables were dropped (see
+> `db/migrations/0002_drop_agent_runs.sql`). `lib/agent/*`,
+> `lib/agent-actions.ts`, and `components/studio/*` are gone. Section
+> kept for historical context only.
 
 Smart mode is the second surface on `/app/studio`, next to Batch. Where
 Batch runs one tool across many files, Smart takes a plain-English

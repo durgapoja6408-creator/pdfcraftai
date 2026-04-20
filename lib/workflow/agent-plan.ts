@@ -2,8 +2,9 @@
 // Deterministic prompt → plan mapper for the public /agent demo surface.
 // Ported from the Claude Design handoff bundle (project/agent.jsx, buildPlan).
 // This is intentionally NOT an LLM call — the public Agent page is a
-// describe-then-show-me-the-plan demo. The real Agent (server-backed,
-// LLM-driven) lives at /app/studio under StudioModeSwitcher → AgentSmartMode.
+// describe-then-show-me-the-plan demo. For real execution, users run each
+// step on its own /tool/* page. (The previous server-backed Smart-mode
+// runner at /app/studio was retired on 2026-04-20.)
 
 import type { I } from "@/components/icons/Icons";
 
