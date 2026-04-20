@@ -1,5 +1,29 @@
 /** @type {import('next').NextConfig} */
 
+import { execSync } from "node:child_process";
+
+// --- Build-time deploy commit SHA ----------------------------------------
+//
+// Hostinger doesn't inject a commit SHA into the runtime env on its own, so
+// `/api/health` was returning `commit: null` — forcing deploy verification
+// via CSS-bundle greps. Capture the short SHA at build time and bake it
+// into `process.env.BUILD_COMMIT_SHA` via the `env` block below. Next.js
+// inlines these values at build time; no runtime file reads needed.
+//
+// If `git` isn't available (shouldn't happen on Hostinger's GitHub-App
+// deploy path, which checks out the full repo), fall through to `null`
+// quietly — health still returns, just without a SHA.
+let BUILD_COMMIT_SHA = null;
+try {
+  BUILD_COMMIT_SHA = execSync("git rev-parse --short=12 HEAD", {
+    stdio: ["ignore", "pipe", "ignore"],
+  })
+    .toString()
+    .trim();
+} catch (_) {
+  // git not available at build time — leave SHA null.
+}
+
 // --- PCI DSS SAQ-A scope lockdown -----------------------------------------
 //
 // Our SAQ-A eligibility rests on card data NEVER touching our origin.
@@ -125,6 +149,12 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
+  // Bake the deploy commit SHA into the runtime env so `/api/health` can
+  // report it without depending on hPanel env-var wiring. See the
+  // execSync block at the top of this file.
+  env: {
+    BUILD_COMMIT_SHA: BUILD_COMMIT_SHA ?? "",
+  },
   // Hostinger Node.js app — standalone output keeps the deploy small
   // and lets us run `node .next/standalone/server.js` directly.
   output: 'standalone',

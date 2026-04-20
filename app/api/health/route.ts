@@ -31,14 +31,20 @@ import { db } from "@/db/client";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Injected at deploy time by Vercel-style build; undefined on Hostinger
-// unless the user configures NEXT_PUBLIC_COMMIT_SHA. Fall back to
-// process env names we might set ourselves.
-const COMMIT_SHA =
-  process.env.COMMIT_SHA ??
-  process.env.NEXT_PUBLIC_COMMIT_SHA ??
-  process.env.VERCEL_GIT_COMMIT_SHA ??
+// Deploy commit SHA. Primary source is `BUILD_COMMIT_SHA`, baked in at
+// build time by next.config.mjs via `git rev-parse --short=12 HEAD` and
+// the `env` block — so this works on Hostinger without any hPanel
+// config. We still honour the Vercel-style env-name fallbacks so a
+// future infra swap doesn't break the probe.
+const RAW_SHA =
+  process.env.BUILD_COMMIT_SHA ||
+  process.env.COMMIT_SHA ||
+  process.env.NEXT_PUBLIC_COMMIT_SHA ||
+  process.env.VERCEL_GIT_COMMIT_SHA ||
   null;
+// next.config.mjs falls back to "" if git wasn't available at build
+// time — treat empty string the same as null.
+const COMMIT_SHA = RAW_SHA && RAW_SHA.length > 0 ? RAW_SHA : null;
 
 const SERVICE = "pdfcraftai";
 const STARTED_AT = Date.now();
