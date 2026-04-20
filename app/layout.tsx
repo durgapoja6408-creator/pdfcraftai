@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { MarketingChrome } from "@/components/nav/MarketingChrome";
 import { SessionProviderWrapper } from "@/components/providers/SessionProviderWrapper";
+import { auth } from "@/auth";
 import "./globals.css";
 
 const GA_MEASUREMENT_ID = "G-2Y8PS0S93F";
@@ -56,7 +57,19 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Pre-resolve the session on the server so the client `<SessionProvider>`
+  // hydrates with state already populated. Without this, next-auth/react
+  // fires a `/api/auth/session` fetch on mount for every page hit, even
+  // logged-out ones, which was costing ~150–300 ms of TBT on the home
+  // page Lighthouse run.
+  //
+  // `auth()` is the NextAuth v5 helper. For logged-out visitors it
+  // resolves to `null` essentially for free (no DB hit — JWT decode on
+  // the session cookie, which is absent). For logged-in visitors it
+  // returns the session object we'd have fetched on the client anyway.
+  const session = await auth();
+
   return (
     <html
       lang="en"
@@ -85,7 +98,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             } catch (_) {} })();`,
           }}
         />
-        <SessionProviderWrapper>
+        <SessionProviderWrapper session={session}>
           <MarketingChrome>{children}</MarketingChrome>
         </SessionProviderWrapper>
 
