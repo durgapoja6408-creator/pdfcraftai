@@ -19,6 +19,7 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession, getSession } from "next-auth/react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
@@ -41,8 +42,17 @@ type CompareResult = {
   persistWarning?: string;
 };
 
+// Pre-encoded Sign-in CTA target — see SummarizePdfTool for rationale.
+const SIGN_IN_HREF =
+  "/login?callbackUrl=" + encodeURIComponent("/tool/ai-compare");
+
 export function ComparePdfTool() {
   const router = useRouter();
+  // Anonymous-user gate: swap the Run button for a Sign-in CTA so the
+  // PDFs (two of them! up to 25 MB each) never get uploaded. See
+  // SummarizePdfTool for the full rationale.
+  const { status: sessionStatus } = useSession();
+  const isAnonymous = sessionStatus === "unauthenticated";
   const [pdfA, setPdfA] = useState<File | null>(null);
   const [pdfB, setPdfB] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
@@ -72,6 +82,16 @@ export function ComparePdfTool() {
       setError("Attach both the original and the revised PDF.");
       return;
     }
+
+    // Defense-in-depth session probe — see SummarizePdfTool for detail.
+    // Especially valuable here: Compare uploads two PDFs (up to 50 MB
+    // total), so the wasted-bandwidth cost of a late 401 is doubled.
+    const fresh = await getSession();
+    if (!fresh?.user) {
+      router.push(SIGN_IN_HREF);
+      return;
+    }
+
     setBusy(true);
     setError(null);
     setResult(null);
@@ -140,12 +160,11 @@ export function ComparePdfTool() {
         return;
       }
 
-      // Anonymous user → bounce to /login with a callback. See
-      // SummarizePdfTool for the rationale (dead-end error card).
+      // Late-401 fallback — render-time gate + getSession() probe
+      // should normally catch this earlier; handle the rare expired-
+      // mid-upload case gracefully.
       if (res.status === 401) {
-        router.push(
-          "/login?callbackUrl=" + encodeURIComponent("/tool/ai-compare")
-        );
+        router.push(SIGN_IN_HREF);
         return;
       }
 
@@ -222,14 +241,24 @@ export function ComparePdfTool() {
             Reset
           </button>
         )}
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={busy || !bothReady}
-          onClick={run}
-        >
-          {busy ? "Comparing…" : "Compare — 15 credits"}
-        </button>
+        {isAnonymous ? (
+          <Link
+            href={SIGN_IN_HREF}
+            className="btn btn-primary"
+            title="Sign in to use AI tools — credits are per-user."
+          >
+            Sign in to compare
+          </Link>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={busy || !bothReady}
+            onClick={run}
+          >
+            {busy ? "Comparing…" : "Compare — 15 credits"}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -28,6 +28,7 @@
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession, getSession } from "next-auth/react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
@@ -79,8 +80,22 @@ const DEPTH_OPTIONS: ReadonlyArray<{
   },
 ];
 
+// Stable URL for the Sign-in CTA + post-login redirect. We pre-encode
+// it once so the JSX read sites stay tight. Keep in sync with the
+// matching `/tool/ai-summarize` slug in /tool/[id]/page.tsx.
+const SIGN_IN_HREF =
+  "/login?callbackUrl=" + encodeURIComponent("/tool/ai-summarize");
+
 export function SummarizePdfTool() {
   const router = useRouter();
+  // Session-aware gating. We render a Sign-in CTA for anonymous visitors
+  // *before* any upload happens — otherwise clicking Run uploads the
+  // entire PDF (up to 25 MB) to the server, the server returns 401, and
+  // only then do we redirect. On a slow uplink that's a minute+ of
+  // wasted bandwidth and a confusing "Summarizing…" spinner. With this
+  // gate, anon clicks bounce instantly to /login.
+  const { status: sessionStatus } = useSession();
+  const isAnonymous = sessionStatus === "unauthenticated";
   const [file, setFile] = useState<File | null>(null);
   const [depth, setDepth] = useState<Depth>("standard");
   const [busy, setBusy] = useState(false);
@@ -193,6 +208,20 @@ export function SummarizePdfTool() {
       setError("Attach a PDF to summarize.");
       return;
     }
+
+    // Defense-in-depth session probe. The render-time `useSession()`
+    // gate above already swaps the Run button for a Sign-in CTA when
+    // the user is anonymous, so we'd normally never reach this. But
+    // sessions can expire between page load and click, and useSession
+    // only refetches on focus/interval. A fresh getSession() costs
+    // ~50ms and beats uploading 25 MB only to bounce on a 401. If
+    // anon, we redirect *before* any FormData / fetch work.
+    const fresh = await getSession();
+    if (!fresh?.user) {
+      router.push(SIGN_IN_HREF);
+      return;
+    }
+
     setBusy(true);
     setError(null);
     setResult(null);
@@ -258,14 +287,12 @@ export function SummarizePdfTool() {
         return;
       }
 
-      // Anonymous user → bounce to /login with a callback that brings
-      // them right back here. We DO NOT show the bare error message
-      // because the user has nothing to do with it: there's no Sign-in
-      // CTA in the error card, so the dead-end is confusing.
+      // Anonymous user → bounce to /login. The render-time gate above
+      // and the getSession() probe at the top of run() should catch
+      // this earlier (saving the upload), but if the session expired
+      // mid-upload the server may still 401 us — handle it gracefully.
       if (res.status === 401) {
-        router.push(
-          "/login?callbackUrl=" + encodeURIComponent("/tool/ai-summarize")
-        );
+        router.push(SIGN_IN_HREF);
         return;
       }
 
@@ -455,14 +482,28 @@ export function SummarizePdfTool() {
             Reset
           </button>
         )}
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={busy || !file}
-          onClick={run}
-        >
-          {busy ? "Summarizing…" : "Summarize — 3 credits"}
-        </button>
+        {isAnonymous ? (
+          // Render-time gate for anonymous visitors. A real <Link> (not
+          // a button-with-onClick) so right-click → "Open in new tab"
+          // works and the destination is visible in the status bar.
+          // The callback brings them straight back here post-login.
+          <Link
+            href={SIGN_IN_HREF}
+            className="btn btn-primary"
+            title="Sign in to use AI tools — credits are per-user."
+          >
+            Sign in to summarize
+          </Link>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={busy || !file}
+            onClick={run}
+          >
+            {busy ? "Summarizing…" : "Summarize — 3 credits"}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -20,6 +20,7 @@
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession, getSession } from "next-auth/react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
@@ -62,8 +63,16 @@ type TranslationResult = {
   persistWarning?: string;
 };
 
+// Pre-encoded Sign-in CTA target — see SummarizePdfTool for rationale.
+const SIGN_IN_HREF =
+  "/login?callbackUrl=" + encodeURIComponent("/tool/ai-translate");
+
 export function TranslatePdfTool() {
   const router = useRouter();
+  // Anonymous-user gate: swap the Run button for a Sign-in CTA so the
+  // PDF never gets uploaded. See SummarizePdfTool for the full rationale.
+  const { status: sessionStatus } = useSession();
+  const isAnonymous = sessionStatus === "unauthenticated";
   const [file, setFile] = useState<File | null>(null);
   // Default to Spanish — common target for English source docs and it's
   // the second-most-searched "translate PDF to X" query.
@@ -218,6 +227,14 @@ export function TranslatePdfTool() {
       );
       return;
     }
+
+    // Defense-in-depth session probe — see SummarizePdfTool for detail.
+    const fresh = await getSession();
+    if (!fresh?.user) {
+      router.push(SIGN_IN_HREF);
+      return;
+    }
+
     setBusy(true);
     setError(null);
     setResult(null);
@@ -290,12 +307,11 @@ export function TranslatePdfTool() {
         return;
       }
 
-      // Anonymous user → bounce to /login with a callback. See
-      // SummarizePdfTool for the rationale (dead-end error card).
+      // Late-401 fallback — render-time gate + getSession() probe
+      // should normally catch this earlier; handle the rare expired-
+      // mid-upload case gracefully.
       if (res.status === 401) {
-        router.push(
-          "/login?callbackUrl=" + encodeURIComponent("/tool/ai-translate")
-        );
+        router.push(SIGN_IN_HREF);
         return;
       }
 
@@ -480,14 +496,24 @@ export function TranslatePdfTool() {
             Reset
           </button>
         )}
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={busy || !file}
-          onClick={run}
-        >
-          {busy ? "Translating…" : "Translate — 5 credits"}
-        </button>
+        {isAnonymous ? (
+          <Link
+            href={SIGN_IN_HREF}
+            className="btn btn-primary"
+            title="Sign in to use AI tools — credits are per-user."
+          >
+            Sign in to translate
+          </Link>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={busy || !file}
+            onClick={run}
+          >
+            {busy ? "Translating…" : "Translate — 5 credits"}
+          </button>
+        )}
       </div>
     </div>
   );
