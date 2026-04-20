@@ -12,6 +12,7 @@ import { TranslatePdfTool } from "@/components/tools/TranslatePdfTool";
 import { ComparePdfTool } from "@/components/tools/ComparePdfTool";
 import { OcrPdfTool } from "@/components/tools/OcrPdfTool";
 import { RewritePdfTool } from "@/components/tools/RewritePdfTool";
+import { TableExtractTool } from "@/components/tools/TableExtractTool";
 import { PageNumbersTool } from "@/components/tools/PageNumbersTool";
 import { ImageToPdfTool } from "@/components/tools/ImageToPdfTool";
 import { ProtectPdfTool } from "@/components/tools/ProtectPdfTool";
@@ -21,7 +22,7 @@ type Params = { params: { id: string } };
 
 // Tools whose client runners ship in Phase 3 (free, in-browser) + Phase
 // 5.1 (AI · Summarize) + Phase 5.2 (AI · Translate) + Phase 5.3 (AI ·
-// Compare) + Phase 5.4 (AI · OCR) + Phase 5.6 (AI · Rewrite) +
+// Compare) + Phase 5.4 (AI · OCR) + Phase 5.6 (AI · Rewrite, AI · Table) +
 // `pdf-to-office` (free but server-side — pdfjs worker + docx lib are
 // Node-only; see lib/tools-server/pdf-to-office.ts for the why).
 // Adding a tool here: register the id, then append a case to the
@@ -40,6 +41,7 @@ const LIVE_TOOL_IDS = new Set<string>([
   "ai-compare",
   "ai-ocr",
   "ai-rewrite",
+  "ai-table",
 ]);
 
 // Free tools that run server-side rather than on-device. These still
@@ -195,6 +197,8 @@ function ToolRunner({ id }: { id: string }) {
       return <OcrPdfTool />;
     case "ai-rewrite":
       return <RewritePdfTool />;
+    case "ai-table":
+      return <TableExtractTool />;
     default:
       return null;
   }
