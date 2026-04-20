@@ -73,6 +73,13 @@ async function run() {
     log(`GET ${path} returns 200 HTML`, r.status === 200 && typeof r.body === "string" && r.body.length > 500, `status=${r.status} bytes=${typeof r.body === "string" ? r.body.length : "n/a"}`);
   }
 
+  // Catch the "200 but renders COMING SOON placeholder" defect class.
+  // A tool page returning HTML with this marker passed previous smoke
+  // checks because the URL responded 200 — but the runner was disabled.
+  // Real users perceive that as broken. Any path listed in the "live"
+  // groups below MUST NOT contain the placeholder string.
+  const COMING_SOON_MARKER = "TOOL RUNNER LANDS IN";
+
   group("tool runner pages (free)");
   for (const path of [
     "/tool/merge",
@@ -86,6 +93,13 @@ async function run() {
   ]) {
     const r = await req(path);
     log(`GET ${path} returns 200`, r.status === 200 && typeof r.body === "string", `status=${r.status}`);
+    if (typeof r.body === "string") {
+      log(
+        `  ${path} renders runner (not the COMING SOON shell)`,
+        !r.body.includes(COMING_SOON_MARKER),
+        `placeholder marker "${COMING_SOON_MARKER}" found in HTML`,
+      );
+    }
   }
 
   group("tool runner pages (AI)");

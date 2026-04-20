@@ -3,7 +3,7 @@
 _Structured matrix of every feature area in the product: what's Done, what's Partial, what's Pending._
 _Pair this with `STATUS.md` (operational punch list) — this file answers "does the site have X?", STATUS answers "who owns the next step on X?"._
 
-**Last updated:** 2026-04-20 (post test harness + reset-password schema bootstrap + /account alias)
+**Last updated:** 2026-04-20 (post `/tool/pdf-to-office` runner ship)
 
 ---
 
@@ -76,7 +76,7 @@ _Pair this with `STATUS.md` (operational punch list) — this file answers "does
 | Free tool: Page Numbers + Watermark | `/tool/page-numbers` | Done | Two modes in one runner: numbered overlay (4 formats × 6 positions) + diagonal watermark (adjustable opacity/size). Client-side pdf-lib + StandardFonts. Shipped 2026-04-20. |
 | Free tool: Image → PDF | `/tool/to-pdf` | Done | JPG + PNG (≤20 MB each), 3 layout modes (fit/Letter/A4), adjustable margin, multi-file reorder. Shipped 2026-04-20. |
 | Free tool: Protect / Unlock | `/tool/protect` | Done | Two modes in one runner: **Protect** (set user password + optional owner password + per-permission grid: print/copy/edit/annotate) and **Unlock** (provide current password, strip encryption). Auto-detects whether the dropped file is already encrypted and nudges mode. Built on `@cantoo/pdf-lib` (maintained pdf-lib fork that adds RC4/AES PDF encryption); dynamic-imported only on this runner so the rest of the tool bundles aren't impacted. Fully client-side — passwords never leave the browser. Shipped 2026-04-20. |
-| Free tool: PDF → Office | `/tool/pdf-to-office` | Pending | Needs LibreOffice conversion worker. |
+| Free tool: PDF → Office | `/tool/pdf-to-office` | Done (v1) | v1 scope: **PDF → Word (.docx)** and **PDF → plain text (.txt)**. Server-side (`/api/tools/pdf-to-office`, Node runtime) because pdfjs's worker + docx lib would be ugly to bundle client-side under our CSP. Reuses `lib/ai/pdf-extract.ts` for text extraction (same extractor powering ai-summarize / ai-chat). Free (no auth, no credit spend), 25 MB max, per-IP 10 conversions/min, bytes held in-memory only. Scanned PDFs → 422 with nudge to AI OCR. Excel (.xlsx) and PowerPoint (.pptx) intentionally deferred to v2 until we have a real layout-extraction pass — surfaced in-UI with a link to `/tool/ai-ocr` for tabular needs today. Shipped 2026-04-20 in response to a user-reported "not working" defect: the URL was 200 but the page was rendering the COMING SOON shell. Smoke harness (`scripts/smoke-live.mjs`) now asserts no `/tool/*` page contains the placeholder marker, so this defect class auto-fails next time. |
 | Free tool: Word → PDF | `/tool/to-pdf` (Word-branch) | Pending | Image branch shipped; Word needs server-side pipeline. |
 | Free tools (other WASM) | `/tool/...` | Partial | Reorder + delete now folded into `/tool/rotate` (see Rotate & Reorder above). Extract / crop / single-page deletion as a standalone tool still pending. |
 | AI tools | `/tool/ai-chat`, `/tool/ai-summarize`, `/tool/ai-translate`, `/tool/ai-ocr`, `/tool/ai-redact`, `/tool/ai-compare` | Partial | All six runner pages serve 200 in prod (verified via `scripts/smoke-live.mjs`). UI present; model routing + credit debit logic still needs an end-to-end test with a funded account. |
@@ -118,8 +118,8 @@ _Pair this with `STATUS.md` (operational punch list) — this file answers "does
 | Check | Status | Evidence |
 |---|---|---|
 | `tsc --noEmit` | Clean | 0 errors (2026-04-20, post reset-password bootstrap + /account alias). |
-| PDF tools smoke harness | Green | `node scripts/test-pdf-tools.mjs` → 17/17 across merge, split, rotate, compress, page-numbers, to-pdf, protect+unlock (2026-04-20). |
-| Live production smoke | 24/26 | `node scripts/smoke-live.mjs` → 24 passed; 2 fixed-pending-deploy (`/account` 404, reset-password 500) (2026-04-20). |
+| PDF tools smoke harness | Green | `node scripts/test-pdf-tools.mjs` → 17/17 across merge, split, rotate, compress, page-numbers, to-pdf, protect+unlock (2026-04-20). PDF→Office isn't covered here because the conversion path is server-side (`/api/tools/pdf-to-office`) — it's covered instead by the live smoke harness, which now also asserts `/tool/pdf-to-office` renders the real runner (not the COMING SOON shell). |
+| Live production smoke | 24/26 → tightened 2026-04-20 | `node scripts/smoke-live.mjs` — added per-path "no COMING SOON shell" check on every live tool runner. Any future defect where a URL returns 200 but the runner is disabled will now fail smoke instead of passing silently. |
 | Lighthouse pass | Pending | STATUS.md item. |
 | OG / Twitter validators | Pending | STATUS.md item. |
 

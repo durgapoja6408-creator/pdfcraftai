@@ -14,13 +14,16 @@ import { OcrPdfTool } from "@/components/tools/OcrPdfTool";
 import { PageNumbersTool } from "@/components/tools/PageNumbersTool";
 import { ImageToPdfTool } from "@/components/tools/ImageToPdfTool";
 import { ProtectPdfTool } from "@/components/tools/ProtectPdfTool";
+import { PdfToOfficeTool } from "@/components/tools/PdfToOfficeTool";
 
 type Params = { params: { id: string } };
 
 // Tools whose client runners ship in Phase 3 (free, in-browser) + Phase
 // 5.1 (AI · Summarize) + Phase 5.2 (AI · Translate) + Phase 5.3 (AI ·
-// Compare) + Phase 5.4 (AI · OCR). Adding an AI tool here: register the
-// id, then append a case to the ToolRunner switch below.
+// Compare) + Phase 5.4 (AI · OCR) + `pdf-to-office` (free but
+// server-side — pdfjs worker + docx lib are Node-only; see
+// lib/tools-server/pdf-to-office.ts for the why). Adding a tool here:
+// register the id, then append a case to the ToolRunner switch below.
 const LIVE_TOOL_IDS = new Set<string>([
   "merge",
   "split",
@@ -29,11 +32,17 @@ const LIVE_TOOL_IDS = new Set<string>([
   "page-numbers",
   "to-pdf",
   "protect",
+  "pdf-to-office",
   "ai-summarize",
   "ai-translate",
   "ai-compare",
   "ai-ocr",
 ]);
+
+// Free tools that run server-side rather than on-device. These still
+// count as `tool.free` (no auth, no credit spend) but the reassurance
+// row must NOT claim "stays in your browser" — that would be a lie.
+const SERVER_SIDE_FREE_TOOLS = new Set<string>(["pdf-to-office"]);
 
 export function generateStaticParams() {
   return TOOLS.map((t) => ({ id: t.id }));
@@ -54,6 +63,7 @@ export default function ToolRunnerPage({ params }: Params) {
   if (!tool) notFound();
   const Ic = I[tool.icon];
   const isLive = LIVE_TOOL_IDS.has(tool.id);
+  const isServerSideFree = SERVER_SIDE_FREE_TOOLS.has(tool.id);
 
   return (
     <main>
@@ -112,11 +122,19 @@ export default function ToolRunnerPage({ params }: Params) {
           >
             <ReassuranceCard
               icon="Shield"
-              title={tool.free ? "Stays in your browser" : "Private & secure"}
+              title={
+                isServerSideFree
+                  ? "Processed privately"
+                  : tool.free
+                    ? "Stays in your browser"
+                    : "Private & secure"
+              }
               body={
-                tool.free
-                  ? "Free tools run fully on-device — nothing is uploaded to a server."
-                  : "Uploaded files are encrypted and deleted within 60 minutes."
+                isServerSideFree
+                  ? "Your PDF is converted in-memory on our servers and discarded the moment the download completes — nothing is stored."
+                  : tool.free
+                    ? "Free tools run fully on-device — nothing is uploaded to a server."
+                    : "Uploaded files are encrypted and deleted within 60 minutes."
               }
             />
             <ReassuranceCard
@@ -162,6 +180,8 @@ function ToolRunner({ id }: { id: string }) {
       return <ImageToPdfTool />;
     case "protect":
       return <ProtectPdfTool />;
+    case "pdf-to-office":
+      return <PdfToOfficeTool />;
     case "ai-summarize":
       return <SummarizePdfTool />;
     case "ai-translate":
