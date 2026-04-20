@@ -48,19 +48,32 @@ const PAYPAL_ORIGINS = [
   "https://api-m.paypal.com",
 ];
 
-const ANALYTICS_ORIGINS = [
-  // Kept narrow — if we add a new vendor, review PCI scope first.
-  // (No analytics origins configured right now.)
+// Analytics — must match app/layout.tsx. If a new vendor is added, review
+// PCI scope first: analytics origins touch script-src / connect-src / img-src,
+// and widening any of those is a SAQ-A review trigger.
+const ANALYTICS_ORIGINS_SCRIPT = [
+  "https://www.googletagmanager.com",
+  "https://www.clarity.ms",
+];
+const ANALYTICS_ORIGINS_CONNECT = [
+  "https://www.google-analytics.com",
+  "https://www.clarity.ms",
+  "https://c.clarity.ms",
+  "https://www.googletagmanager.com",
+];
+const ANALYTICS_ORIGINS_IMG = [
+  "https://www.google-analytics.com",
+  "https://www.googletagmanager.com",
 ];
 
 const CSP = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' ${RAZORPAY_ORIGINS.join(" ")} ${PAYPAL_ORIGINS.join(" ")} ${ANALYTICS_ORIGINS.join(" ")}`.trim(),
+  `script-src 'self' 'unsafe-inline' ${RAZORPAY_ORIGINS.join(" ")} ${PAYPAL_ORIGINS.join(" ")} ${ANALYTICS_ORIGINS_SCRIPT.join(" ")}`.trim(),
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://www.paypalobjects.com",
+  `img-src 'self' data: blob: https://www.paypalobjects.com ${ANALYTICS_ORIGINS_IMG.join(" ")}`,
   "font-src 'self' data:",
   `frame-src 'self' ${RAZORPAY_ORIGINS.join(" ")} ${PAYPAL_ORIGINS.join(" ")}`,
-  `connect-src 'self' ${RAZORPAY_ORIGINS.join(" ")} ${PAYPAL_ORIGINS.join(" ")}`,
+  `connect-src 'self' ${RAZORPAY_ORIGINS.join(" ")} ${PAYPAL_ORIGINS.join(" ")} ${ANALYTICS_ORIGINS_CONNECT.join(" ")}`,
   "worker-src 'self' blob:",
   // Free PDF tools run WASM client-side — blob: lets pdf-lib instantiate.
   "child-src 'self' blob:",
