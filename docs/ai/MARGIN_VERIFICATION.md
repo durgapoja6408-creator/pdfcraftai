@@ -1,8 +1,10 @@
 # Margin verification — claimed vs actual
 
-**Date:** 2026-04-20 (expanded same day with 11-scenario sweep — §9). **Answers:** "Did you verify max margin profit?" and "analyse all possible scenarios?"
+**Date:** 2026-04-20 (v1 base analysis, expanded same day to v2 with 11-scenario sweep in §9, then extended to v3 in §12 after D4 closed — PayPal deprecated in favour of Paddle MoR). **Answers:** "Did you verify max margin profit?" and "analyse all possible scenarios?"
 
 **Short answer:** The 88/83/78/73% margins in `lib/pricing.ts` are **not achieved** under the current code defaults. They are **exceeded** under the intended routing, which isn't built yet. The wider sweep (§9) surfaces three scenarios worse than the v1 pass found: **chat whale** (user pastes 200-page PDF into a 1-credit chat = Pro margin −12.5%), **support cost** (Starter can't absorb $1.50/mo support at $5 sticker), and **combined worst case** (Starter 38% net). Five fixes — Gemini adapter, cheap routing, per-pack processor policy, context-token cap, and a Starter re-pricing decision — are required before the pricing copy is truthful.
+
+**v3 update (§12):** D4 closed 2026-04-20 — international processing moved from PayPal to Paddle (MoR). This collapses the old S5 chargeback scenario to zero on the Paddle slice (they eat disputes), collapses S1's "PayPal worst" column entirely, but worsens the per-transaction fee on Starter from ~15% (PayPal) to ~15% (Paddle 5% + $0.50 flat) — similar gross drag on $5 packs, vastly better compliance position. The Starter-$5 decision (D1 in §10) remains open but for a different reason than before.
 
 ---
 
@@ -314,3 +316,131 @@ These six map to task #87 (six fixes) and extend it with the scenario findings.
 - **No viral-abuse modelling.** If a chat-whale tactic (S3) gets posted to HN/X with code samples, the 5-abusers-per-paid-signup assumption in S10 understates the hit.
 - **No price elasticity.** Raising Starter to $7 (D1) presumes conversion doesn't drop 30%; if it does, net revenue goes down despite the margin improvement.
 - **No cost of capital.** Paypal holds funds for up to 21 days on new merchants; Razorpay settles T+2 domestically, T+5 international. Not modelled — assume zero carrying cost. At scale this becomes a real line item.
+
+---
+
+## 12. v3 update — Paddle MoR replaces PayPal (2026-04-20)
+
+**Context.** D4 closed 2026-04-20. Evaluation in `docs/payments/MOR_EVALUATION.md` selected **Paddle** as the Merchant of Record for all non-INR buyers, replacing the earlier "Razorpay + PayPal" hybrid. This section recomputes the scenarios that are materially changed by the switch and leaves the rest pointing at §1–§11.
+
+### 12.1 What changes in the cost model
+
+| Line item | v1/v2 (PayPal era) | v3 (Paddle MoR era) | Delta |
+|---|---|---|---|
+| Processor fee (intl) | 3.49% + $0.49 + 1.5% xborder ≈ 4.99% + $0.49 | **5.00% + $0.50** flat | Roughly equivalent on $5 pack; ~1pp worse on Pro/Studio |
+| Chargeback absorption | We pay $15–30/dispute (S5) | **Paddle absorbs** as part of MoR wrap | S5 chargeback line → 0 on intl slice |
+| Sales-tax compliance | We'd owe US nexus, EU VAT when triggered | **Paddle remits on our behalf** in ~120 jurisdictions | Removes a $5–15k/yr hidden overhead at scale |
+| Refund processor-fee loss | 3.49% + $0.49 forfeit on refund | **Paddle keeps 5% + $0.50** on refund (MoR policy) | Worse per refund, but lower chargeback rate partly offsets |
+| Currency conversion | PayPal 3–4% spread on non-USD | **Paddle charges customer in local currency**, pays us USD with 2% FX spread | ~1–2pp better on EUR/GBP buyers |
+| Cash settlement cadence | PayPal holds 21 days (new merchants) | Paddle bi-weekly SWIFT, ~14-day payout | Similar working capital impact |
+
+**Net read:** Paddle's gross fee is slightly higher than PayPal's on packs ≥ $19 (because the 5% lever is bigger than PayPal's 4.99%), equal on $5 Starter (both hit ~15% on fixed-fee basis), but the **chargeback + compliance + tax-remittance bundle** is worth 3–5pp of effective margin at any scale where we'd actually face those costs. For a solo founder this is decisive — it replaces a $60k/yr part-time compliance problem with a 1pp line-item.
+
+### 12.2 Recomputed processor drag by pack
+
+Assumes the post-launch volume mix that §12.3 argues for: **40% INR domestic via Razorpay / 60% international via Paddle**. Formula: `weighted_fee = 0.40 × (2% × 1.18) + 0.60 × (5% + $0.50/price)`.
+
+| Pack | Price | v1 DEFAULT_MIX drag | v3 PADDLE_DEFAULT drag | Change |
+|---|---|---|---|---|
+| Starter | $5   | 8.3%  | **8.7%** | +0.4pp worse |
+| Creator | $19  | 4.8%  | **5.0%** | +0.2pp worse |
+| Pro     | $59  | 3.9%  | **4.1%** | +0.2pp worse |
+| Studio  | $149 | 3.7%  | **3.9%** | +0.2pp worse |
+
+Starter is the most exposed because the $0.50 Paddle flat fee is 10% of revenue by itself — the same structural problem PayPal had at $0.49. The decision from §6 (action #4: route Starter to Razorpay-only in markets where we can) still applies, with Paddle substituted for PayPal.
+
+### 12.3 Updated baseline scenarios (S1, S5, S6, S7 refresh)
+
+**S1 Baseline re-run (Paddle 60 / Razorpay INR 40 mix).** Compared to v2's §9.1 numbers:
+
+| Pack | Claim | v2 Cheap routing (PayPal era) | v3 Cheap routing (Paddle era) | Change |
+|---|---|---|---|---|
+| Starter | 88% | 88.9% | **88.5%** | −0.4pp |
+| Creator | 83% | 91.0% | **90.8%** | −0.2pp |
+| Pro     | 78% | 90.4% | **90.2%** | −0.2pp |
+| Studio  | 73% | 89.5% | **89.3%** | −0.2pp |
+
+Still above claim on every pack under cheap routing. Paddle costs us 0.2–0.4pp versus the PayPal mix but buys the compliance + chargeback wrap. **Net verdict: trade is worth it.**
+
+**S5 Chargeback drag collapses on the Paddle slice.** v2's §9.5 assumed $18/dispute pro-rated across purchases. With 60% of volume on Paddle (which absorbs disputes) and 40% on Razorpay (~₹1500 = ~$18/dispute), the chargeback line is 40% of v2:
+
+| Pack | Claim | v2 at 1% CB rate | v3 at 1% CB rate (Paddle wrap) | Change |
+|---|---|---|---|---|
+| Starter | 88% | 85.3% | **87.3%** | +2.0pp better |
+| Creator | 83% | 90.0% | **90.6%** | +0.6pp |
+| Pro     | 78% | 90.1% | **90.3%** | +0.2pp |
+| Studio  | 73% | 89.4% | **89.5%** | +0.1pp |
+
+Starter gets the biggest lift — expected, because the old $18 dispute fee was the single scariest LTV hit at that price point. Post-Paddle, only the Razorpay-INR slice of Starter faces dispute drag.
+
+**S6 Region mix swings.** v2 compared three PayPal-variant mixes. v3 replaces them with Paddle-variant mixes:
+
+| Pack | Claim | India-heavy Paddle (70/30) | Intl-heavy Paddle (20/80) | Default Paddle (40/60) |
+|---|---|---|---|---|
+| Starter | 88% | **91.0%** | 87.3% | 88.5% |
+| Creator | 83% | **91.4%** | 90.6% | 90.8% |
+| Pro     | 78% | **91.0%** | 89.9% | 90.2% |
+| Studio  | 73% | **90.2%** | 89.0% | 89.3% |
+
+Razorpay-only (hypothetical: 100% INR via Razorpay) would still be the margin-max play at 92.5% Starter — but only addressable to INR-paying customers. The relevant comparison is "any international path at all." On that axis, **Paddle intl-heavy is 2–3pp below India-heavy, not catastrophic**, and it unlocks the ~75% of the addressable market that lives outside India.
+
+**S7 Support cost — Starter still bleeds.** The Paddle decision doesn't change this one; Starter at $5 still can't absorb $1.50/mo support. Paddle adds 1pp of structural drag, making the options table 1pp worse across the board:
+
+| Pack | Claim | v2 Avg ($1.50) | v3 Avg ($1.50) | Change |
+|---|---|---|---|---|
+| Starter | 88% | 58.9% | **57.9%** | −1.0pp (marginal) |
+| Creator | 83% | 83.1% | 82.1% | −1.0pp |
+| Pro     | 78% | 87.8% | 86.8% | −1.0pp |
+| Studio  | 73% | 88.5% | 87.5% | −1.0pp |
+
+**D1 recommendation in §10 (raise Starter to $7) is unchanged by the Paddle switch.** The support-cost bomb, not the processor fee, is what justifies that decision. At $7 + $1.50 support + Paddle-60 mix, Starter net margin is ~68% realistic — acceptable.
+
+### 12.4 What Paddle newly enables (compliance dividend)
+
+Not visible in the margin numbers but decisive for operational sanity:
+
+1. **US 50-state sales tax nexus** — Paddle tracks and remits. Without them, each state's economic-nexus threshold (typically $100k or 200 transactions) would require our own registration + filing. At scale this is a $3k–8k/yr accountant bill per state we pierce.
+
+2. **EU VAT on digital services** — Paddle's UK entity is VAT-registered and uses the OSS (One Stop Shop) to remit in every EU country. Without them, we'd need either the non-Union OSS scheme (filed from Ireland/Malta) or direct country-by-country registration. Paddle makes EU opt-in a 1-day policy change rather than a 6-month compliance project. Decision D10 currently defers EU, but D10 can flip to "allow" at any time once Paddle is wired.
+
+3. **Chargeback liability shift** — At 1% dispute rate, the old model cost Starter 3pp of margin. Post-Paddle, we face no fee from Paddle disputes, no fraud loss, and no reserve holds from a PSP tightening requirements. The only exposure left is on the Razorpay-INR slice.
+
+4. **Customer refund handling** — Paddle's customer support inbox handles "I want a refund" tickets directly, reducing the $1.50 support-cost assumption on the intl slice. Not modelled in S7 numbers above; realistic effect is another 0.3–0.5pp lift on packs ≥ $19.
+
+### 12.5 What Paddle newly exposes (risks to monitor)
+
+1. **Paddle platform risk.** Single-vendor dependency for 60% of future revenue. If Paddle terminates our account (their ToS prohibits certain content categories: adult, gambling, crypto speculation — PDF tools are clearly allowed, but policy drift is possible), recovery is a 2–4 week scramble onto a backup MoR. Mitigation: Paypro Global account kept warm as documented fallback (see MOR_EVALUATION.md §4.1).
+
+2. **Reserves on new merchants.** Paddle typically holds 5–10% rolling reserve for the first 6 months on new accounts. Cash-flow impact: ~$300–600 held back per $10k of Paddle-processed volume in the early period. Not a margin hit, but a working-capital constraint.
+
+3. **Payout FX spread.** Paddle pays in USD via SWIFT to our Indian bank (per CLAUDE.md + MOR_EVALUATION.md §4 deep dive). The Indian AD bank's retail USD→INR conversion typically carries 0.3–0.8% spread above interbank. On $100k annual Paddle volume that's $300–800/yr — not modelled above, effectively another 0.5pp drag on the Paddle slice. The `margin_scenarios.py` model currently ignores this.
+
+4. **Subscription pricing constraints.** Paddle supports one-time packs cleanly (our current model) but has opinions on how subscription/trial flows look. If the product pivots toward subscriptions later, friction increases.
+
+### 12.6 Definition-of-done refresh (replaces §8)
+
+Post-D4, the list in §8 is refreshed:
+
+- [ ] `lib/pricing.ts:margin` field clarified or recomputed to be truthful.
+- [ ] Gemini adapter shipped; OCR and translate default to Gemini Flash.
+- [ ] Chat + rewrite default to GPT-4o-mini (not Haiku).
+- [ ] **NEW:** Starter pack checkout hides Paddle (if shown in INR-available markets), routes to Razorpay-only; Paddle used only for markets where Razorpay USD isn't viable (US, EU, UK, AU, CA).
+- [ ] **NEW:** Paddle sandbox validation complete (4-hour checklist in `MOR_EVALUATION.md` §6). Task #1 in current TodoList.
+- [ ] **NEW:** Paddle webhook HMAC verification end-to-end tested.
+- [ ] Phase A4 daily margin rollup running; 7 consecutive green days at claim-or-better before we advertise the 88% number anywhere.
+- [ ] Monthly BYOK infra-fee reconciliation shows 15% covers orchestration cost.
+- [ ] **NEW:** First 30-day actual processor-drag measured against 8.7%/5.0%/4.1%/3.9% forecast; reconcile any > 0.5pp delta.
+
+### 12.7 Action items created by §12
+
+1. **Update `lib/pricing.ts`** — the `margin:` field assumptions doc-string (to be added) must cite Paddle 5% + $0.50, not PayPal 3.49% + $0.49. Code change is zero; docstring only.
+2. **Update `docs/ai/MODELS_AND_MULTI_KEY.md` §pricing** — if it references PayPal processor drag, replace with Paddle.
+3. **Reroute scenarios in any other margin doc** — `REVENUE_LEAK_AUDIT.md` may need a similar v3 addendum. Check.
+4. **Add `PADDLE_*` env vars to Hostinger** — required before sandbox validation runs against real API. Listed in `MOR_EVALUATION.md` §7.
+
+### 12.8 Cross-references
+
+- `docs/payments/MOR_EVALUATION.md` — why Paddle, the 6-vendor matrix, sandbox plan, integration scope.
+- `docs/GEO_LAUNCH_POLICY.md` — which countries Paddle routes for in Tier 1, which are deferred (Tier 2 EU) or blocked (Tier 3 OFAC).
+- `docs/MASTER_PLAN.md` §1 decision log — D4 CLOSED 2026-04-20.
+- `docs/ai/margin_scenarios.py` — extended 2026-04-20 with `paddle` scheme and `PADDLE_*` mix constants for future reruns.

@@ -909,3 +909,91 @@ separately as `expected_leak_usd` in the monthly reconciliation.
 
 If a new scenario surfaces that isn't in this doc, it goes in as
 **L-N.M** before the fix ships.
+
+---
+
+## 11. v3 addendum — Paddle MoR replaces PayPal (2026-04-20)
+
+**Why this section exists.** Decision D4 closed 2026-04-20 (see `docs/MASTER_PLAN.md` §4 and `docs/payments/MOR_EVALUATION.md`). International processing moved from PayPal to **Paddle (Merchant of Record)**. This changes the shape of several leaks in §1–§10. Rather than rewrite 45 inline PayPal references (risking edit errors across a canonical doc), this section states the deltas and marks which leak categories are affected, collapsed, or newly introduced.
+
+### 11.1 Substitution table
+
+**Where §1–§10 say "PayPal," read "Paddle"** in the following sections, with these deltas:
+
+| Section | Old (PayPal) | New (Paddle MoR) | Effect on leak |
+|---|---|---|---|
+| §1 invariant ledger | `payments_ledger` row per `PAYMENT.CAPTURE.COMPLETED` | Row per Paddle `transaction.completed` event | Same invariant; different event name |
+| §1 processor fee | 3.49% + $0.49 + 1.5% xborder | **5.00% + $0.50** flat | ~Same on Starter, ~0.5–1pp worse on Pro/Studio |
+| §1 payout currency | USD to Indian bank (PayPal) or USD Razorpay intl | **USD via SWIFT** from Paddle.com Market Ltd (UK) | Different payer legal entity — matters for FIRC + DTAA |
+| §3 dispute evidence | PayPal Resolution Center, 10-day window | **Paddle absorbs** disputes as MoR | L-6.4 collapses to zero on Paddle slice |
+| §3 dispute fee | $15–30/dispute | **$0** (Paddle eats it) | L-8.5 collapses to zero on Paddle slice |
+| §4 refund webhook | `PAYMENT.CAPTURE.REFUNDED` | Paddle `transaction.refunded` | Same idempotency requirement; different event name |
+| §5 indirect tax | VAT planning for EU/UK customers routed through PayPal | **Paddle remits** US/EU/UK VAT + ~120 other jurisdictions | L-5.2 (indirect-tax drift) collapses on Paddle slice; we only owe VAT on the Razorpay INR slice |
+| §6 FX risk | PayPal 3–4% FX spread | Paddle charges customer in local currency, pays us USD; **~2% FX wrap** | ~1pp improvement |
+| §7 reconciliation | Match PayPal `Transactions` CSV | Match Paddle **Transactions CSV** (daily export from dashboard) | Different format; same reconciliation logic |
+| §8 risk engine | PayPal Fraud Protection rules | **Paddle absorbs fraud liability** (part of MoR) | L-8.x collapses to zero on Paddle slice; only Razorpay INR slice needs our own risk rules |
+
+### 11.2 Leaks that newly collapse (positive)
+
+| ID | Old leak | Post-Paddle status |
+|---|---|---|
+| L-5.2 | EU/UK VAT not collected on PayPal-USD sales → GST authority reclassifies | **Collapsed on Paddle slice.** Paddle's UK entity is VAT-registered and remits via OSS. Only Razorpay INR slice still needs our own GST treatment (see `docs/india/GST_SETUP.md`). |
+| L-6.4 | Chargeback evidence not auto-assembled in time | **Collapsed on Paddle slice.** Paddle handles disputes end-to-end; we don't see them. Still applies to Razorpay INR slice (~40% of volume post-launch). |
+| L-8.5 | Dispute fee + won-dispute evidence cost | **Collapsed on Paddle slice.** Paddle absorbs the dispute fee. Razorpay INR ₹1000–2000/dispute still applies. |
+| L-6.1 | Refund processor-fee loss | **Reduced, not eliminated.** Paddle keeps the 5% + $0.50 on refund (MoR policy); but the absence of chargeback losses on the same slice means total refund+CB drag is net-lower. |
+
+### 11.3 Leaks that newly surface
+
+| ID | New leak | Severity | Detection |
+|---|---|---|---|
+| **L-11.1** | Paddle account termination (platform risk). Paddle ToS change or our content reclassification cuts off 60% of revenue overnight. | P1 | Weekly ping on `GET /accounts/me` status via Paddle API; alert if status != "active". Warm fallback account on Paypro Global (from MOR_EVALUATION.md §4.1). |
+| **L-11.2** | Paddle reserve hold inflation. Paddle can raise rolling reserve from 5% to 10–20% on increased dispute rate. We won't see the held funds until the reserve rolls. | P2 | Reconcile Paddle payout CSV `reserve_held_usd` against prior day; alert if delta > $500. |
+| **L-11.3** | Paddle invoice-currency mismatch. Paddle issues invoices to customer in local currency (EUR, GBP); we see USD. If we also issue our own invoice (for GST compliance on the Razorpay slice), wording must make clear Paddle is the merchant of record, not us. | P1 | Invoice template review before Paddle go-live. See `docs/india/GST_SETUP.md` §6 for INR-slice invoice template. |
+| **L-11.4** | Paddle webhook HMAC rotation. If Paddle rotates our webhook secret and we miss the notification, all subsequent webhooks fail validation → credits not granted, user sees "payment succeeded, credits missing." | P0 | Webhook failure alert at > 3 consecutive 401s; dual-secret acceptance window during rotation (see MOR_EVALUATION.md §7). |
+| **L-11.5** | Paddle tax-remittance mismatch. Paddle reports tax collected in their dashboard; our ledger must record this as pass-through (not revenue). If we book Paddle gross as revenue, we'll double-count and overstate ARR by the tax amount. | P0 | `payments_ledger.gross_paid_by_user_usd` minus `paddle_tax_remitted_usd` = `net_revenue_usd`. T-L test asserts this identity per-transaction. |
+| **L-11.6** | FIRC paperwork gap. Paddle pays us via SWIFT (UK → India). The AD bank issues FIRC; we need that FIRC on file for GST zero-rating of the export-of-services. If Paddle ever routes through a non-SWIFT rail (e.g., Wise, Payoneer), FIRC may not be issued, breaking GST zero-rating. | P1 | Quarterly: AD bank FIRC count ≥ Paddle payout count. Alert on mismatch. See `docs/india/GST_SETUP.md` §6.2 Export scenario. |
+
+### 11.4 Invariant updates
+
+Add to §1's "invariant identity" list:
+
+- **(Paddle slice)** `paddle_gross_usd = paddle_fee_usd + paddle_tax_remitted_usd + paddle_reserve_held_usd + paddle_net_paid_usd` per transaction.
+- **(Paddle slice)** `sum(paddle_net_paid_usd) over payout_period = actual_swift_credit_usd ± fx_adjustment_usd`. Exact match to dashboard exports; FX adjustment reconciled separately.
+- **(Paddle slice)** `ai_provider_cost_usd + infra_usd + support_amortised_usd < paddle_net_paid_usd` for every pack-purchase row. Violation = negative-margin customer; triage immediately.
+
+### 11.5 Test cases newly required (extends §5 T-L series)
+
+| ID | Test case | Expected behavior |
+|---|---|---|
+| T-L16 | Paddle `transaction.completed` webhook delivered twice (same `event_id`). | Credits granted once; second delivery idempotent. |
+| T-L17 | Paddle `transaction.refunded` webhook received; `credit_grants_delta` computed correctly (pack credits revoked proportionally if partial refund). | Refund granted; credits revoked; user notified. |
+| T-L18 | Paddle webhook HMAC signature check fails on known-bad payload. | Rejected with 401; logged; no credits granted. |
+| T-L19 | Paddle payout CSV reconciles against `payments_ledger` sum within $0.01. | Identity holds per day. |
+| T-L20 | Paddle-issued invoice to EU customer shows Paddle as merchant-of-record + their VAT number, not ours. | Screenshot comparison; manual check pre-launch. |
+| T-L21 | FIRC count from AD bank ≥ Paddle payout count per quarter. | Reconcile quarterly; alert on gap. |
+
+### 11.6 Monitor additions (extends §6)
+
+- **M-11.1** `paddle_webhook_401_rate_5m > 0` → page immediately (L-11.4).
+- **M-11.2** `paddle_reserve_held_usd` delta > $500 in 24h → alert (L-11.2).
+- **M-11.3** `paddle_account_status != "active"` → page immediately (L-11.1).
+- **M-11.4** Monthly: `paddle_tax_remitted_usd` > 0 AND booked as revenue in any ledger row → alert (L-11.5).
+
+### 11.7 Reconciliation pipeline refresh (extends §7)
+
+Add Paddle export to the monthly reconciliation job:
+
+1. **Paddle**: Dashboard → Transactions → Export CSV (or API `GET /transactions`). Columns: `id`, `status`, `currency`, `gross`, `tax`, `fee`, `net`, `created_at`, `customer_email`.
+2. **Razorpay**: unchanged.
+3. Match `payments_ledger.processor_event_id` to Paddle `id` OR Razorpay `id` (single column, processor-prefixed: `paddle_<id>` or `rzp_<id>`).
+
+### 11.8 Open questions (extends §9)
+
+- **Q11.** Paddle payout schedule: weekly vs bi-weekly? Affects working-capital model. To confirm during sandbox (Task #1, MOR_EVALUATION.md §6).
+- **Q12.** Paddle reserve percentage on our account: default 5%? higher for new merchants? To confirm at KYC completion.
+- **Q13.** Do we accept Paddle's invoice template verbatim, or customize? Template affects GST treatment on the Razorpay slice.
+- **Q14.** Under DTAA India–UK, is Paddle's UK payout subject to any withholding we need to claim back? To ask CA (Task #2, TAX_MODEL.md §7).
+
+### 11.9 Decision log
+
+- 2026-04-20: v3 addendum written after MOR_EVALUATION.md landed (commit `89e9775`) and D4 closed. Supersedes PayPal-era assumptions throughout §1–§10; those sections retained for historical context. Future scenario work should use the v3 substitution table (§11.1) and add new leaks as **L-11.N** rather than modifying §1–§8.

@@ -60,18 +60,36 @@ def processor_fee(price_usd: float, scheme: str) -> float:
         # 3% × 1.18 GST (international card on INR merchant)
         return price_usd * 0.03 * 1.18
     if scheme == "paypal":
-        # 3.49% + $0.49 + 1.5% cross-border
+        # 3.49% + $0.49 + 1.5% cross-border — DEPRECATED post-D4 (2026-04-20).
+        # Retained for historical v1/v2 scenarios only.
         return price_usd * 0.0349 + 0.49 + price_usd * 0.015
+    if scheme == "paddle":
+        # Paddle MoR standard: 5% + $0.50 per transaction.
+        # INCLUDES: payment processing, sales tax collection/remittance
+        # across ~120 jurisdictions (US state nexus, EU VAT, UK VAT, etc.),
+        # chargeback absorption, fraud liability, refund handling, multi-currency.
+        # NOTE: No separate chargeback line item needed when using this scheme
+        # (Paddle eats disputes as part of the MoR wrap).
+        return price_usd * 0.05 + 0.50
     raise ValueError(scheme)
 
 def processor_weighted(price_usd: float, mix: dict) -> float:
     """Weighted processor cost. `mix` sums to 1.0."""
     return sum(w * processor_fee(price_usd, s) for s, w in mix.items())
 
+# v1/v2 mixes (PayPal-era — retained for historical comparison)
 DEFAULT_MIX = {"razorpay_inr": 0.50, "paypal": 0.30, "razorpay_usd": 0.20}
 INDIA_HEAVY = {"razorpay_inr": 0.80, "paypal": 0.10, "razorpay_usd": 0.10}
 US_HEAVY    = {"razorpay_inr": 0.20, "paypal": 0.50, "razorpay_usd": 0.30}
 RAZORPAY_ONLY = {"razorpay_inr": 0.70, "razorpay_usd": 0.30}
+
+# v3 mixes (post-D4 Paddle MoR decision, 2026-04-20).
+# Rule: INR buyers → razorpay_inr; everyone else → paddle.
+# razorpay_usd is retired as a primary rail (Paddle absorbs international).
+PADDLE_DEFAULT   = {"razorpay_inr": 0.40, "paddle": 0.60}  # assumed post-launch mix
+PADDLE_INDIA_HEAVY = {"razorpay_inr": 0.70, "paddle": 0.30}
+PADDLE_INTL_HEAVY  = {"razorpay_inr": 0.20, "paddle": 0.80}
+PADDLE_ONLY       = {"paddle": 1.00}  # pre-launch edge (no Razorpay yet)
 
 # ─── Infra cost per pack (amortised: Hostinger + MySQL + logs + CDN) ───
 INFRA = {"Starter": 0.10, "Creator": 0.20, "Pro": 0.50, "Studio": 1.00}

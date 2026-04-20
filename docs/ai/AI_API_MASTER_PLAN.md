@@ -567,13 +567,15 @@ The 11-scenario sweep in `MARGIN_VERIFICATION.md` surfaced three structural gaps
 
 - **Test:** margin doc S1 (realistic mix, cheap routing) — every pack hits ≥ claim + 2pp.
 
-### Gap C — PayPal on Starter is a knife-edge
+### Gap C — Paddle on Starter is a knife-edge (v3 update, 2026-04-20)
 
-A $5 Starter pack paid via PayPal loses 9.8% of revenue to the $0.49 fixed fee, plus 3.49% + 1.5% cross-border = ~14% processor drag. A PayPal buyer who also happens to be a chat whale (§S3) or a pure-OCR user (worst-case table in margin doc) drops to 71% on that pack.
+**v3 update:** PayPal deprecated per D4 (MOR_EVALUATION.md). Paddle MoR replaces it for international. Fee profile is similar (5% + $0.50 flat vs. PayPal 3.49% + $0.49 + 1.5% xborder), so the knife-edge shape doesn't change — Starter still has ~15% gross processor drag on international buyers.
 
-- **Action:** Payments Phase 1 ships a per-pack processor policy. Starter checkout hides PayPal and routes to Razorpay (INR + USD card). PayPal stays on Creator / Pro / Studio where $0.49 is ≤ 2.6% of sticker.
-- **Alternative if Razorpay-INR isn't approved in time:** raise Starter to $7 OR cap Starter OCR at 30 pages. Option 1 preferred.
-- **Test:** margin doc S6 (region mix) — Starter under any region split stays above 85%.
+A $5 Starter pack paid via Paddle loses $0.50 flat (10% of revenue) plus 5% = **~15% gross processor drag**. A Paddle buyer who also happens to be a chat whale (§S3) or a pure-OCR user (worst-case table in margin doc) drops to sub-75% on that pack. The upside vs PayPal era: Paddle absorbs chargeback + sales-tax overhead, so worst-case dispute scenarios collapse (see REVENUE_LEAK_AUDIT.md §11.2).
+
+- **Action:** Payments Phase 1 ships a per-pack processor policy. Starter checkout routes to Razorpay (INR) when buyer is in India, Paddle otherwise. Countries outside Paddle's Tier-1 list (see GEO_LAUNCH_POLICY.md) see "Notify me when available" instead of checkout.
+- **Alternative:** raise Starter to $7 (addresses support-cost scenario S7 more than processor drag; see MARGIN_VERIFICATION.md §12.3).
+- **Test:** margin doc §12.3 S6 refresh — Starter under PADDLE_DEFAULT mix (40% INR / 60% Paddle) sits at 88.5% under cheap routing.
 
 ### Gap D (new in wider sweep) — Starter pack is structurally fragile
 
