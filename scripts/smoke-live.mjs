@@ -73,10 +73,59 @@ async function run() {
     log(`GET ${path} returns 200 HTML`, r.status === 200 && typeof r.body === "string" && r.body.length > 500, `status=${r.status} bytes=${typeof r.body === "string" ? r.body.length : "n/a"}`);
   }
 
-  group("tool runner pages");
-  for (const path of ["/tool/merge", "/tool/split", "/tool/rotate", "/tool/compress", "/tool/page-numbers", "/tool/to-pdf", "/tool/protect"]) {
+  group("tool runner pages (free)");
+  for (const path of [
+    "/tool/merge",
+    "/tool/split",
+    "/tool/rotate",
+    "/tool/compress",
+    "/tool/page-numbers",
+    "/tool/to-pdf",
+    "/tool/protect",
+    "/tool/pdf-to-office",
+  ]) {
     const r = await req(path);
     log(`GET ${path} returns 200`, r.status === 200 && typeof r.body === "string", `status=${r.status}`);
+  }
+
+  group("tool runner pages (AI)");
+  for (const path of [
+    "/tool/ai-chat",
+    "/tool/ai-summarize",
+    "/tool/ai-translate",
+    "/tool/ai-ocr",
+    "/tool/ai-redact",
+    "/tool/ai-compare",
+  ]) {
+    const r = await req(path);
+    log(`GET ${path} returns 200`, r.status === 200 && typeof r.body === "string", `status=${r.status}`);
+  }
+
+  group("legal + content pages");
+  for (const path of [
+    "/privacy",
+    "/terms",
+    "/gdpr",
+    "/changelog",
+    "/status",
+    "/careers",
+    "/contact",
+    "/help/your-first-merge",
+    "/help/lost-password",
+    "/help/api-quickstart",
+  ]) {
+    const r = await req(path);
+    log(`GET ${path} returns 200`, r.status === 200 && typeof r.body === "string", `status=${r.status}`);
+  }
+
+  group("404 surface");
+  {
+    const r = await req("/this-route-does-not-exist-" + Date.now());
+    log("unknown route returns 404", r.status === 404, `status=${r.status}`);
+    const t = await req("/tool/this-tool-does-not-exist");
+    log("unknown tool id returns 404", t.status === 404, `status=${t.status}`);
+    const h = await req("/help/this-help-slug-does-not-exist");
+    log("unknown help slug returns 404", h.status === 404, `status=${h.status}`);
   }
 
   group("auth guard redirects for logged-out users");

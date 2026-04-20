@@ -79,7 +79,7 @@ _Pair this with `STATUS.md` (operational punch list) — this file answers "does
 | Free tool: PDF → Office | `/tool/pdf-to-office` | Pending | Needs LibreOffice conversion worker. |
 | Free tool: Word → PDF | `/tool/to-pdf` (Word-branch) | Pending | Image branch shipped; Word needs server-side pipeline. |
 | Free tools (other WASM) | `/tool/...` | Partial | Reorder + delete now folded into `/tool/rotate` (see Rotate & Reorder above). Extract / crop / single-page deletion as a standalone tool still pending. |
-| AI tools | `/tools/chat`, `/summarize`, `/translate`, `/ocr`, `/redact` | Partial | UI present; model routing + credit debit logic needs E2E test. |
+| AI tools | `/tool/ai-chat`, `/tool/ai-summarize`, `/tool/ai-translate`, `/tool/ai-ocr`, `/tool/ai-redact`, `/tool/ai-compare` | Partial | All six runner pages serve 200 in prod (verified via `scripts/smoke-live.mjs`). UI present; model routing + credit debit logic still needs an end-to-end test with a funded account. |
 
 ## Analytics / monitoring
 
