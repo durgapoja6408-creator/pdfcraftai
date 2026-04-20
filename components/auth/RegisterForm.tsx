@@ -66,12 +66,12 @@ export function RegisterForm() {
         <div style={{ height: 14 }} />
 
         <Field
-          label="Work email"
+          label="Email"
           name="email"
           type="email"
           autoComplete="email"
           required
-          placeholder="you@company.com"
+          placeholder="you@example.com"
           icon={<I.Send size={14} />}
           error={fe.email}
         />

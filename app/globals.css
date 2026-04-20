@@ -175,14 +175,14 @@ h4 {
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
 }
-.topnav .logo {
+.logo {
   display: flex;
   align-items: center;
   gap: 10px;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
-.topnav .logo-mark {
+.logo-mark {
   width: 28px;
   height: 28px;
   border-radius: 7px;
@@ -193,6 +193,7 @@ h4 {
   font-family: var(--font-geist-mono), ui-monospace, monospace;
   font-weight: 700;
   font-size: 13px;
+  flex-shrink: 0;
 }
 .topnav nav {
   display: flex;
