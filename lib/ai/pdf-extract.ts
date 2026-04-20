@@ -21,10 +21,57 @@
 
 import "server-only";
 
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
+
 // pdfjs-dist's "legacy" build is the ES2019-compatible one that runs
 // under Node's vm. The modern build uses ESM features not yet stable
 // across every Node version we support (>=18.17).
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
+
+// pdfjs's "fake worker" path under Node does a *dynamic* import of
+// `./pdf.worker.mjs` (relative to pdf.mjs in node_modules). That dynamic
+// import is invisible to Next's standalone tracer, so the worker file
+// was missing from `.next/standalone/node_modules/pdfjs-dist/...` and
+// at runtime pdfjs would throw:
+//   Setting up fake worker failed: "Cannot find module
+//   '.../pdfjs-dist/legacy/build/pdf.worker.mjs'"
+//
+// We solve it in two layers:
+//   (1) `next.config.mjs` -> experimental.outputFileTracingIncludes
+//       force-copies pdf.worker.mjs into the standalone bundle next
+//       to pdf.mjs, so pdfjs's default relative lookup resolves.
+//   (2) `ensureWorkerConfigured()` below *also* pins the worker to an
+//       explicit file:// URL on first extraction call. This is belt-
+//       and-braces: if a future Next version changes its tracing
+//       conventions we still route around the failure.
+//
+// We intentionally do NOT run this at module-load time — `next build`
+// evaluates route modules during "Collecting page data" in a bundled
+// context where relative `require.resolve` on an ESM package fails,
+// and webpack can't statically rewrite our require.resolve call. A
+// lazy first-call setter sidesteps that entirely.
+
+let workerConfigured = false;
+
+function ensureWorkerConfigured(): void {
+  if (workerConfigured) return;
+  workerConfigured = true;
+  const gw = (pdfjs as typeof pdfjs & { GlobalWorkerOptions: { workerSrc: string } })
+    .GlobalWorkerOptions;
+  try {
+    // `import.meta.url` here points at this file; createRequire gives
+    // us Node's normal resolver rooted at the same module.
+    const req = createRequire(import.meta.url);
+    const workerPath = req.resolve("pdfjs-dist/legacy/build/pdf.worker.mjs");
+    gw.workerSrc = pathToFileURL(workerPath).href;
+  } catch {
+    // Fall back to pdfjs's own default ("./pdf.worker.mjs" relative to
+    // pdf.mjs). If outputFileTracingIncludes did its job, this still
+    // works; if it didn't, pdfjs will throw its usual "Setting up fake
+    // worker failed" and the route's 500 handler will log it.
+  }
+}
 
 /** One extracted page's worth of text + bookkeeping. */
 export interface ExtractedPage {
@@ -59,6 +106,7 @@ const OCR_CANDIDATE_CHAR_THRESHOLD = 20;
  * charge the user for a broken upload.
  */
 export async function extractPdfText(source: Uint8Array | ArrayBuffer): Promise<ExtractedPdf> {
+  ensureWorkerConfigured();
   const data = source instanceof Uint8Array ? source : new Uint8Array(source);
   // Loading options tuned for server-side extraction:
   //   - `useSystemFonts: false` — we don't render, so system fonts
@@ -67,8 +115,9 @@ export async function extractPdfText(source: Uint8Array | ArrayBuffer): Promise<
   //     faces.
   //   - `isEvalSupported: false` — defense-in-depth against crafted
   //     PDFs trying to execute code.
-  //   - No `workerSrc` — pdfjs falls back to inline execution, which
-  //     is what we want under Next.js serverless / hPanel.
+  //   - `GlobalWorkerOptions.workerSrc` was set at module load above
+  //     to an explicit file:// URL pointing at the legacy worker bundle.
+  //     Under Node, pdfjs runs the worker in-process via dynamic import.
   const loadingTask = (pdfjs as typeof pdfjs & { getDocument: (opts: unknown) => { promise: Promise<PdfDocumentLike> } }).getDocument({
     data,
     useSystemFonts: false,

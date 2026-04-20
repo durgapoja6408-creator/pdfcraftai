@@ -126,6 +126,21 @@ const nextConfig = {
     // require()d from node_modules at runtime — on Node 18+ the shim's
     // branch that needs them is dead code anyway.
     serverComponentsExternalPackages: ['openai', '@anthropic-ai/sdk', 'pdfjs-dist'],
+    // pdfjs-dist's `pdf.mjs` does a *dynamic* import of `./pdf.worker.mjs`
+    // when it boots its in-process "fake worker" under Node. That dynamic
+    // import is invisible to Next's static tracer, so the worker file
+    // never lands in `.next/standalone/node_modules/pdfjs-dist/...`,
+    // and at runtime pdfjs throws:
+    //   Setting up fake worker failed: "Cannot find module
+    //   '.../pdfjs-dist/legacy/build/pdf.worker.mjs'"
+    // Force-include the worker for any /api route — only the AI + PDF
+    // tool endpoints actually need it, but the glob keeps this file
+    // from drifting if we add new routes that touch the extractor.
+    outputFileTracingIncludes: {
+      '/api/**/*': [
+        './node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs',
+      ],
+    },
   },
   async headers() {
     // Applied to every route. If a specific route ever needs a different
