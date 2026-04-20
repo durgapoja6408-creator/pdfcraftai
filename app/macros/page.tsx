@@ -1,7 +1,13 @@
+// app/macros/page.tsx
+// Public Macros library page. Server component owns SEO metadata; mounts the
+// client-side <MacroLibrary/> below (templates + user-saved macros from
+// localStorage). The marketing feature grid + CTA remain as secondary sections
+// under the library for visitors who haven't scrolled through the home page.
+
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MarketingHero } from "@/components/marketing/MarketingHero";
 import { I } from "@/components/icons/Icons";
+import { MacroLibrary } from "@/components/workflow/MacroLibrary";
 
 export const metadata: Metadata = {
   title: "Macros — record once, replay forever",
@@ -46,28 +52,17 @@ const FEATURES: Array<{ icon: keyof typeof I; title: string; body: string }> = [
 export default function MacrosPage() {
   return (
     <>
-      <MarketingHero
-        chip={{ label: "MACROS", tone: "ai" }}
-        eyebrow="WORKFLOW STUDIO"
-        title={
-          <>
-            Record once.
-            <br />
-            <span style={{ color: "var(--accent)" }}>Replay forever.</span>
-          </>
-        }
-        subtitle="Most office PDF work is the same ten steps every Monday. Turn that routine into a macro — one click, the whole team, or an API call."
-        primaryCta={{ href: "/register", label: "Start building" }}
-        secondaryCta={{ href: "/agent", label: "Agent mode instead" }}
-      />
+      <MacroLibrary />
 
-      <section style={{ padding: "80px 28px", borderTop: "1px solid var(--border)" }}>
+      {/* Feature grid — kept as a secondary section beneath the library for SEO
+          and to explain the product to first-time visitors. */}
+      <section style={{ padding: "72px 28px", borderTop: "1px solid var(--border)" }}>
         <div className="container-x">
           <div style={{ maxWidth: 640, marginBottom: 40 }}>
             <div className="eyebrow" style={{ marginBottom: 10 }}>
               WHAT&apos;S IN THE BOX
             </div>
-            <h2 style={{ fontSize: 36, letterSpacing: "-0.02em", margin: 0 }}>
+            <h2 style={{ fontSize: 32, letterSpacing: "-0.02em", margin: 0 }}>
               The missing automation layer for PDFs.
             </h2>
           </div>
@@ -109,9 +104,9 @@ export default function MacrosPage() {
         </div>
       </section>
 
-      <section style={{ padding: "80px 28px", textAlign: "center" }}>
+      <section style={{ padding: "72px 28px", textAlign: "center" }}>
         <div className="container-narrow">
-          <h2 style={{ fontSize: 34, letterSpacing: "-0.02em", margin: "0 0 12px" }}>
+          <h2 style={{ fontSize: 32, letterSpacing: "-0.02em", margin: "0 0 12px" }}>
             Stop repeating yourself every Monday.
           </h2>
           <p className="muted" style={{ fontSize: 16, marginBottom: 24 }}>
