@@ -1,6 +1,6 @@
 # pdfcraftai — master plan index
 
-**Date:** 2026-04-20 (consolidation pass). **Purpose:** one door into every active planning document. Anyone picking up this project reads this file first, then the specific plan for the work they're doing.
+**Date:** 2026-04-20 (consolidation pass — v3, gap-analysis merge). **Purpose:** one door into every active planning document. Anyone picking up this project reads this file first, then the specific plan for the work they're doing.
 
 ---
 
@@ -46,9 +46,12 @@
 **Critical unknowns still blocking:**
 1. `ANTHROPIC_API_KEY` not on Hostinger (task #72) — every AI call 503s today.
 2. Razorpay KYC in progress, PayPal business account not yet created (task #81).
-3. **Nine** founder decisions open (see §4) — D1–D6 on pricing/margin + **D7–D9** on cost-guardrail thresholds.
+3. **Twelve** founder decisions open (see §4) — D1–D6 on pricing/margin + D7–D9 on cost guardrails + **D10–D12** on geo-scope + transparency (from PLAN_GAP_ANALYSIS).
+4. **11 SEV-0 gaps** identified in PLAN_GAP_ANALYSIS.md must be closed before public launch — including prompt-injection defense, chargeback clawback handling, refund/ToS pages, cookie banner, webhook retry storm, output moderation, malware scan on uploads.
 
 **Loss-bounding guarantees added 2026-04-20:** See `COST_GUARDRAILS.md`. A 500-page PDF × 10-turn Sonnet chat goes from −$7.23/session loss to either bounded positive margin or forced BYOK. Max per-turn cost is mathematically capped by Layer 1 (20k input-token gate).
+
+**Gap-analysis audit added 2026-04-20:** See `PLAN_GAP_ANALYSIS.md`. 42 previously-unmapped scenarios across adversarial, regulatory, operational, product, and financial axes — classified SEV-0..SEV-3 and fed back into phase scoping.
 
 ---
 
@@ -90,6 +93,7 @@ Read these in dependency order:
 
 | Doc | Purpose | Size |
 |---|---|---|
+| [`docs/PLAN_GAP_ANALYSIS.md`](./PLAN_GAP_ANALYSIS.md) | **42-gap deep audit** across all 3 tiers + cross-cutting — SEV-0..SEV-3 with remediation | 29 KB |
 | [`docs/TEST_PLAN.md`](./TEST_PLAN.md) | Prioritized E2E checklist (P0 auth → P4 SEO) | 8 KB |
 | [`docs/E2E_SMOKE_2026-04-20.md`](./E2E_SMOKE_2026-04-20.md) | Latest production sweep notes | 22 KB |
 | [`docs/FEATURE_TRACKER.md`](./FEATURE_TRACKER.md) | What's built, what's stubbed | 12 KB |
@@ -142,7 +146,7 @@ Everything below is tested against one rule: **adding a new provider (payment or
 
 ## 4. Open decisions requiring founder sign-off
 
-These nine are blocking the public pricing copy and the A2/A3 builds:
+These twelve decisions are blocking the public pricing copy, the A2/A3 builds, and the launch geo-scope:
 
 | # | Decision | Recommendation | Blocks |
 |---|---|---|---|
@@ -155,8 +159,11 @@ These nine are blocking the public pricing copy and the A2/A3 builds:
 | D7 | `MAX_CREDITS_PER_TURN` cap value? | **10 credits (= $0.50 revenue ceiling).** Covers Haiku 100k-token turn; bounds estimate-miss risk. | Phase A2 (Layer 5 reconciliation) |
 | D8 | Margin threshold that auto-flips user to BYOK-required? | **30%** — any user whose 24-hour spend exceeds 70% of their revenue gets moved to BYOK-only. Chronic whales stop costing the platform within 24 hours. | Phase A4 (Layer 7 circuit breaker) |
 | D9 | Trigger threshold for pre-send cost confirmation UI? | **≥ 2 credits** — silent for normal 1-credit turns, explicit confirmation for anything larger. | Phase A2 (Layer 4) |
+| D10 | Serve EU customers at launch (triggers VAT/MOSS + GDPR DSAR)? | **Geo-block EU at launch.** Defer until MRR > $5k to justify MOSS compliance + DPA + DPO appointment cost. | Phase 0 legal; checkout geo-gate |
+| D11 | Serve US customers at launch (risk of sales-tax nexus)? | **Geo-allow US, monitor volume.** Threshold alarm at $90k revenue or 180 txn (below $100k/200 trigger). If breached, pause US sales and enroll in TaxJar/Avalara. | Phase 0 legal; monitoring dashboard |
+| D12 | Publish which model handled each request? | **No.** Disclose provider list generically in ToS ("we route across Anthropic, OpenAI, Google"), but hide per-call model in UI. Protects router.ts as trade secret; users see "AI-powered" not "GPT-4o-mini answered this". | Phase A2 UI; privacy policy |
 
-D1–D6 tracked in task [#87](#). D7–D9 added 2026-04-20 from `COST_GUARDRAILS.md` §8 — they gate Phase A2 Layer 1/3/5/7 implementation.
+D1–D6 tracked in task [#87](#). D7–D9 added 2026-04-20 from `COST_GUARDRAILS.md` §8 — they gate Phase A2 Layer 1/3/5/7 implementation. D10–D12 added 2026-04-20 from `PLAN_GAP_ANALYSIS.md` §6 — they gate Phase 0 legal copy and checkout geo-routing.
 
 ---
 
@@ -217,6 +224,8 @@ Until all eight are green, the site is **not** ready to advertise the full margi
 
 | SHA | Title | Files |
 |---|---|---|
+| `d5ca52a` | docs: add PLAN_GAP_ANALYSIS.md — 42-gap deep audit across all 3 tiers | PLAN_GAP_ANALYSIS |
+| `f569c3c` | docs: update MASTER_PLAN.md to v2 — integrate COST_GUARDRAILS refs + D7–D9 | MASTER_PLAN |
 | `8ee3a62` | docs(ai): cost guardrails — nine-layer defense against chat-whale + large-PDF attacks | COST_GUARDRAILS |
 | `5e0026c` | docs: consolidate all planning work into MASTER_PLAN.md front-door index | MASTER_PLAN |
 | `f4751af` | docs(ai): expand margin verification to 11 scenarios + wire gaps into master plan | AI_API_MASTER_PLAN, MARGIN_VERIFICATION, margin_scenarios.py |
