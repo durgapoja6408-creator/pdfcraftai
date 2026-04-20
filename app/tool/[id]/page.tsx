@@ -15,6 +15,7 @@ import { RewritePdfTool } from "@/components/tools/RewritePdfTool";
 import { TableExtractTool } from "@/components/tools/TableExtractTool";
 import { RedactPdfTool } from "@/components/tools/RedactPdfTool";
 import { GeneratePdfTool } from "@/components/tools/GeneratePdfTool";
+import { SignPdfTool } from "@/components/tools/SignPdfTool";
 import { PageNumbersTool } from "@/components/tools/PageNumbersTool";
 import { ImageToPdfTool } from "@/components/tools/ImageToPdfTool";
 import { ProtectPdfTool } from "@/components/tools/ProtectPdfTool";
@@ -25,8 +26,8 @@ type Params = { params: { id: string } };
 // Tools whose client runners ship in Phase 3 (free, in-browser) + Phase
 // 5.1 (AI · Summarize) + Phase 5.2 (AI · Translate) + Phase 5.3 (AI ·
 // Compare) + Phase 5.4 (AI · OCR) + Phase 5.6 (AI · Rewrite, AI · Table,
-// AI · Redact, AI · Generate) + `pdf-to-office` (free but server-side
-// — pdfjs worker + docx lib are Node-only; see
+// AI · Redact, AI · Generate, AI · Sign) + `pdf-to-office` (free but
+// server-side — pdfjs worker + docx lib are Node-only; see
 // lib/tools-server/pdf-to-office.ts for the why).
 // Adding a tool here: register the id, then append a case to the
 // ToolRunner switch below.
@@ -47,6 +48,7 @@ const LIVE_TOOL_IDS = new Set<string>([
   "ai-table",
   "ai-redact",
   "ai-generate",
+  "ai-sign",
 ]);
 
 // Free tools that run server-side rather than on-device. These still
@@ -208,6 +210,8 @@ function ToolRunner({ id }: { id: string }) {
       return <RedactPdfTool />;
     case "ai-generate":
       return <GeneratePdfTool />;
+    case "ai-sign":
+      return <SignPdfTool />;
     default:
       return null;
   }
