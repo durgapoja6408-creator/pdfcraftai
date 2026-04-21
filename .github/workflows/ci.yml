@@ -1,0 +1,84 @@
+# .github/workflows/ci.yml
+#
+# Runs the repo's offline gates (typecheck + test) on every push to main
+# and every PR targeting main.
+#
+# Why this exists:
+#   The repo has 382 offline assertions across three test harnesses
+#   (pdf-tools, geo-router, geo-waitlist) wired up behind `npm test` by
+#   scripts/run-all-tests.mjs. Having a single-command gate is only half
+#   the value — the other half is running that gate automatically on
+#   every push so regressions get caught at PR time instead of at
+#   deploy time. Hostinger's GitHub App auto-deploys main on every push,
+#   so "CI runs on main" is the last line of defence before the build
+#   goes live.
+#
+# Design choices:
+#   - Matrix on Node 18 + 20. The repo's engines.node is ">=18.17.0",
+#     both are LTS, and Hostinger's managed Node app runs some version
+#     in that range (the exact version has drifted across the account
+#     history, so keeping both in the matrix means a Hostinger Node bump
+#     doesn't silently pass CI on a version we don't ship). Node 22 is
+#     intentionally NOT in the matrix — it's fine locally but not yet
+#     production-pinned on Hostinger.
+#   - `npm ci` (not `npm install`) for determinism: uses package-lock.json
+#     exactly, fails fast if lock is out of sync with package.json.
+#   - Cache `~/.npm` keyed on package-lock.json — subsequent runs on
+#     same lock skip the registry roundtrip.
+#   - Gates in order: typecheck first (fast, catches most drift),
+#     tests second (the 382-assertion offline suite, ~0.8s).
+#   - `next build` is intentionally NOT a gate yet. Some routes hit
+#     runtime integrations (DB adapter, NextAuth providers) at build
+#     time and would need the full secrets surface to succeed in CI.
+#     Adding build coverage would require either stubbing those env
+#     vars or refactoring the routes — scope-creep for a first CI pass.
+#     typecheck catches the TS side of build errors; runtime-only build
+#     errors still surface at Hostinger deploy time.
+#   - Concurrency group cancels superseded runs on the same ref: if
+#     someone pushes three times in two minutes, only the latest
+#     commit's run finishes — saves Actions minutes without affecting
+#     the signal.
+#   - No secrets needed. Both gates are pure-logic and offline.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel older in-progress runs when a new commit lands on the same ref.
+# Exception: main — each push to main should be tracked to completion so
+# we have a green/red verdict per commit (important because Hostinger
+# auto-deploys every push).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  test:
+    name: test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["18", "20"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install dependencies (npm ci)
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
