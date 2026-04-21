@@ -87,6 +87,18 @@ const ROLLUP_SRC = readFileSync(ROLLUP_PATH, "utf8");
 const AGG_SRC = readFileSync(AGGREGATOR_PATH, "utf8");
 const DEPLOY_SRC = readFileSync(DEPLOY_NOTES_PATH, "utf8");
 
+// Page-layer surface shipped in the follow-up bundle. Same feature
+// (admin-margin), distinct file — the page is how a logged-in admin
+// reads the JSON endpoint through a browser. Reading it here keeps
+// the whole admin-margin regression surface in one test file so a
+// failure in either route or page lines up with the same suite.
+const PAGE_PATH = resolve(ROOT, "app", "app", "admin", "margin", "page.tsx");
+if (!existsSync(PAGE_PATH)) {
+  console.error(`FATAL: required source file missing: ${PAGE_PATH}`);
+  process.exit(1);
+}
+const PAGE_SRC = readFileSync(PAGE_PATH, "utf8");
+
 // =============================================================================
 // SECTION A: route file shape
 // =============================================================================
@@ -408,6 +420,135 @@ assert(
   "H1 docs/DEPLOYMENT_NOTES.md documents ADMIN_EMAILS",
   /ADMIN_EMAILS/.test(DEPLOY_SRC),
   "ADMIN_EMAILS env var must be listed in DEPLOYMENT_NOTES.md so ops can add admins without reading source"
+);
+
+// =============================================================================
+// SECTION I: page-layer shape (app/app/admin/margin/page.tsx)
+// =============================================================================
+//
+// The page is a server React component that consumes the same helpers
+// as the route. These asserts pin the pieces that matter for the
+// runtime contract — not the cosmetic details (column order, inline
+// styles) — so a future UI polish pass doesn't churn this harness.
+
+assert(
+  "I1 page lives under /app/admin/margin (inherits middleware+layout auth gate)",
+  /app[\/\\]app[\/\\]admin[\/\\]margin[\/\\]page\.tsx$/.test(PAGE_PATH),
+  "Path must be app/app/admin/margin/page.tsx so NextAuth /app/* gate applies"
+);
+
+assert(
+  "I1 page pins force-dynamic (same as route — no build-time freeze)",
+  /export\s+const\s+dynamic\s*=\s*"force-dynamic"/.test(PAGE_SRC),
+  "Page must be force-dynamic; yesterday-UTC semantics would freeze at build time"
+);
+
+assert(
+  "I1 page pins nodejs runtime",
+  /export\s+const\s+runtime\s*=\s*"nodejs"/.test(PAGE_SRC),
+  "Drizzle+mysql2 require nodejs runtime"
+);
+
+assert(
+  "I1 page metadata sets robots noindex + nofollow",
+  /robots:\s*\{\s*index:\s*false,\s*follow:\s*false\s*\}/.test(PAGE_SRC),
+  "Admin surface must not be indexed — belt-and-braces even though robots.txt disallows /app/*"
+);
+
+assert(
+  "I1 page imports auth() from @/auth",
+  /import\s+\{\s*auth\s*\}\s+from\s+"@\/auth"/.test(PAGE_SRC),
+  "Page must import auth() to resolve the session"
+);
+
+assert(
+  "I1 page imports the admin helpers + types",
+  /import\s+\{[\s\S]{0,400}\bisAdminEmail\b[\s\S]{0,400}\}\s+from\s+"@\/lib\/ai\/margin-rollup"/.test(
+    PAGE_SRC
+  ) &&
+    /\bgetAdminMarginSummary\b/.test(PAGE_SRC) &&
+    /\bclampAdminDays\b/.test(PAGE_SRC),
+  "Page must import isAdminEmail, getAdminMarginSummary, clampAdminDays"
+);
+
+assert(
+  "I1 page reads admin allowlist from process.env.ADMIN_EMAILS",
+  /isAdminEmail\s*\(\s*email\s*,\s*process\.env\.ADMIN_EMAILS\s*\)/.test(PAGE_SRC),
+  "Allowlist must come from env — no hard-coded emails"
+);
+
+assert(
+  "I1 page has an unauthenticated branch (NotSignedIn)",
+  /NotSignedIn/.test(PAGE_SRC) && /if\s*\(\s*!email\s*\)/.test(PAGE_SRC),
+  "Page must render a friendly no-session card (middleware usually catches this but belt-and-braces)"
+);
+
+assert(
+  "I1 page has a not-admin branch (NotAuthorised)",
+  /NotAuthorised/.test(PAGE_SRC) &&
+    /if\s*\(\s*!isAdminEmail\s*\(/.test(PAGE_SRC),
+  "Page must render a 'you're signed in but not admin' card on allowlist miss"
+);
+
+assert(
+  "I1 page reads days from searchParams",
+  /searchParams\?\.\s*days/.test(PAGE_SRC) &&
+    /clampAdminDays\s*\(\s*searchParams\?\.\s*days/.test(PAGE_SRC),
+  "Page must take ?days= off searchParams and clamp it like the route"
+);
+
+assert(
+  "I1 page shows day-preset selector linking back with ?days=<N>",
+  /\/app\/admin\/margin\?days=/.test(PAGE_SRC),
+  "Day selector must link to the same path with ?days= preserved"
+);
+
+assert(
+  "I1 page surfaces gate #7 status from summary.gate7Reached",
+  /summary\.gate7Reached/.test(PAGE_SRC) &&
+    /Gate\s*#7/.test(PAGE_SRC),
+  "UI must make the gate #7 state obvious at a glance"
+);
+
+assert(
+  "I1 page surfaces current green streak from summary.currentStreakDays",
+  /summary\.currentStreakDays/.test(PAGE_SRC),
+  "UI must show the current streak — it's the headline Task #22 metric"
+);
+
+assert(
+  "I1 page renders per-day table (days.map)",
+  /summary\.days[\s\S]{0,200}\.map\s*\(/.test(PAGE_SRC) ||
+    /days\s*=\s*\{summary\.days\}/.test(PAGE_SRC),
+  "Per-day table must iterate summary.days"
+);
+
+assert(
+  "I1 page renders red-slice table (recentRedSlices.map)",
+  /summary\.recentRedSlices[\s\S]{0,200}\.map\s*\(/.test(PAGE_SRC) ||
+    /slices\s*=\s*\{summary\.recentRedSlices\}/.test(PAGE_SRC),
+  "Red-slice table must iterate summary.recentRedSlices"
+);
+
+assert(
+  "I1 page references floorBpsByOp for the floor reference block",
+  /summary\.floorBpsByOp/.test(PAGE_SRC),
+  "Floor reference table must come from summary.floorBpsByOp"
+);
+
+assert(
+  "I1 page uses the existing CSS-var design system (--bg-1 / --fg-muted)",
+  /var\(--bg-1\)/.test(PAGE_SRC) && /var\(--fg-muted\)/.test(PAGE_SRC),
+  "Page must match existing /app pages' theme tokens (no Tailwind, no new CSS)"
+);
+
+assert(
+  "I1 page is NOT linked from AppShell sidebar (ops-only surface)",
+  /NAV/.test(readFileSync(resolve(ROOT, "components", "app", "AppShell.tsx"), "utf8")) &&
+    !/admin[\/\\]margin/.test(
+      readFileSync(resolve(ROOT, "components", "app", "AppShell.tsx"), "utf8")
+    ),
+  "Admin-margin page must not appear in the product sidebar — discovery by direct URL only"
 );
 
 // =============================================================================
