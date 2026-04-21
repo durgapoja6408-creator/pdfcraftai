@@ -12,7 +12,8 @@ Node.js application on Hostinger Business hosting.
 **Phase 1 — Marketing pages — DONE.**
 **Phase 2 — Auth + DB + dashboard shell — DONE.**
 **Phase 3 — Core free PDF tools — DONE.**
-**Phase 4 — Credit packs + payments (Razorpay + PayPal) — DONE.**
+**Phase 4 — Credit packs + payments (Razorpay + Paddle) — DONE.**
+*Note: Phase 4 originally shipped with PayPal on the international rail; PayPal was retired 2026-04-21 (D4 cleanup) in favor of Paddle's MoR model, which bakes VAT/GST/sales-tax collection and remittance into the payout. See `docs/MASTER_PLAN.md` §D4 and `docs/STATUS.md` paper trail.*
 **Phase 5 — Chat with PDF (Anthropic + OpenAI) — DONE.**
 **Phase 5.1 — Summarize PDF (first artifact-producing AI op) — DONE.**
 **Phase 5.2 — Translate PDF (map-reduce chunked) — DONE.**
@@ -141,8 +142,8 @@ What's new in Phase 5:
 
 What's new in Phase 4:
 
-- **Two payment providers live, swappable via env**: Razorpay and PayPal. Neither code-wired as the default — the registry at `lib/payments/registry.ts` loads whichever has its env vars set, and the UI renders a button per configured provider.
-- **Portable architecture**: a single `PaymentProvider` interface (`lib/payments/provider.ts`), per-provider adapters (`lib/payments/adapters/{razorpay,paypal}.ts`), a shared webhook processor (`lib/payments/webhook-handler.ts`), and one idempotent ledger writer (`lib/payments/ledger.ts`). Adding a third provider (Stripe, Paddle, whatever) is an adapter file + a registry row + two env vars.
+- **Two payment providers live, swappable via env**: Razorpay (India / domestic INR) and Paddle (international / MoR). Neither code-wired as the default — the registry at `lib/payments/registry.ts` loads whichever has its env vars set, and the UI renders a button per configured provider.
+- **Portable architecture**: a single `PaymentProvider` interface (`lib/payments/provider.ts`), per-provider adapters (`lib/payments/adapters/{razorpay,paddle}.ts`), a shared webhook processor (`lib/payments/webhook-handler.ts`), and one idempotent ledger writer (`lib/payments/ledger.ts`). Adding a third provider (Stripe, Lemon Squeezy, whatever) is an adapter file + a registry row + two env vars.
 - **Idempotent credit grants**: `grantCredits()` takes an idempotency key. Webhooks use `${paymentId}:base` / `${paymentId}:bonus`; refunds use `${paymentId}:refund:${providerRefundRef}`. Replay the same webhook ten times and the ledger moves exactly once.
 - **Refunds**: self-serve 14-day unused-credits refund button on `/app/billing`. Proration is done from the pack total, not remaining balance, so partial refunds are deterministic and idempotent. See `lib/payments/refund-actions.ts`.
 - **Nightly reconciliation cron**: catches webhooks we missed. Pages each provider's history since the last checkpoint, normalizes, runs through the same `applyPaymentEvent` path as live webhooks.
@@ -254,12 +255,14 @@ RAZORPAY_KEY_ID=
 RAZORPAY_KEY_SECRET=
 RAZORPAY_WEBHOOK_SECRET=
 
-# Optional — PayPal. Omit to hide the PayPal button.
-# PAYPAL_ENV accepts "sandbox" (default) or "live".
-PAYPAL_CLIENT_ID=
-PAYPAL_CLIENT_SECRET=
-PAYPAL_WEBHOOK_ID=
-PAYPAL_ENV=sandbox
+# Optional — Paddle (international / MoR). Omit to hide the Paddle button.
+# PADDLE_ENV accepts "sandbox" (default) or "live".
+# PADDLE_API_KEY is server-side; PADDLE_CLIENT_TOKEN is shipped to the
+# browser by Paddle.js. Do NOT swap them.
+PADDLE_API_KEY=
+PADDLE_CLIENT_TOKEN=
+PADDLE_WEBHOOK_SECRET=
+PADDLE_ENV=sandbox
 
 # Optional — AI providers. Set at least one to unlock /app/chat.
 # The registry loads whichever is configured; if both are set, each
@@ -338,26 +341,36 @@ You don't need either provider configured to develop locally — the `/pricing` 
    - Events: `payment.captured`, `payment.failed`, `refund.processed`, `refund.failed`.
    - Secret: generate or paste any string; put the same value in `RAZORPAY_WEBHOOK_SECRET`.
 
-**PayPal (sandbox):**
+**Paddle (sandbox):**
 
-1. Sign in at [developer.paypal.com](https://developer.paypal.com/).
-2. **Apps & Credentials → Sandbox → Create App.** Pick "Merchant". Copy the Client ID + Secret into `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET`.
-3. Inside that app: **Sandbox Webhooks → Add Webhook**:
-   - URL: same as above but `/api/webhooks/paypal`.
-   - Events: `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.REFUNDED`, `CHECKOUT.ORDER.APPROVED`.
-   - Copy the **Webhook ID** (shown after creation) into `PAYPAL_WEBHOOK_ID`.
-4. Leave `PAYPAL_ENV=sandbox` until you're ready for live traffic.
+Paddle operates as a merchant-of-record — it sells the credits to the end
+customer and remits VAT/GST/sales-tax to every jurisdiction on our behalf.
+Payout lands in our account net of Paddle's fees + the taxes collected.
+The adapter treats Paddle as a one-time transaction provider (same shape
+as Razorpay); recurring subscriptions are on the roadmap but not wired
+into the UI yet.
+
+1. Sign up at [paddle.com](https://www.paddle.com/) and pick **Paddle Billing** (not the legacy Classic product).
+2. Flip the sandbox toggle in the left sidebar of the vendor dashboard. Sandbox is available immediately; live-mode unlocks after Paddle KYC (3–7 business days).
+3. **Developer Tools → Authentication → API keys → Create API key.** Copy into `PADDLE_API_KEY` (server-side; never ship to the browser).
+4. **Developer Tools → Authentication → Client-side tokens → Generate.** Copy into `PADDLE_CLIENT_TOKEN`. This is the token Paddle.js reads in the browser when opening the overlay checkout — it's narrow-scoped and safe to ship to the client.
+5. **Catalog → Products → New Product.** Create one product per credit pack in `lib/pricing.ts` (matching the pack id/name). Add a one-time price in USD to each. Copy the Paddle `price_id` back into the pack row in `lib/pricing.ts` under a `paddlePriceId` field (the adapter reads it to seed checkout).
+6. **Developer Tools → Notifications → New destination → Webhook.**
+   - URL: `https://<your-ngrok-or-tunnel>.ngrok.io/api/webhooks/paddle` (local dev) or `https://pdfcraftai.com/api/webhooks/paddle` (prod).
+   - Events: `transaction.completed`, `transaction.payment_failed`, `adjustment.created`, `adjustment.updated`.
+   - Copy the **signing secret** shown after creation into `PADDLE_WEBHOOK_SECRET`.
+7. Leave `PADDLE_ENV=sandbox` until KYC clears and you're ready for live traffic.
 
 **Test card numbers:**
 
 - Razorpay test: `4111 1111 1111 1111`, any future expiry, any CVV.
-- PayPal sandbox: create a sandbox buyer under **Apps & Credentials → Sandbox → Accounts** and sign in with it during checkout.
+- Paddle sandbox: `4242 4242 4242 4242` (Visa), any future expiry, any CVV. The full list lives at [developer.paddle.com/concepts/payment-methods/credit-debit-card](https://developer.paddle.com/concepts/payment-methods/credit-debit-card).
 
 **Going live:**
 
 1. Flip to live-mode keys on each provider dashboard and swap the env vars in Hostinger.
 2. Add the production webhook endpoints on each provider.
-3. Set `PAYPAL_ENV=live`.
+3. Set `PADDLE_ENV=live` (only after Paddle KYC verification has cleared).
 4. Set `CRON_SECRET` (see below) and wire up the nightly reconciliation cron in hPanel → **Advanced → Cron Jobs**:
    ```
    0 3 * * *  curl -H "x-cron-secret: $CRON_SECRET" https://pdfcraftai.com/api/cron/reconcile-payments
@@ -425,9 +438,9 @@ a prebuilt bundle and run it.
    - `NEXTAUTH_SECRET=<32+ byte random string>` — `openssl rand -base64 32`
    - `NEXTAUTH_URL=https://pdfcraftai.com`
    - `GOOGLE_CLIENT_ID=...` / `GOOGLE_CLIENT_SECRET=...` if using Google login
-   - Payment providers (set all three for Razorpay and/or all four for PayPal; leave unset to hide that button):
+   - Payment providers (set all three for Razorpay and/or all four for Paddle; leave unset to hide that button):
      - `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`
-     - `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID`, `PAYPAL_ENV=live`
+     - `PADDLE_API_KEY`, `PADDLE_CLIENT_TOKEN`, `PADDLE_WEBHOOK_SECRET`, `PADDLE_ENV=live`
    - AI providers (set at least one to enable `/app/chat`; leave both unset to hide chat UI):
      - `ANTHROPIC_API_KEY`, optional `ANTHROPIC_MODEL`
      - `OPENAI_API_KEY`, optional `OPENAI_MODEL`
@@ -574,7 +587,7 @@ lib/
     reconcile.ts          nightly cron — pages provider history
     adapters/
       razorpay.ts         Razorpay adapter + scrub() (shared)
-      paypal.ts           PayPal adapter (imports scrub from razorpay)
+      paddle.ts           Paddle adapter (MoR; imports scrub from razorpay)
   ai/
     provider.ts           AIProvider interface + UnsupportedCapabilityError
     types.ts              ChatChunk / ChatInput / ChatResult / StopReason / …
@@ -587,7 +600,7 @@ lib/
   chat-actions.ts         create / rename / archive / delete chat session actions
 app/api/webhooks/
   razorpay/route.ts       POST /api/webhooks/razorpay
-  paypal/route.ts         POST /api/webhooks/paypal
+  paddle/route.ts         POST /api/webhooks/paddle
 app/api/ai/
   chat/route.ts           POST /api/ai/chat (streaming SSE)
 db/schema/

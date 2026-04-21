@@ -5,12 +5,18 @@
 //   - "Given (currency, mode), which provider should I use?"
 //
 // The registry is env-driven: only providers whose env vars are set get
-// registered. That means rolling out PayPal to production is "set four
-// env vars on Hostinger" — no code changes, no redeploy beyond env.
+// registered. That means rolling out a provider to production is "set a
+// handful of env vars on Hostinger" — no code changes, no redeploy
+// beyond env.
 //
 // Adapters are lazy-imported so a misconfigured provider never breaks
 // boot. If RAZORPAY_KEY_ID isn't set, the Razorpay module is simply not
 // loaded — its dependencies don't get pulled, its init never runs.
+//
+// History: this registry used to carry a PayPal row (between Phase 4
+// and 2026-04-21). D4 replaced the PayPal international rail with
+// Paddle MoR; the PayPal adapter, webhook route, and env-var block
+// were retired in the same commit that added this note.
 
 import type { PaymentProvider } from "./provider";
 import type { Currency, ProviderId } from "./types";
@@ -48,26 +54,6 @@ const ADAPTERS: ReadonlyArray<{
     },
   },
   {
-    id: "paypal",
-    isConfigured: () =>
-      Boolean(
-        process.env.PAYPAL_CLIENT_ID &&
-          process.env.PAYPAL_CLIENT_SECRET &&
-          process.env.PAYPAL_WEBHOOK_ID
-      ),
-    load: async () => {
-      const { PayPalProvider } = await import("./adapters/paypal");
-      return new PayPalProvider({
-        clientId: process.env.PAYPAL_CLIENT_ID!,
-        clientSecret: process.env.PAYPAL_CLIENT_SECRET!,
-        webhookId: process.env.PAYPAL_WEBHOOK_ID!,
-        environment:
-          (process.env.PAYPAL_ENV as "sandbox" | "live" | undefined) ??
-          "sandbox",
-      });
-    },
-  },
-  {
     // Paddle (Merchant of Record) — the international rail post-D4.
     // Razorpay stays on the INR rail; Paddle replaces PayPal for
     // non-IN traffic. Seller ID 320957 (signed up 2026-04-21).
@@ -82,8 +68,7 @@ const ADAPTERS: ReadonlyArray<{
     //
     // While Paddle KYC verification is pending, only the sandbox
     // quad lands on Hostinger, so registry.isConfigured() → false
-    // in production. Once verification clears, swap in the live
-    // keys and retire the PayPal row above (D4 decision).
+    // in production until the live keys are in.
     id: "paddle",
     isConfigured: () =>
       Boolean(
@@ -138,7 +123,7 @@ export async function getProvider(id: ProviderId): Promise<PaymentProvider | nul
 
 /**
  * All currently configured providers. Used by the checkout UI to render
- * "Pay with Razorpay / PayPal" buttons — only configured options appear.
+ * "Pay with Razorpay / Paddle" buttons — only configured options appear.
  * Order matches ADAPTERS declaration order.
  */
 export async function listConfiguredProviders(): Promise<PaymentProvider[]> {
@@ -161,7 +146,7 @@ export function listConfiguredProviderIds(): ProviderId[] {
  * currency AND the mode. `preferredId` lets the caller honor a user
  * choice (the UI passes whichever button was clicked).
  *
- * We intentionally don't encode smart routing (PayPal for USD, Razorpay
+ * We intentionally don't encode smart routing (Paddle for USD, Razorpay
  * for INR) here — the UI renders both buttons and the user picks. If we
  * ever want to auto-route, this is the single function to change.
  */

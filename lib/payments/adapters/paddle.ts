@@ -437,7 +437,7 @@ export class PaddleProvider implements PaymentProvider {
   }
 
   async refund(_input: RefundInput): Promise<RefundResult> {
-    // Same story as Razorpay/PayPal — callers resolve the providerRef
+    // Same story as Razorpay — callers resolve the providerRef
     // from our `payments` row and call refundByProviderRef. Refusing
     // the by-internalId variant here makes it obvious if something
     // accidentally calls this path.

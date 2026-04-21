@@ -28,8 +28,8 @@ try {
 //
 // Our SAQ-A eligibility rests on card data NEVER touching our origin.
 // Users type card details into hosted iframes (Razorpay Checkout modal,
-// PayPal Smart Buttons / Advanced Checkout). The CSP below enforces that
-// architecture at the browser layer:
+// Paddle.js overlay checkout). The CSP below enforces that architecture
+// at the browser layer:
 //
 //   - `frame-src` whitelists ONLY the provider iframes. A phishing page
 //     embedded elsewhere can't render inside our origin.
@@ -52,7 +52,7 @@ try {
 //     script runtime. When Next 15's strict CSP lands we should switch to
 //     nonces. For SAQ-A this is acceptable because the card-capture path
 //     is *inside* the provider iframe — our inline scripts can't reach it.
-//   - 'unsafe-eval' is omitted. Razorpay and PayPal SDKs don't need it.
+//   - 'unsafe-eval' is omitted. Razorpay and Paddle SDKs don't need it.
 //   - report-uri is not set yet — add a Sentry CSP endpoint when infra
 //     has one.
 
@@ -62,14 +62,19 @@ const RAZORPAY_ORIGINS = [
   "https://lumberjack.razorpay.com",
 ];
 
-const PAYPAL_ORIGINS = [
-  "https://www.paypal.com",
-  "https://www.paypalobjects.com",
-  "https://c.paypal.com",
-  // Sandbox — harmless in prod, required in staging.
-  "https://www.sandbox.paypal.com",
-  "https://api-m.sandbox.paypal.com",
-  "https://api-m.paypal.com",
+// Paddle.js is loaded from a single CDN origin; the overlay checkout
+// iframes off buy.paddle.com (production) and sandbox-buy.paddle.com
+// (sandbox). The /adjustments + /transactions API calls go server-side
+// from Next's Node runtime, so they don't need connect-src entries —
+// only the browser-facing origins do. Sandbox origins are harmless in
+// prod and required during pre-launch validation against our sandbox
+// seller account (Seller ID 320957).
+const PADDLE_ORIGINS = [
+  "https://cdn.paddle.com",
+  "https://buy.paddle.com",
+  "https://checkout.paddle.com",
+  "https://sandbox-buy.paddle.com",
+  "https://sandbox-checkout.paddle.com",
 ];
 
 // Analytics — must match app/layout.tsx. If a new vendor is added, review
@@ -92,12 +97,12 @@ const ANALYTICS_ORIGINS_IMG = [
 
 const CSP = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' ${RAZORPAY_ORIGINS.join(" ")} ${PAYPAL_ORIGINS.join(" ")} ${ANALYTICS_ORIGINS_SCRIPT.join(" ")}`.trim(),
+  `script-src 'self' 'unsafe-inline' ${RAZORPAY_ORIGINS.join(" ")} ${PADDLE_ORIGINS.join(" ")} ${ANALYTICS_ORIGINS_SCRIPT.join(" ")}`.trim(),
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://www.paypalobjects.com ${ANALYTICS_ORIGINS_IMG.join(" ")}`,
+  `img-src 'self' data: blob: ${ANALYTICS_ORIGINS_IMG.join(" ")}`,
   "font-src 'self' data:",
-  `frame-src 'self' ${RAZORPAY_ORIGINS.join(" ")} ${PAYPAL_ORIGINS.join(" ")}`,
-  `connect-src 'self' ${RAZORPAY_ORIGINS.join(" ")} ${PAYPAL_ORIGINS.join(" ")} ${ANALYTICS_ORIGINS_CONNECT.join(" ")}`,
+  `frame-src 'self' ${RAZORPAY_ORIGINS.join(" ")} ${PADDLE_ORIGINS.join(" ")}`,
+  `connect-src 'self' ${RAZORPAY_ORIGINS.join(" ")} ${PADDLE_ORIGINS.join(" ")} ${ANALYTICS_ORIGINS_CONNECT.join(" ")}`,
   "worker-src 'self' blob:",
   // Free PDF tools run WASM client-side — blob: lets pdf-lib instantiate.
   "child-src 'self' blob:",
@@ -136,7 +141,7 @@ const securityHeaders = [
     key: "Permissions-Policy",
     // Card iframes don't need camera/mic/geo. Deny everything unless a
     // legitimate need arises.
-    value: "camera=(), microphone=(), geolocation=(), payment=(self \"https://checkout.razorpay.com\" \"https://www.paypal.com\")",
+    value: "camera=(), microphone=(), geolocation=(), payment=(self \"https://checkout.razorpay.com\" \"https://buy.paddle.com\" \"https://checkout.paddle.com\")",
   },
   {
     // Legacy but cheap — browsers that still honor this get an extra check.

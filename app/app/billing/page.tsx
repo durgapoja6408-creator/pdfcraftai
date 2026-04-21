@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
 
 const PROVIDER_DISPLAY: Record<string, string> = {
   razorpay: "Razorpay",
-  paypal: "PayPal",
+  paddle: "Paddle",
 };
 
 const STATUS_LABEL: Record<string, string> = {

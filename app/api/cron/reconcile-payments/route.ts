@@ -13,8 +13,9 @@ import { runReconciliation } from "@/lib/payments/reconcile";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-// PayPal's 30-day reconciliation windows can take a minute; give ourselves
-// headroom. Hostinger's Node hosting caps responses at 300s regardless.
+// Paddle's cursor-paginated /transactions scan across a 30-day window can
+// take a minute at our volume; give ourselves headroom. Hostinger's Node
+// hosting caps responses at 300s regardless.
 export const maxDuration = 300;
 
 export async function POST(req: Request) {

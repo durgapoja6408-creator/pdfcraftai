@@ -34,7 +34,7 @@ export interface PaymentProvider {
    */
   readonly id: ProviderId;
 
-  /** Human-readable name for the checkout UI ("Razorpay", "PayPal"). */
+  /** Human-readable name for the checkout UI ("Razorpay", "Paddle"). */
   readonly displayName: string;
 
   /** What this adapter, in the current configuration, can do. */

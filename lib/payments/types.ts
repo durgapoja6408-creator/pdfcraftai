@@ -19,7 +19,7 @@ import type { CreditPackId } from "@/lib/pricing";
 // --- Identifiers ----------------------------------------------------------
 
 /**
- * Open provider identifier. Examples we ship with: "razorpay", "paypal".
+ * Open provider identifier. Examples we ship with: "razorpay", "paddle".
  * Intentionally `string` — adding an adapter is a runtime concern, not a
  * type-system concern. Call sites that need to branch should use the
  * registry, not a switch on this value.
@@ -43,7 +43,7 @@ export type Money = {
 /**
  * What a provider can do in *this* installation. Capabilities may be the
  * same across installs (e.g. Razorpay always supports refunds) or gated
- * (e.g. PayPal Subscriptions requires a separate product activation).
+ * (e.g. Paddle partial refunds are off until sandbox-validated).
  * The registry decides what to expose.
  */
 export type ProviderCapabilities = {
@@ -94,11 +94,11 @@ export type CheckoutInput =
 
 /**
  * How the client should hand off to the provider. Two shapes:
- *   - "redirect": we navigate the browser to `url` (PayPal Checkout flow,
- *     some subscription flows).
+ *   - "redirect": we navigate the browser to `url` (Paddle hosted
+ *     checkout, some subscription flows).
  *   - "client": we hand the browser a token/order-id to feed into the
- *     provider's hosted iframe SDK (Razorpay Checkout modal, PayPal
- *     Advanced Checkout hosted fields).
+ *     provider's hosted iframe SDK (Razorpay Checkout modal, Paddle.js
+ *     overlay checkout).
  *
  * Both shapes keep card data entirely on the provider side — SAQ-A.
  */
@@ -111,14 +111,14 @@ export type CheckoutSession =
       kind: "client";
       /** Opaque token/order-id the provider's JS SDK consumes. */
       clientToken: string;
-      /** Which SDK to load ("razorpay", "paypal", ...). */
+      /** Which SDK to load ("razorpay", "paddle", ...). */
       sdk: ProviderId;
       /** Extra config the SDK needs (public key, merchant ID, etc.). */
       publicConfig: Record<string, string>;
     };
 
 export type CheckoutResult = {
-  /** Provider-side reference (order id, PayPal order id, ...). */
+  /** Provider-side reference (order id, Paddle transaction id, ...). */
   providerRef: string;
   session: CheckoutSession;
 };
