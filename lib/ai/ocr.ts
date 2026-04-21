@@ -52,6 +52,7 @@ import "server-only";
 
 import { PDFDocument } from "pdf-lib";
 
+import { capForOp } from "./output-caps";
 import type { ModerationResult } from "./output-moderation";
 import { assertOutputSafe, moderateOutput } from "./output-moderation";
 import type { AIProvider } from "./provider";
@@ -67,8 +68,11 @@ import type {
 /** Hard cap on pages per OCR call. See file header for rationale. */
 export const MAX_OCR_PAGES = 50;
 
-/** Max output tokens per-page. ~1500 tokens ≈ 5–6k chars of text. */
-const MAX_TOKENS_PER_PAGE = 1500;
+// Per-page output-token cap is centralized in ./output-caps
+// (OP_OUTPUT_CAP_TABLE.ocr.default = 1500). Task #11 moved it out of this
+// file so every op shares one source of truth and one hard ceiling. ~1500
+// tokens ≈ 5–6k chars of text — enough for a dense letter-size page plus
+// markdown overhead. Used below via `capForOp("ocr")`.
 
 export interface OcrInput {
   /** Raw PDF bytes. */
@@ -233,7 +237,7 @@ async function runPageOcr(
   const result = await provider.chat({
     systemPrompt,
     messages: [{ role: "user", content: userContent }],
-    maxTokens: MAX_TOKENS_PER_PAGE,
+    maxTokens: capForOp("ocr"),
     // Temperature 0 — OCR is transcription, not generation. Any drift
     // from the image is wrong by definition.
     temperature: 0,

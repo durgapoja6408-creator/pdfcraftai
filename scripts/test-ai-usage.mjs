@@ -13,6 +13,13 @@
 //   SECTION C — call-site coverage. At least one streaming AI route
 //               (chat) and one non-streaming AI route (summarize) must
 //               call `recordAiUsage` on both success and error branches.
+//   SECTION D — Task #11 (output-cap centralization + truncation
+//               observability). Pins migration 0008, the two new
+//               columns (stop_reason, response_truncated), the
+//               covering index, the RecordAiUsageInput extension,
+//               the isTruncatedStopReason classifier, the call-site
+//               wiring, AND the 10/10 op-module migration to
+//               capForOp/clampToHardCeiling.
 //
 // Run: `node scripts/test-ai-usage.mjs`
 // Exits 0 on pass, 1 on any failure.
@@ -25,6 +32,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 
 const MIG_PATH = resolve(ROOT, "db", "migrations", "0005_ai_usage.sql");
+const MIG_0008_PATH = resolve(
+  ROOT,
+  "db",
+  "migrations",
+  "0008_ai_usage_truncation_cols.sql"
+);
 const SCHEMA_PATH = resolve(ROOT, "db", "schema", "app.ts");
 const USAGE_PATH = resolve(ROOT, "lib", "ai", "usage.ts");
 const CHAT_ROUTE_PATH = resolve(ROOT, "app", "api", "ai", "chat", "route.ts");
@@ -36,12 +49,15 @@ const SUMMARIZE_ROUTE_PATH = resolve(
   "summarize",
   "route.ts"
 );
+const OUTPUT_CAPS_PATH = resolve(ROOT, "lib", "ai", "output-caps.ts");
 
 const MIG_SRC = readFileSync(MIG_PATH, "utf8");
+const MIG_0008_SRC = readFileSync(MIG_0008_PATH, "utf8");
 const SCHEMA_SRC = readFileSync(SCHEMA_PATH, "utf8");
 const USAGE_SRC = readFileSync(USAGE_PATH, "utf8");
 const CHAT_SRC = readFileSync(CHAT_ROUTE_PATH, "utf8");
 const SUMMARIZE_SRC = readFileSync(SUMMARIZE_ROUTE_PATH, "utf8");
+const OUTPUT_CAPS_SRC = readFileSync(OUTPUT_CAPS_PATH, "utf8");
 
 let pass = 0;
 let fail = 0;
@@ -276,6 +292,267 @@ assert(
     `Found ${recordCalls.length} recordAiUsage call(s) in summarize route; expected >= 2`
   );
 }
+
+// =============================================================================
+// SECTION D: Task #11 — output-cap centralization + truncation observability
+// =============================================================================
+//
+// Pins:
+//   D1  Migration 0008 shape (columns + index + nullable contract)
+//   D2  Drizzle schema parity for the two new columns + new index
+//   D3  usage.ts contract: input type extended, insert wires columns,
+//       isTruncatedStopReason classifier behaves as a 3-way mapper
+//   D4  Call-site coverage: chat (streaming) + summarize (non-streaming)
+//       forward stopReason AND responseTruncated into recordAiUsage
+//   D5  output-caps.ts exists + HARD_CEILING_TOKENS = 8192 + table +
+//       helper signatures; every one of the 10 op modules either imports
+//       capForOp or clampToHardCeiling (the 10/10 op-migration invariant).
+
+// -- D1: migration 0008 DDL ---------------------------------------------------
+assert(
+  "D1 migration 0008 targets ai_usage (ALTER TABLE)",
+  /ALTER TABLE\s+`ai_usage`/.test(MIG_0008_SRC),
+  "Expected `ALTER TABLE \\`ai_usage\\`` in 0008 migration"
+);
+assert(
+  "D1 migration 0008 adds stop_reason varchar(32) NULL",
+  /ADD COLUMN\s+`stop_reason`\s+varchar\(32\)\s+NULL/i.test(MIG_0008_SRC),
+  "stop_reason column must be varchar(32) NULL"
+);
+assert(
+  "D1 migration 0008 adds response_truncated int NULL",
+  /ADD COLUMN\s+`response_truncated`\s+int\s+NULL/i.test(MIG_0008_SRC),
+  "response_truncated column must be int NULL (nullable = 'unknown')"
+);
+assert(
+  "D1 migration 0008 adds covering index on (response_truncated, created_at)",
+  /ADD INDEX\s+`ai_usage_truncated_created_idx`\s*\(\s*`response_truncated`\s*,\s*`created_at`\s*\)/i.test(
+    MIG_0008_SRC
+  ),
+  "ai_usage_truncated_created_idx must be ordered (response_truncated, created_at) for the rollup's covering scan"
+);
+assert(
+  "D1 migration 0008 does NOT set a DEFAULT on response_truncated",
+  !/`response_truncated`[^,]*DEFAULT/i.test(MIG_0008_SRC),
+  "Do not DEFAULT response_truncated — nullable = 'unknown', which keeps pre-migration rows out of truncation-rate metrics"
+);
+
+// -- D2: Drizzle schema parity ------------------------------------------------
+assert(
+  "D2 schema declares stopReason varchar('stop_reason', 32)",
+  /stopReason:\s*varchar\(\s*"stop_reason"\s*,\s*\{\s*length:\s*32\s*\}\s*\)/.test(
+    SCHEMA_SRC
+  ),
+  "stopReason column missing or wrong type in Drizzle schema"
+);
+assert(
+  "D2 schema declares responseTruncated int('response_truncated')",
+  /responseTruncated:\s*int\(\s*"response_truncated"\s*\)/.test(SCHEMA_SRC),
+  "responseTruncated column missing or wrong type in Drizzle schema"
+);
+assert(
+  "D2 schema declares truncatedCreatedIdx with Drizzle index",
+  /truncatedCreatedIdx:\s*index\(\s*"ai_usage_truncated_created_idx"\s*\)\.on\(\s*t\.responseTruncated\s*,\s*t\.createdAt\s*\)/.test(
+    SCHEMA_SRC
+  ),
+  "truncatedCreatedIdx must be defined on (responseTruncated, createdAt) to match the migration"
+);
+
+// -- D3: usage.ts contract ----------------------------------------------------
+assert(
+  "D3 usage.ts adds stopReason to RecordAiUsageInput (nullable)",
+  /stopReason\?:\s*string\s*\|\s*null/.test(USAGE_SRC),
+  "RecordAiUsageInput.stopReason must be optional + nullable"
+);
+assert(
+  "D3 usage.ts adds responseTruncated to RecordAiUsageInput (nullable)",
+  /responseTruncated\?:\s*number\s*\|\s*null/.test(USAGE_SRC),
+  "RecordAiUsageInput.responseTruncated must be optional + nullable (0/1/null)"
+);
+assert(
+  "D3 usage.ts insert body wires stopReason via normalizer",
+  /stopReason:\s*normalizeStopReason\(\s*input\.stopReason\s*\)/.test(USAGE_SRC),
+  "Insert body must call normalizeStopReason(input.stopReason) to enforce the 32-char contract"
+);
+assert(
+  "D3 usage.ts insert body wires responseTruncated via normalizer",
+  /responseTruncated:\s*normalizeTruncatedFlag\(\s*input\.responseTruncated\s*\)/.test(
+    USAGE_SRC
+  ),
+  "Insert body must call normalizeTruncatedFlag(input.responseTruncated) to reject stray ints/booleans"
+);
+assert(
+  "D3 usage.ts exports isTruncatedStopReason classifier",
+  /export function isTruncatedStopReason\(/.test(USAGE_SRC),
+  "isTruncatedStopReason must be exported for op routes to call"
+);
+assert(
+  "D3 isTruncatedStopReason returns null for null/undefined",
+  /if \(stopReason == null\) return null/.test(USAGE_SRC),
+  "Null-input branch must return null (= 'unknown'), not 0"
+);
+assert(
+  "D3 isTruncatedStopReason returns null for empty/whitespace",
+  /if \(s\.length === 0\) return null/.test(USAGE_SRC),
+  "Empty-trimmed branch must return null — a zero-length reason means 'we didn't get one'"
+);
+assert(
+  "D3 isTruncatedStopReason lowercases + trims before matching",
+  /\.trim\(\)\.toLowerCase\(\)/.test(USAGE_SRC),
+  "Classifier must normalize case + whitespace so provider adapter variants (MAX_TOKENS / max_tokens) both classify the same"
+);
+assert(
+  "D3 TRUNCATED_STOP_REASONS set contains max_tokens",
+  /TRUNCATED_STOP_REASONS[^=]*=\s*new Set\(\[\s*"max_tokens"\s*\]\)/.test(
+    USAGE_SRC
+  ),
+  "Canonical truncated-reason set must contain exactly 'max_tokens' today (all 3 adapters normalize to this)"
+);
+
+// -- D4: Call-site wiring of stopReason + responseTruncated -------------------
+// Chat — streaming path. Both success AND error branches must forward
+// both fields; responseTruncated is always wrapped in isTruncatedStopReason
+// so the single classifier rule survives any future provider additions.
+assert(
+  "D4 chat route imports isTruncatedStopReason",
+  /import\s*\{\s*[^}]*\bisTruncatedStopReason\b[^}]*\}\s*from\s+"@\/lib\/ai\/usage"/.test(
+    CHAT_SRC
+  ),
+  "chat route must import isTruncatedStopReason alongside recordAiUsage"
+);
+{
+  const stopReasonCalls = CHAT_SRC.match(/stopReason:\s*finalStopReason/g) ?? [];
+  assert(
+    "D4 chat route forwards stopReason in BOTH recordAiUsage branches",
+    stopReasonCalls.length >= 2,
+    `Found ${stopReasonCalls.length} 'stopReason: finalStopReason' call(s) in chat route; expected >= 2 (success + error)`
+  );
+  const truncCalls =
+    CHAT_SRC.match(
+      /responseTruncated:\s*isTruncatedStopReason\(\s*finalStopReason\s*\)/g
+    ) ?? [];
+  assert(
+    "D4 chat route forwards responseTruncated in BOTH branches",
+    truncCalls.length >= 2,
+    `Found ${truncCalls.length} 'responseTruncated: isTruncatedStopReason(...)' call(s) in chat route; expected >= 2`
+  );
+}
+assert(
+  "D4 chat route uses capForOp('chat') instead of hardcoded maxTokens",
+  /maxTokens:\s*capForOp\(\s*"chat"\s*\)/.test(CHAT_SRC),
+  "chat route must call capForOp('chat') — no hardcoded maxTokens"
+);
+assert(
+  "D4 chat route imports capForOp from output-caps",
+  /import\s*\{\s*capForOp\s*\}\s*from\s+"@\/lib\/ai\/output-caps"/.test(
+    CHAT_SRC
+  ),
+  "chat route must import capForOp from '@/lib/ai/output-caps'"
+);
+
+// Summarize — non-streaming path. Single success branch; the error
+// branch records a 'summarize_failed' row earlier and doesn't try to
+// surface a provider stop_reason.
+assert(
+  "D4 summarize route imports isTruncatedStopReason",
+  /import\s*\{\s*[^}]*\bisTruncatedStopReason\b[^}]*\}\s*from\s+"@\/lib\/ai\/usage"/.test(
+    SUMMARIZE_SRC
+  ),
+  "summarize route must import isTruncatedStopReason"
+);
+assert(
+  "D4 summarize route forwards stopReason: summary.stopReason",
+  /stopReason:\s*summary\.stopReason/.test(SUMMARIZE_SRC),
+  "summarize route must forward the resolved summary.stopReason"
+);
+assert(
+  "D4 summarize route forwards responseTruncated: isTruncatedStopReason(summary.stopReason)",
+  /responseTruncated:\s*isTruncatedStopReason\(\s*summary\.stopReason\s*\)/.test(
+    SUMMARIZE_SRC
+  ),
+  "summarize route must classify summary.stopReason through isTruncatedStopReason"
+);
+
+// -- D5: output-caps.ts centralization ---------------------------------------
+assert(
+  "D5 output-caps.ts declares HARD_CEILING_TOKENS = 8192",
+  /export const HARD_CEILING_TOKENS\s*=\s*8192/.test(OUTPUT_CAPS_SRC),
+  "Global ceiling must be 8192 — lowest per-model output cap across our 3 providers (Haiku 4.5 / Gemini 2.5 Flash / gpt-4o-mini)"
+);
+assert(
+  "D5 output-caps.ts exports capForOp",
+  /export function capForOp\(/.test(OUTPUT_CAPS_SRC),
+  "capForOp must be exported so op modules can look up caps by op + variant"
+);
+assert(
+  "D5 output-caps.ts exports clampToHardCeiling",
+  /export function clampToHardCeiling\(/.test(OUTPUT_CAPS_SRC),
+  "clampToHardCeiling must be exported for ops that compute caps dynamically (translate)"
+);
+assert(
+  "D5 output-caps.ts exports OP_OUTPUT_CAP_TABLE",
+  /export const OP_OUTPUT_CAP_TABLE\b/.test(OUTPUT_CAPS_SRC),
+  "OP_OUTPUT_CAP_TABLE must be exported for tests + admin tooling"
+);
+assert(
+  "D5 capForOp clamps returned value to HARD_CEILING_TOKENS",
+  /return clampToHardCeiling\(/.test(OUTPUT_CAPS_SRC),
+  "capForOp must route through clampToHardCeiling so raw table values can't slip past the ceiling"
+);
+
+// Every op listed in OP_OUTPUT_CAP_TABLE must have a "default" entry.
+// Parse the table and confirm.
+for (const op of [
+  "ocr",
+  "translate",
+  "chat",
+  "summarize",
+  "compare",
+  "generate",
+  "sign",
+  "rewrite",
+  "table",
+  "redact",
+]) {
+  assert(
+    `D5 OP_OUTPUT_CAP_TABLE defines op '${op}'`,
+    new RegExp(`^\\s*${op}:\\s*\\{`, "m").test(OUTPUT_CAPS_SRC),
+    `Missing op key '${op}' — the CapTable type requires every AIOp to be populated`
+  );
+}
+
+// 10/10 op-module migration invariant: every op module file must call
+// through the centralized caps module. This is the assertion that would
+// catch a regression where someone reintroduces a local MAX_TOKENS_*
+// constant instead of using capForOp / clampToHardCeiling.
+const OP_MODULES = [
+  "ocr.ts",
+  "translate.ts",
+  "summarize.ts",
+  "compare.ts",
+  "generate.ts",
+  "sign.ts",
+  "rewrite.ts",
+  "table.ts",
+  "redact.ts",
+];
+for (const file of OP_MODULES) {
+  const path = resolve(ROOT, "lib", "ai", file);
+  const src = readFileSync(path, "utf8");
+  assert(
+    `D5 lib/ai/${file} sources its cap from @/lib/ai/output-caps`,
+    /from\s+"[.@\/]*(?:\.\.\/)?(?:@\/lib\/ai\/|\.\/)output-caps"/.test(src) ||
+      /from\s+"\.\/output-caps"/.test(src),
+    `${file} must import from ./output-caps or @/lib/ai/output-caps (capForOp or clampToHardCeiling)`
+  );
+  assert(
+    `D5 lib/ai/${file} calls capForOp or clampToHardCeiling`,
+    /\bcapForOp\(/.test(src) || /\bclampToHardCeiling\(/.test(src),
+    `${file} must invoke capForOp(...) or clampToHardCeiling(...) — don't hoist a new local MAX_TOKENS constant`
+  );
+}
+// chat is an API route rather than a lib module — already covered in D4
+// above (capForOp('chat') assertion).
 
 // =============================================================================
 // Report

@@ -1,0 +1,89 @@
+-- 0008_ai_usage_truncation_cols.sql
+-- Phase A / Task #11 — output-cap truncation observability.
+--
+-- Background
+-- ----------
+-- Task #11 centralized per-op output-token caps into lib/ai/output-caps.ts
+-- so every op reads its cap from a single source of truth. The helper
+-- module solves two of the three problems the Net-Margin plan called out:
+--
+--   1. Single source of truth for caps                        ✅ (output-caps.ts)
+--   2. Hard ceiling catches misconfigured callers             ✅ (HARD_CEILING_TOKENS)
+--   3. Observability into max-tokens truncation events        ❌ — this migration
+--
+-- Without #3, `ai_usage.success = 1` even when a provider returned
+-- `stop_reason = "max_tokens"` mid-sentence — from the rollup's point of
+-- view the call "succeeded", but from the user's point of view it was
+-- clipped. Raising or lowering the cap per op is flying blind until we
+-- can measure "what fraction of ops hit the ceiling?" per op × per day.
+--
+-- What this adds
+-- --------------
+-- Two nullable columns on `ai_usage`:
+--
+--   stop_reason          varchar(32)   — the terminal stop_reason string
+--                                        returned by the provider (e.g.
+--                                        "end_turn", "max_tokens",
+--                                        "stop_sequence", "tool_use",
+--                                        "error"). Free-form because
+--                                        each provider uses its own
+--                                        vocabulary and the adapter
+--                                        normalizes to a common StopReason
+--                                        but we persist the raw string
+--                                        so edge cases aren't lost.
+--
+--   response_truncated   int           — 1 if stop_reason indicates the
+--                                        response hit the output cap
+--                                        (`max_tokens` for all three
+--                                        providers today), 0 if it
+--                                        terminated naturally, NULL if
+--                                        unknown (errored calls, stream
+--                                        aborted client-side, etc.).
+--                                        Indexed separately from
+--                                        stop_reason so the rollup can
+--                                        compute truncation-rate with a
+--                                        covering-index scan.
+--
+-- Why two columns instead of one
+-- ------------------------------
+-- `response_truncated` is a computed flag over `stop_reason` today, but
+-- persisting both means:
+--   (a) the rollup can filter on `response_truncated = 1` via a single
+--       index without a `stop_reason IN (...)` filter that would need
+--       maintenance every time a provider adds a new terminal reason;
+--   (b) admin tooling can display the raw reason verbatim without
+--       decoding a flag.
+-- Storage cost is tiny (4 bytes + up to 32 bytes per row) and the write
+-- amplification is nil — both columns are populated in the same INSERT
+-- that already writes the row.
+--
+-- Why nullable (not DEFAULT 0)
+-- ----------------------------
+-- Pre-migration rows have no information about truncation; defaulting to
+-- 0 would be a lie ("we know this call wasn't truncated") and would
+-- skew truncation-rate metrics downward for as long as those rows are
+-- in the query window. NULL means "unknown" — the rollup filters
+-- `WHERE response_truncated IS NOT NULL` when computing rates so
+-- historical rows don't pollute the signal.
+--
+-- Index rationale
+-- ---------------
+-- Adding `ai_usage_truncated_created_idx` on (response_truncated,
+-- created_at) lets the per-op truncation-rate dashboard query
+--   SELECT operation, SUM(response_truncated), COUNT(*) FROM ai_usage
+--   WHERE created_at BETWEEN ? AND ? AND response_truncated IS NOT NULL
+--   GROUP BY operation
+-- serve from the index alone. Without it, scanning by date range then
+-- filtering would force a full scan once ai_usage passes ~1M rows.
+--
+-- Rollout safety
+-- --------------
+-- Additive ALTER with NULL default → zero write amplification, no
+-- downtime risk on the managed MySQL instance at Hostinger. Safe to
+-- apply before the code that populates the columns ships — nullable
+-- columns with no writers stay NULL forever, no-op.
+
+ALTER TABLE `ai_usage`
+  ADD COLUMN `stop_reason` varchar(32) NULL AFTER `success`,
+  ADD COLUMN `response_truncated` int NULL AFTER `stop_reason`,
+  ADD INDEX `ai_usage_truncated_created_idx` (`response_truncated`, `created_at`);

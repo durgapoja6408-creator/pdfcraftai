@@ -42,8 +42,9 @@ import { auth } from "@/auth";
 import { db, schema } from "@/db/client";
 import { extractPdfText } from "@/lib/ai/pdf-extract";
 import { refundCredits, spendCredits } from "@/lib/ai/credits";
+import { capForOp } from "@/lib/ai/output-caps";
 import { moderateOutput } from "@/lib/ai/output-moderation";
-import { recordAiUsage } from "@/lib/ai/usage";
+import { isTruncatedStopReason, recordAiUsage } from "@/lib/ai/usage";
 import type { AIProvider } from "@/lib/ai/provider";
 import { buildSafetyPreamble, wrapUntrustedInput } from "@/lib/ai/prompt-safety";
 import { NoRoutableProviderError, route } from "@/lib/ai/router";
@@ -387,10 +388,15 @@ export async function POST(req: Request): Promise<Response> {
       const providerStartedAt = Date.now();
 
       try {
+        // Output-token cap sourced from the centralized policy
+        // (lib/ai/output-caps.ts). Task #11: one source of truth
+        // across all 10 AI ops, enforced by HARD_CEILING_TOKENS.
+        // Pre-migration value was a hardcoded `maxTokens: 1024` here;
+        // the table preserves the same 1024 for chat's default cap.
         for await (const chunk of provider.streamChat({
           messages,
           systemPrompt,
-          maxTokens: 1024,
+          maxTokens: capForOp("chat"),
         })) {
           switch (chunk.kind) {
             case "text_delta":
@@ -507,6 +513,13 @@ export async function POST(req: Request): Promise<Response> {
             creditsSpent: creditCost,
             costMicros: null,
             success: true,
+            // Task #11 truncation observability — `finalStopReason` came
+            // from the terminal `done` chunk of the stream (line 407
+            // above). `isTruncatedStopReason` maps "max_tokens" → 1 and
+            // everything else → 0; anything null/unknown → null so the
+            // rollup can exclude it from rate math.
+            stopReason: finalStopReason,
+            responseTruncated: isTruncatedStopReason(finalStopReason),
             ledgerId: spendLedgerId,
             idempotencyKey: `ai:${sessionId}:${idempotencyKey}`,
           });
@@ -568,6 +581,14 @@ export async function POST(req: Request): Promise<Response> {
             costMicros: null,
             success: false,
             errorCode: errorCode ?? "unknown",
+            // Task #11 — error path: stream terminated before (or
+            // because of) a provider error. Record whatever terminal
+            // reason we did capture (typically null; could be
+            // "error" if the adapter forwarded one) and leave
+            // responseTruncated null since the call didn't complete
+            // a valid stop_reason we can classify.
+            stopReason: finalStopReason ?? "error",
+            responseTruncated: isTruncatedStopReason(finalStopReason),
             ledgerId: spendLedgerId,
             idempotencyKey: `ai:${sessionId}:${idempotencyKey}`,
           });

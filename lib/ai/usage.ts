@@ -205,6 +205,24 @@ export type RecordAiUsageInput = {
   costMicros?: number | null;
   success: boolean;
   errorCode?: string | null;
+  /**
+   * Task #11 truncation observability (migration 0008). The provider's
+   * terminal `stop_reason` string — whatever the adapter extracted from
+   * the final `done` chunk ("end_turn", "max_tokens", "stop_sequence",
+   * etc.). Persisted verbatim so edge cases aren't lost. Callers that
+   * can't capture it (stream aborted, errored before a terminal chunk)
+   * pass null.
+   */
+  stopReason?: string | null;
+  /**
+   * Derived flag over `stopReason`: 1 if the response hit the output
+   * cap, 0 if it terminated naturally, null if unknown. Callers pass
+   * the computed value so the decision lives at the call site (each op
+   * knows its own truncation vocabulary), but today every provider maps
+   * "max_tokens" → truncated. See `isTruncatedStopReason` below for the
+   * shared classifier the op routes should use.
+   */
+  responseTruncated?: number | null;
   /** Links back to the `credit_ledger.id` of the corresponding debit. */
   ledgerId?: string | null;
   /**
@@ -278,6 +296,12 @@ export async function recordAiUsage(
       creditsSpent: Math.max(0, Math.floor(input.creditsSpent || 0)),
       costMicros: enrichedCostMicros,
       success: input.success ? 1 : 0,
+      // Task #11 truncation observability (migration 0008). Both null by
+      // default so legacy callers and errored calls that never saw a
+      // terminal chunk keep the column as NULL (= "unknown"), which is
+      // the value the truncation-rate aggregates explicitly filter out.
+      stopReason: normalizeStopReason(input.stopReason),
+      responseTruncated: normalizeTruncatedFlag(input.responseTruncated),
       errorCode: input.errorCode ?? null,
       ledgerId: input.ledgerId ?? null,
       idempotencyKey: input.idempotencyKey ?? null,
@@ -299,4 +323,80 @@ function isDuplicateKeyError(err: unknown): boolean {
   if (!err || typeof err !== "object") return false;
   const e = err as { code?: string; errno?: number };
   return e.code === "ER_DUP_ENTRY" || e.errno === 1062;
+}
+
+// ---------------------------------------------------------------------------
+// Task #11 truncation observability helpers.
+//
+// Shared across op routes and the usage-recorder so the "what counts as
+// truncated?" rule has a single definition. Today all three providers
+// map "max_tokens" → truncated and everything else → not-truncated; as
+// new providers land this classifier is the only place to extend.
+// ---------------------------------------------------------------------------
+
+/**
+ * Canonical set of stop_reason strings that mean "the provider cut the
+ * response off because it hit the output-token cap".
+ *
+ * Sources:
+ *   - Anthropic:  stop_reason === "max_tokens"                 (docs: messages stop_reason)
+ *   - OpenAI:     finish_reason === "length"  (adapter normalizes to "max_tokens")
+ *   - Gemini:     finishReason === "MAX_TOKENS" (adapter normalizes to "max_tokens")
+ *
+ * Our three adapters all normalize to the Anthropic string before the
+ * chunk reaches the op route, so the canonical set is a single entry.
+ * Kept as a set to make adding future provider-specific escape hatches
+ * trivial without touching the classifier signature.
+ */
+const TRUNCATED_STOP_REASONS: ReadonlySet<string> = new Set(["max_tokens"]);
+
+/**
+ * Classify a raw stop_reason string as truncated / natural / unknown.
+ * Returns:
+ *   - 1 if the reason indicates the output cap was hit
+ *   - 0 if the reason indicates a natural terminal state
+ *   - null if the reason is missing/unknown (call errored, client
+ *     aborted the stream, or a new provider returned an unrecognized
+ *     reason)
+ *
+ * Callers pass the result straight to `recordAiUsage({ responseTruncated })`.
+ * The 3-way return is deliberate: the DB column is nullable so that
+ * truncation-rate dashboards can filter out unknowns instead of
+ * treating them as zeros (which would bias the rate downward).
+ */
+export function isTruncatedStopReason(
+  stopReason: string | null | undefined
+): number | null {
+  if (stopReason == null) return null;
+  const s = String(stopReason).trim().toLowerCase();
+  if (s.length === 0) return null;
+  return TRUNCATED_STOP_REASONS.has(s) ? 1 : 0;
+}
+
+/**
+ * Coerce an input `stopReason` to the DB-safe shape: trimmed string
+ * (<=32 chars to match the column), or null. Missing/empty/whitespace
+ * inputs collapse to null — the column means "provider told us
+ * something", not "we invented a value".
+ */
+function normalizeStopReason(
+  reason: string | null | undefined
+): string | null {
+  if (reason == null) return null;
+  const s = String(reason).trim();
+  if (s.length === 0) return null;
+  return s.length > 32 ? s.slice(0, 32) : s;
+}
+
+/**
+ * Coerce an input `responseTruncated` to the DB-safe shape: 0, 1, or
+ * null. Anything outside that set becomes null so the column can't be
+ * polluted by a caller passing a boolean or a random int.
+ */
+function normalizeTruncatedFlag(
+  flag: number | null | undefined
+): number | null {
+  if (flag == null) return null;
+  if (flag === 0 || flag === 1) return flag;
+  return null;
 }

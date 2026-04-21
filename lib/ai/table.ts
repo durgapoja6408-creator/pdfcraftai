@@ -28,6 +28,7 @@
 
 import "server-only";
 
+import { capForOp } from "./output-caps";
 import type { ModerationResult } from "./output-moderation";
 import { assertOutputSafe, moderateOutput } from "./output-moderation";
 import type { AIProvider } from "./provider";
@@ -93,19 +94,11 @@ export class NoAIProviderConfiguredError extends Error {
  */
 const TABLE_CHAR_BUDGET = 240_000;
 
-/**
- * Output tokens cap. Tables expand aggressively — a 20-row × 6-col table
- * alone eats ~300-500 tokens. 2800 is enough to cover the common case
- * of 2-5 tables per document without blowing the budget.
- *
- * 2026-04-21 (Phase A4, Tier 4): trimmed 3200 → 2800 after observing
- * that with the JSON envelope format (headers + rows as string[][],
- * no redundant GFM copy) the model rarely needs > 2500 tokens even
- * for 5-table docs. The trim saves ~12% on worst-case output cost
- * without affecting typical-case behavior (provider stops at natural
- * end-of-JSON boundary).
- */
-const MAX_OUTPUT_TOKENS = 2800;
+// Output-token cap is centralized in ./output-caps
+// (OP_OUTPUT_CAP_TABLE.table.default = 2800 — preserves the 2026-04-21
+// Tier 4 trim). Task #11 moved it out of this file so every op shares
+// one source of truth and one hard ceiling. Used below via
+// `capForOp("table")`.
 
 /**
  * Thrown when the model returns output we can't parse as the expected
@@ -148,7 +141,7 @@ export async function extractTables(input: TableInput): Promise<TableResult> {
   const result = await runChat(provider, {
     systemPrompt,
     userPrompt,
-    maxTokens: MAX_OUTPUT_TOKENS,
+    maxTokens: capForOp("table"),
   });
 
   const { tables, markdown } = parseTablesFromResponse(result.text);

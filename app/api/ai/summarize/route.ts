@@ -33,7 +33,7 @@ import { auth } from "@/auth";
 import { db, schema } from "@/db/client";
 import { extractPdfText } from "@/lib/ai/pdf-extract";
 import { refundCredits, spendCredits } from "@/lib/ai/credits";
-import { recordAiUsage } from "@/lib/ai/usage";
+import { isTruncatedStopReason, recordAiUsage } from "@/lib/ai/usage";
 import {
   NoAIProviderConfiguredError,
   summarizePdf,
@@ -252,6 +252,14 @@ export async function POST(req: Request): Promise<Response> {
     creditsSpent: creditCost,
     costMicros: null,
     success: true,
+    // Task #11 truncation observability. `summary.stopReason` is the
+    // provider-reported terminal reason; `isTruncatedStopReason` maps
+    // "max_tokens" → 1 (truncated), other terminal reasons → 0, and
+    // anything unknown → null. Both get persisted so the admin
+    // dashboard can compute truncation-rate per op and the raw reason
+    // is visible for edge-case debugging.
+    stopReason: summary.stopReason,
+    responseTruncated: isTruncatedStopReason(summary.stopReason),
     ledgerId: spendLedgerId,
     idempotencyKey: spendKey,
   });

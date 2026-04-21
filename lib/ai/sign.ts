@@ -44,6 +44,7 @@ import { pathToFileURL } from "node:url";
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
+import { capForOp } from "./output-caps";
 import type { ModerationResult } from "./output-moderation";
 import { assertOutputSafe, moderateOutput } from "./output-moderation";
 import type { AIProvider } from "./provider";
@@ -180,7 +181,11 @@ export class SignParseError extends Error {
 // --- constants --------------------------------------------------------
 
 const SIGN_CHAR_BUDGET = 240_000;
-const MAX_OUTPUT_TOKENS = 2400;
+// Output-token cap is centralized in ./output-caps
+// (OP_OUTPUT_CAP_TABLE.sign.default = 2400). Task #11 moved it out of
+// this file so every op shares one source of truth and one hard ceiling.
+// Enough for a multi-page agreement with ~15 signature blocks + per-
+// block rationale. Used below via `capForOp("sign")`.
 const OCR_CANDIDATE_CHAR_THRESHOLD = 20;
 
 /** How much whitespace we leave between the label end and our drawn text. */
@@ -238,7 +243,7 @@ export async function signPdf(input: SignInput): Promise<SignResult> {
   const chat = await runChat(provider, {
     systemPrompt,
     userPrompt,
-    maxTokens: MAX_OUTPUT_TOKENS,
+    maxTokens: capForOp("sign"),
   });
 
   const rawFills = parseFillsFromResponse(chat.text);

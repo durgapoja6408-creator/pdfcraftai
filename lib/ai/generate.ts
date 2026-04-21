@@ -33,6 +33,7 @@ import "server-only";
 
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
+import { capForOp } from "./output-caps";
 import type { ModerationResult } from "./output-moderation";
 import { assertOutputSafe, moderateOutput } from "./output-moderation";
 import type { AIProvider } from "./provider";
@@ -114,22 +115,17 @@ export class NoAIProviderConfiguredError extends Error {
  * Cap on the user prompt size. Generous — 8000 chars ≈ 2k tokens — is
  * enough for a multi-paragraph brief but small enough to keep the
  * system+user prompt well inside every provider's context window. This
- * is NOT the output cap (which lives in MAX_TOKENS_BY_LENGTH); this is
+ * is NOT the output cap (which lives in lib/ai/output-caps.ts); this is
  * the input cap to keep abusive payloads out of the model call.
  */
 const PROMPT_CHAR_BUDGET = 8_000;
 
-/**
- * Per-length output cap. "long" gets ~4500 tokens which is roughly 3-4k
- * words of prose on the page once rendered. We clamp the model's output
- * hard; if the user needs more than 4500 tokens, they should split the
- * request into multiple sections.
- */
-const MAX_TOKENS_BY_LENGTH: Record<GenerateLength, number> = {
-  short: 900,
-  medium: 2200,
-  long: 4600,
-};
+// Per-length output-token caps are centralized in ./output-caps
+// (OP_OUTPUT_CAP_TABLE.generate). Task #11 moved them out of this file so
+// every op + variant shares one source of truth and one hard ceiling.
+// The short/medium/long values (900 / 2200 / 4600) are preserved there.
+// If the user needs more than 4600 tokens they should split the request
+// into multiple sections. Callers use `capForOp("generate", length)` below.
 
 // --- public entry -----------------------------------------------------
 
@@ -152,7 +148,7 @@ export async function generatePdf(input: GenerateInput): Promise<GenerateResult>
   const chat = await runChat(provider, {
     systemPrompt,
     userPrompt,
-    maxTokens: MAX_TOKENS_BY_LENGTH[length],
+    maxTokens: capForOp("generate", length),
   });
 
   const markdown = postProcessMarkdown(chat.text);

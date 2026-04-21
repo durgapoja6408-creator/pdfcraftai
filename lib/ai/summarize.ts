@@ -33,12 +33,13 @@
 
 import "server-only";
 
+import { capForOp } from "./output-caps";
 import type { ModerationResult } from "./output-moderation";
 import { assertOutputSafe, moderateOutput } from "./output-moderation";
 import type { AIProvider } from "./provider";
 import { buildSafetyPreamble, wrapUntrustedInput } from "./prompt-safety";
 import { NoRoutableProviderError, route } from "./router";
-import type { AIProviderId, TokenUsage } from "./types";
+import type { AIProviderId, StopReason, TokenUsage } from "./types";
 
 /** How much summary the caller wants. */
 export type SummarizeDepth = "tldr" | "standard" | "detailed";
@@ -73,6 +74,14 @@ export interface SummarizeResult {
   /** True if the source text was truncated before sending to the model. */
   wasTruncated: boolean;
   /**
+   * Task #11: provider's terminal `stop_reason`. "end_turn" when the
+   * model terminated naturally, "max_tokens" when the response hit the
+   * output cap, "stop_sequence" on an explicit stop, etc. Route
+   * handlers forward this to `recordAiUsage` so the truncation-rate
+   * dashboard can flag ops that bump against their cap.
+   */
+  stopReason: StopReason;
+  /**
    * Task #28: output moderation verdict. `severity === "none"` on a
    * clean response; higher severities attach findings for the route
    * handler to log into `ai_usage.meta`. A `critical` finding throws
@@ -98,17 +107,10 @@ export class NoAIProviderConfiguredError extends Error {
 /** Char budget. See file header for why 240k. */
 const SUMMARIZE_CHAR_BUDGET = 240_000;
 
-/**
- * Token caps per depth. These are soft — providers may stop earlier at
- * natural boundaries. TL;DR intentionally caps low so a rambling model
- * gets cut before it writes a standard-length summary we'd have charged
- * more for.
- */
-const MAX_TOKENS_BY_DEPTH: Record<SummarizeDepth, number> = {
-  tldr: 300,
-  standard: 1200,
-  detailed: 2000,
-};
+// Token caps per depth are centralized in ./output-caps
+// (OP_OUTPUT_CAP_TABLE.summarize). Task #11 moved them out of this file so
+// every op + variant shares one source of truth and one hard ceiling.
+// Callers use `capForOp("summarize", depth)` below.
 
 export async function summarizePdf(input: SummarizeInput): Promise<SummarizeResult> {
   let provider: AIProvider;
@@ -139,7 +141,7 @@ export async function summarizePdf(input: SummarizeInput): Promise<SummarizeResu
   const result = await runChat(provider, {
     systemPrompt,
     userPrompt,
-    maxTokens: MAX_TOKENS_BY_DEPTH[input.depth],
+    maxTokens: capForOp("summarize", input.depth),
   });
 
   const markdown = postProcessMarkdown(result.text, input.depth);
@@ -157,6 +159,10 @@ export async function summarizePdf(input: SummarizeInput): Promise<SummarizeResu
     model: result.model,
     usage: result.usage,
     wasTruncated,
+    // Task #11: forward the terminal stop_reason so the route handler
+    // can persist it onto the ai_usage row and feed the per-op
+    // truncation-rate dashboard.
+    stopReason: result.stopReason,
     moderation,
   };
 }
@@ -256,6 +262,7 @@ async function runChat(
   providerId: AIProviderId;
   model: string;
   usage: TokenUsage;
+  stopReason: StopReason;
 }> {
   const result = await provider.chat({
     systemPrompt: opts.systemPrompt,
@@ -284,6 +291,10 @@ async function runChat(
     providerId: result.providerId,
     model: result.model,
     usage: result.usage,
+    // Task #11: propagate terminal stop_reason up the call chain.
+    // Typically "end_turn" or "max_tokens"; the summarize result type
+    // exposes it so /api/ai/summarize can persist into ai_usage.
+    stopReason: result.stopReason,
   };
 }
 

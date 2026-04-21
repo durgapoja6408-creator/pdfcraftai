@@ -41,6 +41,7 @@
 
 import "server-only";
 
+import { clampToHardCeiling } from "./output-caps";
 import type { ModerationResult } from "./output-moderation";
 import { assertOutputSafe, moderateOutput } from "./output-moderation";
 import type { AIProvider } from "./provider";
@@ -134,13 +135,21 @@ const TRANSLATE_TOTAL_CHAR_CEILING = 600_000;
  *
  * Providers stop at natural sentence boundaries, so this is a ceiling,
  * not a target.
+ *
+ * Task #11: the 6000-token per-chunk ceiling is preserved here (it's
+ * the right cap for TRANSLATE specifically — longer and the model
+ * starts summarizing), but the result is additionally passed through
+ * `clampToHardCeiling` from ./output-caps as belt + braces. Today 6000
+ * is already ≤ HARD_CEILING_TOKENS = 8192; the clamp is defense-in-
+ * depth in case the ceiling is ever lowered below 6000.
  */
 function maxTokensForChunk(chunkCharCount: number): number {
   const base = Math.ceil(chunkCharCount / 3);
   const padded = Math.ceil(base * 1.3);
   // Ceiling of 6000 — above that, the response tends to summarize
   // rather than translate, which is the opposite of what we want.
-  return Math.min(Math.max(padded, 400), 6000);
+  const translateCeiling = Math.min(Math.max(padded, 400), 6000);
+  return clampToHardCeiling(translateCeiling);
 }
 
 export async function translatePdf(input: TranslateInput): Promise<TranslateResult> {

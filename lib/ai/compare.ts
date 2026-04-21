@@ -45,6 +45,7 @@
 
 import "server-only";
 
+import { capForOp } from "./output-caps";
 import type { ModerationResult } from "./output-moderation";
 import { assertOutputSafe, moderateOutput } from "./output-moderation";
 import type { AIProvider } from "./provider";
@@ -115,12 +116,11 @@ export const COMPARE_COMBINED_CHAR_BUDGET = 400_000;
  */
 export const COMPARE_SIDE_CHAR_BUDGET = COMPARE_COMBINED_CHAR_BUDGET / 2;
 
-/**
- * Output cap for the diff markdown. Big enough for a thorough redline of
- * a 30-page contract with 40+ changes; providers typically stop earlier
- * at natural boundaries.
- */
-const COMPARE_MAX_OUTPUT_TOKENS = 4000;
+// Output-token cap is centralized in ./output-caps
+// (OP_OUTPUT_CAP_TABLE.compare.default = 4000). Task #11 moved it out of
+// this file so every op shares one source of truth and one hard ceiling.
+// Big enough for a thorough redline of a 30-page contract with 40+
+// changes. Used below via `capForOp("compare")`.
 
 // --- entry point ------------------------------------------------------
 
@@ -154,7 +154,7 @@ export async function comparePdfs(input: CompareInput): Promise<CompareResult> {
   const result = await runChat(provider, {
     systemPrompt,
     userPrompt,
-    maxTokens: COMPARE_MAX_OUTPUT_TOKENS,
+    maxTokens: capForOp("compare"),
   });
 
   const markdown = postProcessMarkdown(result.text);

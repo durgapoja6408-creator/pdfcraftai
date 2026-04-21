@@ -49,6 +49,7 @@ import { pathToFileURL } from "node:url";
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import { PDFDocument, rgb } from "pdf-lib";
 
+import { capForOp } from "./output-caps";
 import type { ModerationResult } from "./output-moderation";
 import { assertOutputSafe, moderateOutput } from "./output-moderation";
 import type { AIProvider } from "./provider";
@@ -177,8 +178,11 @@ export class RedactParseError extends Error {
 /** Same context budget as summarize / rewrite / table. */
 const REDACT_CHAR_BUDGET = 240_000;
 
-/** Generous enough for a PII list on a 100-page document. */
-const MAX_OUTPUT_TOKENS = 2400;
+// Output-token cap is centralized in ./output-caps
+// (OP_OUTPUT_CAP_TABLE.redact.default = 2400). Task #11 moved it out of
+// this file so every op shares one source of truth and one hard ceiling.
+// Sized for a densely PII-populated page (~50-80 spans with text +
+// reason). Used below via `capForOp("redact")`.
 
 /** Char threshold below which we flag a page as OCR-candidate. */
 const OCR_CANDIDATE_CHAR_THRESHOLD = 20;
@@ -236,7 +240,7 @@ export async function redactPdf(input: RedactInput): Promise<RedactResult> {
   const chat = await runChat(provider, {
     systemPrompt,
     userPrompt,
-    maxTokens: MAX_OUTPUT_TOKENS,
+    maxTokens: capForOp("redact"),
   });
 
   const rawFindings = parseFindingsFromResponse(chat.text);

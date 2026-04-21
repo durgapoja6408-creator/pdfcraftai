@@ -520,6 +520,17 @@ export const aiUsage = mysqlTable(
     // USD * 1e6. Nullable until per-model rate cards are wired (Phase A4).
     costMicros: bigint("cost_micros", { mode: "number" }),
     success: int("success").notNull().default(1), // 1 = ok, 0 = error (MySQL has no native bool)
+    // Task #11 truncation observability (migration 0008). `stopReason` is
+    // the raw provider-reported terminal reason ("end_turn",
+    // "max_tokens", "stop_sequence", etc. — free-form across providers).
+    // `responseTruncated` is a computed flag: 1 when the response hit
+    // the output cap, 0 when it terminated naturally, NULL when unknown
+    // (errored calls, client-aborted streams, historical rows).
+    // Both nullable so pre-migration rows and non-instrumented call
+    // sites stay honest (NULL ≠ 0) and are excluded from truncation-rate
+    // aggregates via `WHERE response_truncated IS NOT NULL`.
+    stopReason: varchar("stop_reason", { length: 32 }),
+    responseTruncated: int("response_truncated"),
     errorCode: varchar("error_code", { length: 64 }),
     ledgerId: varchar("ledger_id", { length: 36 }),
     idempotencyKey: varchar("idempotency_key", { length: 128 }),
@@ -533,6 +544,14 @@ export const aiUsage = mysqlTable(
       t.createdAt
     ),
     successIdx: index("ai_usage_success_idx").on(t.success),
+    // Covers the per-op truncation-rate rollup query
+    // (WHERE response_truncated IS NOT NULL AND created_at BETWEEN ? AND ?
+    //  GROUP BY operation) so the dashboard doesn't force a full scan
+    // once ai_usage passes ~1M rows.
+    truncatedCreatedIdx: index("ai_usage_truncated_created_idx").on(
+      t.responseTruncated,
+      t.createdAt
+    ),
     idempotencyIdx: uniqueIndex("ai_usage_idempotency_idx").on(t.idempotencyKey),
   })
 );

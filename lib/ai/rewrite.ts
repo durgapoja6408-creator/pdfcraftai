@@ -27,6 +27,7 @@
 
 import "server-only";
 
+import { capForOp } from "./output-caps";
 import type { ModerationResult } from "./output-moderation";
 import { assertOutputSafe, moderateOutput } from "./output-moderation";
 import type { AIProvider } from "./provider";
@@ -80,27 +81,12 @@ export class NoAIProviderConfiguredError extends Error {
  */
 const REWRITE_CHAR_BUDGET = 240_000;
 
-/**
- * Output token cap per mode. "expand" gets the biggest cap because its
- * whole purpose is to generate MORE text than the input. Others track
- * the input length loosely — no point in reserving 4000 tokens for a
- * concise rewrite of a 500-word email.
- *
- * 2026-04-21 (Phase A4, Tier 4 margin pass): trimmed simplify/formal/
- * casual from 2400 → 2000. Empirically the cap only bound long-input
- * runs (≥60 pages) and the last 400 tokens almost always tailed off
- * into filler rather than substantive content. Shrinking the ceiling
- * takes ~17% off the worst-case output cost per call without touching
- * the typical-case output, since the provider stops at natural
- * paragraph boundaries.
- */
-const MAX_TOKENS_BY_MODE: Record<RewriteMode, number> = {
-  simplify: 2000,
-  formal: 2000,
-  casual: 2000,
-  concise: 1600,
-  expand: 4000,
-};
+// Output-token caps per mode are centralized in ./output-caps
+// (OP_OUTPUT_CAP_TABLE.rewrite). Task #11 moved them out of this file so
+// every op + variant shares one source of truth and one hard ceiling.
+// The 2026-04-21 Tier 4 values (simplify/formal/casual = 2000, concise =
+// 1600, expand = 4000) are preserved there. Callers use
+// `capForOp("rewrite", mode)` below.
 
 export async function rewritePdf(input: RewriteInput): Promise<RewriteResult> {
   // Task #21: route through the AI router so the op-specific routing
@@ -138,7 +124,7 @@ export async function rewritePdf(input: RewriteInput): Promise<RewriteResult> {
   const result = await runChat(provider, {
     systemPrompt,
     userPrompt,
-    maxTokens: MAX_TOKENS_BY_MODE[input.mode],
+    maxTokens: capForOp("rewrite", input.mode),
   });
 
   const markdown = postProcessMarkdown(result.text);
