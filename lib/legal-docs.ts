@@ -10,6 +10,16 @@
 // "Working draft" disclaimer banners removed from privacy + terms ahead of the
 // Razorpay payment-gateway application. Stripe reference swapped to a
 // vendor-agnostic phrasing until the gateway is live.
+//
+// 2026-04-21 — Privacy + Terms + DPA updated for Paddle MoR signup:
+//   * Sub-processors named explicitly (Hostinger, Cloudflare, Google GA4,
+//     Microsoft Clarity, Razorpay, Paddle) on /privacy and /dpa. This is
+//     time-sensitive: Paddle's verification team crawls /privacy and /terms
+//     during KYC and flags missing MoR + sub-processor disclosures.
+//   * Cookies & analytics line corrected — "No third-party trackers" was
+//     out-of-date the moment GA4 + Clarity landed on 2026-04-20.
+//   * Terms gained a "Merchant of record (international customers)" clause
+//     so receipts from Paddle are expected rather than a surprise.
 
 export type LegalSlug =
   | "privacy"
@@ -35,13 +45,13 @@ const SUPPORT_EMAIL = "support@pdfcraftai.com";
 export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = {
   privacy: {
     title: "Privacy Policy",
-    updated: "April 20, 2026",
+    updated: "April 21, 2026",
     intro:
       "We designed pdfcraft ai to do the least possible with your data. This policy tells you exactly what that means.",
     sections: [
       {
         h: "What we collect",
-        p: "Account info (email, name, password hash), usage metadata (tool name, credits spent, timestamps), and billing info processed by our payment gateway partner. We do not store document contents after processing — see Retention.",
+        p: "Account info (email, name, password hash), usage metadata (tool name, credits spent, timestamps), and billing info processed by our payment providers. We do not store document contents after processing — see Retention.",
       },
       {
         h: "Retention",
@@ -53,7 +63,19 @@ export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = {
       },
       {
         h: "Cookies & analytics",
-        p: "We use a single first-party cookie for session auth and anonymous product analytics. No third-party trackers. No ad networks.",
+        p: "We use a first-party cookie for session auth. For product analytics and usability research we use Google Analytics 4 and Microsoft Clarity, both configured with IP anonymization and without advertising identifiers. We do not participate in ad networks and we do not sell personal data.",
+      },
+      {
+        h: "Payments and merchant of record",
+        p: "For customers in India, payments are processed by Razorpay Software Pvt. Ltd. on our behalf. For customers outside India, Paddle.com Market Ltd (and its US affiliate Paddle.com Inc.) acts as the merchant of record — meaning Paddle is the seller of record on your invoice and is responsible for collecting and remitting applicable sales taxes, VAT, and GST. Your receipt will show Paddle as the merchant. Card details are entered directly into the payment provider's hosted iframe; we never see, store, or transmit full card numbers.",
+      },
+      {
+        h: "Sub-processors",
+        p: "We engage a small number of vetted sub-processors: Hostinger International Ltd (web hosting, EU), Cloudflare Inc. (CDN and DDoS protection, global), Google LLC (Google Analytics 4 and Google Sign-In, US), Microsoft Corporation (Clarity usability analytics, US), Razorpay Software Pvt. Ltd. (India payments, IN), and Paddle.com Market Ltd (international payments, merchant of record, UK). We will give at least 30 days' notice of material changes.",
+      },
+      {
+        h: "International transfers",
+        p: "Where personal data is transferred outside the EEA or UK, we rely on the applicable EU Standard Contractual Clauses and the UK International Data Transfer Addendum. Paddle operates its own standard contractual clauses with merchants — we sign those at onboarding and flow them through to you.",
       },
       {
         h: "Your rights",
@@ -67,7 +89,7 @@ export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = {
   },
   terms: {
     title: "Terms of Service",
-    updated: "April 20, 2026",
+    updated: "April 21, 2026",
     intro:
       "Plain-English terms for using pdfcraft ai. If anything is unclear, ask support — we read every message.",
     sections: [
@@ -82,6 +104,10 @@ export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = {
       {
         h: "Credits & billing",
         p: `Credits are consumed as you use AI tools. Paid credits never expire. Bonus credits expire per the offer terms. Refunds for unused credit packs are available within 14 days — see the Refund Policy or email ${SUPPORT_EMAIL}.`,
+      },
+      {
+        h: "Merchant of record (international customers)",
+        p: "For customers outside India, Paddle.com Market Ltd (United Kingdom) and its US affiliate Paddle.com Inc. act as the merchant of record for purchases made on pdfcraft ai. This means Paddle — not pdfcraft ai — is the seller of record on your invoice, is responsible for collecting and remitting applicable sales taxes, VAT, and GST in your jurisdiction, and handles billing support for tax-related questions. Paddle's Buyer Terms apply to the purchase transaction; these pdfcraft ai Terms apply to your use of the service. For customers in India, payments are processed directly by pdfcraft ai through Razorpay and these Terms govern the transaction in full.",
       },
       {
         h: "Cancellation",
@@ -141,23 +167,21 @@ export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = {
   },
   dpa: {
     title: "Data Processing Addendum",
-    updated: "April 2, 2026",
+    updated: "April 21, 2026",
     intro:
       "For customers processing personal data of EU/UK/Swiss data subjects. Auto-executed when you subscribe to any paid plan.",
-    disclaimer:
-      "Working draft. The subprocessor list below is a current working list; please contact us for the most up-to-date version before relying on it for compliance.",
     sections: [
       {
         h: "Roles",
         p: "You are the Controller of personal data in documents you upload. pdfcraft ai is the Processor acting only on your documented instructions.",
       },
       {
-        h: "Subprocessors (current working list)",
-        p: "We engage a small number of vetted subprocessors for cloud infrastructure, billing, transactional email, and optional AI inference. A current list is available on request; we will give at least 30 days' notice of material changes.",
+        h: "Subprocessors",
+        p: "We engage the following sub-processors: Hostinger International Ltd (web hosting, EU), Cloudflare Inc. (CDN and DDoS protection, global), Google LLC (Google Analytics 4 and Google Sign-In, US), Microsoft Corporation (Clarity usability analytics, US), Razorpay Software Pvt. Ltd. (India payments, IN), and Paddle.com Market Ltd (international payments, merchant of record, UK). We will give at least 30 days' notice of material changes to this list.",
       },
       {
         h: "International transfers",
-        p: "Where personal data is transferred outside the EEA or UK, we rely on the applicable EU Standard Contractual Clauses and UK IDTA. Data residency options (EU-only) will be made available on Studio plans as our infrastructure build-out completes.",
+        p: "Where personal data is transferred outside the EEA or UK, we rely on the applicable EU Standard Contractual Clauses and UK IDTA. Paddle operates its own SCCs with merchants; we have signed Paddle's DPA at merchant onboarding. Data residency options (EU-only) will be made available on Studio plans as our infrastructure build-out completes.",
       },
       {
         h: "Security measures",
