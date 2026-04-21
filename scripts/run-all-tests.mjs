@@ -68,6 +68,13 @@ const SUITES = [
   { name: "pdf-tools", file: "test-pdf-tools.mjs" },
   { name: "geo-router", file: "test-geo-router.mjs" },
   { name: "geo-waitlist", file: "test-geo-waitlist.mjs" },
+  // dev-hooks pins the pre-push hook's contract + DEV_SETUP.md install
+  // instructions. Ordered last because it's not a subsystem gate —
+  // it's a self-consistency gate on the repo's own dev tooling. If
+  // somebody strips the executable bit off .githooks/pre-push or
+  // rewires the hook to call something other than `npm test`, this
+  // fails here rather than silently at push time.
+  { name: "dev-hooks", file: "test-dev-hooks.mjs" },
 ];
 
 /**

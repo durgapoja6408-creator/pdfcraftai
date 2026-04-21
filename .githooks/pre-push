@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# .githooks/pre-push
+#
+# Runs the repo's offline test gate (`npm test`) before allowing a push.
+#
+# Why this hook exists:
+#   GitHub Actions CI (.github/workflows/ci.yml) already runs
+#   `npm run typecheck` + `npm test` on every push to main and every PR
+#   targeting main — so CI is the last line of defence before the build
+#   gets auto-deployed by Hostinger's GitHub App. A pre-push hook is the
+#   FIRST line of defence: it catches regressions locally in ~0.8s
+#   (the full 3-harness, 382+ assertion suite's wall-clock time) before
+#   the push even hits GitHub, saving the round-trip to CI + the mental
+#   cost of "did my push just break main for 3 minutes before the fix
+#   landed?".
+#
+# How this hook gets activated (ONE command, run once per clone):
+#   git config core.hooksPath .githooks
+#
+#   After that, git uses files in `.githooks/` instead of `.git/hooks/`.
+#   `.git/hooks/` is untracked; `.githooks/` is committed — so every
+#   future clone picks up the hook with the same single command.
+#
+# How to bypass in an emergency:
+#   git push --no-verify
+#
+#   `--no-verify` is git's built-in bypass flag for pre-commit / pre-push
+#   hooks; use it when you need to ship a broken-tests state (e.g.
+#   shipping a test-expectations diff together with the code change it
+#   covers, or pushing a docs-only branch while unrelated tests are
+#   broken on main). Don't make it a habit — the point of this hook is
+#   that every push has a green-test guarantee before it leaves the
+#   machine.
+#
+# Design choices:
+#   - Uses `npm test` (not `npm run typecheck && npm test`) because
+#     typecheck takes ~8s vs. the test suite's ~0.8s. The hook is
+#     optimised for the 99% case (push small code changes, tests still
+#     green) and typecheck drift is caught by CI anyway. If typecheck
+#     becomes a blocker category in its own right, this hook can be
+#     extended — but starting with the fast gate keeps the hook friction
+#     low enough that people don't reach for --no-verify out of habit.
+#   - `exec` the test command rather than `$? == 0` check: exec-and-exit
+#     preserves the child's exit code and avoids a wrapped-error-message
+#     layer when tests fail.
+#   - Reads `GIT_PRE_PUSH_SKIP_TESTS` env var as a documented escape
+#     hatch that's more greppable than --no-verify in shell history.
+#   - Prints a 3-line banner so the user sees WHY their push paused;
+#     silent hooks get blamed for "git hanging".
+
+set -e
+
+if [ "${GIT_PRE_PUSH_SKIP_TESTS:-}" = "1" ]; then
+  echo "pre-push: GIT_PRE_PUSH_SKIP_TESTS=1, skipping 'npm test' gate" >&2
+  exit 0
+fi
+
+echo "pre-push: running 'npm test' before pushing..." >&2
+echo "pre-push: bypass with 'git push --no-verify' or GIT_PRE_PUSH_SKIP_TESTS=1" >&2
+echo "pre-push: --- test output follows ---" >&2
+
+exec npm test --silent
