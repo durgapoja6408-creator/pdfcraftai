@@ -403,6 +403,81 @@ async function run() {
     }
   }
 
+  group("/api/payments/probe (runtime self-verification)");
+  {
+    // /api/payments/probe is the runtime self-verification endpoint from
+    // task #12. It enumerates which payment adapters the deployed bundle
+    // has CONFIGURED (not just registered) — i.e. adapters whose env vars
+    // are present and whose `isConfigured()` method returned true at boot.
+    // Reading it from smoke catches the exact failure class the endpoint
+    // was built for: env var drifted out of Hostinger → adapter silently
+    // unconfigured → checkout still hits the registry at build time (so
+    // `next build` stays green) but fails at runtime when someone clicks
+    // "Pay". Smoke probes the LIVE runtime, so it catches that drift
+    // after every deploy without any additional infra.
+    const r = await req("/api/payments/probe");
+    log(
+      "/api/payments/probe returns 200 JSON",
+      r.status === 200 && r.body && typeof r.body === "object",
+      `status=${r.status}`,
+    );
+    if (r.body && typeof r.body === "object") {
+      log(
+        "/api/payments/probe reports ok: true",
+        r.body.ok === true,
+        JSON.stringify(r.body)?.slice(0, 200),
+      );
+      // Razorpay is the one must-have adapter — it's the only
+      // configured payment rail for IN traffic today. If it drops out
+      // of configuredIds, checkout is broken for every rupee of
+      // revenue. Pin it as must-present.
+      const ids = Array.isArray(r.body.configuredIds) ? r.body.configuredIds : [];
+      log(
+        "/api/payments/probe includes razorpay in configuredIds",
+        ids.includes("razorpay"),
+        `configuredIds=${JSON.stringify(ids)}`,
+      );
+      // PayPal was retired in task #6 (D4 cleanup, adapter deleted +
+      // registry row removed). If "paypal" ever shows up in
+      // configuredIds again, that's a regression — someone resurrected
+      // the adapter without going through the SAQ-A review. Pin its
+      // absence as a forever-guard.
+      log(
+        "/api/payments/probe does NOT include paypal (retired in task #6)",
+        !ids.includes("paypal"),
+        `configuredIds=${JSON.stringify(ids)} — PayPal resurrection regression`,
+      );
+      // Razorpay's capability declaration pins the payment rail's
+      // posture. If Razorpay drops webhooks or refund support in
+      // prod (env-var drift, library downgrade), we want to see it
+      // here — otherwise checkout looks fine until a refund fails
+      // or a webhook goes missing.
+      const providers = Array.isArray(r.body.providers) ? r.body.providers : [];
+      const razorpay = providers.find((p) => p && p.id === "razorpay");
+      log(
+        "/api/payments/probe razorpay entry exists in providers[]",
+        Boolean(razorpay),
+        `providers=${JSON.stringify(providers).slice(0, 200)}`,
+      );
+      if (razorpay) {
+        log(
+          "razorpay declares webhooks + refunds + one-time capabilities",
+          razorpay.capabilities &&
+            razorpay.capabilities.webhooks === true &&
+            razorpay.capabilities.refunds === true &&
+            razorpay.capabilities.oneTime === true,
+          JSON.stringify(razorpay.capabilities),
+        );
+        log(
+          "razorpay supportedCurrencies includes INR",
+          Array.isArray(razorpay.supportedCurrencies) &&
+            razorpay.supportedCurrencies.includes("INR"),
+          JSON.stringify(razorpay.supportedCurrencies),
+        );
+      }
+    }
+  }
+
   group("SEO plumbing");
   {
     const sm = await req("/sitemap.xml");
