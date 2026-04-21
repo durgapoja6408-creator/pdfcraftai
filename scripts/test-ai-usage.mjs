@@ -284,6 +284,11 @@ assert(
 const total = pass + fail;
 console.log("");
 console.log(`test-ai-usage.mjs — ${pass}/${total} assertions passed`);
+// Canonical summary line — parsed by scripts/run-all-tests.mjs. The
+// aggregator's regex anchors on `(\d+) passed, (\d+) failed`; keep this
+// wording in sync across harnesses or the suite shows up as
+// "(summary unparseable)" even when every assertion passed.
+console.log(`AI-usage tests: ${pass} passed, ${fail} failed`);
 if (fail > 0) {
   console.error("");
   console.error("FAILURES:");

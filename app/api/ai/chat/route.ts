@@ -43,6 +43,7 @@ import { extractPdfText } from "@/lib/ai/pdf-extract";
 import { refundCredits, spendCredits } from "@/lib/ai/credits";
 import { recordAiUsage } from "@/lib/ai/usage";
 import { selectProvider } from "@/lib/ai/registry";
+import { estimatePromptTokens, OP_MAX_INPUT_TOKENS } from "@/lib/ai/tokens";
 import type {
   AIProviderId,
   ChatChunk,
@@ -59,6 +60,11 @@ export const runtime = "nodejs";
 
 // Soft upload ceiling. Bigger PDFs are technically accepted but we bail
 // before touching pdfjs so a malicious 500MB body doesn't OOM a worker.
+// This is a MEMORY guard, NOT a context-size guard — the authoritative
+// per-op input-token ceiling lives in `lib/ai/tokens.ts`
+// (`OP_MAX_INPUT_TOKENS.chat_turn`) and is checked post-extraction
+// against the assembled prompt. A 25 MB scanned PDF can still blow
+// the token cap; a 1 MB text-only PDF will not.
 const MAX_PDF_BYTES = 25 * 1024 * 1024; // 25 MB
 
 // How many prior turns to include as context. Anthropic/GPT-4o-mini both
@@ -66,9 +72,13 @@ const MAX_PDF_BYTES = 25 * 1024 * 1024; // 25 MB
 // capping at 40 keeps the prompt predictable and the bill bounded.
 const HISTORY_WINDOW = 40;
 
-// How many characters of extracted PDF text to include in the system
-// prompt. At ~4 chars/token that's ~60k tokens — comfortably inside the
-// smallest context window we target.
+// Hard ceiling on extracted PDF text we splice into the system prompt.
+// Backstops the pdfjs extraction so a pathological 1 GB-text PDF
+// doesn't OOM the sandbox building a single mega-string. The real
+// user-visible gate is the 20k-token cap in `OP_MAX_INPUT_TOKENS`;
+// this is just a memory guard a safe multiple above that (20k tokens
+// * 3.5 chars/token ≈ 70k chars for Latin text; 240k is ~3.5x that
+// to leave headroom before the token check fires a 413).
 const PDF_CONTEXT_CHAR_BUDGET = 240_000;
 
 export async function POST(req: Request): Promise<Response> {
@@ -98,9 +108,11 @@ export async function POST(req: Request): Promise<Response> {
       detail: "sessionId, message, idempotencyKey are required",
     });
   }
-  if (messageText.length > 16_000) {
-    return json(400, { error: "message_too_long" });
-  }
+  // No char-level messageText cap here anymore. The authoritative
+  // guard is the token cap below (post-extraction), which accounts for
+  // message + history + PDF context + system prompt together — a 15k-
+  // char question plus a 12-page PDF can easily blow 20k tokens, and
+  // that's the case the cap exists to catch. See lib/ai/tokens.ts.
   if (pdfFile && !(pdfFile instanceof File)) {
     return json(400, { error: "bad_request", detail: "pdf must be a file" });
   }
@@ -220,9 +232,50 @@ export async function POST(req: Request): Promise<Response> {
     }
   }
 
-  // -- 7. Load history + persist user message --------------------------
+  // -- 7. Assemble prompt + token-cap check ----------------------------
+  // Build the final shape (system + messages) now so we can count input
+  // tokens against the per-op cap BEFORE any further DB writes or the
+  // provider call. If the assembled prompt exceeds the cap, refund the
+  // up-front debit and 413 — this is the context_too_large gate from
+  // docs/MASTER_PLAN.md §7 #5 and §4 decision D4.
+  //
+  // Order matters: we load history + build the system prompt here
+  // (earlier than the pre-token-cap code did) specifically so that
+  // when the cap fires, we haven't yet persisted a user_message row
+  // and haven't yet selected a provider. Refund is the only side
+  // effect to undo.
   const history = await loadHistory(sessionId);
 
+  const messages: ChatMessage[] = [];
+  for (const m of history) {
+    // Skip stored system messages — we always rebuild the system prompt
+    // from the current PDF context to keep things deterministic.
+    if (m.role === "system") continue;
+    messages.push({ role: m.role, content: m.content });
+  }
+  messages.push({ role: "user", content: messageText });
+
+  const systemPrompt = buildSystemPrompt({ pdfSystemContext });
+
+  const estimatedInputTokens = estimatePromptTokens(systemPrompt, messages);
+  if (estimatedInputTokens > OP_MAX_INPUT_TOKENS.chat_turn) {
+    await refundCredits({
+      userId,
+      operation: "chat_turn",
+      originalIdempotencyKey: `ai:${sessionId}:${idempotencyKey}`,
+      note: `Refund: context_too_large (${estimatedInputTokens} > ${OP_MAX_INPUT_TOKENS.chat_turn} tokens)`,
+    });
+    return json(413, {
+      error: "context_too_large",
+      maxTokens: OP_MAX_INPUT_TOKENS.chat_turn,
+      estimatedTokens: estimatedInputTokens,
+      detail:
+        "Input exceeds the 20k-token chat budget. Shrink your question, " +
+        "use a smaller PDF, or try /api/ai/summarize for document-scale inputs.",
+    });
+  }
+
+  // -- 8. Persist user message -----------------------------------------
   const userMessageId = randomUUID();
   await db.insert(schema.chatMessages).values({
     id: userMessageId,
@@ -235,7 +288,7 @@ export async function POST(req: Request): Promise<Response> {
     idempotencyKey: null,
   });
 
-  // -- 8. Select provider ----------------------------------------------
+  // -- 9. Select provider ----------------------------------------------
   const provider = await selectProvider({
     capabilityNeeded: "streaming",
     preferredId: (chatSession.providerId ?? undefined) as AIProviderId | undefined,
@@ -253,17 +306,8 @@ export async function POST(req: Request): Promise<Response> {
   const providerId = provider.id;
   const model = provider.defaultModel;
 
-  // -- 9. Build the chat input -----------------------------------------
-  const messages: ChatMessage[] = [];
-  for (const m of history) {
-    // Skip stored system messages — we always rebuild the system prompt
-    // from the current PDF context to keep things deterministic.
-    if (m.role === "system") continue;
-    messages.push({ role: m.role, content: m.content });
-  }
-  messages.push({ role: "user", content: messageText });
-
-  const systemPrompt = buildSystemPrompt({ pdfSystemContext });
+  // (`messages` + `systemPrompt` were assembled earlier, above the
+  // token-cap check in step 7. Reused here for the streamChat call.)
 
   // -- 10. Persist first-use provider metadata on the session ----------
   // Only set if not already set; /app/billing uses this to label "This

@@ -68,6 +68,16 @@ const SUITES = [
   { name: "pdf-tools", file: "test-pdf-tools.mjs" },
   { name: "geo-router", file: "test-geo-router.mjs" },
   { name: "geo-waitlist", file: "test-geo-waitlist.mjs" },
+  // ai-usage pins the Phase A1 `ai_usage` per-call audit contract: the
+  // 0005 migration SQL, the Drizzle schema declaration, the write-path
+  // helper, and the recordAiUsage() call-sites in the chat + summarize
+  // routes. Regressions here would silently break provider-cost auditing.
+  { name: "ai-usage", file: "test-ai-usage.mjs" },
+  // chat-context-cap pins the Phase A2 token-cap contract (MASTER_PLAN
+  // §7 gate #5 + §4 D4): 20k input tokens for chat_turn, 100k for
+  // summarize. Locks the char-based estimator shape, the route's
+  // 413 `context_too_large` branch, and the refund-before-413 contract.
+  { name: "chat-context-cap", file: "test-chat-context-cap.mjs" },
   // dev-hooks pins the pre-push hook's contract + DEV_SETUP.md install
   // instructions. Ordered last because it's not a subsystem gate —
   // it's a self-consistency gate on the repo's own dev tooling. If
