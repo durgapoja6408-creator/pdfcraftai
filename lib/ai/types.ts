@@ -20,8 +20,23 @@
 //     `usage` (null on error). Consumers can trust that exactly one
 //     terminal chunk arrives per stream — adapters guarantee this.
 
-/** Identifier used in the registry and stored on every `chat_messages` row. */
-export type AIProviderId = "anthropic" | "openai";
+/**
+ * Identifier used in the registry and stored on every `chat_messages`,
+ * `ai_outputs`, and `ai_usage` row. Stable forever — renaming a value
+ * would orphan all historical audit rows that reference it.
+ *
+ * Current roster (Phase A2, Task #21):
+ *   - "anthropic" — Claude family (Sonnet, Haiku). Strong writer / reasoner.
+ *                   Native PDF ingest, high context. Our default for
+ *                   generate / sign / long-form chat.
+ *   - "openai"    — gpt-4o family. Cheap, fast on short chat turns.
+ *                   No native PDF ingest via Chat Completions (Files API
+ *                   is a separate surface we don't use).
+ *   - "gemini"    — Google Gemini 2.x family. Native PDF via inline-data
+ *                   blobs, strong OCR + translation quality for the
+ *                   price. Our default for ocr / translate.
+ */
+export type AIProviderId = "anthropic" | "openai" | "gemini";
 
 /**
  * Stable currency-of-capability map. Add a field when a new capability

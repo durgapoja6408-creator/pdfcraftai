@@ -37,19 +37,23 @@
 //
 // Provider selection:
 //
-//   - `selectProvider({ capabilityNeeded: "pdfInput" })` — the registry
-//     filters to providers whose `capabilities.pdfInput` is true. Today
-//     that's only Anthropic; OpenAI's adapter rejects document blocks
-//     with UnsupportedCapabilityError (we don't use its Files API yet).
-//   - If no such provider is configured, the helper throws
-//     `NoOcrProviderConfiguredError` and the route handler returns 503.
+//   - `router.route("ocr", { preferredId })` — the per-op router (Task
+//     #21) walks the ocr routing ladder (`gemini → anthropic` by
+//     default) and returns the first configured provider whose
+//     `capabilities.pdfInput` is true. OpenAI's adapter rejects document
+//     blocks with UnsupportedCapabilityError (we don't use its Files
+//     API yet), so the router skips it for this op even though it's in
+//     the general registry.
+//   - If no such provider is configured, the router throws
+//     `NoRoutableProviderError`; we map that to `NoOcrProviderConfiguredError`
+//     to preserve the existing 503 surface in the route handler.
 
 import "server-only";
 
 import { PDFDocument } from "pdf-lib";
 
 import type { AIProvider } from "./provider";
-import { selectProvider } from "./registry";
+import { NoRoutableProviderError, route } from "./router";
 import type {
   AIProviderId,
   ContentBlock,
@@ -106,11 +110,15 @@ export class NoOcrProviderConfiguredError extends Error {
  * and for credit ledger bookkeeping.
  */
 export async function ocrPdf(input: OcrInput): Promise<OcrResult> {
-  const provider = await selectProvider({
-    capabilityNeeded: "pdfInput",
-    preferredId: input.preferredProvider,
-  });
-  if (!provider) throw new NoOcrProviderConfiguredError();
+  let provider: AIProvider;
+  try {
+    provider = await route("ocr", { preferredId: input.preferredProvider });
+  } catch (err) {
+    if (err instanceof NoRoutableProviderError) {
+      throw new NoOcrProviderConfiguredError();
+    }
+    throw err;
+  }
 
   const processedPageCount = Math.min(input.pageCount, MAX_OCR_PAGES);
   const wasTruncated = input.pageCount > MAX_OCR_PAGES;

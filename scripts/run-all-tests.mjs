@@ -78,6 +78,15 @@ const SUITES = [
   // summarize. Locks the char-based estimator shape, the route's
   // 413 `context_too_large` branch, and the refund-before-413 contract.
   { name: "chat-context-cap", file: "test-chat-context-cap.mjs" },
+  // ai-router pins the Phase A2 / MASTER_PLAN §7 gate #6 per-op routing
+  // contract: the AIOp set, ROUTING_POLICY primary+fallback for every op,
+  // OP_REQUIRED_CAPABILITY mapping, OP_ENV_VAR names, the Gemini adapter
+  // shape + registry wiring, and the call-site refactor that moved every
+  // lib/ai/*.ts subsystem (ocr, translate, summarize, compare) and the
+  // chat route from selectProvider() to router.route(op, …). Placed
+  // before dev-hooks so that a router regression is surfaced as a
+  // subsystem failure rather than as a tooling failure.
+  { name: "ai-router", file: "test-router.mjs" },
   // dev-hooks pins the pre-push hook's contract + DEV_SETUP.md install
   // instructions. Ordered last because it's not a subsystem gate —
   // it's a self-consistency gate on the repo's own dev tooling. If

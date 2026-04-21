@@ -46,7 +46,7 @@
 import "server-only";
 
 import type { AIProvider } from "./provider";
-import { selectProvider } from "./registry";
+import { NoRoutableProviderError, route } from "./router";
 import type { AIProviderId, TokenUsage } from "./types";
 
 export interface CompareSideInput {
@@ -120,11 +120,15 @@ const COMPARE_MAX_OUTPUT_TOKENS = 4000;
 // --- entry point ------------------------------------------------------
 
 export async function comparePdfs(input: CompareInput): Promise<CompareResult> {
-  const provider = await selectProvider({
-    capabilityNeeded: "streaming", // universal; ensures we get a non-null
-    preferredId: input.preferredProvider,
-  });
-  if (!provider) throw new NoAIProviderConfiguredError();
+  let provider: AIProvider;
+  try {
+    provider = await route("compare", { preferredId: input.preferredProvider });
+  } catch (err) {
+    if (err instanceof NoRoutableProviderError) {
+      throw new NoAIProviderConfiguredError();
+    }
+    throw err;
+  }
 
   const {
     originalText,

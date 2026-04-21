@@ -11,7 +11,8 @@
 //                                    duplicate collapses to the replay path
 //   6.  extract PDF text if sent   → prepend as a system message
 //   7.  persist user message       → one chat_messages row, role=user
-//   8.  selectProvider(streaming)  → 503 if no provider configured
+//   8.  route("chat", …)           → 503 if router ladder has no configured
+//                                    provider that supports streaming
 //   9.  provider.streamChat()      → pipe chunks as SSE to the client
 //  10.  on terminal `done`         → persist assistant message (role=assistant)
 //                                    with providerId/model/tokens/stopReason/
@@ -42,7 +43,8 @@ import { db, schema } from "@/db/client";
 import { extractPdfText } from "@/lib/ai/pdf-extract";
 import { refundCredits, spendCredits } from "@/lib/ai/credits";
 import { recordAiUsage } from "@/lib/ai/usage";
-import { selectProvider } from "@/lib/ai/registry";
+import type { AIProvider } from "@/lib/ai/provider";
+import { NoRoutableProviderError, route } from "@/lib/ai/router";
 import { estimatePromptTokens, OP_MAX_INPUT_TOKENS } from "@/lib/ai/tokens";
 import type {
   AIProviderId,
@@ -288,19 +290,38 @@ export async function POST(req: Request): Promise<Response> {
     idempotencyKey: null,
   });
 
-  // -- 9. Select provider ----------------------------------------------
-  const provider = await selectProvider({
-    capabilityNeeded: "streaming",
-    preferredId: (chatSession.providerId ?? undefined) as AIProviderId | undefined,
-  });
-  if (!provider) {
-    await refundCredits({
-      userId,
-      operation: "chat_turn",
-      originalIdempotencyKey: `ai:${sessionId}:${idempotencyKey}`,
-      note: "Refund: no AI provider configured",
+  // -- 9. Route to provider --------------------------------------------
+  // Per-op router (Task #21 / MASTER_PLAN §7 gate #6) walks the `chat`
+  // routing ladder (by default openai → anthropic → gemini). It still
+  // enforces the capability filter — `chat` requires streaming — so a
+  // mis-configured ladder falls through to NoRoutableProviderError
+  // exactly the way the old `selectProvider({ capabilityNeeded: "streaming" })`
+  // returned null. We preserve the refund-before-503 contract
+  // (up-front debit at step 5 must be reversed before we surface the
+  // 503 to the user) by catching specifically `NoRoutableProviderError`
+  // and falling back to the same refund + JSON shape. Any other error
+  // escapes — unreachable-provider is the user-safe failure; an
+  // unexpected error here is a bug, not a config issue.
+  //
+  // The session's pinned provider (set at first-use below) is forwarded
+  // as the caller preference so mid-session provider switches don't
+  // happen when env overrides change between turns.
+  let provider: AIProvider;
+  try {
+    provider = await route("chat", {
+      preferredId: (chatSession.providerId ?? undefined) as AIProviderId | undefined,
     });
-    return json(503, { error: "no_ai_provider_configured" });
+  } catch (err) {
+    if (err instanceof NoRoutableProviderError) {
+      await refundCredits({
+        userId,
+        operation: "chat_turn",
+        originalIdempotencyKey: `ai:${sessionId}:${idempotencyKey}`,
+        note: "Refund: no AI provider configured",
+      });
+      return json(503, { error: "no_ai_provider_configured" });
+    }
+    throw err;
   }
 
   const providerId = provider.id;

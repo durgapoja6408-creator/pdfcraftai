@@ -42,7 +42,7 @@
 import "server-only";
 
 import type { AIProvider } from "./provider";
-import { selectProvider } from "./registry";
+import { NoRoutableProviderError, route } from "./router";
 import type { AIProviderId, TokenUsage } from "./types";
 
 // Re-export the curated language catalog from a non-server-only module
@@ -139,11 +139,15 @@ function maxTokensForChunk(chunkCharCount: number): number {
 }
 
 export async function translatePdf(input: TranslateInput): Promise<TranslateResult> {
-  const provider = await selectProvider({
-    capabilityNeeded: "streaming",
-    preferredId: input.preferredProvider,
-  });
-  if (!provider) throw new NoAIProviderConfiguredError();
+  let provider: AIProvider;
+  try {
+    provider = await route("translate", { preferredId: input.preferredProvider });
+  } catch (err) {
+    if (err instanceof NoRoutableProviderError) {
+      throw new NoAIProviderConfiguredError();
+    }
+    throw err;
+  }
 
   const { text: boundedText, wasTruncated } = applyCeiling(input.text);
   const chunks = chunkText(boundedText);

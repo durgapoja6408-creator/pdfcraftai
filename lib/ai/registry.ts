@@ -57,6 +57,24 @@ const ADAPTERS: ReadonlyArray<{
       });
     },
   },
+  {
+    id: "gemini",
+    // Accept either GEMINI_API_KEY (preferred, matches our naming
+    // convention) or GOOGLE_API_KEY (the Google SDK's own default env
+    // var). First one set wins in `load()`.
+    isConfigured: () =>
+      Boolean(process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY),
+    load: async () => {
+      const { GeminiProvider } = await import("./adapters/gemini");
+      return new GeminiProvider({
+        apiKey: (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY)!,
+        // Default to Gemini 2.5 Flash — cheap, fast, supports inline PDFs.
+        // Ops can upgrade per-deployment by setting GEMINI_MODEL (e.g.
+        // gemini-2.5-pro for higher-quality OCR on messy scans).
+        defaultModel: process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
+      });
+    },
+  },
 ];
 
 // Cache loaded adapters. One instance per process so chat routes,

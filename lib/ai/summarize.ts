@@ -34,7 +34,7 @@
 import "server-only";
 
 import type { AIProvider } from "./provider";
-import { selectProvider } from "./registry";
+import { NoRoutableProviderError, route } from "./router";
 import type { AIProviderId, TokenUsage } from "./types";
 
 /** How much summary the caller wants. */
@@ -99,11 +99,15 @@ const MAX_TOKENS_BY_DEPTH: Record<SummarizeDepth, number> = {
 };
 
 export async function summarizePdf(input: SummarizeInput): Promise<SummarizeResult> {
-  const provider = await selectProvider({
-    capabilityNeeded: "streaming", // every configured provider has this; ensures non-null
-    preferredId: input.preferredProvider,
-  });
-  if (!provider) throw new NoAIProviderConfiguredError();
+  let provider: AIProvider;
+  try {
+    provider = await route("summarize", { preferredId: input.preferredProvider });
+  } catch (err) {
+    if (err instanceof NoRoutableProviderError) {
+      throw new NoAIProviderConfiguredError();
+    }
+    throw err;
+  }
 
   const { truncatedText, wasTruncated } = truncateForContext(input.text);
 
