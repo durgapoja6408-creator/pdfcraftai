@@ -11,9 +11,9 @@
 **Revenue pipeline we're building:**
 
 ```
- user  ─┐                                                         ┌──▶  Razorpay (INR + USD card)
+ user  ─┐                                                         ┌──▶  Razorpay (INR — IN buyers)
         │   /pricing  ──▶  /checkout  ──▶  PaymentProvider  ──────┤
-        │                                  (portable adapter)     └──▶  PayPal (USD card / balance)
+        │                                  (portable adapter)     └──▶  Paddle MoR (RoW — USD/EUR/GBP/…)
         │                                      │
         │                                      ▼
         │                            webhook signature verify
@@ -148,7 +148,7 @@ Everything below is tested against one rule: **adding a new provider (payment or
  └────────┬─────────────┘               └─────────┬───────────────┘
           ▼                                       ▼
  ┌──────────────────┐  ┌──────────────┐  ┌─────────────┐  ┌──────────┐  ┌──────────┐
- │ razorpay.ts      │  │ paypal.ts    │  │ anthropic   │  │ openai   │  │ gemini   │
+ │ razorpay.ts      │  │ paddle.ts    │  │ anthropic   │  │ openai   │  │ gemini   │
  │ (shipped)        │  │ (shipped)    │  │ (shipped)   │  │ (shipped)│  │ (A2)     │
  └──────────────────┘  └──────────────┘  └─────────────┘  └──────────┘  └──────────┘
                               │                 │                │            │
@@ -161,7 +161,7 @@ Everything below is tested against one rule: **adding a new provider (payment or
 ```
 
 **Why this shape survives a gateway change:**
-- Internal payment UUID (`internalPaymentId`) is the portability anchor. Razorpay's `order_id` and PayPal's `resource_id` are stored for lookup, but the ledger uses the internal ID. Migrating gateways is: new adapter, cutover checkout routing. Zero existing-user data changes.
+- Internal payment UUID (`internalPaymentId`) is the portability anchor. Razorpay's `order_id` and Paddle's `transaction_id` are stored for lookup, but the ledger uses the internal ID. Migrating gateways is: new adapter, cutover checkout routing. Zero existing-user data changes.
 - `AIProviderId` is an open string type. Adding Gemini = 7 files (per master plan §9). Adding Mistral after that = same 7 files.
 
 ---
@@ -202,7 +202,7 @@ Assuming D1–D6 resolve this week and Razorpay KYC clears by 2026-04-25:
 | Week | Phase | Output |
 |---|---|---|
 | W0 (now — 04-20) | Planning complete | This doc + AI_API_MASTER_PLAN + PAYMENT_GATEWAY_PLAN + MARGIN_VERIFICATION — all committed |
-| W1 (04-21 — 04-27) | Payments Phase 0 + AI Phase A0 | KYC docs, legal pages, GSTIN, PayPal business; ANTHROPIC/OPENAI/GEMINI keys on Hostinger; `margin:` field + pricing copy fixed |
+| W1 (04-21 — 04-27) | Payments Phase 0 + AI Phase A0 | KYC docs, legal pages, GSTIN, Paddle KYC + sandbox keys; ANTHROPIC/OPENAI/GEMINI keys on Hostinger; `margin:` field + pricing copy fixed |
 | W2 (04-28 — 05-04) | Payments Phase 1 + AI Phase A1 | Webhook routes + checkout UI with per-pack processor policy; `ai_usage` table + `withCreditSpend`; spend-race fix |
 | W3 (05-05 — 05-11) | AI Phase A2 | Rate limits + body guards + **context-token cap (Layer 1)** + **Gemini adapter + router.ts (Layer 6)** + **dynamic credit multiplier (Layer 3)** + **pre-send confirmation UI (Layer 4)** + **post-hoc reconcile (Layer 5)** + **streaming early-stop (Layer 8)** + **doc-ops /summarize-document (Layer 10)** — see COST_GUARDRAILS.md |
 | W4 (05-12 — 05-17) | AI Phase A3 (BYOK) | `user_api_keys` table, `lib/ai/byok/keystore.ts`, `/app/api-keys` UI, Pro/Studio paths |
@@ -221,7 +221,7 @@ Active tasks tracked in the cowork task manager (not a repo file — it's the sh
 |---|---|---|
 | #72 | Add `ANTHROPIC_API_KEY` to Hostinger env | PENDING (SEV-1) |
 | #80 | Payments Phase 1: webhooks + checkout + shared handleWebhook | PENDING, blocked by #81, #82 |
-| #81 | Phase 0 legal: KYC + GSTIN + LUT + PayPal business + legal pages | PENDING |
+| #81 | Phase 0 legal: KYC + GSTIN + LUT + Paddle KYC + legal pages | PENDING |
 | #82 | Answer PAYMENT_GATEWAY_PLAN.md §10 Q1–Q7 | PENDING |
 | #83 | AI Phase A1: `ai_usage` + `withCreditSpend` + fix spend race | PENDING, blocked by #72 |
 | #84 | AI Phase A2: rate limits + body guards + **Gemini adapter** + **router.ts** + **context-token cap** + **per-pack checkout** | PENDING, blocked by #83 |
@@ -236,7 +236,7 @@ Active tasks tracked in the cowork task manager (not a repo file — it's the sh
 The site is ready to take real revenue when **all eight** of these are green simultaneously:
 
 1. `ANTHROPIC_API_KEY` + `OPENAI_API_KEY` + `GEMINI_API_KEY` present on Hostinger; `/api/health` reports `ai.configured = true`.
-2. Razorpay merchant live + PayPal business account approved; checkout UI shows per-pack gateway routing.
+2. Razorpay merchant live + Paddle seller verified (post-KYC); checkout UI shows per-region gateway routing (IN → Razorpay, RoW → Paddle).
 3. At least one end-to-end purchase → credit grant → AI call → `ai_usage` row, verified on the test account.
 4. `SUM(credit_ledger.delta) = credits.balance` invariant passes for 100% of users on nightly check.
 5. Phase A2 context-token cap enforced (try to send 50k tokens to `chat_turn` → 413).

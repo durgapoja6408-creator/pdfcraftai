@@ -84,7 +84,7 @@ This is the checklist Razorpay's risk team actually runs. It is published in the
 - Either:
   - (a) Change to `"...billing info processed by our payment gateway partner."` (provider-agnostic), or
   - (b) Change to `"...billing info processed by Razorpay."` once the application is approved
-- Recommendation: go with (a) today so nothing has to change if you later add PayPal or a second gateway.
+- Recommendation: go with (a) today so nothing has to change if you later add Paddle or a second gateway.
 
 ### HIGH (strongly recommended before applying)
 

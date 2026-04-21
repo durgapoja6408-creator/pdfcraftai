@@ -404,7 +404,7 @@ Every AI route has this same 5-line shape after A3.
 ## 5. Env var checklist
 
 Already set (or required by Payments plan):
-- `MYSQL_URL`, `NEXTAUTH_SECRET`, `GOOGLE_CLIENT_*`, `RAZORPAY_*`, `PAYPAL_*`
+- `MYSQL_URL`, `NEXTAUTH_SECRET`, `GOOGLE_CLIENT_*`, `RAZORPAY_*`, `PADDLE_*`
 
 To add during Phase A0:
 - [ ] `ANTHROPIC_API_KEY` — platform Anthropic key (required for chat/summarize/translate/ocr/compare/rewrite/table/redact/generate/sign). Set to the `sk-ant-api03-…` from the Anthropic console. Task #72.

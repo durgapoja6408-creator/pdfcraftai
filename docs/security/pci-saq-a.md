@@ -1,8 +1,13 @@
 # PCI DSS Scope: SAQ-A
 
 **Status:** in scope as SAQ-A merchant
-**Last reviewed:** 2026-04-19
+**Last reviewed:** 2026-04-21
 **Owner:** Raj (`rajasekarjavaee@gmail.com`)
+
+> **2026-04-21 note:** PayPal was retired from the stack (commit `d6ded77`)
+> and Paddle replaces it as the international / merchant-of-record rail.
+> All references in this document have been swept accordingly. Razorpay
+> remains the IN-only rail and its scope is unchanged.
 
 This document is the source of truth for how pdfcraftai.com handles
 cardholder data (CHD) and why we qualify for the lightest PCI DSS
@@ -18,8 +23,8 @@ new third-party origin to the Content Security Policy in
 pdfcraftai.com is a merchant that accepts card payments exclusively
 through fully outsourced, PCI DSS compliant service providers:
 
-- **Razorpay** (Razorpay Checkout standard modal)
-- **PayPal** (Smart Buttons + Advanced Checkout hosted card fields)
+- **Razorpay** (Razorpay Checkout standard modal — IN rail only)
+- **Paddle** (Paddle.js overlay checkout — MoR / international rail)
 
 At no point do cardholder data elements (PAN, CVV, track data,
 cardholder name alongside card, expiration date) enter pdfcraftai.com
@@ -62,7 +67,7 @@ criteria in PCI DSS §1.2 SAQ-A (v4.0):
 
 - The only way a user reaches a card field is by clicking
   `CheckoutButton` on `/pricing`. That button opens a provider-hosted
-  iframe (Razorpay modal or PayPal Smart Buttons). Card data is
+  iframe (Razorpay modal or Paddle.js overlay checkout). Card data is
   posted directly from the iframe to the provider's origin.
 
 ### 2.2 Content Security Policy
@@ -70,14 +75,19 @@ criteria in PCI DSS §1.2 SAQ-A (v4.0):
 `next.config.mjs` installs a CSP that enforces the hosted-iframe model
 at the browser layer:
 
-- `script-src`: `'self' 'unsafe-inline'` + Razorpay + PayPal origins.
-  A compromised third-party script cannot inject a card form because
-  its origin would be blocked.
-- `frame-src`: whitelisted to Razorpay + PayPal origins plus `'self'`.
+- `script-src`: `'self' 'unsafe-inline'` + Razorpay + Paddle origins
+  (`cdn.paddle.com`, `buy.paddle.com`, `checkout.paddle.com`, plus
+  `sandbox-buy.paddle.com` and `sandbox-checkout.paddle.com` for the
+  sandbox env). A compromised third-party script cannot inject a card
+  form because its origin would be blocked.
+- `frame-src`: whitelisted to Razorpay + Paddle origins plus `'self'`.
   No other site can host a card-capture frame embedded in our page.
 - `connect-src`: whitelisted to the same provider origins. Exfiltration
   of any data — including a compromised script attempting to POST
   captured keystrokes elsewhere — is blocked by the browser.
+- `Permissions-Policy: payment=(self "https://checkout.razorpay.com"
+  "https://buy.paddle.com" "https://checkout.paddle.com")` — browsers
+  refuse to expose the Payment Request API to any other origin.
 - `frame-ancestors 'none'` + `X-Frame-Options: DENY`: our pages cannot
   be framed by a phishing clone.
 
@@ -91,7 +101,7 @@ We store the following in our database (see `db/schema/app.ts`):
 
 | Field           | CHD? | Notes                                             |
 |-----------------|------|---------------------------------------------------|
-| `payments.providerId`    | No   | "razorpay" / "paypal"                    |
+| `payments.providerId`    | No   | "razorpay" / "paddle"                    |
 | `payments.providerRef`   | No   | Provider order id, opaque                |
 | `payments.amountMinor`   | No   | Money amount in minor units              |
 | `payments.currency`      | No   | ISO 4217                                 |
@@ -109,9 +119,11 @@ metadata payload before persistence and:
 2. Replaces any string value matching `/\b(?:\d[ -]*?){13,19}\b/`
    (PAN-shape) with `"[REDACTED]"`.
 
-`scrub()` runs on both adapters' webhook bodies. See
-`lib/payments/adapters/paypal.ts` which imports it from the Razorpay
-adapter. Centralize here to keep the single scrubber on the audit trail.
+`scrub()` runs on every adapter's webhook body. The canonical
+implementation lives in `lib/payments/adapters/razorpay.ts` and is
+re-exported for reuse; `lib/payments/adapters/paddle.ts` imports it
+from there. Centralize here to keep the single scrubber on the audit
+trail — do not fork or re-implement the regex per adapter.
 
 ### 2.4 Transmission
 
@@ -124,8 +136,9 @@ adapter. Centralize here to keep the single scrubber on the audit trail.
 
 ### 2.5 Secrets
 
-Provider secrets (`*_KEY_SECRET`, `*_WEBHOOK_SECRET`, `PAYPAL_CLIENT_SECRET`)
-live in environment variables only. They are never logged, never
+Provider secrets (`RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`,
+`PADDLE_API_KEY`, `PADDLE_CLIENT_TOKEN`, `PADDLE_WEBHOOK_SECRET`) live
+in environment variables only. They are never logged, never
 committed, and never sent to the browser. The `scrub()` utility does
 not protect against us leaking our *own* secret — that's a code-review
 concern. Current safeguards:
@@ -154,7 +167,7 @@ concern. Current safeguards:
        |<-- CheckoutSession ------+                           |
        |                          |                           |
        | (2) load provider SDK from provider origin           |
-       +----------------->[ Razorpay / PayPal iframe ]<-------+
+       +----------------->[ Razorpay / Paddle iframe ]<-------+
        |                          |                           |
        | (3) user types PAN/CVV inside iframe                 |
        |   --------- CHD NEVER TOUCHES OUR SERVER ---------   |
@@ -182,8 +195,8 @@ screenshots / logs to the attestation record:
 
 - [ ] Confirm Razorpay PCI DSS attestation is current
       (https://razorpay.com/docs/security/ — download and save PDF).
-- [ ] Confirm PayPal PCI DSS attestation is current
-      (https://www.paypal.com/us/webapps/mpp/aboutbusiness/compliance).
+- [ ] Confirm Paddle PCI DSS attestation is current
+      (https://www.paddle.com/legal/dss — download and save PDF).
 - [ ] Grep for card-field patterns in source (see §2.1).
 - [ ] Verify CSP in production (curl -I https://pdfcraftai.com | grep -i content-security).
 - [ ] Confirm no PAN/CVV-shaped strings in `webhook_events.raw_payload`
@@ -250,4 +263,4 @@ before merging.
 - PCI DSS v4.0: https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4_0.pdf
 - SAQ-A v4.0: https://listings.pcisecuritystandards.org/documents/PCI-DSS-v4-0-SAQ-A.pdf
 - Razorpay PCI compliance: https://razorpay.com/docs/security/
-- PayPal PCI compliance: https://www.paypal.com/us/webapps/mpp/aboutbusiness/compliance
+- Paddle PCI compliance: https://www.paddle.com/legal/dss

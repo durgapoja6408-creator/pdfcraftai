@@ -113,6 +113,6 @@ Assume: test account with ≥100 credits on file.
 
 ## Out of scope for this plan
 
-- Payment providers (Stripe/Razorpay/PayPal) in live mode — test-mode only.
+- Payment providers (Razorpay/Paddle) in live mode — test-mode only.
 - Real email delivery — blocks on the user picking a transactional host (SendGrid/Postmark/Resend).
 - Account deletion + GDPR data-export flows — UX shipped, back-end pending.

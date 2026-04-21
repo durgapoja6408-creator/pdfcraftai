@@ -1,7 +1,7 @@
 # Payments Migration Playbook
 
 **Status:** active
-**Last reviewed:** 2026-04-19
+**Last reviewed:** 2026-04-21
 **Owner:** Raj (`rajasekarjavaee@gmail.com`)
 
 This document is the reference for changing *who* processes our
@@ -9,9 +9,11 @@ payments. It covers adding a provider, switching between providers,
 sunsetting a provider, and the things we've deliberately made easy vs.
 hard.
 
-Currently shipped: **Razorpay** and **PayPal**. Either can be
-disabled by removing its env vars — the UI hides the button, the
-registry stops loading the adapter, webhooks return 404.
+Currently shipped: **Razorpay** (IN rail) and **Paddle** (MoR / international
+rail). Either can be disabled by removing its env vars — the UI hides
+the button, the registry stops loading the adapter, webhooks return 404.
+(PayPal was retired in commit `d6ded77` per decision D4, 2026-04-20;
+Paddle replaces it.)
 
 ---
 
@@ -28,8 +30,8 @@ possible are:
    a row in `ADAPTERS`).
 2. **No provider types leak.** The interface speaks `Currency`, `Money`,
    `NormalizedPaymentEvent`, `CheckoutSession` — all declared in
-   `lib/payments/types.ts`. Razorpay's `razorpay_order_id` and PayPal's
-   `purchase_units` never appear outside the adapter. If they do, fix
+   `lib/payments/types.ts`. Razorpay's `razorpay_order_id` and Paddle's
+   `transaction_id` never appear outside the adapter. If they do, fix
    it before merge — downstream code is the first thing that breaks
    during a migration.
 3. **Internal IDs are the source of truth.** Every `payments` row has
@@ -85,7 +87,7 @@ STRIPE_WEBHOOK_SECRET=whsec_...        # the endpoint-signing secret
 ```
 
 Confirm the adapter file is marked `"server-only"` so webpack refuses
-to bundle the secret into a client chunk. (Razorpay and PayPal
+to bundle the secret into a client chunk. (Razorpay and Paddle
 adapters both do this at the top of the file — copy that pattern.)
 
 ### 2.3 Adapter file

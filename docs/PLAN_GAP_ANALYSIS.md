@@ -5,6 +5,16 @@
 **Scope:** adversarial, regulatory, operational, product, and financial angles on every tier.
 **Verdict:** **42 distinct gaps found.** 11 are SEV-0 (must fix before taking real money), 14 SEV-1 (week-1 follow-up), 10 SEV-2 (month-1), 7 SEV-3 (future).
 
+> **2026-04-21 historical note:** this analysis was written against the
+> Razorpay + PayPal plan. D4 closed on 2026-04-20 swapping PayPal for
+> Paddle MoR (commit `d6ded77` shipped retirement on 2026-04-21). Gaps
+> that cited PayPal-specific behaviour (T2-G7 chargebacks, EU VAT, 3DS,
+> settlement reconciliation) are materially reshaped by the MoR wrap —
+> Paddle absorbs chargeback disputes, VAT remittance, and fraud liability.
+> See `docs/payments/MOR_EVALUATION.md` and `docs/ai/REVENUE_LEAK_AUDIT.md`
+> §11 for the updated gap posture. Original PayPal text retained below
+> for decision-trail traceability.
+
 ---
 
 ## 0. TL;DR — what would break the plan as written
