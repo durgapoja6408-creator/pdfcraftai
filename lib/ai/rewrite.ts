@@ -31,7 +31,7 @@ import type { ModerationResult } from "./output-moderation";
 import { assertOutputSafe, moderateOutput } from "./output-moderation";
 import type { AIProvider } from "./provider";
 import { buildSafetyPreamble, wrapUntrustedInput } from "./prompt-safety";
-import { selectProvider } from "./registry";
+import { NoRoutableProviderError, route } from "./router";
 import type { AIProviderId, TokenUsage } from "./types";
 
 /** Rewrite mode. Keep in sync with VALID_MODES in the route handler. */
@@ -85,23 +85,40 @@ const REWRITE_CHAR_BUDGET = 240_000;
  * whole purpose is to generate MORE text than the input. Others track
  * the input length loosely — no point in reserving 4000 tokens for a
  * concise rewrite of a 500-word email.
+ *
+ * 2026-04-21 (Phase A4, Tier 4 margin pass): trimmed simplify/formal/
+ * casual from 2400 → 2000. Empirically the cap only bound long-input
+ * runs (≥60 pages) and the last 400 tokens almost always tailed off
+ * into filler rather than substantive content. Shrinking the ceiling
+ * takes ~17% off the worst-case output cost per call without touching
+ * the typical-case output, since the provider stops at natural
+ * paragraph boundaries.
  */
 const MAX_TOKENS_BY_MODE: Record<RewriteMode, number> = {
-  simplify: 2400,
-  formal: 2400,
-  casual: 2400,
+  simplify: 2000,
+  formal: 2000,
+  casual: 2000,
   concise: 1600,
   expand: 4000,
 };
 
 export async function rewritePdf(input: RewriteInput): Promise<RewriteResult> {
-  // selectProvider with "streaming" capability — every configured
-  // provider today supports it, so this doubles as a null-check.
-  const provider = await selectProvider({
-    capabilityNeeded: "streaming",
-    preferredId: input.preferredProvider,
-  });
-  if (!provider) throw new NoAIProviderConfiguredError();
+  // Task #21: route through the AI router so the op-specific routing
+  // policy (rewrite → openai primary — MASTER_PLAN §7 gate #6) wins
+  // unless the caller pinned a provider via `preferredProvider`. The
+  // router also enforces the required capability ("streaming") and
+  // throws `NoRoutableProviderError` if no configured provider can
+  // service the op — we translate that to `NoAIProviderConfiguredError`
+  // so the route handler's existing 503 branch lights up unchanged.
+  let provider: AIProvider;
+  try {
+    provider = await route("rewrite", { preferredId: input.preferredProvider });
+  } catch (err) {
+    if (err instanceof NoRoutableProviderError) {
+      throw new NoAIProviderConfiguredError();
+    }
+    throw err;
+  }
 
   const { truncatedText, wasTruncated } = truncateForContext(input.text);
 
@@ -205,16 +222,34 @@ function buildSystemPrompt(opts: {
 
   // Task #26: prepend safety preamble so the model treats the wrapped
   // PDF text as untrusted data. See lib/ai/prompt-safety.ts.
+  //
+  // Fidelity block (Tier 4, 2026-04-21): rewrite echoes the source
+  // closely, so hallucination here is especially costly — users trust
+  // a rewrite to be the same doc in different words. The three rules
+  // below (ground every claim, preserve proper nouns/technical terms
+  // verbatim, never invent numbers or quotes) catch the three
+  // regressions we saw in QA: invented statistics, paraphrased names,
+  // and inserted "illustrative" quotes that were never in the source.
   return (
     `${buildSafetyPreamble("rewrite")}\n\n` +
     `You are the PDFCraft AI rewriter. The user has attached ${title} ` +
     `(${opts.pageCount} page${opts.pageCount === 1 ? "" : "s"}). ` +
     `Pages are delimited by \\f in the source text.\n\n` +
     modeLine +
-    "\n\nOutput is markdown. Do NOT wrap your response in a code fence " +
-    "(```markdown). Do NOT add a preamble (\"Here is the rewritten document:\"). " +
-    "Return the rewritten text directly, starting with the first heading or " +
-    "paragraph of the rewrite." +
+    "\n\nFidelity rules (non-negotiable):\n" +
+    "- Ground every substantive claim in the source. Do NOT invent facts, " +
+    "statistics, quotes, or examples that aren't in the document.\n" +
+    "- Preserve proper nouns, product names, organisation names, technical " +
+    "terms, code identifiers, URLs, and email addresses verbatim — rewrite " +
+    "means rephrase, not rename.\n" +
+    "- Never change a number, date, currency amount, or unit. If the source " +
+    "says \"12%\" your rewrite says \"12%\", not \"roughly a tenth\" or " +
+    "\"about one-in-eight\".\n\n" +
+    "Output format:\n" +
+    "- Output is markdown. Do NOT wrap your response in a code fence " +
+    "(```markdown). Do NOT add a preamble (\"Here is the rewritten document:\") " +
+    "or postamble. Return the rewritten text directly, starting with the first " +
+    "heading or paragraph of the rewrite." +
     ocr +
     truncation
   );

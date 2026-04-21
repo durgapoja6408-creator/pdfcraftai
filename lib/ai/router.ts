@@ -27,27 +27,35 @@
 //      optional `preferredId` the caller can pass — e.g. to pin the
 //      provider for retry logic).
 //
-// Routing policy (current defaults — MASTER_PLAN §7 gate #6)
+// Routing policy (current defaults — MASTER_PLAN §7 gate #6, refreshed
+// 2026-04-21 after the 3-provider cost audit in
+// docs/ai/COST_MATRIX_3PROVIDER.md)
 // -----------------------------------------------------------
 //   op                | primary    | fallback ladder
 //   ocr               | gemini     | [anthropic]          // pdfInput required
-//   translate         | gemini     | [anthropic, openai]  // chat is enough
+//   translate         | openai     | [gemini, anthropic]  // gpt-4o-mini is ~4× cheaper than gemini 2.5 flash
 //   chat              | openai     | [anthropic, gemini]  // gpt-4o-mini is the cheapest streaming chat
-//   summarize         | anthropic  | [openai, gemini]     // Claude's writing style wins
+//   summarize         | anthropic  | [openai, gemini]     // Claude's writing style wins — deferred for M3 eval
 //   compare           | anthropic  | [openai, gemini]     // same
-//   generate          | anthropic  | [openai, gemini]     // long-form writing
-//   sign              | anthropic  | [openai, gemini]     // e-sign narrative + detection
+//   generate          | anthropic  | [openai, gemini]     // long-form writing — deferred for M3 eval
+//   sign              | anthropic  | [openai, gemini]     // e-sign narrative + detection — deferred for M3 eval
+//   rewrite           | openai     | [anthropic, gemini]  // text rewrite: gpt-4o-mini ~8× cheaper than haiku
+//   table             | openai     | [anthropic, gemini]  // structured JSON output from text
+//   redact            | openai     | [anthropic, gemini]  // PII span enumeration — structured JSON
 //
 // Env overrides
 // -------------
 // Each op can be pinned to a provider via an env var:
 //   AI_ROUTER_OCR=anthropic
-//   AI_ROUTER_TRANSLATE=gemini
+//   AI_ROUTER_TRANSLATE=openai
 //   AI_ROUTER_CHAT=openai
 //   AI_ROUTER_SUMMARIZE=anthropic
 //   AI_ROUTER_COMPARE=anthropic
 //   AI_ROUTER_GENERATE=anthropic
 //   AI_ROUTER_SIGN=anthropic
+//   AI_ROUTER_REWRITE=openai
+//   AI_ROUTER_TABLE=openai
+//   AI_ROUTER_REDACT=openai
 // If the env override names a provider that isn't configured OR doesn't
 // support the required capability, the router falls through to the
 // compiled-in ladder (we never silently fail-closed because ops hates
@@ -98,7 +106,10 @@ export type AIOp =
   | "summarize"
   | "compare"
   | "generate"
-  | "sign";
+  | "sign"
+  | "rewrite"
+  | "table"
+  | "redact";
 
 /**
  * The capability an op REQUIRES. If a provider doesn't advertise it,
@@ -119,6 +130,13 @@ const OP_REQUIRED_CAPABILITY: Record<AIOp, keyof AICapabilities> = {
   compare: "streaming",
   generate: "streaming",
   sign: "streaming",
+  // The three structured/text ops added 2026-04-21 (MASTER_PLAN §7 gate #6,
+  // M2 — promote gpt-4o-mini to primary for short-form text work where
+  // it's 4–8× cheaper than haiku at equivalent quality per COST_MATRIX_3PROVIDER.md §2).
+  // None require pdfInput; any streaming-capable provider works.
+  rewrite: "streaming",
+  table: "streaming",
+  redact: "streaming",
 };
 
 /**
@@ -131,12 +149,24 @@ const OP_REQUIRED_CAPABILITY: Record<AIOp, keyof AICapabilities> = {
  */
 const ROUTING_POLICY: Record<AIOp, readonly AIProviderId[]> = {
   ocr: ["gemini", "anthropic"],
-  translate: ["gemini", "anthropic", "openai"],
+  // M1 — translate flipped to openai primary (2026-04-21). gpt-4o-mini is
+  // ~4× cheaper than gemini 2.5 flash and ~8× cheaper than haiku for
+  // short-form bilingual passes (COST_MATRIX_3PROVIDER.md §2, ranked
+  // margin move #2). Gemini kept as fallback; Anthropic last.
+  translate: ["openai", "gemini", "anthropic"],
   chat: ["openai", "anthropic", "gemini"],
   summarize: ["anthropic", "openai", "gemini"],
   compare: ["anthropic", "openai", "gemini"],
   generate: ["anthropic", "openai", "gemini"],
   sign: ["anthropic", "openai", "gemini"],
+  // M2 — rewrite/table/redact added 2026-04-21 with openai primary.
+  // All three are short-context, structured-output ops where gpt-4o-mini
+  // dominates on $/call (COST_MATRIX_3PROVIDER.md §2). Anthropic is the
+  // first fallback because haiku's JSON-mode reliability is second-best;
+  // Gemini trails because its JSON schema enforcement is less strict.
+  rewrite: ["openai", "anthropic", "gemini"],
+  table: ["openai", "anthropic", "gemini"],
+  redact: ["openai", "anthropic", "gemini"],
 };
 
 /**
@@ -153,6 +183,9 @@ const OP_ENV_VAR: Record<AIOp, string> = {
   compare: "AI_ROUTER_COMPARE",
   generate: "AI_ROUTER_GENERATE",
   sign: "AI_ROUTER_SIGN",
+  rewrite: "AI_ROUTER_REWRITE",
+  table: "AI_ROUTER_TABLE",
+  redact: "AI_ROUTER_REDACT",
 };
 
 const VALID_PROVIDER_IDS: ReadonlySet<AIProviderId> = new Set<AIProviderId>([

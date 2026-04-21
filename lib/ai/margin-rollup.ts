@@ -61,6 +61,8 @@ import "server-only";
 import { and, eq, gte, lt, desc, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { db, schema } from "@/db/client";
+import type { AIOp } from "./router";
+import { currentPolicySnapshot } from "./router";
 
 // --- Constants --------------------------------------------------------
 
@@ -108,6 +110,72 @@ export const OP_MARGIN_FLOOR_BPS: Record<string, number> = {
 };
 
 const DEFAULT_FLOOR_BPS = 6000;
+
+/**
+ * Alarm detectors — Task #21, Tier 3 (MASTER_PLAN §7 gate #6, detect
+ * points §5 of docs/ai/COST_MATRIX_3PROVIDER.md).
+ *
+ * Three cheap SQL-driven checks the cron runs alongside the rollup.
+ * Each returns zero-or-more `AlarmFinding`s; the cron forwards them to
+ * Slack via `postMarginAlertToSlack`.
+ *
+ *   1. margin_drift   — an op's day margin is ≥ 2000bps BELOW its
+ *                       30-day median. Catches silent provider regressions
+ *                       that aren't yet bad enough to trip the floor.
+ *   2. primary_share  — the router's primary provider handled < 70% of
+ *                       the op's calls today. Catches silent fallback
+ *                       cascades (e.g. primary's API key quota-exhausted).
+ *   3. dark_routing   — ai_usage calls went to a provider that ISN'T
+ *                       in ROUTING_POLICY[op][0..N]. Shouldn't happen
+ *                       normally; exists to catch stale op-code that
+ *                       still calls `selectProvider` with the wrong
+ *                       preferredId.
+ *
+ * Alarms are "soft-red": they don't flip is_green on the slice, they
+ * just emit a Slack message. Gate #7's 7-day streak uses floors alone,
+ * so alarms never spuriously reset the streak.
+ */
+
+/** Operation id used in ai_usage.operation → router op id. */
+const OP_TO_ROUTER_OP: Record<string, AIOp> = {
+  chat_turn: "chat",
+  summarize: "summarize",
+  translate: "translate",
+  ocr: "ocr",
+  compare: "compare",
+  rewrite: "rewrite",
+  table: "table",
+  redact: "redact",
+  generate: "generate",
+  sign: "sign",
+};
+
+/** How far below 30d median an op must drop to trip margin_drift (bps). */
+const MARGIN_DRIFT_BPS = 2000;
+
+/** Primary-provider share floor (out of 10_000 — 7000 = 70%). */
+const PRIMARY_SHARE_MIN_BPS = 7000;
+
+/** Min calls an op must have on the day for the share alarm to fire. */
+const PRIMARY_SHARE_MIN_CALLS = 20;
+
+/** How many calls of dark-routed traffic before we escalate to red. */
+const DARK_ROUTING_RED_THRESHOLD = 10;
+
+export type AlarmKind = "margin_drift" | "primary_share" | "dark_routing";
+
+export type AlarmFinding = {
+  kind: AlarmKind;
+  /** Pricing-side operation id (matches `ai_usage.operation`). */
+  operation: string;
+  /** Provider involved, where applicable. */
+  providerId?: string;
+  severity: "warn" | "red";
+  /** Short human-readable message; Slack renders this verbatim. */
+  message: string;
+  /** Raw numbers the alarm was computed from. */
+  detail: Record<string, number | string>;
+};
 
 /**
  * Clamp range for margin_bps. Matches the int range we use in the
@@ -257,6 +325,13 @@ export type DailyRollupReport = {
    * — so it's authoritative rather than client-derived.
    */
   greenStreakDays: number;
+  /**
+   * Tier 3 detect-point alarms. Empty array = no concerns. The cron
+   * endpoint posts a Slack message if this is non-empty even when the
+   * slices themselves are green, because alarms catch silent drift
+   * before it becomes a floor breach.
+   */
+  alarms: AlarmFinding[];
 };
 
 // --- Main entry point --------------------------------------------------
@@ -436,6 +511,19 @@ export async function runDailyRollup(
   //    the Slack/monitoring emitter gets an authoritative value.
   const greenStreakDays = await computeGreenStreak({ throughDate: dateStr });
 
+  // 5. Tier 3 — run the detect-point alarms. These run on every day,
+  //    not just on red days: their job is to catch silent drift BEFORE
+  //    it breaks a floor. `detectAlarms` never throws — it returns
+  //    an empty array if no lookups succeed — so it's safe to await
+  //    here without a guard. If the alarm table itself is empty (fresh
+  //    deploy), all three detectors return [] and we move on.
+  let alarms: AlarmFinding[] = [];
+  try {
+    alarms = await detectAlarms({ date: dateStr });
+  } catch (err) {
+    console.warn("[margin-rollup] detectAlarms failed (non-fatal):", err);
+  }
+
   return {
     startedAt: startedAt.toISOString(),
     finishedAt: new Date().toISOString(),
@@ -446,6 +534,7 @@ export async function runDailyRollup(
     allGreen,
     slices,
     greenStreakDays,
+    alarms,
   };
 }
 
@@ -535,6 +624,282 @@ export async function computeGreenStreak(
   return streak;
 }
 
+// --- Alarm detectors (Tier 3) ------------------------------------------
+//
+// Each detector takes `(date, db)` and returns zero or more findings.
+// The orchestrator `detectAlarms()` runs all three and merges results.
+// Detectors are deliberately query-light: one small SELECT per check.
+
+/**
+ * Exported for the test harness — swap out to assert expected alarm
+ * output for crafted fixtures without depending on wall-clock dates.
+ */
+export async function detectAlarms(opts: {
+  date: string;
+  /** Window for the "baseline median" in margin_drift. Default 30d. */
+  medianLookbackDays?: number;
+}): Promise<AlarmFinding[]> {
+  const lookback = Math.max(7, Math.min(opts.medianLookbackDays ?? 30, 90));
+  const findings: AlarmFinding[] = [];
+
+  const [drift, share, dark] = await Promise.all([
+    detectMarginDrift({ date: opts.date, lookbackDays: lookback }),
+    detectPrimaryShareDrop({ date: opts.date }),
+    detectDarkRouting({ date: opts.date }),
+  ]);
+  findings.push(...drift, ...share, ...dark);
+  return findings;
+}
+
+/**
+ * Alarm 1 — margin drift. Compare today's per-op margin against the
+ * median of the previous `lookbackDays` day-margins for the same op.
+ * Fires if today is ≥ MARGIN_DRIFT_BPS below the median AND the op had
+ * at least 10 calls today (small-sample noise suppression).
+ *
+ * Median is computed in Node over a small result set (one row per day
+ * per op, worst case ~900 rows for a 30-day × 10-op sweep) so we don't
+ * need a MySQL percentile function.
+ */
+async function detectMarginDrift(opts: {
+  date: string;
+  lookbackDays: number;
+}): Promise<AlarmFinding[]> {
+  const todayStart = new Date(`${opts.date}T00:00:00.000Z`);
+  const lookbackStart = new Date(
+    todayStart.getTime() - opts.lookbackDays * 24 * 60 * 60 * 1000
+  );
+  const lookbackStr = utcDateString(lookbackStart);
+
+  type Row = {
+    date: string;
+    operation: string;
+    call_count: number;
+    cost_micros: string | number;
+    revenue_micros: string | number;
+  };
+
+  // One row per (date, operation). We aggregate across provider/model
+  // inside MySQL so a day with 3 slices for the same op collapses into
+  // one margin value for the median window.
+  const rows = (await db
+    .select({
+      date: schema.aiDailyMargin.date,
+      operation: schema.aiDailyMargin.operation,
+      call_count: sql<number>`COALESCE(SUM(${schema.aiDailyMargin.callCount}), 0)`,
+      cost_micros: sql<number>`COALESCE(SUM(${schema.aiDailyMargin.costMicrosSum}), 0)`,
+      revenue_micros: sql<number>`COALESCE(SUM(${schema.aiDailyMargin.revenueMicrosSum}), 0)`,
+    })
+    .from(schema.aiDailyMargin)
+    .where(
+      and(
+        gte(schema.aiDailyMargin.date, lookbackStr),
+        lt(
+          schema.aiDailyMargin.date,
+          utcDateString(new Date(todayStart.getTime() + 24 * 60 * 60 * 1000))
+        )
+      )
+    )
+    .groupBy(schema.aiDailyMargin.date, schema.aiDailyMargin.operation)) as unknown as Row[];
+
+  // Bucket by operation.
+  const byOp = new Map<
+    string,
+    Array<{ date: string; callCount: number; marginBps: number }>
+  >();
+  for (const r of rows) {
+    const callCount = Number(r.call_count) || 0;
+    const cost = Number(r.cost_micros) || 0;
+    const rev = Number(r.revenue_micros) || 0;
+    const marginBps = computeMarginBps({
+      revenueMicros: rev,
+      costMicros: cost,
+    });
+    if (!byOp.has(r.operation)) byOp.set(r.operation, []);
+    byOp.get(r.operation)!.push({ date: r.date, callCount, marginBps });
+  }
+
+  const findings: AlarmFinding[] = [];
+  for (const [op, days] of byOp.entries()) {
+    const today = days.find((d) => d.date === opts.date);
+    if (!today) continue;
+    // Noise floor — ≥10 calls so an empty day doesn't register drift.
+    if (today.callCount < 10) continue;
+
+    const priors = days
+      .filter((d) => d.date !== opts.date)
+      .map((d) => d.marginBps)
+      .sort((a, b) => a - b);
+    if (priors.length < 7) continue; // need a week of history for a median.
+
+    const median = priors[Math.floor(priors.length / 2)]!;
+    const delta = median - today.marginBps;
+    if (delta >= MARGIN_DRIFT_BPS) {
+      findings.push({
+        kind: "margin_drift",
+        operation: op,
+        severity: "warn",
+        message:
+          `${op} margin dropped ${(delta / 100).toFixed(2)}pp vs 30d median ` +
+          `(today ${(today.marginBps / 100).toFixed(2)}%, median ` +
+          `${(median / 100).toFixed(2)}%)`,
+        detail: {
+          todayMarginBps: today.marginBps,
+          medianMarginBps: median,
+          deltaBps: delta,
+          lookbackDays: opts.lookbackDays,
+          callCount: today.callCount,
+        },
+      });
+    }
+  }
+  return findings;
+}
+
+/**
+ * Alarm 2 — primary-provider share. For each op with ≥ PRIMARY_SHARE_MIN_CALLS
+ * on the target date, check what fraction of those calls went to the
+ * router's CURRENT primary provider (`currentPolicySnapshot()[op][0]`).
+ * If < 70%, something is silently failing over.
+ *
+ * Uses ai_usage directly so it sees in-progress hours before the rollup
+ * has collapsed slices — we want "live" primary-share, not the
+ * rolled-up one.
+ */
+async function detectPrimaryShareDrop(opts: {
+  date: string;
+}): Promise<AlarmFinding[]> {
+  const dayStart = new Date(`${opts.date}T00:00:00.000Z`);
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+
+  type Row = {
+    operation: string;
+    provider_id: string;
+    call_count: number;
+  };
+
+  const rows = (await db
+    .select({
+      operation: schema.aiUsage.operation,
+      provider_id: schema.aiUsage.providerId,
+      call_count: sql<number>`COUNT(*)`,
+    })
+    .from(schema.aiUsage)
+    .where(
+      and(
+        gte(schema.aiUsage.createdAt, dayStart),
+        lt(schema.aiUsage.createdAt, dayEnd)
+      )
+    )
+    .groupBy(schema.aiUsage.operation, schema.aiUsage.providerId)) as unknown as Row[];
+
+  // Bucket totals per op.
+  const byOp = new Map<string, Map<string, number>>();
+  for (const r of rows) {
+    if (!byOp.has(r.operation)) byOp.set(r.operation, new Map());
+    byOp.get(r.operation)!.set(r.provider_id, Number(r.call_count) || 0);
+  }
+
+  const policy = currentPolicySnapshot();
+  const findings: AlarmFinding[] = [];
+
+  for (const [op, providers] of byOp.entries()) {
+    const routerOp = OP_TO_ROUTER_OP[op];
+    if (!routerOp) continue; // op isn't routed (shouldn't happen in prod).
+    const primary = policy[routerOp]?.[0];
+    if (!primary) continue;
+
+    const total = Array.from(providers.values()).reduce((a, b) => a + b, 0);
+    if (total < PRIMARY_SHARE_MIN_CALLS) continue;
+
+    const primaryCalls = providers.get(primary) ?? 0;
+    const shareBps = Math.round((primaryCalls / total) * 10_000);
+    if (shareBps < PRIMARY_SHARE_MIN_BPS) {
+      findings.push({
+        kind: "primary_share",
+        operation: op,
+        providerId: primary,
+        severity: "warn",
+        message:
+          `${op} primary '${primary}' handled only ` +
+          `${(shareBps / 100).toFixed(1)}% of ${total} calls ` +
+          `(target ≥${(PRIMARY_SHARE_MIN_BPS / 100).toFixed(0)}%)`,
+        detail: {
+          primary,
+          primaryCalls,
+          totalCalls: total,
+          shareBps,
+          minShareBps: PRIMARY_SHARE_MIN_BPS,
+        },
+      });
+    }
+  }
+  return findings;
+}
+
+/**
+ * Alarm 3 — dark routing. Calls where `ai_usage.provider_id` is NOT in
+ * the current router ladder for that op. Historically happened when an
+ * op module hard-coded a provider id bypassing the router; the
+ * refactor that landed with Tier 1 should have removed all such paths,
+ * so this is a canary: any dark-routed call now is a regression.
+ *
+ * Severity: "warn" below DARK_ROUTING_RED_THRESHOLD, "red" at or above.
+ */
+async function detectDarkRouting(opts: {
+  date: string;
+}): Promise<AlarmFinding[]> {
+  const dayStart = new Date(`${opts.date}T00:00:00.000Z`);
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+
+  type Row = {
+    operation: string;
+    provider_id: string;
+    call_count: number;
+  };
+
+  const rows = (await db
+    .select({
+      operation: schema.aiUsage.operation,
+      provider_id: schema.aiUsage.providerId,
+      call_count: sql<number>`COUNT(*)`,
+    })
+    .from(schema.aiUsage)
+    .where(
+      and(
+        gte(schema.aiUsage.createdAt, dayStart),
+        lt(schema.aiUsage.createdAt, dayEnd)
+      )
+    )
+    .groupBy(schema.aiUsage.operation, schema.aiUsage.providerId)) as unknown as Row[];
+
+  const policy = currentPolicySnapshot();
+  const findings: AlarmFinding[] = [];
+  for (const r of rows) {
+    const routerOp = OP_TO_ROUTER_OP[r.operation];
+    if (!routerOp) continue;
+    const ladder = policy[routerOp] ?? [];
+    if (ladder.includes(r.provider_id as never)) continue;
+    const count = Number(r.call_count) || 0;
+    if (count <= 0) continue;
+    findings.push({
+      kind: "dark_routing",
+      operation: r.operation,
+      providerId: r.provider_id,
+      severity: count >= DARK_ROUTING_RED_THRESHOLD ? "red" : "warn",
+      message:
+        `${r.operation} received ${count} call(s) routed to '${r.provider_id}' ` +
+        `which isn't in the current router ladder [${ladder.join(", ")}]`,
+      detail: {
+        providerId: r.provider_id,
+        callCount: count,
+        ladder: ladder.join(","),
+      },
+    });
+  }
+  return findings;
+}
+
 // --- Slack emitter (optional) -----------------------------------------
 
 /**
@@ -555,6 +920,9 @@ export async function postMarginAlertToSlack(
   if (!url) return false;
 
   const redSlices = report.slices.filter((s) => !s.isGreen);
+  const alarms = report.alarms ?? [];
+  const redAlarms = alarms.filter((a) => a.severity === "red");
+
   let text: string;
   if (redSlices.length > 0) {
     text =
@@ -570,6 +938,29 @@ export async function postMarginAlertToSlack(
             `vs floor ${(s.floorBps / 100).toFixed(2)}% ` +
             `(${s.callCount} calls, $${(s.costMicrosSum / 1_000_000).toFixed(4)} cost)`
         )
+        .join("\n");
+  } else if (redAlarms.length > 0) {
+    // Slices are all-green but a detect-point alarm tripped red —
+    // e.g. dark-routing >= threshold. Worth paging even though margin
+    // floors are intact, because these catch regressions early.
+    text =
+      `:rotating_light: *AI alarm — ${report.date}*\n` +
+      `${redAlarms.length} red alarm(s) (slices all green; streak still ${report.greenStreakDays}).\n` +
+      redAlarms
+        .slice(0, 10)
+        .map((a) => `• \`${a.kind}\` ${a.message}`)
+        .join("\n");
+  } else if (alarms.length > 0) {
+    // Warn-level alarms only. Slice floors intact, but drift or primary-
+    // share is worth a heads-up. No gate-hit banner — we reserve that
+    // message for truly clean days.
+    text =
+      `:eyes: *AI drift — ${report.date}*\n` +
+      `Slices all green, streak *${report.greenStreakDays}* day(s). ` +
+      `${alarms.length} warning alarm(s):\n` +
+      alarms
+        .slice(0, 10)
+        .map((a) => `• \`${a.kind}\` ${a.message}`)
         .join("\n");
   } else {
     text =

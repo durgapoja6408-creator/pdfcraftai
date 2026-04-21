@@ -68,6 +68,11 @@ const OCR_PATH = resolve(ROOT, "lib", "ai", "ocr.ts");
 const TRANSLATE_PATH = resolve(ROOT, "lib", "ai", "translate.ts");
 const SUMMARIZE_PATH = resolve(ROOT, "lib", "ai", "summarize.ts");
 const COMPARE_PATH = resolve(ROOT, "lib", "ai", "compare.ts");
+// Tier 1 (2026-04-21): rewrite/table/redact promoted to dedicated ops
+// with openai primary — see COST_MATRIX_3PROVIDER.md §2, margin move M2.
+const REWRITE_PATH = resolve(ROOT, "lib", "ai", "rewrite.ts");
+const TABLE_PATH = resolve(ROOT, "lib", "ai", "table.ts");
+const REDACT_PATH = resolve(ROOT, "lib", "ai", "redact.ts");
 const CHAT_ROUTE_PATH = resolve(ROOT, "app", "api", "ai", "chat", "route.ts");
 const PACKAGE_JSON_PATH = resolve(ROOT, "package.json");
 
@@ -79,6 +84,9 @@ const OCR_SRC = readFileSync(OCR_PATH, "utf8");
 const TRANSLATE_SRC = readFileSync(TRANSLATE_PATH, "utf8");
 const SUMMARIZE_SRC = readFileSync(SUMMARIZE_PATH, "utf8");
 const COMPARE_SRC = readFileSync(COMPARE_PATH, "utf8");
+const REWRITE_SRC = readFileSync(REWRITE_PATH, "utf8");
+const TABLE_SRC = readFileSync(TABLE_PATH, "utf8");
+const REDACT_SRC = readFileSync(REDACT_PATH, "utf8");
 const CHAT_SRC = readFileSync(CHAT_ROUTE_PATH, "utf8");
 const PACKAGE_JSON_SRC = readFileSync(PACKAGE_JSON_PATH, "utf8");
 
@@ -95,10 +103,14 @@ function assert(label, condition, detail) {
   }
 }
 
-// The seven canonical operations. Adding an op means adding a row here
+// The canonical operations. Adding an op means adding a row here
 // AND to ROUTING_POLICY + OP_REQUIRED_CAPABILITY + OP_ENV_VAR in the
 // router. This test pins the set so silent drift (e.g. deleting "sign"
 // from the router but not from the types) fails here.
+//
+// Tier 1 (2026-04-21): rewrite/table/redact promoted from "chat-with-
+// extra-prompting" ad-hoc calls into first-class ops with dedicated
+// openai primaries — see COST_MATRIX_3PROVIDER.md §2, margin move M2.
 const OPS = [
   "ocr",
   "translate",
@@ -107,6 +119,9 @@ const OPS = [
   "compare",
   "generate",
   "sign",
+  "rewrite",
+  "table",
+  "redact",
 ];
 
 // =============================================================================
@@ -189,16 +204,38 @@ assert(
   "OCR primary should be gemini with anthropic fallback"
 );
 
+// M1 (2026-04-21) — translate primary flipped from gemini → openai.
+// gpt-4o-mini is ~4× cheaper than gemini 2.5 flash for short-form
+// bilingual passes (COST_MATRIX_3PROVIDER.md §2).
 assert(
-  "B3 router translate policy picks gemini first",
-  /translate:\s*\[\s*"gemini"[^\]]*\]/.test(ROUTER_SRC),
-  "translate primary should be gemini"
+  "B3 router translate policy picks openai first (M1 flip, 2026-04-21)",
+  /translate:\s*\[\s*"openai"[^\]]*\]/.test(ROUTER_SRC),
+  "translate primary should be openai post-M1"
 );
 
 assert(
   "B3 router chat policy picks openai first (cheapest streaming)",
   /chat:\s*\[\s*"openai"[^\]]*\]/.test(ROUTER_SRC),
   "chat primary should be openai for cost reasons"
+);
+
+// M2 (2026-04-21) — rewrite/table/redact promoted with openai primaries.
+assert(
+  "B3 router rewrite policy picks openai first (M2, 2026-04-21)",
+  /rewrite:\s*\[\s*"openai"[^\]]*\]/.test(ROUTER_SRC),
+  "rewrite primary should be openai (gpt-4o-mini ~8× cheaper than haiku)"
+);
+
+assert(
+  "B3 router table policy picks openai first (M2, 2026-04-21)",
+  /table:\s*\[\s*"openai"[^\]]*\]/.test(ROUTER_SRC),
+  "table primary should be openai for structured-JSON short-form work"
+);
+
+assert(
+  "B3 router redact policy picks openai first (M2, 2026-04-21)",
+  /redact:\s*\[\s*"openai"[^\]]*\]/.test(ROUTER_SRC),
+  "redact primary should be openai for PII span enumeration"
 );
 
 assert(
@@ -541,6 +578,90 @@ assert(
     CHAT_SRC
   ),
   "chat route should have dropped the selectProvider import"
+);
+
+// rewrite.ts (Tier 1 / M2, 2026-04-21)
+assert(
+  "E6 rewrite.ts imports route + NoRoutableProviderError",
+  /\broute\b[\s\S]{0,120}from\s*"\.\/router"/.test(REWRITE_SRC) &&
+    /\bNoRoutableProviderError\b/.test(REWRITE_SRC),
+  "rewrite.ts must import { route, NoRoutableProviderError } from './router'"
+);
+
+assert(
+  'E6 rewrite.ts calls route("rewrite", { preferredId })',
+  /route\(\s*"rewrite"\s*,\s*\{\s*preferredId:/.test(REWRITE_SRC),
+  "rewrite.ts should call route('rewrite', { preferredId })"
+);
+
+assert(
+  "E6 rewrite.ts maps NoRoutableProviderError → NoAIProviderConfiguredError",
+  /instanceof NoRoutableProviderError[\s\S]{0,200}throw new NoAIProviderConfiguredError/.test(
+    REWRITE_SRC
+  ),
+  "rewrite.ts should catch NoRoutableProviderError and rethrow as NoAIProviderConfiguredError"
+);
+
+assert(
+  "E6 rewrite.ts no longer imports selectProvider",
+  !/import\s*\{\s*selectProvider\s*\}\s*from\s*"\.\/registry"/.test(REWRITE_SRC),
+  "rewrite.ts should have dropped the selectProvider import"
+);
+
+// table.ts (Tier 1 / M2, 2026-04-21)
+assert(
+  "E7 table.ts imports route + NoRoutableProviderError",
+  /\broute\b[\s\S]{0,120}from\s*"\.\/router"/.test(TABLE_SRC) &&
+    /\bNoRoutableProviderError\b/.test(TABLE_SRC),
+  "table.ts must import { route, NoRoutableProviderError } from './router'"
+);
+
+assert(
+  'E7 table.ts calls route("table", { preferredId })',
+  /route\(\s*"table"\s*,\s*\{\s*preferredId:/.test(TABLE_SRC),
+  "table.ts should call route('table', { preferredId })"
+);
+
+assert(
+  "E7 table.ts maps NoRoutableProviderError → NoAIProviderConfiguredError",
+  /instanceof NoRoutableProviderError[\s\S]{0,200}throw new NoAIProviderConfiguredError/.test(
+    TABLE_SRC
+  ),
+  "table.ts should catch NoRoutableProviderError and rethrow as NoAIProviderConfiguredError"
+);
+
+assert(
+  "E7 table.ts no longer imports selectProvider",
+  !/import\s*\{\s*selectProvider\s*\}\s*from\s*"\.\/registry"/.test(TABLE_SRC),
+  "table.ts should have dropped the selectProvider import"
+);
+
+// redact.ts (Tier 1 / M2, 2026-04-21)
+assert(
+  "E8 redact.ts imports route + NoRoutableProviderError",
+  /\broute\b[\s\S]{0,120}from\s*"\.\/router"/.test(REDACT_SRC) &&
+    /\bNoRoutableProviderError\b/.test(REDACT_SRC),
+  "redact.ts must import { route, NoRoutableProviderError } from './router'"
+);
+
+assert(
+  'E8 redact.ts calls route("redact", { preferredId })',
+  /route\(\s*"redact"\s*,\s*\{\s*preferredId:/.test(REDACT_SRC),
+  "redact.ts should call route('redact', { preferredId })"
+);
+
+assert(
+  "E8 redact.ts maps NoRoutableProviderError → NoAIProviderConfiguredError",
+  /instanceof NoRoutableProviderError[\s\S]{0,200}throw new NoAIProviderConfiguredError/.test(
+    REDACT_SRC
+  ),
+  "redact.ts should catch NoRoutableProviderError and rethrow as NoAIProviderConfiguredError"
+);
+
+assert(
+  "E8 redact.ts no longer imports selectProvider",
+  !/import\s*\{\s*selectProvider\s*\}\s*from\s*"\.\/registry"/.test(REDACT_SRC),
+  "redact.ts should have dropped the selectProvider import"
 );
 
 // =============================================================================

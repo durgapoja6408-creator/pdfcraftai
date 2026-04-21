@@ -258,6 +258,13 @@ function buildSystemPrompt(opts: {
       : "";
 
   // Task #26: prepend safety preamble. See lib/ai/prompt-safety.ts.
+  //
+  // Fidelity block (Tier 4, 2026-04-21): added explicit handling of
+  // code identifiers that LOOK like translatable words (e.g.
+  // `loadUser`, `getUserById`, `APIKey`, `OrderStatus`) — QA flagged
+  // that gpt-4o-mini occasionally translated these on technical
+  // documents, producing gibberish like `cargarUsuario` in Spanish.
+  // The code_identifier regex hint anchors the rule concretely.
   return (
     `${buildSafetyPreamble("translate")}\n\n` +
     `You are the PDFCraft AI translator. Translate the provided text into ${langSpec}. ` +
@@ -270,7 +277,11 @@ function buildSystemPrompt(opts: {
     "they are page break markers.\n" +
     "- Preserve citation-style page references like `[p. 3]` verbatim.\n" +
     "- Preserve proper nouns, brand names, product names, URLs, email addresses, " +
-    "and code identifiers unchanged.\n" +
+    "and code identifiers unchanged. A token is a code identifier if it is " +
+    "camelCase (`loadUser`, `getUserById`), PascalCase (`OrderStatus`), " +
+    "SCREAMING_SNAKE_CASE (`API_KEY`, `MAX_RETRIES`), snake_case, kebab-case, " +
+    "or is inside backticks — leave it as-is EVEN IF IT LOOKS LIKE A " +
+    "TRANSLATABLE WORD.\n" +
     "- Numbers, dates, and units: convert formatting only if the target language " +
     "uses a different convention (e.g., decimal comma in German). Never change " +
     "the numeric value.\n" +

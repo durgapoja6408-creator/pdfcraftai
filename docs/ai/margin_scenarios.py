@@ -23,12 +23,17 @@ OP_COST = {
     "generate": 20, "sign": 10,
 }
 
-# Provider pricing ($/Mtok in, $/Mtok out)
+# Provider pricing ($/Mtok in, $/Mtok out) — verified 2026-04-21 from
+# provider pricing pages. Historical note: earlier iterations of this
+# file carried the Gemini 1.5 Flash rates (0.075 / 0.30) against a
+# runtime that was already calling Gemini 2.5 Flash — a ~4× under-
+# statement on input cost and ~8× on output. See
+# docs/ai/COST_MATRIX_3PROVIDER.md §1 for the audit trail.
 PROVIDERS = {
     "haiku":    (1.00,  5.00),   # Claude Haiku 4.5 (current default)
     "sonnet":   (3.00, 15.00),   # Claude Sonnet 4.6 (deep tier)
     "gpt4omini":(0.15,  0.60),   # GPT-4o-mini
-    "gemini":   (0.075, 0.30),   # Gemini Flash
+    "gemini":   (0.30,  2.50),   # Gemini 2.5 Flash (what the adapter actually calls)
 }
 
 # Typical tokens per op (in, out)
@@ -113,10 +118,16 @@ PADDLE_ONLY       = {"paddle": 1.00}  # pre-launch edge (no Razorpay yet)
 INFRA = {"Starter": 0.10, "Creator": 0.20, "Pro": 0.50, "Studio": 1.00}
 
 # ─── Routing policies ──────────────────────────────────────────────────
+# v3 CHEAP_ROUTING tracks the post-Tier-1 router in lib/ai/router.ts:
+#   - translate / rewrite / table / redact flipped from haiku/gemini → gpt4omini
+#     after the 2026-04-21 arbitrage audit (docs/ai/COST_MATRIX_3PROVIDER.md §3).
+#   - OCR stays on gemini (only non-anthropic provider with pdfInput).
+#   - summarize / compare / generate / sign stay on claude / sonnet until a
+#     quality-eval pass clears the cheaper alternatives (M3 — deferred).
 CHEAP_ROUTING = {
-    "chat_turn": "gpt4omini", "summarize": "haiku", "translate": "gemini",
+    "chat_turn": "gpt4omini", "summarize": "haiku", "translate": "gpt4omini",
     "ocr": "gemini", "compare": "haiku", "rewrite": "gpt4omini",
-    "table": "haiku", "redact": "haiku", "generate": "sonnet",
+    "table": "gpt4omini", "redact": "gpt4omini", "generate": "sonnet",
     "sign": "sonnet",
 }
 HAIKU_ALL = {op: "haiku" for op in OP_COST}

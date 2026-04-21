@@ -17,7 +17,12 @@
 //      than duplicate.
 //   2. If any slice is red (margin_bps < floor_bps) AND
 //      AI_SPEND_ALERT_SLACK_URL is configured, posts a Slack alert.
-//   3. If the day is all-green AND the resulting streak is >= 7 days
+//   3. Runs the three Tier 3 detect-point alarms (margin drift,
+//      primary-share drop, dark routing) and posts them to Slack when
+//      anything fires. Alarms don't flip the green-streak because they
+//      surface regressions BEFORE they breach the margin floor; we
+//      still want an operator to see them the morning after they land.
+//   4. If the day is all-green AND the resulting streak is >= 7 days
 //      (gate-close signal), posts a celebration Slack message.
 //
 // Response: the full DailyRollupReport JSON for the benefit of the cron
@@ -78,13 +83,18 @@ async function runCron(req: Request): Promise<NextResponse> {
         redCount: report.redCount,
         allGreen: report.allGreen,
         greenStreakDays: report.greenStreakDays,
+        alarmCount: report.alarms.length,
+        alarmKinds: report.alarms.map((a) => a.kind),
       })
     );
 
     // Slack emitter is a no-op if the webhook isn't configured; never
-    // throws. We post on red slices OR on streak-hits-7 (gate-close).
+    // throws. We post on (1) red slices, (2) any Tier 3 detect-point
+    // alarms (margin drift / primary-share / dark routing), or
+    // (3) streak-hits-7 (gate-close celebration).
     const shouldPost =
       report.redCount > 0 ||
+      report.alarms.length > 0 ||
       (report.allGreen && report.greenStreakDays >= 7);
     if (shouldPost) {
       await postMarginAlertToSlack(report);

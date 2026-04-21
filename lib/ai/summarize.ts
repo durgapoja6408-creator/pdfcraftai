@@ -205,15 +205,33 @@ function buildSystemPrompt(opts: {
 
   // Task #26: prepend the safety preamble so the model treats the
   // wrapped PDF text as data, not instructions. See prompt-safety.ts.
+  //
+  // Fidelity + tone block (Tier 4, 2026-04-21): in QA we observed two
+  // recurring regressions on summaries — (a) invented precision, where
+  // the model turned "several hundred" into "roughly 450", and (b)
+  // subjective verdicts like "critically important" or "remarkable"
+  // that weren't in the source. The explicit "only if the source uses
+  // that exact word" clause catches both. The "No preamble / postamble"
+  // line cuts 20-40 wasted output tokens per call on models that love
+  // to say "Here's your summary:".
   return (
     `${buildSafetyPreamble("summarize")}\n\n` +
     `You are the PDFCraft AI summarizer. The user has attached ${title} ` +
     `(${opts.pageCount} page${opts.pageCount === 1 ? "" : "s"}). ` +
     `Pages are delimited by \\f in the source text.\n\n` +
     depthLine +
-    "\n\nGround every claim in the document. Do not invent facts. Cite page " +
-    "numbers (e.g. \"[p. 3]\") whenever you reference a specific passage. " +
-    "Write in plain, neutral prose — no marketing language, no editorializing." +
+    "\n\nFidelity rules:\n" +
+    "- Ground every claim in the document. Do NOT invent facts, numbers, " +
+    "dates, or quotes. Preserve numeric precision exactly — if the source " +
+    "says \"several hundred\", your summary says \"several hundred\", not " +
+    "\"about 450\".\n" +
+    "- Cite page numbers (e.g. \"[p. 3]\") whenever you reference a " +
+    "specific passage, fact, or quote.\n" +
+    "- Plain neutral prose — no marketing language, no editorializing, no " +
+    "value judgments. Do not use superlatives (\"critical\", \"remarkable\", " +
+    "\"crucial\", \"vital\") unless the source uses that exact word.\n" +
+    "- No preamble (\"Here is your summary:\") and no postamble. Return " +
+    "the summary markdown directly." +
     ocr +
     truncation
   );

@@ -53,7 +53,7 @@ import type { ModerationResult } from "./output-moderation";
 import { assertOutputSafe, moderateOutput } from "./output-moderation";
 import type { AIProvider } from "./provider";
 import { buildSafetyPreamble, wrapUntrustedInput } from "./prompt-safety";
-import { selectProvider } from "./registry";
+import { NoRoutableProviderError, route } from "./router";
 import type { AIProviderId, TokenUsage } from "./types";
 
 // --- types ------------------------------------------------------------
@@ -204,11 +204,19 @@ function ensureWorkerConfigured(): void {
 // --- orchestrator -----------------------------------------------------
 
 export async function redactPdf(input: RedactInput): Promise<RedactResult> {
-  const provider = await selectProvider({
-    capabilityNeeded: "streaming",
-    preferredId: input.preferredProvider,
-  });
-  if (!provider) throw new NoAIProviderConfiguredError();
+  // Task #21: route through the AI router. "redact" → openai primary.
+  // PII enumeration is a structured-output JSON task where gpt-4o-mini
+  // is 4-8× cheaper than haiku at comparable recall. See
+  // COST_MATRIX_3PROVIDER.md §2 / M2.
+  let provider: AIProvider;
+  try {
+    provider = await route("redact", { preferredId: input.preferredProvider });
+  } catch (err) {
+    if (err instanceof NoRoutableProviderError) {
+      throw new NoAIProviderConfiguredError();
+    }
+    throw err;
+  }
 
   // 1. Positioned extraction — per-page text items with PDF-space rects.
   const extraction = await extractPositionedText(input.pdfBytes);
@@ -339,7 +347,11 @@ function buildSystemPrompt(opts: {
     '      "reason": "Short justification"\n' +
     "    }\n" +
     "  ]\n" +
-    "}\n" +
+    "}\n\n" +
+    "Before responding: mentally verify the JSON parses. Escape embedded " +
+    "double-quotes in `text` and `reason` (`\\\"`) and any literal newlines " +
+    "(`\\\\n`). A malformed response fails the extraction and the user has " +
+    "to retry — avoid that." +
     ocr +
     truncation
   );

@@ -32,7 +32,7 @@ import type { ModerationResult } from "./output-moderation";
 import { assertOutputSafe, moderateOutput } from "./output-moderation";
 import type { AIProvider } from "./provider";
 import { buildSafetyPreamble, wrapUntrustedInput } from "./prompt-safety";
-import { selectProvider } from "./registry";
+import { NoRoutableProviderError, route } from "./router";
 import type { AIProviderId, TokenUsage } from "./types";
 
 export interface TableInput {
@@ -95,11 +95,17 @@ const TABLE_CHAR_BUDGET = 240_000;
 
 /**
  * Output tokens cap. Tables expand aggressively — a 20-row × 6-col table
- * alone eats ~300-500 tokens when rendered twice (GFM + CSV). 3200 is
- * enough to cover the common case of 2-5 tables per document without
- * blowing the budget.
+ * alone eats ~300-500 tokens. 2800 is enough to cover the common case
+ * of 2-5 tables per document without blowing the budget.
+ *
+ * 2026-04-21 (Phase A4, Tier 4): trimmed 3200 → 2800 after observing
+ * that with the JSON envelope format (headers + rows as string[][],
+ * no redundant GFM copy) the model rarely needs > 2500 tokens even
+ * for 5-table docs. The trim saves ~12% on worst-case output cost
+ * without affecting typical-case behavior (provider stops at natural
+ * end-of-JSON boundary).
  */
-const MAX_OUTPUT_TOKENS = 3200;
+const MAX_OUTPUT_TOKENS = 2800;
 
 /**
  * Thrown when the model returns output we can't parse as the expected
@@ -114,11 +120,19 @@ export class TableParseError extends Error {
 }
 
 export async function extractTables(input: TableInput): Promise<TableResult> {
-  const provider = await selectProvider({
-    capabilityNeeded: "streaming",
-    preferredId: input.preferredProvider,
-  });
-  if (!provider) throw new NoAIProviderConfiguredError();
+  // Task #21: route through the AI router. "table" op routes to openai
+  // primary — gpt-4o-mini's JSON-mode reliability + ~4-8× cheaper input
+  // cost makes it the right default for structured extraction.
+  // COST_MATRIX_3PROVIDER.md §2, M2 margin move.
+  let provider: AIProvider;
+  try {
+    provider = await route("table", { preferredId: input.preferredProvider });
+  } catch (err) {
+    if (err instanceof NoRoutableProviderError) {
+      throw new NoAIProviderConfiguredError();
+    }
+    throw err;
+  }
 
   const { truncatedText, wasTruncated } = truncateForContext(input.text);
 
@@ -208,7 +222,12 @@ function buildSystemPrompt(opts: {
     '      "rows": [["r1c1", "r1c2", ...], ["r2c1", ...]]\n' +
     "    }\n" +
     "  ]\n" +
-    "}\n" +
+    "}\n\n" +
+    "Before responding: mentally verify the JSON parses. Escape embedded " +
+    "double-quotes in cell values (`\\\"`) and newlines (`\\\\n`). Every row " +
+    "must have exactly as many cells as the headers array — pad short rows " +
+    "with empty strings. A malformed response costs the user a retry, which " +
+    "we want to avoid." +
     ocr +
     truncation
   );
