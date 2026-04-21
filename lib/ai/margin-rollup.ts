@@ -598,3 +598,265 @@ export async function postMarginAlertToSlack(
     return false;
   }
 }
+
+// --- Admin dashboard surface ------------------------------------------
+//
+// Task #22 deliverable — the cron writes ai_daily_margin every night,
+// but until there's a read-side endpoint nobody can look at it outside
+// of a raw SQL shell. These helpers back `/api/admin/margin`.
+//
+// Design note: we keep one aggregate query (per-day counts) + one
+// detail query (recent red slices, capped) instead of returning the
+// full per-slice table. The full table on a 30-day window with ~50
+// ops × ~4 providers/models would be 1500+ rows; the dashboard only
+// ever shows "how many days red / green this week" + "which slices
+// tripped the floor". The detail query is scoped to the visible range
+// so a red slice from day 60 doesn't surface when looking at the last
+// 7 days.
+
+/**
+ * Max window an admin request can ask for. 90 days matches the cron's
+ * `maxDays` ceiling in `computeGreenStreak`. Gives a full quarter
+ * without risking an unindexed scan.
+ */
+export const ADMIN_MARGIN_MAX_DAYS = 90;
+
+/**
+ * Default admin window when the caller doesn't supply `?days=`.
+ * 14 is "two weeks, enough to visually confirm the 7-day streak"
+ * and fits on a single dashboard row without scrolling.
+ */
+export const ADMIN_MARGIN_DEFAULT_DAYS = 14;
+
+/**
+ * Per-day summary row returned to the admin dashboard.
+ *
+ * `minMarginBps` / `maxMarginBps` are the slice extremes for that day;
+ * they're what the dashboard uses to draw the bar-chart floor line so
+ * the operator can eyeball how close each day is to the red zone
+ * without opening the full slice table.
+ */
+export type AdminMarginDaySummary = {
+  date: string; // YYYY-MM-DD UTC
+  sliceCount: number;
+  greenCount: number;
+  redCount: number;
+  allGreen: boolean;
+  minMarginBps: number; // worst slice of the day
+  maxMarginBps: number; // best slice of the day
+  totalCostMicros: number;
+  totalRevenueMicros: number;
+};
+
+/**
+ * Flat row for a red slice, returned so the admin dashboard can show
+ * "which exact slices tripped the floor". Shape mirrors
+ * ai_daily_margin's columns minus the bookkeeping fields (`id`,
+ * `createdAt`).
+ */
+export type AdminMarginRedSlice = {
+  date: string;
+  providerId: string;
+  model: string;
+  operation: string;
+  callCount: number;
+  marginBps: number;
+  floorBps: number;
+  costMicrosSum: number;
+  revenueMicrosSum: number;
+};
+
+export type AdminMarginSummary = {
+  generatedAt: string;
+  range: { from: string; to: string; days: number };
+  currentStreakDays: number;
+  gate7Reached: boolean;
+  days: AdminMarginDaySummary[]; // newest first
+  recentRedSlices: AdminMarginRedSlice[]; // newest first, capped
+  floorBpsByOp: Record<string, number>;
+};
+
+/**
+ * Normalise `?days=` query input. Clamps to [1, 90] and falls back to
+ * the default on non-integers. Pure — no I/O. Pulled out so the test
+ * harness can pin the clamp behaviour without spinning a route.
+ */
+export function clampAdminDays(raw: string | number | null | undefined): number {
+  if (raw === null || raw === undefined || raw === "") {
+    return ADMIN_MARGIN_DEFAULT_DAYS;
+  }
+  const n = typeof raw === "number" ? raw : Number(raw);
+  if (!Number.isFinite(n) || !Number.isInteger(n)) {
+    return ADMIN_MARGIN_DEFAULT_DAYS;
+  }
+  if (n < 1) return 1;
+  if (n > ADMIN_MARGIN_MAX_DAYS) return ADMIN_MARGIN_MAX_DAYS;
+  return n;
+}
+
+/**
+ * Parse `ADMIN_EMAILS` env var into a lowercase-normalised Set. Pure —
+ * no side effects, fine to call per-request (the string is short and
+ * comma-splitting + trimming is O(bytes) trivial). Defaults to the
+ * founder's email so a fresh deploy before the env var lands doesn't
+ * lock the admin out.
+ *
+ * Exported so the test harness can pin the parse semantics without
+ * importing the route.
+ */
+export function parseAdminEmails(raw: string | undefined): Set<string> {
+  const FOUNDER_FALLBACK = "rajasekarjavaee@gmail.com";
+  if (!raw || !raw.trim()) return new Set([FOUNDER_FALLBACK]);
+  const emails = raw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter((s) => s.length > 0 && s.includes("@"));
+  if (emails.length === 0) return new Set([FOUNDER_FALLBACK]);
+  return new Set(emails);
+}
+
+/**
+ * Is `email` allowed to hit admin-only endpoints? Case-insensitive.
+ * Returns false on null/undefined.
+ */
+export function isAdminEmail(
+  email: string | null | undefined,
+  raw: string | undefined
+): boolean {
+  if (!email) return false;
+  return parseAdminEmails(raw).has(email.toLowerCase());
+}
+
+/**
+ * Build the admin dashboard summary. One GROUP BY query for the per-
+ * day counts + one ordered LIMIT for recent red slices. Streak is
+ * computed via the existing `computeGreenStreak()` so the dashboard
+ * and the cron agree on what "consecutive" means.
+ *
+ * Window semantics: `days=14` means "the 14 calendar days ending
+ * yesterday UTC" — i.e. the same day range the cron would have
+ * written rollups for.
+ */
+export async function getAdminMarginSummary(
+  opts: { days?: number; redSliceLimit?: number } = {}
+): Promise<AdminMarginSummary> {
+  const days = clampAdminDays(opts.days ?? ADMIN_MARGIN_DEFAULT_DAYS);
+  const redSliceLimit = Math.max(
+    1,
+    Math.min(opts.redSliceLimit ?? 10, 50)
+  );
+
+  // Window ends on yesterday UTC (the most recent fully-complete day
+  // the cron would have written). Start is (days - 1) days before that,
+  // inclusive.
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const toStr = utcDateString(yesterday);
+  const fromDate = new Date(
+    utcDayStart(yesterday).getTime() - (days - 1) * 24 * 60 * 60 * 1000
+  );
+  const fromStr = utcDateString(fromDate);
+
+  type DailyAggRow = {
+    date: string;
+    slice_count: number;
+    green_count: number;
+    red_count: number;
+    min_margin_bps: number;
+    max_margin_bps: number;
+    total_cost: string | number;
+    total_revenue: string | number;
+  };
+
+  const dailyRows = (await db
+    .select({
+      date: schema.aiDailyMargin.date,
+      slice_count: sql<number>`COUNT(*)`,
+      green_count: sql<number>`COALESCE(SUM(CASE WHEN ${schema.aiDailyMargin.isGreen} = 1 THEN 1 ELSE 0 END), 0)`,
+      red_count: sql<number>`COALESCE(SUM(CASE WHEN ${schema.aiDailyMargin.isGreen} = 0 THEN 1 ELSE 0 END), 0)`,
+      min_margin_bps: sql<number>`MIN(${schema.aiDailyMargin.marginBps})`,
+      max_margin_bps: sql<number>`MAX(${schema.aiDailyMargin.marginBps})`,
+      total_cost: sql<number>`COALESCE(SUM(${schema.aiDailyMargin.costMicrosSum}), 0)`,
+      total_revenue: sql<number>`COALESCE(SUM(${schema.aiDailyMargin.revenueMicrosSum}), 0)`,
+    })
+    .from(schema.aiDailyMargin)
+    .where(
+      and(
+        gte(schema.aiDailyMargin.date, fromStr),
+        // lt() against the day AFTER `toStr` so we include toStr itself.
+        lt(
+          schema.aiDailyMargin.date,
+          utcDateString(new Date(utcDayStart(yesterday).getTime() + 24 * 60 * 60 * 1000))
+        )
+      )
+    )
+    .groupBy(schema.aiDailyMargin.date)
+    .orderBy(desc(schema.aiDailyMargin.date))) as unknown as DailyAggRow[];
+
+  const dayRows: AdminMarginDaySummary[] = dailyRows.map((r) => {
+    const sliceCount = Number(r.slice_count) || 0;
+    const greenCount = Number(r.green_count) || 0;
+    const redCount = Number(r.red_count) || 0;
+    return {
+      date: r.date,
+      sliceCount,
+      greenCount,
+      redCount,
+      allGreen: sliceCount > 0 && redCount === 0,
+      minMarginBps: Number(r.min_margin_bps) || 0,
+      maxMarginBps: Number(r.max_margin_bps) || 0,
+      totalCostMicros: Number(r.total_cost) || 0,
+      totalRevenueMicros: Number(r.total_revenue) || 0,
+    };
+  });
+
+  // Recent red slices inside the window. Ordered newest-first, capped.
+  const redSliceRows = (await db
+    .select({
+      date: schema.aiDailyMargin.date,
+      providerId: schema.aiDailyMargin.providerId,
+      model: schema.aiDailyMargin.model,
+      operation: schema.aiDailyMargin.operation,
+      callCount: schema.aiDailyMargin.callCount,
+      marginBps: schema.aiDailyMargin.marginBps,
+      floorBps: schema.aiDailyMargin.floorBps,
+      costMicrosSum: schema.aiDailyMargin.costMicrosSum,
+      revenueMicrosSum: schema.aiDailyMargin.revenueMicrosSum,
+    })
+    .from(schema.aiDailyMargin)
+    .where(
+      and(
+        gte(schema.aiDailyMargin.date, fromStr),
+        lt(
+          schema.aiDailyMargin.date,
+          utcDateString(new Date(utcDayStart(yesterday).getTime() + 24 * 60 * 60 * 1000))
+        ),
+        eq(schema.aiDailyMargin.isGreen, 0)
+      )
+    )
+    .orderBy(desc(schema.aiDailyMargin.date))
+    .limit(redSliceLimit)) as unknown as AdminMarginRedSlice[];
+
+  const recentRedSlices: AdminMarginRedSlice[] = redSliceRows.map((r) => ({
+    date: r.date,
+    providerId: r.providerId,
+    model: r.model,
+    operation: r.operation,
+    callCount: Number(r.callCount) || 0,
+    marginBps: Number(r.marginBps) || 0,
+    floorBps: Number(r.floorBps) || 0,
+    costMicrosSum: Number(r.costMicrosSum) || 0,
+    revenueMicrosSum: Number(r.revenueMicrosSum) || 0,
+  }));
+
+  const currentStreakDays = await computeGreenStreak({ throughDate: toStr });
+
+  return {
+    generatedAt: new Date().toISOString(),
+    range: { from: fromStr, to: toStr, days },
+    currentStreakDays,
+    gate7Reached: currentStreakDays >= 7,
+    days: dayRows,
+    recentRedSlices,
+    floorBpsByOp: { ...OP_MARGIN_FLOOR_BPS },
+  };
+}

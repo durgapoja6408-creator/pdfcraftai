@@ -21,6 +21,7 @@ Set in hPanel → App → Environment Variables:
 | `NEXT_PUBLIC_SITE_URL` | `https://pdfcraftai.com` |
 | `GOOGLE_CLIENT_ID` | `912612566698-n1857n8qa60n2sb55qag7sn2fi9bgias.apps.googleusercontent.com` |
 | `GOOGLE_CLIENT_SECRET` | (set; do not echo) |
+| `ADMIN_EMAILS` | *(optional)* comma-separated lowercase email allowlist for `/api/admin/*` endpoints. If unset or empty the founder (`rajasekarjavaee@gmail.com`) is the sole admin — setting `ADMIN_EMAILS` lets ops add more without a code change. Whitespace is trimmed, casing is normalised, entries without `@` are discarded. |
 
 After editing env vars, click **Save and redeploy**.
 

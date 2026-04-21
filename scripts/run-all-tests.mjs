@@ -108,6 +108,16 @@ const SUITES = [
   // column rename in ai_usage breaks both, and this harness pins the
   // aggregate-side consumer of those columns.
   { name: "ai-margin-rollup", file: "test-ai-margin-rollup.mjs" },
+  // admin-margin pins Task #22's READ side — the /api/admin/margin
+  // endpoint and its supporting helpers (clampAdminDays,
+  // parseAdminEmails, isAdminEmail, getAdminMarginSummary). Forms a
+  // write/read pair with the ai-margin-rollup suite above: a regression
+  // in the cron surfaces as "ai-margin-rollup", a regression in the
+  // dashboard endpoint or admin-auth gating surfaces as "admin-margin".
+  // Placed here rather than next to the other admin routes (none exist
+  // yet — this is the first) so the two margin suites sit together and
+  // share their rationale at review time.
+  { name: "admin-margin", file: "test-admin-margin.mjs" },
   // prompt-safety pins Task #26 / PLAN_GAP_ANALYSIS SEV-0 — the
   // defense-in-depth layer against prompt injection on PDF→AI flows.
   // Covers: the lib/ai/prompt-safety.ts module contract (exports,
