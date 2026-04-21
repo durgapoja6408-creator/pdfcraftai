@@ -534,11 +534,16 @@ const LAUNCH_PATH = resolve(
 );
 const ROUTER_PATH = resolve(ROOT, "lib", "payments", "router.ts");
 const PRICING_PATH = resolve(ROOT, "app", "pricing", "page.tsx");
+// Added in Task #3 sub-item 4b — dedicated /launch-notify page.
+const LAUNCH_PAGE_PATH = resolve(ROOT, "app", "launch-notify", "page.tsx");
+const SITEMAP_PATH = resolve(ROOT, "app", "sitemap.ts");
 
 const NAMES_SRC = readFileSync(NAMES_PATH, "utf8");
 const LAUNCH_SRC = readFileSync(LAUNCH_PATH, "utf8");
 const ROUTER_SRC = readFileSync(ROUTER_PATH, "utf8");
 const PRICING_SRC = readFileSync(PRICING_PATH, "utf8");
+const LAUNCH_PAGE_SRC = readFileSync(LAUNCH_PAGE_PATH, "utf8");
+const SITEMAP_SRC = readFileSync(SITEMAP_PATH, "utf8");
 
 // --- D.1 country-names.ts coverage of TIER_2_COUNTRIES --------------------
 // The country-names file MUST have a display name for every Tier-2 code
@@ -669,6 +674,41 @@ for (const marker of PRICING_MARKERS) {
     "pricing page not wired to LaunchNotifySignup"
   );
 }
+
+// --- D.5 /launch-notify dedicated page (sub-item 4b) ---------------------
+// The permalink page must import the LaunchNotifySignup component and
+// render it with source="launch_notify_page" so PM can distinguish this
+// surface from the /pricing embed in the geo_waitlist.source column.
+// The page must also be SEO-noindex (utility page; shouldn't compete
+// with /pricing in search) but still listed in the sitemap for crawler
+// coverage.
+const LAUNCH_PAGE_MARKERS = [
+  // Wire-up
+  'import { LaunchNotifySignup } from "@/components/geo/LaunchNotifySignup"',
+  // Pinned source label — changing it breaks PM's funnel analytics.
+  'source="launch_notify_page"',
+  // Canonical URL: we want this page to collapse under one URL in
+  // search despite noindex, so canonical still matters.
+  'canonical: "/launch-notify"',
+  // noindex,follow posture — utility page.
+  "index: false",
+  "follow: true",
+];
+for (const marker of LAUNCH_PAGE_MARKERS) {
+  assert(
+    `launch-notify/page.tsx contains ${JSON.stringify(marker)}`,
+    LAUNCH_PAGE_SRC.includes(marker),
+    "launch-notify page missing required fragment"
+  );
+}
+
+// Sitemap must list /launch-notify. Crawlers use this for coverage
+// tracking even when the page is noindex (follow: true still counts).
+assert(
+  "sitemap.ts lists /launch-notify",
+  SITEMAP_SRC.includes("/launch-notify"),
+  "add /launch-notify to app/sitemap.ts staticRoutes"
+);
 
 // =============================================================================
 // Report

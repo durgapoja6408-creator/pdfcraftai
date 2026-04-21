@@ -38,6 +38,21 @@ export type PageMetadataInput = {
   og?: TitleDescription;
   /** Override twitter:title / twitter:description on the share card (falls back to og, then title / description). */
   twitter?: TitleDescription;
+  /**
+   * Optional robots directive. Use for utility pages that shouldn't
+   * compete in search (`{ index: false, follow: true }` for surfaces
+   * like /launch-notify) or authenticated shells (`{ index: false,
+   * follow: false }` for /app/*). Auth pages currently hand-roll their
+   * Metadata object; they can migrate into this helper at their
+   * leisure to get OG/Twitter parity as a side effect.
+   *
+   * Why plumbed through the helper rather than a separate export:
+   *   `export const robots` is a valid Next 14 file-level convention,
+   *   but it lives in a separate file-level slot from `metadata` and
+   *   silently diverges if callers forget to update both. Keeping it
+   *   inside the metadata object guarantees one source of truth.
+   */
+  robots?: { index?: boolean; follow?: boolean };
 };
 
 export function pageMetadata(input: PageMetadataInput): Metadata {
@@ -70,6 +85,10 @@ export function pageMetadata(input: PageMetadataInput): Metadata {
 
   if (input.canonical) {
     meta.alternates = { canonical: input.canonical };
+  }
+
+  if (input.robots) {
+    meta.robots = input.robots;
   }
 
   return meta;

@@ -18,6 +18,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/blog`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: `${SITE_URL}/help`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE_URL}/api`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    // Launch-waitlist permalink (Task #3 sub-item 4b). Utility page: the
+    // page itself sets `robots: { index: false }`, but we still list it
+    // here so the path is a first-class sitemap entry for crawlers that
+    // follow sitemap→page and for search console's coverage report.
+    { url: `${SITE_URL}/launch-notify`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
   ];
 
   const toolRoutes: MetadataRoute.Sitemap = TOOLS.map((t) => ({
