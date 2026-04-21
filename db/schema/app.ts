@@ -453,6 +453,81 @@ export const aiOutputs = mysqlTable(
 );
 
 /**
+ * Phase A1 (MASTER_PLAN §6 task #83 + §7 gate #3). Per-AI-call audit log.
+ *
+ * Where `aiOutputs` stores the *rendered artifact* (markdown summary, OCR
+ * result, generated doc) for display back to the user, `aiUsage` stores
+ * the *metering* — every AI invocation, whether it returned a user-facing
+ * artifact or not (e.g. a chat_turn that errored out still needs a row so
+ * the margin rollup sees the cost).
+ *
+ * Design notes:
+ *   - `operation` is a free varchar rather than a MySQL enum. The source
+ *     of truth is `AIOperationId` in `lib/pricing.ts`; keeping it flexible
+ *     here means adding a new op in the next phase doesn't need a migration.
+ *   - `providerId` / `model` capture which adapter + which model served
+ *     the call, so the margin rollup can slice cost by provider and
+ *     spot a routing regression early.
+ *   - `inputTokens` / `outputTokens` are `int` (4GB max row count per
+ *     user is not a concern) but capped to ensure non-negative writes.
+ *   - `costMicros` = provider cost in USD × 1e6 (bigint, can be null if
+ *     we haven't wired per-model rate cards yet — see
+ *     docs/ai/MARGIN_VERIFICATION.md v3 table).
+ *   - `creditsSpent` mirrors the debit on `creditLedger` so the rollup
+ *     doesn't need to join to `credits` tables. Refund path sets a
+ *     negative row (not in scope this migration — see Phase A4).
+ *   - `ledgerId` nullable FK to `credit_ledger.id` links this usage row
+ *     to its debit ledger entry for audit traceability. Null when the
+ *     call pre-dates the FK (should never happen going forward) or when
+ *     the op didn't spend credits (not expected today).
+ *   - `success` + `errorCode` are split so a boolean index can answer
+ *     "what's our error rate this hour?" without scanning text values.
+ *   - `idempotencyKey` matches the key passed to `spendCredits`, so a
+ *     retried request collapses to one usage row too — unique index.
+ *
+ * Indexes:
+ *   - (userId, createdAt) — per-user usage history page.
+ *   - (createdAt) — global daily rollup window.
+ *   - (providerId, createdAt) — provider-level cost slice.
+ *   - (success) — error-rate monitoring.
+ *
+ * Migration: `db/migrations/0005_ai_usage.sql`.
+ */
+export const aiUsage = mysqlTable(
+  "ai_usage",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    userId: varchar("user_id", { length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    operation: varchar("operation", { length: 32 }).notNull(),
+    providerId: varchar("provider_id", { length: 32 }).notNull(),
+    model: varchar("model", { length: 128 }).notNull(),
+    inputTokens: int("input_tokens").notNull().default(0),
+    outputTokens: int("output_tokens").notNull().default(0),
+    latencyMs: int("latency_ms").notNull().default(0),
+    creditsSpent: int("credits_spent").notNull().default(0),
+    // USD * 1e6. Nullable until per-model rate cards are wired (Phase A4).
+    costMicros: bigint("cost_micros", { mode: "number" }),
+    success: int("success").notNull().default(1), // 1 = ok, 0 = error (MySQL has no native bool)
+    errorCode: varchar("error_code", { length: 64 }),
+    ledgerId: varchar("ledger_id", { length: 36 }),
+    idempotencyKey: varchar("idempotency_key", { length: 128 }),
+    createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userCreatedIdx: index("ai_usage_user_created_idx").on(t.userId, t.createdAt),
+    createdIdx: index("ai_usage_created_idx").on(t.createdAt),
+    providerCreatedIdx: index("ai_usage_provider_created_idx").on(
+      t.providerId,
+      t.createdAt
+    ),
+    successIdx: index("ai_usage_success_idx").on(t.success),
+    idempotencyIdx: uniqueIndex("ai_usage_idempotency_idx").on(t.idempotencyKey),
+  })
+);
+
+/**
  * Phase 6.1. Saved parameter sets ("macros") for AI tools. Each row is one
  * user's named preset for one tool.
  *

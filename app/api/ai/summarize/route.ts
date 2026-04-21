@@ -33,6 +33,7 @@ import { auth } from "@/auth";
 import { db, schema } from "@/db/client";
 import { extractPdfText } from "@/lib/ai/pdf-extract";
 import { refundCredits, spendCredits } from "@/lib/ai/credits";
+import { recordAiUsage } from "@/lib/ai/usage";
 import {
   NoAIProviderConfiguredError,
   summarizePdf,
@@ -152,6 +153,7 @@ export async function POST(req: Request): Promise<Response> {
   }
   const creditCost = spend.creditsSpent;
   const newBalance = spend.newBalance;
+  const spendLedgerId = spend.ledgerId;
 
   // -- 4. Extract text -------------------------------------------------
   let extracted: Awaited<ReturnType<typeof extractPdfText>>;
@@ -188,6 +190,7 @@ export async function POST(req: Request): Promise<Response> {
 
   // -- 5. Summarize ----------------------------------------------------
   let summary: Awaited<ReturnType<typeof summarizePdf>>;
+  const providerStartedAt = Date.now();
   try {
     summary = await summarizePdf({
       text: extracted.fullText,
@@ -203,12 +206,49 @@ export async function POST(req: Request): Promise<Response> {
       originalIdempotencyKey: spendKey,
       note: `Refund: summarize failed (${err instanceof Error ? err.name : "unknown"})`,
     });
+    // Phase A1: log the failed call. Provider may have charged us even
+    // if the SDK threw post-stream-start (partial stream). Tokens
+    // unknown at this point — write zeros, success=false so the margin
+    // rollup filters it out of positive-revenue ledgers.
+    await recordAiUsage({
+      userId,
+      operation: "summarize",
+      providerId: err instanceof NoAIProviderConfiguredError ? "none" : "unknown",
+      model: "unknown",
+      inputTokens: 0,
+      outputTokens: 0,
+      latencyMs: Date.now() - providerStartedAt,
+      creditsSpent: 0,
+      costMicros: null,
+      success: false,
+      errorCode: err instanceof Error ? err.name : "summarize_failed",
+      ledgerId: spendLedgerId,
+      idempotencyKey: spendKey,
+    });
     if (err instanceof NoAIProviderConfiguredError) {
       return json(503, { error: "no_ai_provider_configured" });
     }
     const message = err instanceof Error ? err.message : "summarize_failed";
     return json(502, { error: "summarize_failed", detail: message });
   }
+
+  // Phase A1: log the successful call. Runs before the persistence
+  // transaction so even a persistence failure (which we hard-error-log
+  // and return 207) still has an audit trail of the provider spend.
+  await recordAiUsage({
+    userId,
+    operation: "summarize",
+    providerId: summary.providerId,
+    model: summary.model,
+    inputTokens: summary.usage.inputTokens,
+    outputTokens: summary.usage.outputTokens,
+    latencyMs: Date.now() - providerStartedAt,
+    creditsSpent: creditCost,
+    costMicros: null,
+    success: true,
+    ledgerId: spendLedgerId,
+    idempotencyKey: spendKey,
+  });
 
   // -- 6. Persist files row + ai_outputs row ---------------------------
   // Do both writes in one transaction so we never land an orphan files

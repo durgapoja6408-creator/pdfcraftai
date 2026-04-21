@@ -41,6 +41,7 @@ import { auth } from "@/auth";
 import { db, schema } from "@/db/client";
 import { extractPdfText } from "@/lib/ai/pdf-extract";
 import { refundCredits, spendCredits } from "@/lib/ai/credits";
+import { recordAiUsage } from "@/lib/ai/usage";
 import { selectProvider } from "@/lib/ai/registry";
 import type {
   AIProviderId,
@@ -308,6 +309,10 @@ export async function POST(req: Request): Promise<Response> {
       let errorMessage: string | undefined;
       let errorCode: Extract<ChatChunk, { kind: "error" }>["code"] | undefined;
 
+      // Start timing the provider call for the ai_usage row. Captured
+      // once, reused in both success + error branches below.
+      const providerStartedAt = Date.now();
+
       try {
         for await (const chunk of provider.streamChat({
           messages,
@@ -379,6 +384,24 @@ export async function POST(req: Request): Promise<Response> {
             model,
             providerId,
           });
+
+          // Phase A1: audit-log the successful call. Fire-and-forget;
+          // `recordAiUsage` swallows non-duplicate errors so a usage-row
+          // write failure never surfaces to the user.
+          await recordAiUsage({
+            userId,
+            operation: "chat_turn",
+            providerId,
+            model,
+            inputTokens: tokensIn,
+            outputTokens: tokensOut,
+            latencyMs: Date.now() - providerStartedAt,
+            creditsSpent: creditCost,
+            costMicros: null,
+            success: true,
+            ledgerId: spendLedgerId,
+            idempotencyKey: `ai:${sessionId}:${idempotencyKey}`,
+          });
         } else {
           // Refund the up-front debit. Provider erred; user didn't get
           // a complete turn.
@@ -414,6 +437,26 @@ export async function POST(req: Request): Promise<Response> {
             code: errorCode ?? "unknown",
             message: errorMessage ?? "provider_error",
             refunded: refund.ok,
+          });
+
+          // Phase A1: audit-log the failed call too — provider cost
+          // accrued even though the user was refunded, so the margin
+          // rollup must see it. creditsSpent=0 because the refund
+          // effectively zeroed out the debit.
+          await recordAiUsage({
+            userId,
+            operation: "chat_turn",
+            providerId,
+            model,
+            inputTokens: tokensIn,
+            outputTokens: tokensOut,
+            latencyMs: Date.now() - providerStartedAt,
+            creditsSpent: 0,
+            costMicros: null,
+            success: false,
+            errorCode: errorCode ?? "unknown",
+            ledgerId: spendLedgerId,
+            idempotencyKey: `ai:${sessionId}:${idempotencyKey}`,
           });
         }
       } catch (err) {
