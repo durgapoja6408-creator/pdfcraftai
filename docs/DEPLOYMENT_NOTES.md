@@ -7,7 +7,7 @@ _Last updated: 2026-04-21_
 - **Host:** Hostinger (managed Next.js hosting, hPanel)
 - **CDN / Proxy:** Cloudflare (proxy enabled — confirmed via `cf-ray`, `server: cloudflare`, `cf-cache-status: DYNAMIC`)
 - **Domain:** https://pdfcraftai.com (apex + www redirect)
-- **Current commit at last successful deploy:** `5f70cd7` (2026-04-21, STATUS.md paper-trail for CF-IPCountry auto-preselect on `/launch-notify` — Task #3 sub-item 4d; code shipped in `00615d2`)
+- **Current commit at last successful deploy:** `037f6ea` (2026-04-21, Phase A1 `ai_usage` per-call audit table — Task #19. **Deploy gotcha: `db/migrations/0005_ai_usage.sql` must be applied manually to Hostinger MySQL BEFORE the code lands**, otherwise every `INSERT INTO ai_usage` silently fails until the table exists. See STATUS.md § "AI observability (Phase A1)". Previous: `5f70cd7` CF-IPCountry auto-preselect on `/launch-notify` Task #3 sub-item 4d; code shipped in `00615d2`.)
 
 ## Hostinger environment variables (production)
 
