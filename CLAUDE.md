@@ -92,6 +92,7 @@ HOSTINGER_SSH_PRIVATE_KEY_PATH=/sessions/gifted-funny-franklin/mnt/pdfcraftai.co
 
 - `CLAUDE.md` (this file) — session bootstrap (credentials + infra)
 - **`docs/STATUS.md` — live punch list: what's DONE, what's PENDING, who owns each. Read this IMMEDIATELY after CLAUDE.md at session start.**
+- **`docs/roadmap/NET_MARGIN_ROADMAP.md` — active initiative: 5 phases (A–E) converting AI gross-margin observability into true net margin + dual-rail payments + admin dashboard v2 + prompt registry. Read this after STATUS.md. Companion files: `ADMIN_PAGES_CATALOG.md` (every admin page spec) and `PHASE_{A..E}_*.md` (per-phase tasks + acceptance criteria).**
 - `docs/DEPLOYMENT_NOTES.md` — detailed env vars, integration status, recovery playbook
 - `app/layout.tsx` — analytics / tracking scripts live here
 - `auth.ts` / `auth.config.ts` — NextAuth v5 Google provider wiring
