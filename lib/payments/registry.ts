@@ -67,6 +67,44 @@ const ADAPTERS: ReadonlyArray<{
       });
     },
   },
+  {
+    // Paddle (Merchant of Record) — the international rail post-D4.
+    // Razorpay stays on the INR rail; Paddle replaces PayPal for
+    // non-IN traffic. Seller ID 320957 (signed up 2026-04-21).
+    // See docs/payments/MOR_EVALUATION.md for the gateway pick.
+    //
+    // Five env vars gate whether the adapter is live:
+    //   PADDLE_API_KEY         server-side Bearer token (secret)
+    //   PADDLE_CLIENT_TOKEN    browser-safe token paired with Paddle.js
+    //   PADDLE_WEBHOOK_SECRET  HMAC key for paddle-signature verification
+    //   PADDLE_SELLER_ID       informational — "320957" for pdfcraftai
+    //   PADDLE_ENV             "sandbox" | "live" (defaults to sandbox)
+    //
+    // While Paddle KYC verification is pending, only the sandbox
+    // quad lands on Hostinger, so registry.isConfigured() → false
+    // in production. Once verification clears, swap in the live
+    // keys and retire the PayPal row above (D4 decision).
+    id: "paddle",
+    isConfigured: () =>
+      Boolean(
+        process.env.PADDLE_API_KEY &&
+          process.env.PADDLE_CLIENT_TOKEN &&
+          process.env.PADDLE_WEBHOOK_SECRET &&
+          process.env.PADDLE_SELLER_ID
+      ),
+    load: async () => {
+      const { PaddleProvider } = await import("./adapters/paddle");
+      return new PaddleProvider({
+        apiKey: process.env.PADDLE_API_KEY!,
+        clientToken: process.env.PADDLE_CLIENT_TOKEN!,
+        webhookSecret: process.env.PADDLE_WEBHOOK_SECRET!,
+        sellerId: process.env.PADDLE_SELLER_ID!,
+        environment:
+          (process.env.PADDLE_ENV as "sandbox" | "live" | undefined) ??
+          "sandbox",
+      });
+    },
+  },
 ];
 
 // Cache loaded adapters. We want one instance per process so webhook
