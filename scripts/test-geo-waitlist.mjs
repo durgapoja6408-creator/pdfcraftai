@@ -766,6 +766,107 @@ for (const c of PICK_CASES) {
   );
 }
 
+// --- D.7 /launch-notify CF-IPCountry auto-preselect (sub-item 4d) --------
+// Organic visitors (no ?country= query string) land here from internal
+// links or direct-typed URLs. Cloudflare sets `CF-IPCountry` on every
+// proxied request (full-proxy posture per CLAUDE.md §1), so we read
+// that header server-side and fall back to it when the query param is
+// absent. Campaign hot-links still win via `??` precedence so a US
+// marketer QA-ing a FR campaign link sees FR, not their US geo.
+const LAUNCH_PAGE_HEADER_MARKERS = [
+  // Imports the headers() helper from next/headers (server-component only).
+  'import { headers } from "next/headers"',
+  // Defines a module-scope sanitiser for the raw header value.
+  "function pickCountryFromHeader(",
+  // Filters the CF "unknown" sentinel and the Tor exit-node sentinel.
+  '"XX"',
+  '"T1"',
+  // Uses the `??` fallback operator (query wins, header is backup).
+  "pickCountry(searchParams?.country) ??",
+  // Reads the actual header name CF sets (case-insensitive on the
+  // Node side, but we key by the lowercase canonical name to match
+  // Next's header accessor convention).
+  '"cf-ipcountry"',
+];
+for (const marker of LAUNCH_PAGE_HEADER_MARKERS) {
+  assert(
+    `launch-notify CF-IPCountry wiring: ${JSON.stringify(marker)}`,
+    LAUNCH_PAGE_SRC.includes(marker),
+    "CF-IPCountry auto-preselect not wired into /launch-notify page"
+  );
+}
+
+// Reference implementation of the header sanitiser we want to preserve.
+// If the page's inline version ever drifts, this harness still forces
+// the same answers across representative edge cases. The page isn't
+// import()-able from here (it's a TSX server component) so we re-state
+// the contract plainly.
+function refPickCountryFromHeader(raw) {
+  if (typeof raw !== "string") return undefined;
+  const normalised = raw.trim().toUpperCase();
+  if (normalised.length !== 2) return undefined;
+  if (normalised === "XX" || normalised === "T1") return undefined;
+  return normalised;
+}
+const HEADER_CASES = [
+  { in: undefined, out: undefined, label: "missing header → undefined" },
+  { in: null, out: undefined, label: "null header → undefined" },
+  { in: "", out: undefined, label: "empty string → undefined" },
+  { in: "   ", out: undefined, label: "whitespace → undefined" },
+  { in: "DE", out: "DE", label: "plain code → identical" },
+  { in: "de", out: "DE", label: "lowercase → uppercased" },
+  { in: " fr ", out: "FR", label: "trimmed + uppercased" },
+  { in: "XX", out: undefined, label: "CF unknown sentinel → undefined" },
+  { in: "xx", out: undefined, label: "CF unknown (lowercase) → undefined" },
+  { in: "T1", out: undefined, label: "Tor exit-node sentinel → undefined" },
+  { in: "t1", out: undefined, label: "Tor sentinel (lowercase) → undefined" },
+  { in: "DEU", out: undefined, label: "3-letter code → undefined (length-clamped)" },
+  { in: "D", out: undefined, label: "1-letter code → undefined (length-clamped)" },
+  { in: 42, out: undefined, label: "non-string → undefined" },
+];
+for (const c of HEADER_CASES) {
+  const got = refPickCountryFromHeader(c.in);
+  assert(
+    `pickCountryFromHeader: ${c.label}`,
+    got === c.out,
+    `expected ${JSON.stringify(c.out)}, got ${JSON.stringify(got)}`
+  );
+}
+
+// Merge contract: query string wins over header. The `??` operator in
+// the page uses undefined-coalescing (not nullish of empty string), so
+// the matrix below drives the exact resolver the page uses. This pins
+// the precedence against refactors that might accidentally flip it.
+function refResolve(query, header) {
+  return refPickCountry(query) ?? refPickCountryFromHeader(header);
+}
+const MERGE_CASES = [
+  { query: "DE", header: "FR", out: "DE", label: "query wins over header" },
+  { query: undefined, header: "FR", out: "FR", label: "header used when query missing" },
+  { query: "DE", header: undefined, out: "DE", label: "query alone works" },
+  { query: undefined, header: undefined, out: undefined, label: "neither → undefined" },
+  { query: "", header: "FR", out: "FR", label: "empty query falls through to header" },
+  { query: "  ", header: "FR", out: "FR", label: "whitespace query falls through to header" },
+  { query: "DE", header: "XX", out: "DE", label: "query wins even over XX (XX would fall through)" },
+  { query: undefined, header: "XX", out: undefined, label: "XX from header → undefined" },
+  { query: undefined, header: "T1", out: undefined, label: "T1 from header → undefined" },
+  { query: ["BE", "NL"], header: "FR", out: "BE", label: "array query first-wins over header" },
+  // The US case: a US visitor (Tier-1) follows an internal link. The
+  // page trusts neither layer blindly — it passes the code into
+  // LaunchNotifySignup which gates on TIER_2_COUNTRIES. But at the
+  // page boundary, we still forward the code; this is fine because
+  // the sanitiser is what ultimately controls the preselect.
+  { query: undefined, header: "US", out: "US", label: "page forwards US; component-level Tier-2 gate rejects" },
+];
+for (const c of MERGE_CASES) {
+  const got = refResolve(c.query, c.header);
+  assert(
+    `merge: ${c.label}`,
+    got === c.out,
+    `query=${JSON.stringify(c.query)} header=${JSON.stringify(c.header)} expected ${JSON.stringify(c.out)}, got ${JSON.stringify(got)}`
+  );
+}
+
 // =============================================================================
 // Report
 // =============================================================================

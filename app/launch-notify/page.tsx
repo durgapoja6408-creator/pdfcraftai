@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { I } from "@/components/icons/Icons";
 import { LaunchNotifySignup } from "@/components/geo/LaunchNotifySignup";
 import { pageMetadata } from "@/lib/page-metadata";
@@ -37,11 +38,20 @@ import { pageMetadata } from "@/lib/page-metadata";
  *     anything that isn't a current Tier-2 ISO code, so a bad param
  *     (Tier-1 code, Tier-3 code, gibberish, repeated array value)
  *     just falls back to the empty picker — no misleading preselect.
- *   - Still no `CF-IPCountry` server-side read; auto-detection from the
- *     request geography would turn every hit dynamic even without a
- *     query param, and campaign hot-links cover the "preselect when
- *     we already know the country" use case. Can add later as a
- *     server-component wrapper if the signal justifies it.
+ *   - Second preselect source: Cloudflare's `CF-IPCountry` request
+ *     header (set at the edge on every proxied request; our deployment
+ *     is full-proxy per CLAUDE.md §1). When a visitor lands here WITHOUT
+ *     a `?country=` query param — the organic-hit case, e.g. someone who
+ *     typed /launch-notify directly or followed an internal "waitlist"
+ *     link — we read the header and pass the result to `defaultCountry`.
+ *     `?country=` wins over the header so campaign hot-links still beat
+ *     geo-detect (and any mismatched-geo case, e.g. a marketer in the US
+ *     QA-ing a FR campaign link). The picker already exposed this page
+ *     to dynamic rendering via `searchParams` (sub-item 4c), so plumbing
+ *     the header now costs nothing additional in render posture. The
+ *     component's internal Tier-2 sanitiser still has final say, so
+ *     `XX` (CF's unknown-country fallback), `T1` (Tor exit nodes), and
+ *     any Tier-1/Tier-3 code silently fall through to the empty picker.
  *
  * SEO posture:
  *   - `robots: { index: false, follow: true }` — this is a utility
@@ -102,6 +112,40 @@ function pickCountry(
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
+/**
+ * Pull an ISO-3166 alpha-2 code out of the Cloudflare `CF-IPCountry`
+ * header. See the "Second preselect source" block in the page docstring
+ * above for the why; this is the sanitiser.
+ *
+ * Edge values we have to filter here (confirmed in CF's docs):
+ *   - `"XX"`  — CF couldn't geolocate the client (VPN to a CF-internal
+ *              network, IPv6 edge corner case, etc.). Pre-selecting "XX"
+ *              would break LaunchNotifySignup's Set lookup silently; we
+ *              just drop to undefined.
+ *   - `"T1"` — Tor exit node. Tor users by definition want their
+ *              location unknowable; pre-selecting a country would defeat
+ *              that and be a bad UX signal on top.
+ *   - `null` / missing — request didn't come through CF (origin-direct,
+ *              dev server, or health checker). Drop to undefined so the
+ *              empty picker renders.
+ *
+ * Case-normalise to uppercase and length-clamp to 2 so that if CF ever
+ * widens the header (unlikely, but cheap to guard) we don't forward a
+ * surprise shape into the downstream component. Everything else is left
+ * to LaunchNotifySignup's Tier-2 Set lookup, which rejects Tier-1 /
+ * Tier-3 / unknown codes by design. Defense in depth: either layer
+ * failing open still has the other holding the line.
+ */
+function pickCountryFromHeader(
+  raw: string | null | undefined
+): string | undefined {
+  if (typeof raw !== "string") return undefined;
+  const normalised = raw.trim().toUpperCase();
+  if (normalised.length !== 2) return undefined;
+  if (normalised === "XX" || normalised === "T1") return undefined;
+  return normalised;
+}
+
 export default function LaunchNotifyPage({
   searchParams,
 }: {
@@ -111,11 +155,26 @@ export default function LaunchNotifyPage({
   // /launch-notify?country=DE renders on-demand with DE preselected).
   searchParams?: { country?: string | string[] };
 }) {
+  // Precedence: `?country=` wins over `CF-IPCountry`.
+  //
+  // - A visitor on a campaign hot-link (e.g. the email we'll eventually
+  //   send from /launch-notify CTAs) expects the URL they clicked to be
+  //   the source of truth — a US marketer QA-ing a FR campaign shouldn't
+  //   see their US IP override the FR param they explicitly set.
+  // - An organic visitor WITHOUT a `?country=` (typed the URL, followed
+  //   an internal link, shared a bare URL in chat) benefits from the
+  //   header-based preselect because they've given us no other signal.
+  //
+  // Reading `headers()` opts the page into dynamic rendering, but
+  // `searchParams` already did (sub-item 4c), so this is free.
+  //
   // `defaultCountry` is best-effort: LaunchNotifySignup runs the Tier-2
   // sanitiser internally (garbage / Tier-1 / Tier-3 / "XX" fall through
   // to an empty picker), so the user never sees a misleading preselect
   // for a country we haven't actually opted them into.
-  const defaultCountry = pickCountry(searchParams?.country);
+  const defaultCountry =
+    pickCountry(searchParams?.country) ??
+    pickCountryFromHeader(headers().get("cf-ipcountry"));
 
   return (
     <main>
