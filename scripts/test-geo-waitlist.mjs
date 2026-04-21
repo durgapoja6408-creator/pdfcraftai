@@ -1,0 +1,527 @@
+#!/usr/bin/env node
+// Self-contained test harness for the Tier-2 deferred-region waitlist
+// machinery. Mirrors the pattern in scripts/test-geo-router.mjs and
+// scripts/test-pdf-tools.mjs — plain Node assertions, no Jest/Vitest.
+//
+// What this covers:
+//   SECTION A — static checks on the 4 ship-able artifacts: migration SQL,
+//               Drizzle schema table, API route source, React component
+//               source. Detects refactors that would break the wiring.
+//   SECTION B — reference re-implementation of the API's Zod validation +
+//               rate-limit rules. Drives a representative matrix of
+//               request payloads through the reference and asserts
+//               shape-correct decisions without actually standing up
+//               a DB + HTTP server.
+//   SECTION C — cross-file invariants: the migration's CREATE TABLE, the
+//               Drizzle schema definition, and the API route insert must
+//               all agree on column names + allowable enum values.
+//
+// Run: `node scripts/test-geo-waitlist.mjs`
+// Exits 0 on pass, 1 on any failure.
+
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ROOT = resolve(__dirname, "..");
+
+const MIG_PATH = resolve(ROOT, "db", "migrations", "0004_geo_waitlist.sql");
+const SCHEMA_PATH = resolve(ROOT, "db", "schema", "app.ts");
+const ROUTE_PATH = resolve(ROOT, "app", "api", "geo", "waitlist", "route.ts");
+const COMPONENT_PATH = resolve(
+  ROOT,
+  "components",
+  "geo",
+  "DeferredRegionNotify.tsx"
+);
+
+const MIG_SRC = readFileSync(MIG_PATH, "utf8");
+const SCHEMA_SRC = readFileSync(SCHEMA_PATH, "utf8");
+const ROUTE_SRC = readFileSync(ROUTE_PATH, "utf8");
+const COMPONENT_SRC = readFileSync(COMPONENT_PATH, "utf8");
+
+let pass = 0;
+let fail = 0;
+const failures = [];
+
+function assert(label, condition, detail) {
+  if (condition) {
+    pass += 1;
+  } else {
+    fail += 1;
+    failures.push({ label, detail });
+  }
+}
+
+// =============================================================================
+// SECTION A: static-content checks on each shipped artifact
+// =============================================================================
+
+// Migration must create the table, the enum column, and the three indexes.
+const MIG_MARKERS = [
+  "CREATE TABLE IF NOT EXISTS `geo_waitlist`",
+  "`id` varchar(36) NOT NULL",
+  "`email` varchar(320) NOT NULL",
+  "`country` varchar(2) NOT NULL",
+  "`reason` ENUM('tier2_deferred', 'tier2_notify')",
+  "`source` varchar(64) NOT NULL",
+  "`consent_text` text NOT NULL",
+  "`user_agent` varchar(512)",
+  "`ip_hash` varchar(64)",
+  "`created_at` timestamp(3) NOT NULL",
+  "`notified_at` timestamp(3)",
+  "CONSTRAINT `geo_waitlist_id` PRIMARY KEY(`id`)",
+  "UNIQUE(`email`, `country`)",
+  "CREATE INDEX `geo_waitlist_country_idx`",
+  "CREATE INDEX `geo_waitlist_created_idx`",
+];
+for (const marker of MIG_MARKERS) {
+  assert(
+    `0004_geo_waitlist.sql contains ${JSON.stringify(marker)}`,
+    MIG_SRC.includes(marker),
+    "migration missing required DDL fragment"
+  );
+}
+
+// Drizzle schema must declare the export and the same column/index names.
+const SCHEMA_MARKERS = [
+  "export const geoWaitlist = mysqlTable(",
+  '"geo_waitlist"',
+  'varchar("email", { length: 320 })',
+  'varchar("country", { length: 2 })',
+  'mysqlEnum("reason", ["tier2_deferred", "tier2_notify"])',
+  'varchar("source", { length: 64 })',
+  'text("consent_text")',
+  'varchar("user_agent", { length: 512 })',
+  'varchar("ip_hash", { length: 64 })',
+  'timestamp("created_at"',
+  'timestamp("notified_at"',
+  'uniqueIndex("geo_waitlist_email_country_idx")',
+  'index("geo_waitlist_country_idx")',
+  'index("geo_waitlist_created_idx")',
+];
+for (const marker of SCHEMA_MARKERS) {
+  assert(
+    `schema/app.ts contains ${JSON.stringify(marker)}`,
+    SCHEMA_SRC.includes(marker),
+    "schema missing required Drizzle fragment"
+  );
+}
+
+// API route must:
+//   - declare POST handler + nodejs runtime (Node crypto, mysql2)
+//   - import TIER_2_COUNTRIES from router
+//   - use Zod validation with literal(true) for consent
+//   - catch MySQL ER_DUP_ENTRY and return soft-ok
+//   - set the geoWaitlist table through schema.geoWaitlist
+const ROUTE_MARKERS = [
+  'export const runtime = "nodejs"',
+  "export async function POST(",
+  'import { TIER_2_COUNTRIES } from "@/lib/payments/router"',
+  "z.literal(true",
+  "TIER_2_COUNTRIES.has(c)",
+  'code === "ER_DUP_ENTRY"',
+  "errno === 1062",
+  "alreadyListed: true",
+  "schema.geoWaitlist",
+  'consentText: z.string().min(10).max(2000)',
+  'z.enum(["tier2_deferred", "tier2_notify"])',
+  // Rate-limit bookkeeping — the two Maps are essential to the flow;
+  // if they get renamed, the behavioral tests will still pass but the
+  // in-memory dedupe will silently break. Pin them here.
+  "lastByEmail",
+  "lastByIp",
+  "RATE_LIMIT_MS",
+  // IP handling: cf-connecting-ip preferred, then x-forwarded-for
+  '"cf-connecting-ip"',
+  '"x-forwarded-for"',
+];
+for (const marker of ROUTE_MARKERS) {
+  assert(
+    `api/geo/waitlist/route.ts contains ${JSON.stringify(marker)}`,
+    ROUTE_SRC.includes(marker),
+    "route missing required code fragment"
+  );
+}
+
+// Component must:
+//   - render a consent checkbox (GDPR)
+//   - POST to /api/geo/waitlist
+//   - pass consent=true + consentText
+//   - disable submit when consent is false (defense-in-depth; server
+//     still validates via z.literal(true))
+const COMPONENT_MARKERS = [
+  '"use client"',
+  'export function DeferredRegionNotify(',
+  '"/api/geo/waitlist"',
+  'consent: true',
+  'consentText: consentSentence',
+  'type="checkbox"',
+  "disabled={state === \"loading\" || !consent}",
+  // Error-code mapping (must match the server's short codes)
+  '"rate_limited_email"',
+  '"country_not_eligible"',
+  '"consent_required"',
+];
+for (const marker of COMPONENT_MARKERS) {
+  assert(
+    `DeferredRegionNotify.tsx contains ${JSON.stringify(marker)}`,
+    COMPONENT_SRC.includes(marker),
+    "component missing required UX fragment"
+  );
+}
+
+// =============================================================================
+// SECTION B: reference validation + rate-limit reimplementation.
+// This re-derives the API's Zod shape in plain JS so we can drive test cases
+// without spinning up a Next server or MySQL. If route.ts diverges in shape,
+// section A's grep markers catch the obvious cases; section C pins the
+// cross-file columns.
+// =============================================================================
+
+// Re-declare Tier 2 country set (from lib/payments/router.ts). Kept in sync
+// by scripts/test-geo-router.mjs — if that test drifts, this test would
+// too, but the router test is authoritative.
+const TIER_2 = new Set([
+  // EU 27
+  "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE",
+  "FI", "FR", "DE", "GR", "HU", "IE", "IT", "LV",
+  "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK",
+  "SI", "ES", "SE",
+  // EEA non-EU + CH + big deferrals
+  "CH", "NO", "IS", "LI", "CN", "RU", "BY",
+]);
+
+function refValidate(body) {
+  // Minimal re-implementation of the Zod chain. Returns {ok: true, data}
+  // or {ok: false, code}.
+  if (!body || typeof body !== "object") {
+    return { ok: false, code: "invalid_request" };
+  }
+  const email = body.email;
+  if (typeof email !== "string" || !email.includes("@") || email.length > 320) {
+    return { ok: false, code: "Invalid email" };
+  }
+  let country = body.country;
+  if (typeof country !== "string" || country.length !== 2) {
+    return { ok: false, code: "invalid_country" };
+  }
+  country = country.toUpperCase();
+  if (!TIER_2.has(country)) {
+    return { ok: false, code: "country_not_eligible" };
+  }
+  if (
+    typeof body.source !== "string" ||
+    body.source.length < 1 ||
+    body.source.length > 64
+  ) {
+    return { ok: false, code: "invalid_source" };
+  }
+  const reason = body.reason ?? "tier2_deferred";
+  if (reason !== "tier2_deferred" && reason !== "tier2_notify") {
+    return { ok: false, code: "invalid_reason" };
+  }
+  if (body.consent !== true) {
+    return { ok: false, code: "consent_required" };
+  }
+  if (
+    typeof body.consentText !== "string" ||
+    body.consentText.length < 10 ||
+    body.consentText.length > 2000
+  ) {
+    return { ok: false, code: "invalid_consent_text" };
+  }
+  return { ok: true, data: { email, country, source: body.source, reason } };
+}
+
+const CASES = [
+  // Happy paths
+  {
+    label: "valid DE tier2_deferred",
+    input: {
+      email: "a@b.com",
+      country: "DE",
+      source: "checkout_defer",
+      consent: true,
+      consentText: "I agree to the terms of the notification email.",
+    },
+    expect: { ok: true },
+  },
+  {
+    label: "valid lowercase country normalizes",
+    input: {
+      email: "a@b.com",
+      country: "fr",
+      source: "pricing_defer",
+      consent: true,
+      consentText: "I agree to the terms of the notification email.",
+    },
+    expect: { ok: true, country: "FR" },
+  },
+  {
+    label: "tier2_notify reason accepted",
+    input: {
+      email: "a@b.com",
+      country: "IT",
+      source: "marketing",
+      reason: "tier2_notify",
+      consent: true,
+      consentText: "I agree to the terms of the notification email.",
+    },
+    expect: { ok: true, reason: "tier2_notify" },
+  },
+  // Rejections
+  {
+    label: "US rejected (Tier 1, not eligible for waitlist)",
+    input: {
+      email: "a@b.com",
+      country: "US",
+      source: "checkout_defer",
+      consent: true,
+      consentText: "I agree to the terms of the notification email.",
+    },
+    expect: { ok: false, code: "country_not_eligible" },
+  },
+  {
+    label: "IR rejected (Tier 3, sanctioned)",
+    input: {
+      email: "a@b.com",
+      country: "IR",
+      source: "checkout_defer",
+      consent: true,
+      consentText: "I agree to the terms of the notification email.",
+    },
+    expect: { ok: false, code: "country_not_eligible" },
+  },
+  {
+    label: "IN rejected (Tier 1 home market)",
+    input: {
+      email: "a@b.com",
+      country: "IN",
+      source: "checkout_defer",
+      consent: true,
+      consentText: "I agree to the terms of the notification email.",
+    },
+    expect: { ok: false, code: "country_not_eligible" },
+  },
+  {
+    label: "consent=false rejected",
+    input: {
+      email: "a@b.com",
+      country: "DE",
+      source: "checkout_defer",
+      consent: false,
+      consentText: "I agree to the terms of the notification email.",
+    },
+    expect: { ok: false, code: "consent_required" },
+  },
+  {
+    label: "missing consent rejected",
+    input: {
+      email: "a@b.com",
+      country: "DE",
+      source: "checkout_defer",
+      consentText: "I agree to the terms of the notification email.",
+    },
+    expect: { ok: false, code: "consent_required" },
+  },
+  {
+    label: "malformed email rejected",
+    input: {
+      email: "not-an-email",
+      country: "DE",
+      source: "checkout_defer",
+      consent: true,
+      consentText: "I agree to the terms of the notification email.",
+    },
+    expect: { ok: false, code: "Invalid email" },
+  },
+  {
+    label: "short consentText rejected",
+    input: {
+      email: "a@b.com",
+      country: "DE",
+      source: "checkout_defer",
+      consent: true,
+      consentText: "agree",
+    },
+    expect: { ok: false, code: "invalid_consent_text" },
+  },
+  {
+    label: "invalid reason rejected",
+    input: {
+      email: "a@b.com",
+      country: "DE",
+      source: "checkout_defer",
+      reason: "paid_customer",
+      consent: true,
+      consentText: "I agree to the terms of the notification email.",
+    },
+    expect: { ok: false, code: "invalid_reason" },
+  },
+  {
+    label: "empty source rejected",
+    input: {
+      email: "a@b.com",
+      country: "DE",
+      source: "",
+      consent: true,
+      consentText: "I agree to the terms of the notification email.",
+    },
+    expect: { ok: false, code: "invalid_source" },
+  },
+];
+
+for (const c of CASES) {
+  const got = refValidate(c.input);
+  assert(
+    `refValidate: ${c.label}`,
+    got.ok === c.expect.ok,
+    `expected ok=${c.expect.ok} got ${JSON.stringify(got)}`
+  );
+  if (c.expect.ok === false && c.expect.code) {
+    assert(
+      `refValidate code: ${c.label}`,
+      got.code === c.expect.code,
+      `expected code=${c.expect.code} got ${got.code}`
+    );
+  }
+  if (c.expect.country) {
+    assert(
+      `refValidate country: ${c.label}`,
+      got.data?.country === c.expect.country,
+      `expected country=${c.expect.country} got ${got.data?.country}`
+    );
+  }
+  if (c.expect.reason) {
+    assert(
+      `refValidate reason: ${c.label}`,
+      got.data?.reason === c.expect.reason,
+      `expected reason=${c.expect.reason} got ${got.data?.reason}`
+    );
+  }
+}
+
+// Rate-limit helper mirrors the route's in-memory Map logic.
+function refGate(map, key, now, windowMs = 60_000) {
+  const last = map.get(key) ?? 0;
+  if (now - last < windowMs) return false;
+  map.set(key, now);
+  return true;
+}
+
+// t0 must be large enough that the first-call check (now - 0 > window)
+// passes — the route uses Date.now() which is always in the trillions,
+// so this is never an issue at runtime. In the harness we pin a
+// realistic unix-epoch value so the math matches.
+const rateMap = new Map();
+const t0 = 1_700_000_000_000;
+assert("rate-limit: first call allowed", refGate(rateMap, "a@b.com", t0));
+assert("rate-limit: immediate repeat blocked", !refGate(rateMap, "a@b.com", t0 + 1));
+assert(
+  "rate-limit: repeat at 59s still blocked",
+  !refGate(rateMap, "a@b.com", t0 + 59_000)
+);
+assert(
+  "rate-limit: after 60s window allowed",
+  refGate(rateMap, "a@b.com", t0 + 60_000)
+);
+assert(
+  "rate-limit: different key independent",
+  refGate(rateMap, "c@d.com", t0 + 1)
+);
+
+// =============================================================================
+// SECTION C: cross-file column-name invariants
+// =============================================================================
+
+// The migration column names, the Drizzle column config, and the API's
+// insert all reference the same snake_case DB columns. If any one drifts,
+// the other two stop matching.
+const DB_COLUMNS = [
+  "id",
+  "email",
+  "country",
+  "reason",
+  "source",
+  "consent_text",
+  "user_agent",
+  "ip_hash",
+  "created_at",
+  "notified_at",
+];
+for (const col of DB_COLUMNS) {
+  assert(
+    `migration has column ${col}`,
+    new RegExp(`\`${col}\``).test(MIG_SRC),
+    `migration missing column ${col}`
+  );
+}
+
+// Drizzle uses snake_case for the DB names but camelCase for the property
+// access. The TS field names follow that pattern — assert both.
+const TS_TO_DB = [
+  ["id", "id"],
+  ["email", "email"],
+  ["country", "country"],
+  ["reason", "reason"],
+  ["source", "source"],
+  ["consentText", "consent_text"],
+  ["userAgent", "user_agent"],
+  ["ipHash", "ip_hash"],
+  ["createdAt", "created_at"],
+  ["notifiedAt", "notified_at"],
+];
+for (const [ts, dbCol] of TS_TO_DB) {
+  assert(
+    `schema binds ${ts} → "${dbCol}"`,
+    new RegExp(`${ts}:\\s*(?:varchar|text|mysqlEnum|timestamp)\\("${dbCol}"`).test(
+      SCHEMA_SRC
+    ),
+    `schema binding mismatch for ${ts}`
+  );
+}
+
+// API route must reference the camelCase Drizzle fields when inserting.
+// Checking a representative subset — id/email/country/reason/source are
+// required, consentText + userAgent + ipHash are written on insert.
+const ROUTE_INSERT_FIELDS = [
+  "email: email.toLowerCase()",
+  "country,",
+  "reason,",
+  "source,",
+  "consentText,",
+  "userAgent,",
+  "ipHash,",
+];
+for (const marker of ROUTE_INSERT_FIELDS) {
+  assert(
+    `route insert writes ${JSON.stringify(marker)}`,
+    ROUTE_SRC.includes(marker),
+    "route insert field missing"
+  );
+}
+
+// TIER_2_COUNTRIES in the route must match our reference set in SECTION B.
+// Since TypeScript's `TIER_2_COUNTRIES` is imported at runtime and we
+// re-declared it here, drift between this harness and lib/payments/router.ts
+// would go undetected by this file — but scripts/test-geo-router.mjs
+// enforces that router against the policy doc. So transitive coverage:
+//   test-geo-router.mjs: router ↔ GEO_LAUNCH_POLICY.md
+//   this file:           API route ↔ router (via import grep + reference set)
+
+// =============================================================================
+// Report
+// =============================================================================
+
+console.log(`\nGeo-waitlist tests: ${pass} passed, ${fail} failed\n`);
+if (fail > 0) {
+  console.error("FAILURES:");
+  for (const f of failures) {
+    console.error(`  - ${f.label}`);
+    console.error(`    ${f.detail}`);
+  }
+  process.exit(1);
+}
+process.exit(0);

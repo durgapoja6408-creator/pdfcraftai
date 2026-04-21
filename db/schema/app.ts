@@ -525,6 +525,77 @@ export const userMacros = mysqlTable(
   })
 );
 
+// --- Phase 7.1 — Tier-2 deferred-region waitlist ------------------------
+
+/**
+ * Phase 7.1 — email-capture for visitors from Tier-2 countries (EU27 + EEA +
+ * CH/CN/RU/BY per docs/GEO_LAUNCH_POLICY.md §2). These visitors hit the
+ * checkout and receive `routeCheckoutByCountry` → `action: "defer"`, so we
+ * show them the "not available in your country yet" surface with an optional
+ * "notify me when we launch" form. This table stores those signups.
+ *
+ * Design:
+ *   - `email` is stored as-is (not hashed) so we can actually send the
+ *     launch announcement. Treated as PII under GDPR — see privacy/DPA
+ *     for processing basis (explicit consent at form-submit time).
+ *   - `country` is ISO-3166-1 alpha-2, validated at the API layer against
+ *     TIER_2_COUNTRIES before insert. Lets us segment the launch email by
+ *     country ("we just went live in DE — here's your discount code").
+ *   - `reason` discriminates the signup source: `tier2_deferred` (user hit
+ *     checkout and was turned away) vs. `tier2_notify` (user proactively
+ *     asked on a marketing page). Both flow through the same table so
+ *     launch-announcement queries are a single scan.
+ *   - `source` is the free-form UI origin ("checkout_defer",
+ *     "pricing_country_picker", "marketing_footer") for funnel analytics —
+ *     keeps the enum narrow while letting PMs cut the data any way.
+ *   - `consentText` stores the EXACT sentence the user clicked "I agree"
+ *     on — required for GDPR defensibility. If we ever change the copy,
+ *     new rows capture the new text; old rows stay auditable.
+ *   - `ipHash` is SHA-256(ip + server-side salt). Kept for anti-abuse
+ *     (spot a single IP carpet-bombing the form) without storing the
+ *     actual IP. Nullable because local / test submissions may skip it.
+ *   - `notifiedAt` flips to a timestamp when we've actually sent the
+ *     launch email for the user's country. Prevents double-notifying on
+ *     re-runs of the announcement job.
+ *
+ * Unique index on (email, country) lets a single email opt in to multiple
+ * countries ("I care about DE" + "also please tell me about FR") while
+ * blocking the common case of double-submitting the same (email, country)
+ * pair. Duplicate insert surfaces as MySQL ER_DUP_ENTRY — the API route
+ * catches it and returns a soft 200 (already on the list).
+ *
+ * Migration: db/migrations/0004_geo_waitlist.sql — hand-authored CREATE
+ * TABLE to match the pattern in 0001/0002/0003 (we ship Drizzle-kit
+ * migrations when schema churns, hand-authored DDL for one-off additions).
+ */
+export const geoWaitlist = mysqlTable(
+  "geo_waitlist",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    email: varchar("email", { length: 320 }).notNull(),
+    country: varchar("country", { length: 2 }).notNull(),
+    reason: mysqlEnum("reason", ["tier2_deferred", "tier2_notify"]).notNull(),
+    source: varchar("source", { length: 64 }).notNull(),
+    consentText: text("consent_text").notNull(),
+    userAgent: varchar("user_agent", { length: 512 }),
+    ipHash: varchar("ip_hash", { length: 64 }),
+    createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
+    notifiedAt: timestamp("notified_at", { fsp: 3 }),
+  },
+  (t) => ({
+    // Same email can opt in to multiple countries; a given (email, country)
+    // pair is unique. MySQL ER_DUP_ENTRY on conflict → API returns soft-ok.
+    emailCountryIdx: uniqueIndex("geo_waitlist_email_country_idx").on(
+      t.email,
+      t.country
+    ),
+    // Launch-announcement job queries by country.
+    countryIdx: index("geo_waitlist_country_idx").on(t.country),
+    // Admin "signups this week" dashboard.
+    createdIdx: index("geo_waitlist_created_idx").on(t.createdAt),
+  })
+);
+
 // --- Phase 6.3 Agent tables — REMOVED on 2026-04-20 ---------------------
 //
 // `agent_runs` + `agent_run_steps` powered the authenticated /app/studio
