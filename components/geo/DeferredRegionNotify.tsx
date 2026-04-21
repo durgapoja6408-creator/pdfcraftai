@@ -19,6 +19,13 @@
  *     `tier2_deferred` to match the most common entry point.
  *   - countryName: optional display string (e.g. "Germany"); if omitted
  *     the code is shown verbatim.
+ *   - introCopy: optional override for the paragraph above the email
+ *     input. Defaults to the checkout-defer framing ("we're not taking
+ *     payments from X yet"). Marketing surfaces that want proactive
+ *     framing ("be the first to know when we launch") pass their own
+ *     copy. Supply a React node so callers can include links, strong
+ *     text, etc. Keep it to one short paragraph to preserve the form's
+ *     existing visual rhythm.
  *
  * States:
  *   - idle      — form visible.
@@ -35,7 +42,7 @@
  * tokens, just CSS variables already in globals.css.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { I } from "@/components/icons/Icons";
 
 type State = "idle" | "loading" | "sent" | "error";
@@ -45,6 +52,7 @@ export interface DeferredRegionNotifyProps {
   source?: string;
   reason?: "tier2_deferred" | "tier2_notify";
   countryName?: string;
+  introCopy?: ReactNode;
 }
 
 export function DeferredRegionNotify({
@@ -52,6 +60,7 @@ export function DeferredRegionNotify({
   source = "checkout_defer",
   reason = "tier2_deferred",
   countryName,
+  introCopy,
 }: DeferredRegionNotifyProps) {
   const [state, setState] = useState<State>("idle");
   const [error, setError] = useState<string>("");
@@ -183,9 +192,13 @@ export function DeferredRegionNotify({
         className="muted"
         style={{ margin: 0, fontSize: 13, lineHeight: 1.55 }}
       >
-        We&apos;re not taking payments from {countryName || country} yet.
-        Leave your email and we&apos;ll reach out the moment we go live
-        there.
+        {introCopy ?? (
+          <>
+            We&apos;re not taking payments from {countryName || country}{" "}
+            yet. Leave your email and we&apos;ll reach out the moment we
+            go live there.
+          </>
+        )}
       </p>
 
       <div>

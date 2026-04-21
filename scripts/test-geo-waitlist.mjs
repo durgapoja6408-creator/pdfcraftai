@@ -512,6 +512,165 @@ for (const marker of ROUTE_INSERT_FIELDS) {
 //   this file:           API route ↔ router (via import grep + reference set)
 
 // =============================================================================
+// SECTION D: launch-notify marketing surface (Task #3 sub-item 4).
+// Adds coverage for the proactive-signup artifacts:
+//   - lib/geo/country-names.ts           — display-name map for Tier-2
+//   - components/geo/LaunchNotifySignup.tsx — country picker + wired DRN
+//   - components/geo/DeferredRegionNotify.tsx — introCopy override prop
+//   - app/pricing/page.tsx                — embeds LaunchNotifySignup
+//
+// These are additive; they don't change the Zod contract or the DB
+// shape, so SECTIONS A–C remain the canonical guard for the API + data
+// model. This section catches refactors that would silently decouple
+// the picker from the API route (e.g. changing reason= or source=).
+// =============================================================================
+
+const NAMES_PATH = resolve(ROOT, "lib", "geo", "country-names.ts");
+const LAUNCH_PATH = resolve(
+  ROOT,
+  "components",
+  "geo",
+  "LaunchNotifySignup.tsx"
+);
+const ROUTER_PATH = resolve(ROOT, "lib", "payments", "router.ts");
+const PRICING_PATH = resolve(ROOT, "app", "pricing", "page.tsx");
+
+const NAMES_SRC = readFileSync(NAMES_PATH, "utf8");
+const LAUNCH_SRC = readFileSync(LAUNCH_PATH, "utf8");
+const ROUTER_SRC = readFileSync(ROUTER_PATH, "utf8");
+const PRICING_SRC = readFileSync(PRICING_PATH, "utf8");
+
+// --- D.1 country-names.ts coverage of TIER_2_COUNTRIES --------------------
+// The country-names file MUST have a display name for every Tier-2 code
+// in lib/payments/router.ts. Derive both sets from source by regex.
+
+// Grab the literal ISO-2 codes from the object literal keys. Allow
+// optional quotes (TypeScript allows `AT:` and `"AT":`).
+const NAME_KEY_RE = /^\s*"?([A-Z]{2})"?:\s*"/gm;
+const namedCodes = new Set();
+for (const m of NAMES_SRC.matchAll(NAME_KEY_RE)) {
+  namedCodes.add(m[1]);
+}
+
+// Extract the Tier-2 set from router.ts. The literal uses string lines of
+// the form `"AT", "BE", ...`. We grab anything inside TIER_2_COUNTRIES
+// = new Set([...]) and pull quoted 2-letter codes out.
+const TIER_2_BLOCK_MATCH = ROUTER_SRC.match(
+  /TIER_2_COUNTRIES[^=]*=\s*new Set\(\[([\s\S]*?)\]\)/
+);
+assert(
+  "router.ts exposes TIER_2_COUNTRIES",
+  Boolean(TIER_2_BLOCK_MATCH),
+  "could not parse TIER_2_COUNTRIES block in router.ts"
+);
+
+// The Tier-2 block in router.ts spreads EU_COUNTRIES; parse that too.
+const EU_BLOCK_MATCH = ROUTER_SRC.match(
+  /EU_COUNTRIES[^=]*=\s*new Set\(\[([\s\S]*?)\]\)/
+);
+assert(
+  "router.ts exposes EU_COUNTRIES",
+  Boolean(EU_BLOCK_MATCH),
+  "could not parse EU_COUNTRIES block in router.ts"
+);
+
+const CODE_RE = /"([A-Z]{2})"/g;
+const routerTier2 = new Set();
+if (TIER_2_BLOCK_MATCH) {
+  for (const m of TIER_2_BLOCK_MATCH[1].matchAll(CODE_RE)) {
+    routerTier2.add(m[1]);
+  }
+}
+if (EU_BLOCK_MATCH) {
+  for (const m of EU_BLOCK_MATCH[1].matchAll(CODE_RE)) {
+    routerTier2.add(m[1]);
+  }
+}
+
+assert(
+  "router.ts TIER_2_COUNTRIES parses to 34 codes",
+  routerTier2.size === 34,
+  `expected 34, got ${routerTier2.size}: ${[...routerTier2].sort().join(",")}`
+);
+
+// Every router Tier-2 code MUST have a name entry.
+for (const code of routerTier2) {
+  assert(
+    `country-names.ts has entry for ${code}`,
+    namedCodes.has(code),
+    `missing display name for ${code} — update lib/geo/country-names.ts`
+  );
+}
+
+// And vice versa: no name entry should exist for a non-Tier-2 code.
+for (const code of namedCodes) {
+  assert(
+    `country-names.ts does not leak non-Tier-2 ${code}`,
+    routerTier2.has(code),
+    `country-names.ts has ${code} but router.ts doesn't list it as Tier 2`
+  );
+}
+
+// --- D.2 DeferredRegionNotify introCopy override ---------------------------
+const DRN_OVERRIDE_MARKERS = [
+  "introCopy?: ReactNode",
+  "introCopy,",
+  "introCopy ??",
+];
+for (const marker of DRN_OVERRIDE_MARKERS) {
+  assert(
+    `DeferredRegionNotify.tsx wires introCopy: ${JSON.stringify(marker)}`,
+    COMPONENT_SRC.includes(marker),
+    "introCopy prop not plumbed through"
+  );
+}
+
+// --- D.3 LaunchNotifySignup.tsx structure --------------------------------
+const LAUNCH_MARKERS = [
+  '"use client"',
+  "export function LaunchNotifySignup(",
+  // Picker is bound to TIER_2_COUNTRY_OPTIONS from our module.
+  'TIER_2_COUNTRY_OPTIONS, tier2CountryName',
+  '"@/lib/geo/country-names"',
+  // Still imports TIER_2_COUNTRIES from the router for the defaultCountry
+  // sanitiser.
+  'TIER_2_COUNTRIES',
+  '"@/lib/payments/router"',
+  // Delegates to the shared form component rather than duplicating POST
+  // logic.
+  "<DeferredRegionNotify",
+  'reason="tier2_notify"',
+  "source={source}",
+  // Country picker renders an empty placeholder first.
+  "Select your country…",
+  // Resets form state when the user changes the country — critical, else
+  // stale "sent" confirmation shows up for a new country.
+  "key={country}",
+];
+for (const marker of LAUNCH_MARKERS) {
+  assert(
+    `LaunchNotifySignup.tsx contains ${JSON.stringify(marker)}`,
+    LAUNCH_SRC.includes(marker),
+    "LaunchNotifySignup missing required fragment"
+  );
+}
+
+// --- D.4 pricing page wiring ----------------------------------------------
+const PRICING_MARKERS = [
+  'import { LaunchNotifySignup } from "@/components/geo/LaunchNotifySignup"',
+  // Source string pins the analytics label — changing it means PM will
+  // lose historical funnel attribution, so pin it here.
+  '<LaunchNotifySignup source="pricing_country_picker"',
+];
+for (const marker of PRICING_MARKERS) {
+  assert(
+    `pricing/page.tsx contains ${JSON.stringify(marker)}`,
+    PRICING_SRC.includes(marker),
+    "pricing page not wired to LaunchNotifySignup"
+  );
+}
+
+// =============================================================================
 // Report
 // =============================================================================
 

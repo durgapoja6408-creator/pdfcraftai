@@ -4,6 +4,7 @@ import { I } from "@/components/icons/Icons";
 import { FaqItem } from "@/components/marketing/FaqItem";
 import { CheckoutButton } from "@/components/billing/CheckoutButton";
 import { SmartCta } from "@/components/marketing/SmartCta";
+import { LaunchNotifySignup } from "@/components/geo/LaunchNotifySignup";
 import { CREDIT_PACKS, PRICING_FAQ } from "@/lib/pricing";
 import { TOOLS } from "@/lib/tools";
 
@@ -300,6 +301,24 @@ export default function PricingPage() {
               );
             })}
           </div>
+        </div>
+      </section>
+
+      {/* ===== Launch waitlist (Tier-2 proactive signup) ===== */}
+      {/*
+        Task #3 sub-item (4) — proactive "notify me when you launch in
+        my country" signup. Renders only a country-picker UI; the actual
+        email form appears after a Tier-2 country is picked. Reuses the
+        same /api/geo/waitlist route as the checkout-defer flow, but
+        with reason=tier2_notify so the signup source is distinguished
+        in analytics. Policy: docs/GEO_LAUNCH_POLICY.md §4.
+       */}
+      <section style={{ paddingTop: 80 }}>
+        <div
+          className="container-x"
+          style={{ padding: "0 28px", maxWidth: 780 }}
+        >
+          <LaunchNotifySignup source="pricing_country_picker" />
         </div>
       </section>
 
