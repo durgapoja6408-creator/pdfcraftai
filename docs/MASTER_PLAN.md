@@ -252,6 +252,7 @@ Until all eight are green, the site is **not** ready to advertise the full margi
 
 | SHA | Title | Files |
 |---|---|---|
+| `7bdcb9e` | docs(legal): Paddle MoR + named sub-processors on privacy/terms/dpa — fixes "No third-party trackers" line that went stale on GA4 + Clarity ship, adds Paddle MoR acknowledgment and 6-entity sub-processor list ahead of Paddle KYC verification crawl | lib/legal-docs.ts, STATUS |
 | `7caa568` | feat(payments): Paddle MoR adapter scaffold + webhook route + registry — Seller ID `320957` signup 2026-04-21 | lib/payments/adapters/paddle.ts, lib/payments/registry.ts, app/api/webhooks/paddle/route.ts, STATUS, MASTER_PLAN |
 | `37dbe74` | docs(india): CA_CONSULT_PREREAD — deep-research pre-read memo for 15 tax+GST questions | india/CA_CONSULT_PREREAD |
 | `fbe5fe9` | docs: v3 gap-close — pricing.ts docstring + FX drag model + PAYMENT_GATEWAY supersede | pricing.ts, margin_scenarios.py, MARGIN_VERIFICATION, PAYMENT_GATEWAY_PLAN |
