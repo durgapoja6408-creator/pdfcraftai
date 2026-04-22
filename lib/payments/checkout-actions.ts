@@ -50,7 +50,13 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db, schema } from "@/db/client";
 import { eq } from "drizzle-orm";
-import { CREDIT_PACKS, packAmountMinor, type CreditPackId } from "@/lib/pricing";
+import {
+  CREDIT_PACKS,
+  packAmountMinor,
+  type CreditPackId,
+  type PackVariant,
+} from "@/lib/pricing";
+import { resolveAndValidate } from "@/lib/promos/resolver";
 import { selectProvider, listConfiguredProviderIds } from "./registry";
 import {
   routeCheckoutByCountry,
@@ -80,6 +86,22 @@ export type CreateCheckoutResult =
         /** true → the caller passed `preferredProviderId` and it won. */
         overrode: boolean;
       };
+      /**
+       * Task #27 / Phase E — promo + variant echo for the client receipt
+       * view. Always present; `promo` is null when no code was applied.
+       * `amountMinor` reflects the final post-discount, post-variant
+       * charge — the number actually handed to the provider.
+       */
+      checkout: {
+        variant: PackVariant;
+        amountMinor: number;
+        promo: {
+          code: string;
+          kind: "percent" | "flat" | "bonus_credits";
+          discountMicros: number;
+          bonusCredits: number;
+        } | null;
+      };
     }
   | {
       ok: false;
@@ -88,6 +110,13 @@ export type CreateCheckoutResult =
         | "unknown_pack"
         | "no_provider_configured"
         | "provider_error"
+        /**
+         * Promo code was provided but the resolver rejected it. The
+         * `promoReason` field carries the granular reason string from
+         * `PromoResolveResult` so the UI can render targeted copy
+         * (expired vs. wrong-currency vs. user-limit-reached).
+         */
+        | "promo_invalid"
         /**
          * Tier-2 country (EU, CH, EEA, CN/RU/BY). The UI should show the
          * launch-notify signup (components/geo/DeferredRegionNotify) and
@@ -113,6 +142,22 @@ export type CreateCheckoutResult =
        * receive a usable code).
        */
       country?: string | null;
+      /**
+       * Granular rejection reason from the promo resolver. Present only
+       * when `error === "promo_invalid"`. Mirrors PromoResolveResult's
+       * reason union so the client can copy-map without pulling the
+       * resolver module into its bundle.
+       */
+      promoReason?:
+        | "unknown_code"
+        | "inactive"
+        | "not_started"
+        | "expired"
+        | "wrong_currency"
+        | "wrong_pack"
+        | "wrong_variant"
+        | "max_redemptions_reached"
+        | "user_limit_reached";
     };
 
 /**
@@ -145,6 +190,21 @@ export async function createCheckoutAction(args: {
    * Must be an ISO-3166-1 alpha-2 code; the router validates.
    */
   countryOverride?: string;
+  /**
+   * Task #27 / Phase E — pack variant. "monthly" keeps the legacy
+   * one-month-of-credits behaviour; "annual" multiplies credits by
+   * 12 and applies a 20% price discount (ANNUAL_DISCOUNT_BPS). Omit
+   * for the default "monthly" variant.
+   */
+  variant?: PackVariant;
+  /**
+   * Task #27 / Phase E — optional promo code. Resolver runs at
+   * checkout-init time, discount is baked into the amount handed to
+   * the provider, and the resolved envelope is stamped on the
+   * payments row so the webhook-capture hook can write the
+   * promo_redemptions audit row. Omitted / empty string = no promo.
+   */
+  promoCode?: string;
 }): Promise<CreateCheckoutResult> {
   const session = await auth();
   const userId = session?.user
@@ -237,7 +297,79 @@ export async function createCheckoutAction(args: {
   // env overrides would drift between staging and production.
   const origin = resolveOrigin();
   const internalPaymentId = randomUUID();
-  const amountMinor = packAmountMinor(pack, chosenCurrency);
+
+  // Task #27: resolve variant + promo BEFORE amount calc so the
+  // discount lands in the Paddle/Razorpay order and the receipt
+  // shows the correct line items. Sequence matters:
+  //   1. compute the pre-promo subtotal for the chosen variant (so
+  //      the resolver's subtotalMinor matches what the provider sees
+  //      if no promo applies);
+  //   2. resolve the promo against that subtotal;
+  //   3. re-compute amountMinor with the resolved discount applied.
+  //
+  // Re-resolving the code here — even if the client already called
+  // applyPromoCodeAction for preview — closes the TOCTOU window:
+  // an admin could have disabled the code between preview and click,
+  // and we don't want a "preview said $X off" state to win.
+  const variant: PackVariant = args.variant ?? "monthly";
+  const preDiscountMinor = packAmountMinor(pack, chosenCurrency, { variant });
+
+  let promoDiscountMicros = 0;
+  let promoDiscountBps = 0;
+  let promoBonusCredits = 0;
+  let resolvedPromoId: string | null = null;
+  let resolvedPromoCode: string | null = null;
+  let resolvedPromoKind:
+    | "percent"
+    | "flat"
+    | "bonus_credits"
+    | null = null;
+
+  const trimmedCode =
+    typeof args.promoCode === "string" ? args.promoCode.trim() : "";
+
+  if (trimmedCode) {
+    const promoResult = await resolveAndValidate(trimmedCode, {
+      userId,
+      packId: pack.id,
+      currency: chosenCurrency,
+      variant,
+      subtotalMinor: preDiscountMinor,
+    });
+
+    if (!promoResult.ok) {
+      return {
+        ok: false,
+        error: "promo_invalid",
+        message:
+          "That promo code couldn't be applied. Remove it or try a different code.",
+        country: decision.country,
+        promoReason: promoResult.reason,
+      };
+    }
+
+    promoDiscountMicros = promoResult.discountMicros;
+    promoDiscountBps = promoResult.discountBps;
+    promoBonusCredits = promoResult.bonusCredits;
+    resolvedPromoId = promoResult.code.id;
+    resolvedPromoCode = promoResult.code.code;
+    resolvedPromoKind = promoResult.code.kind;
+  }
+
+  // Final amount with variant + promo discount baked in. For
+  // "bonus_credits" codes the money total is unchanged (discount
+  // micros = 0) but we still stamp `promoBonusCredits` on the
+  // payments row so the capture hook can grant the extra credits.
+  const amountMinor = packAmountMinor(pack, chosenCurrency, {
+    variant,
+    // Prefer the bps path when the resolver produced one — it avoids
+    // the minors→micros→minors round-trip and its accumulated flooring
+    // for "percent" codes. "flat" codes have bps=0 from
+    // computePromoDiscount, so they fall through to the micros path
+    // which is exact.
+    promoDiscountBps: promoDiscountBps > 0 ? promoDiscountBps : undefined,
+    promoDiscountMicros: promoDiscountBps > 0 ? undefined : promoDiscountMicros,
+  });
 
   // Step 5: pre-insert the pending row. We want this to exist BEFORE we
   // call the provider so that if the provider call succeeds but our DB
@@ -265,7 +397,21 @@ export async function createCheckoutAction(args: {
       routeRail: decision.rail,
       routeCurrency: decision.currency,
       routeOverrode: overrode,
+      // Task #27: pre-discount subtotal kept in metadata so the
+      // /admin/revenue view can sanity-check the discount math
+      // without having to rebuild the pricing formula from the pack
+      // table + variant + currency.
+      preDiscountMinor,
+      promoCode: resolvedPromoCode,
+      promoDiscountBps: promoDiscountBps || null,
+      promoKind: resolvedPromoKind,
     },
+    // Task #27 / migration 0015 — dedicated columns on the payments
+    // row. Nullable; unset fields stay NULL for pre-promo rows.
+    promoCodeId: resolvedPromoId,
+    promoDiscountMicros: resolvedPromoId ? promoDiscountMicros : null,
+    promoBonusCredits: resolvedPromoId ? promoBonusCredits : null,
+    annualVariant: variant === "annual" ? 1 : 0,
   });
 
   try {
@@ -303,6 +449,18 @@ export async function createCheckoutAction(args: {
         currency: chosenCurrency,
         overrode,
       },
+      checkout: {
+        variant,
+        amountMinor,
+        promo: resolvedPromoId && resolvedPromoCode && resolvedPromoKind
+          ? {
+              code: resolvedPromoCode,
+              kind: resolvedPromoKind,
+              discountMicros: promoDiscountMicros,
+              bonusCredits: promoBonusCredits,
+            }
+          : null,
+      },
     };
   } catch (err) {
     // Adapter failure — mark the row failed so billing audits can see
@@ -319,6 +477,12 @@ export async function createCheckoutAction(args: {
           routeRail: decision.rail,
           routeCurrency: decision.currency,
           routeOverrode: overrode,
+          // Task #27: preserve promo context on failed rows so the
+          // support team can answer "did my promo still get applied?"
+          // questions from row metadata alone.
+          promoCode: resolvedPromoCode,
+          promoDiscountBps: promoDiscountBps || null,
+          promoKind: resolvedPromoKind,
           error: err instanceof Error ? err.message.slice(0, 200) : "unknown",
         },
       })

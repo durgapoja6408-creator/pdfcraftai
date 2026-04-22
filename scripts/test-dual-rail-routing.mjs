@@ -229,7 +229,15 @@ console.log("\nD. packAmountMinor + USD_TO_INR_RATE");
   );
   assert(
     "packAmountMinor falls back to USD cents (× 100)",
-    /pack\.price\s*\*\s*100/.test(pricingSrc)
+    // Task #27 refactor: USD cents math is now
+    //   basePrice = pack.price           (USD branch)
+    //   subtotalMinor = Math.round(basePrice * 100)
+    // which gives identical behavior but no longer matches the literal
+    // `pack.price * 100`. Match either the legacy literal (for older
+    // snapshots) or the refactored basePrice × 100 pattern.
+    /pack\.price\s*\*\s*100/.test(pricingSrc) ||
+      (/basePrice\s*=\s*pack\.price/.test(pricingSrc) &&
+        /basePrice\s*\*\s*100/.test(pricingSrc))
   );
 
   assert(

@@ -7,6 +7,7 @@ import { I } from "@/components/icons/Icons";
 import { CREDIT_PACKS, type CreditPackId } from "@/lib/pricing";
 import { listConfiguredProviderIds } from "@/lib/payments/registry";
 import { RefundButton } from "@/components/billing/RefundButton";
+import { getPromoRedemptionHistoryAction } from "@/lib/promos/actions";
 
 // 14-day refund window — must match REFUND_WINDOW_DAYS in refund-actions.ts.
 const REFUND_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
@@ -88,6 +89,14 @@ export default async function BillingPage({
 
   const configuredProviderIds = listConfiguredProviderIds();
   const anyProviderConfigured = configuredProviderIds.length > 0;
+
+  // Promo redemption history — a server action, but we call it
+  // directly on the server since this is a server component. The
+  // action handles the auth-gate, so signed-out sessions will get
+  // ok:false and we hide the section entirely.
+  const promoHistory = userId ? await getPromoRedemptionHistoryAction() : null;
+  const promoRows =
+    promoHistory && promoHistory.ok ? promoHistory.rows : [];
 
   // Toast-ish banner for post-redirect states.
   const banner = bannerFromStatus(searchParams?.status);
@@ -322,6 +331,101 @@ export default async function BillingPage({
           </div>
         )}
       </div>
+
+      {/* ===== Promo codes applied =====
+          Task #27 / Phase E. Renders only when the user has at least
+          one redemption — freshly signed-up users see nothing here,
+          same posture as the empty-payments state above. Kept visually
+          compact (single-row-per-redemption) because most users will
+          have zero or one; the admin surface is where heavy drilldown
+          lives. */}
+      {promoRows.length > 0 && (
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          <div
+            style={{
+              padding: "16px 20px",
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
+            <div className="eyebrow" style={{ margin: 0 }}>
+              Promo codes applied
+            </div>
+            <p className="muted" style={{ fontSize: 13, marginTop: 4 }}>
+              Codes you've redeemed on past checkouts. Discount amounts are
+              the actual discount that landed on the payment — not the
+              sticker-published value on the code.
+            </p>
+          </div>
+          <div>
+            {promoRows.map((r, i) => {
+              const symbol = r.currency === "INR" ? "₹" : "$";
+              const discountLabel =
+                r.kind === "bonus_credits"
+                  ? `+${r.bonusCredits.toLocaleString()} credits`
+                  : `${symbol}${(r.discountMicros / 1_000_000).toLocaleString(
+                      "en-US",
+                      {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }
+                    )} off`;
+              return (
+                <div
+                  key={r.id}
+                  className="row"
+                  style={{
+                    padding: "14px 20px",
+                    gap: 16,
+                    alignItems: "center",
+                    borderBottom:
+                      i < promoRows.length - 1
+                        ? "1px solid var(--border)"
+                        : undefined,
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 500,
+                        marginBottom: 2,
+                        fontFamily:
+                          "ui-monospace, SFMono-Regular, Menlo, monospace",
+                      }}
+                    >
+                      {r.code}
+                      {r.campaign && (
+                        <span
+                          className="muted"
+                          style={{
+                            fontWeight: 400,
+                            fontSize: 13,
+                            marginLeft: 8,
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          · {r.campaign}
+                        </span>
+                      )}
+                    </div>
+                    <div className="muted" style={{ fontSize: 12 }}>
+                      {formatDate(r.redeemedAt)}
+                      {r.annualVariant ? " · annual" : ""}
+                      {r.packId ? ` · ${r.packId}` : ""}
+                    </div>
+                  </div>
+                  <div
+                    className="mono"
+                    style={{ fontSize: 13, whiteSpace: "nowrap" }}
+                  >
+                    {discountLabel}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

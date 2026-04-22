@@ -209,6 +209,30 @@ export const payments = mysqlTable(
     // Free-form metadata echoed back from the provider — JSON blob. Must
     // be scrubbed of any PAN/CVV-looking values before it lands here.
     metadata: json("metadata"),
+    // Task #27 / Phase E — promo + annual-variant attribution. All
+    // nullable; a row with no promo leaves promoCodeId + its companions
+    // NULL, and a pre-0015 row stays NULL forever.
+    //
+    // promoCodeId is the FK anchor to promo_codes.id (ON DELETE SET
+    // NULL at the SQL level — soft-delete via is_active is the normal
+    // path; the cascade clause is a safety net in case a code ever
+    // gets hard-deleted by a DBA).
+    //
+    // promoDiscountMicros is the absolute discount applied (in
+    // billing-currency micros, matching gross_charge_micros on
+    // credit_ledger from Task #15). For kind='bonus_credits' codes
+    // it's 0 because those don't change the paid amount — the
+    // promoBonusCredits field captures the grant side.
+    //
+    // annualVariant is the boolean flag — null for pre-0015 rows,
+    // 0/false for monthly (default), 1/true for annual-prepay (12×
+    // credits + 20% off price).
+    promoCodeId: varchar("promo_code_id", { length: 36 }),
+    promoDiscountMicros: bigint("promo_discount_micros", {
+      mode: "number",
+    }),
+    promoBonusCredits: int("promo_bonus_credits"),
+    annualVariant: int("annual_variant"),
     createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { fsp: 3 })
       .notNull()
@@ -227,6 +251,13 @@ export const payments = mysqlTable(
       t.providerRef
     ),
     createdIdx: index("payments_created_idx").on(t.createdAt),
+    // Task #27 — allow /admin/promos and /admin/revenue to slice by
+    // promo + annual-variant without scanning the whole payments
+    // table.
+    promoCodeIdx: index("payments_promo_code_idx").on(t.promoCodeId),
+    annualVariantIdx: index("payments_annual_variant_idx").on(
+      t.annualVariant
+    ),
   })
 );
 
@@ -1139,5 +1170,134 @@ export const aiEvalRuns = mysqlTable(
     // "Regression check post-deploy" — compare trailing-7d before/after
     // a commit SHA landed.
     commitOpIdx: index("ai_eval_runs_commit_op_idx").on(t.commitSha, t.op),
+  })
+);
+
+/**
+ * promoCodes — catalog of issued discount codes (Task #27 / Phase E).
+ *
+ * One row per code. Append-first; soft-delete via `isActive=false`
+ * plus optional `disabledAt`/`disabledBy` attribution. We never
+ * hard-delete a code that has redemptions — the FK from
+ * `promoRedemptions.promoCodeId` prevents it (ON DELETE RESTRICT in
+ * migration 0015), so historical /admin/revenue rows can always
+ * resolve "what code was applied on this payment, and what were its
+ * terms?".
+ *
+ * `kind` semantics (see db/migrations/0015 for the full write-up):
+ *   - "percent"        : value = basis points off (1000 = 10%)
+ *   - "flat"           : value = micros of billing-currency off
+ *                        (e.g. 5_000_000 = $5.00 USD or ₹5.00 INR)
+ *   - "bonus_credits"  : value = extra credits granted post-capture;
+ *                        paid amount unchanged
+ *
+ * `currency` scopes the discount — NULL means any currency, non-NULL
+ * only applies when checkout currency matches. Prevents an INR-only
+ * festival code from accidentally discounting USD Paddle orders.
+ *
+ * `packIds` is a comma-separated whitelist ("starter,creator"),
+ * NULL means all packs. String column keeps the catalog simple;
+ * at 4 packs × 2 variants the join-table alternative isn't worth
+ * the extra write.
+ *
+ * `annualOnly = 1` scopes a code to annual-variant checkouts —
+ * useful for "stack 20% off the already-discounted annual" campaigns.
+ */
+export const promoCodes = mysqlTable(
+  "promo_codes",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    code: varchar("code", { length: 64 }).notNull(),
+    kind: mysqlEnum("kind", ["percent", "flat", "bonus_credits"]).notNull(),
+    value: bigint("value", { mode: "number" }).notNull(),
+    currency: varchar("currency", { length: 3 }),
+    packIds: varchar("pack_ids", { length: 255 }),
+    annualOnly: int("annual_only").notNull().default(0),
+    maxRedemptions: int("max_redemptions"),
+    perUserLimit: int("per_user_limit").default(1),
+    startsAt: timestamp("starts_at", { fsp: 3 }),
+    expiresAt: timestamp("expires_at", { fsp: 3 }),
+    isActive: int("is_active").notNull().default(1),
+    campaign: varchar("campaign", { length: 64 }),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
+    createdBy: varchar("created_by", { length: 255 }),
+    disabledAt: timestamp("disabled_at", { fsp: 3 }),
+    disabledBy: varchar("disabled_by", { length: 255 }),
+  },
+  (t) => ({
+    // Uniqueness on the literal code — we want "WELCOME10" to resolve
+    // to exactly one row. Case sensitivity follows the column collation
+    // (utf8mb4_unicode_ci = case-insensitive), so "welcome10" and
+    // "WELCOME10" collide; resolver normalizes to uppercase before
+    // lookup anyway.
+    codeIdx: uniqueIndex("promo_codes_code_idx").on(t.code),
+    // Covers the "list all active-now codes" admin query.
+    activeIdx: index("promo_codes_active_idx").on(t.isActive, t.expiresAt),
+    // Covers "group by campaign" admin rollup.
+    campaignIdx: index("promo_codes_campaign_idx").on(t.campaign),
+  })
+);
+
+/**
+ * promoRedemptions — append-only join log (Task #27 / Phase E).
+ *
+ * One row per successful redemption, pinned at webhook-capture time
+ * (not checkout-initiation time) so abandoned pending payments don't
+ * inflate redemption counts. See lib/promos/resolver.ts for the
+ * write path.
+ *
+ * `discountMicros` is captured at redemption time — if the code gets
+ * edited or deactivated later, this row still shows the real
+ * discount the customer received. Same rationale as
+ * `creditLedger.gross_charge_micros` (Task #15): ledger-style facts
+ * don't mutate when operator-managed config changes.
+ *
+ * `bonusCredits` applies only to kind='bonus_credits' codes — 0 for
+ * percent/flat codes.
+ *
+ * Uniqueness on `paymentId` enforces "one code per payment" at the
+ * DB level — the checkout action gates this in code too, but the
+ * index is the hard floor.
+ *
+ * FKs:
+ *   - promoCodeId → promoCodes.id ON DELETE RESTRICT — audit-trail
+ *     integrity (see above).
+ *   - paymentId   → payments.id    ON DELETE CASCADE — if the
+ *     parent payment is ever hard-deleted (should never happen in
+ *     normal flow; only a DBA ops-incident path), the redemption
+ *     row goes with it so we never have an orphan.
+ */
+export const promoRedemptions = mysqlTable(
+  "promo_redemptions",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    promoCodeId: varchar("promo_code_id", { length: 36 }).notNull(),
+    userId: varchar("user_id", { length: 255 }).notNull(),
+    paymentId: varchar("payment_id", { length: 36 }).notNull(),
+    discountMicros: bigint("discount_micros", { mode: "number" })
+      .notNull()
+      .default(0),
+    bonusCredits: int("bonus_credits").notNull().default(0),
+    currency: varchar("currency", { length: 3 }).notNull(),
+    packId: varchar("pack_id", { length: 32 }),
+    annualVariant: int("annual_variant").notNull().default(0),
+    createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
+  },
+  (t) => ({
+    // One redemption per payment — hard DB-level enforcement.
+    paymentIdx: uniqueIndex("promo_redemptions_payment_idx").on(t.paymentId),
+    // "All redemptions of this code" — admin /admin/promos drill-down.
+    codeIdx: index("promo_redemptions_code_idx").on(t.promoCodeId),
+    // "User's own promo history" — /app/account surface.
+    userIdx: index("promo_redemptions_user_idx").on(t.userId),
+    // "Has this user redeemed this code before?" — resolver's
+    // per-user-limit check hits this composite directly.
+    codeUserIdx: index("promo_redemptions_code_user_idx").on(
+      t.promoCodeId,
+      t.userId
+    ),
+    // Time-bucketed admin queries (last 30d, last 7d).
+    createdIdx: index("promo_redemptions_created_idx").on(t.createdAt),
   })
 );

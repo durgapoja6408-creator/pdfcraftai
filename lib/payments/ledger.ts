@@ -17,7 +17,11 @@ import "server-only";
 import { randomUUID } from "crypto";
 import { and, eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db/client";
-import { CREDIT_PACKS } from "@/lib/pricing";
+import {
+  CREDIT_PACKS,
+  packCreditsForVariant,
+  ANNUAL_MONTHS,
+} from "@/lib/pricing";
 import type { CreditPackId } from "@/lib/pricing";
 import type { LedgerFinancials, NormalizedPaymentEvent } from "./types";
 
@@ -36,11 +40,24 @@ export type { LedgerFinancials } from "./types";
  * Resolve the credits + bonus granted by a one-time pack. Returns null
  * for unknown packs (defensive — webhooks should only reference packs
  * we minted, but a corrupted payment row shouldn't silently grant zero).
+ *
+ * Task #27 / Phase E — `variant` defaults to "monthly" for backward
+ * compatibility. Pre-0015 payment rows have `annualVariant = NULL` which
+ * callers map to "monthly" here. Annual-variant rows get `paid * 12` via
+ * packCreditsForVariant; the bonus stays × 1 (see ANNUAL_DISCOUNT_BPS
+ * JSDoc for rationale). Returning a shape that's richer than the old
+ * `{ base, bonus }` keeps the refund / chargeback paths honest too —
+ * they compute `totalGranted = base + bonus` without needing to
+ * re-derive the annual multiplier themselves.
  */
-function packCredits(packId: string): { base: number; bonus: number } | null {
+function packCredits(
+  packId: string,
+  variant: "monthly" | "annual" = "monthly"
+): { base: number; bonus: number } | null {
   const pack = CREDIT_PACKS.find((p) => p.id === (packId as CreditPackId));
   if (!pack) return null;
-  return { base: pack.credits, bonus: pack.bonus ?? 0 };
+  const { paid, bonus } = packCreditsForVariant(pack, variant);
+  return { base: paid, bonus };
 }
 
 // --- grantCredits ---------------------------------------------------------
@@ -206,6 +223,13 @@ async function handleCaptured(
       mode: schema.payments.mode,
       packId: schema.payments.packId,
       status: schema.payments.status,
+      currency: schema.payments.currency,
+      // Task #27 / Phase E — promo + variant fields. Nullable on
+      // pre-0015 rows; we coerce to sensible defaults below.
+      annualVariant: schema.payments.annualVariant,
+      promoCodeId: schema.payments.promoCodeId,
+      promoDiscountMicros: schema.payments.promoDiscountMicros,
+      promoBonusCredits: schema.payments.promoBonusCredits,
     })
     .from(schema.payments)
     .where(eq(schema.payments.id, event.internalPaymentId))
@@ -233,7 +257,9 @@ async function handleCaptured(
   // Grant credits for one-time packs. Subscription captures hit a
   // different path — see handleSubscription.
   if (payment.mode === "one_time" && payment.packId) {
-    const pack = packCredits(payment.packId);
+    const variant: "monthly" | "annual" =
+      Number(payment.annualVariant ?? 0) === 1 ? "annual" : "monthly";
+    const pack = packCredits(payment.packId, variant);
     if (!pack) {
       return {
         status: "error",
@@ -250,11 +276,17 @@ async function handleCaptured(
     // count it. Bonus rows carry NULL financials — /admin/margin treats
     // that as "internal allocation, not revenue" (see Task #15 docs for
     // the "NULL means not categorized, never zero revenue" semantics).
+    //
+    // Task #27: `pack.base` is already variant-adjusted (× 12 for
+    // annual) via packCreditsForVariant — we don't multiply here.
     const baseResult = await grantCredits({
       userId: payment.userId,
       delta: pack.base,
-      reason: "purchase",
-      note: `Pack: ${payment.packId}`,
+      reason: variant === "annual" ? "purchase_annual" : "purchase",
+      note:
+        variant === "annual"
+          ? `Pack: ${payment.packId} (annual × ${ANNUAL_MONTHS})`
+          : `Pack: ${payment.packId}`,
       paymentId: payment.id,
       idempotencyKey: `${payment.id}:base`,
       financials: event.financials,
@@ -273,6 +305,51 @@ async function handleCaptured(
         paymentId: payment.id,
         idempotencyKey: `${payment.id}:bonus`,
       });
+    }
+
+    // Task #27 / Phase E — promo redemption audit + bonus-credits
+    // grant. We write the promo_redemptions row BEFORE the bonus
+    // credits grant so if the credit grant transiently fails, a
+    // retry finds the redemption row (unique on paymentId) and skips
+    // the second write. The inner grantCredits call is itself
+    // idempotent on the paymentId + reason key.
+    const promoBonus = Number(payment.promoBonusCredits ?? 0);
+    if (payment.promoCodeId) {
+      try {
+        await db.insert(schema.promoRedemptions).values({
+          id: randomUUID(),
+          promoCodeId: payment.promoCodeId,
+          userId: payment.userId,
+          paymentId: payment.id,
+          discountMicros: Number(payment.promoDiscountMicros ?? 0),
+          bonusCredits: promoBonus,
+          currency: String(payment.currency),
+          packId: payment.packId,
+          annualVariant: variant === "annual" ? 1 : 0,
+        });
+      } catch (err: unknown) {
+        // Duplicate-key on paymentIdx means we already recorded this
+        // redemption on a prior webhook delivery — that's the intended
+        // idempotent outcome, not an error.
+        if (!isDuplicateKeyError(err)) {
+          // Anything else is a real integrity failure; bubble up so
+          // the webhook handler can decide (retry vs. /admin/alarms).
+          throw err;
+        }
+      }
+
+      // Grant the bonus_credits-kind extra credits, if any. Money-off
+      // codes have promoBonus = 0 and this is a no-op.
+      if (promoBonus > 0) {
+        await grantCredits({
+          userId: payment.userId,
+          delta: promoBonus,
+          reason: "promo_bonus",
+          note: `Promo bonus credits on payment ${payment.id}`,
+          paymentId: payment.id,
+          idempotencyKey: `${payment.id}:promo_bonus`,
+        });
+      }
     }
 
     return { status: "processed", grant: baseResult };

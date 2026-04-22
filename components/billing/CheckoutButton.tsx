@@ -28,7 +28,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { I } from "@/components/icons/Icons";
-import type { CreditPackId } from "@/lib/pricing";
+import type { CreditPackId, PackVariant } from "@/lib/pricing";
 import type { CheckoutSession, ProviderId } from "@/lib/payments/types";
 import { createCheckoutAction } from "@/lib/payments/checkout-actions";
 
@@ -38,6 +38,16 @@ type Props = {
   packId: CreditPackId;
   /** If set, the server action is told to prefer this provider. */
   preferredProviderId?: ProviderId;
+  /**
+   * "monthly" (default) or "annual". Annual gets 12× credits + 20% off,
+   * one-time charge. Task #27 / Phase E.
+   */
+  packVariant?: PackVariant;
+  /**
+   * Promo code to apply at checkout. Validated server-side by
+   * createCheckoutAction; invalid codes surface as an inline error.
+   */
+  promoCode?: string;
   label?: string;
   variant?: Variant;
   /** Pass an extra className (e.g. "btn-lg") through to the button. */
@@ -51,6 +61,8 @@ type Props = {
 export function CheckoutButton({
   packId,
   preferredProviderId,
+  packVariant,
+  promoCode,
   label = "Buy pack",
   variant = "outline",
   size = "md",
@@ -66,9 +78,12 @@ export function CheckoutButton({
     setError(null);
     setBusy(true);
     try {
+      const trimmedPromo = promoCode?.trim();
       const result = await createCheckoutAction({
         packId,
         preferredProviderId,
+        variant: packVariant,
+        promoCode: trimmedPromo ? trimmedPromo : undefined,
       });
       if (!result.ok) {
         if (result.error === "not_authenticated") {
@@ -77,6 +92,12 @@ export function CheckoutButton({
           router.push(
             `/login?returnTo=${encodeURIComponent(`/pricing?pack=${packId}`)}`
           );
+          return;
+        }
+        // Promo rejections get mapped to friendly copy. Other failures
+        // fall through to the provider/message from the server action.
+        if (result.error === "promo_invalid" && result.promoReason) {
+          setError(promoReasonCopy(result.promoReason));
           return;
         }
         setError(result.message);
@@ -134,6 +155,48 @@ export function CheckoutButton({
       )}
     </div>
   );
+}
+
+// --- Promo rejection copy (mirrors lib/promos/actions.ts) -----------------
+//
+// Kept here (duplicated) rather than imported from lib/promos/actions.ts
+// because that module is "use server" — importing it into a client
+// component would pull the whole server action bundle. Duplicating 9
+// copy strings is cheaper than the bundle bloat, and the unit tests
+// in scripts/test-promos.mjs pin both sides so drift is caught.
+
+function promoReasonCopy(
+  reason:
+    | "unknown_code"
+    | "inactive"
+    | "not_started"
+    | "expired"
+    | "wrong_currency"
+    | "wrong_pack"
+    | "wrong_variant"
+    | "max_redemptions_reached"
+    | "user_limit_reached"
+): string {
+  switch (reason) {
+    case "unknown_code":
+      return "That promo code isn't recognized. Check the spelling and try again.";
+    case "inactive":
+      return "That promo code is no longer active.";
+    case "not_started":
+      return "That promo code isn't available yet.";
+    case "expired":
+      return "That promo code has expired.";
+    case "wrong_currency":
+      return "That promo code isn't valid for your currency.";
+    case "wrong_pack":
+      return "That promo code can't be applied to this pack.";
+    case "wrong_variant":
+      return "That promo code only applies to annual purchases.";
+    case "max_redemptions_reached":
+      return "That promo code has reached its redemption limit.";
+    case "user_limit_reached":
+      return "You've already used this promo code the maximum number of times.";
+  }
 }
 
 // --- SDK loader ------------------------------------------------------------

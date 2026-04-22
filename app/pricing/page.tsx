@@ -3,9 +3,10 @@ import Link from "next/link";
 import { I } from "@/components/icons/Icons";
 import { FaqItem } from "@/components/marketing/FaqItem";
 import { CheckoutButton } from "@/components/billing/CheckoutButton";
+import { PackUpsellPanel } from "@/components/billing/PackUpsellPanel";
 import { SmartCta } from "@/components/marketing/SmartCta";
 import { LaunchNotifySignup } from "@/components/geo/LaunchNotifySignup";
-import { CREDIT_PACKS, PRICING_FAQ } from "@/lib/pricing";
+import { PRICING_FAQ } from "@/lib/pricing";
 import { TOOLS } from "@/lib/tools";
 
 export const metadata: Metadata = {
@@ -98,87 +99,16 @@ export default function PricingPage() {
       </section>
 
       {/* ===== Credit packs grid ===== */}
+      {/*
+        Phase E / Task #27 — grid now lives inside PackUpsellPanel which
+        also renders the annual/monthly variant toggle and the promo
+        code input. PackUpsellPanel is a client component so variant +
+        promo state can drive every CheckoutButton in the grid from a
+        single source of truth.
+       */}
       <section style={{ paddingTop: 56 }}>
         <div className="container-x" style={{ padding: "0 28px" }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-              gap: 16,
-            }}
-          >
-            {CREDIT_PACKS.map((p) => (
-              <div
-                key={p.id}
-                className="card"
-                style={{
-                  padding: 24,
-                  position: "relative",
-                  ...(p.popular
-                    ? {
-                        borderColor: "var(--accent)",
-                        boxShadow: "0 0 0 1px var(--accent) inset",
-                      }
-                    : {}),
-                }}
-              >
-                {p.popular && (
-                  <div
-                    className="chip chip-ai"
-                    style={{
-                      position: "absolute",
-                      top: -10,
-                      right: 16,
-                      background: "var(--accent)",
-                      color: "var(--accent-fg)",
-                      letterSpacing: "0.08em",
-                    }}
-                  >
-                    POPULAR
-                  </div>
-                )}
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>{p.name}</div>
-                  <div className="muted" style={{ fontSize: 12 }}>
-                    {p.tagline}
-                  </div>
-                </div>
-                <div style={{ marginBottom: 20 }}>
-                  <div className="row" style={{ alignItems: "baseline", gap: 4 }}>
-                    <span style={{ fontSize: 40, fontWeight: 600, letterSpacing: "-0.02em" }}>
-                      ${p.price}
-                    </span>
-                    <span className="muted" style={{ fontSize: 13 }}>
-                      one-time
-                    </span>
-                  </div>
-                  <div className="mono subtle" style={{ fontSize: 12, marginTop: 4 }}>
-                    {p.credits.toLocaleString()} credits
-                    {p.bonus ? ` · +${p.bonus} bonus` : ""} · ${p.pp.toFixed(3)}/credit
-                  </div>
-                </div>
-                <ul style={{ listStyle: "none", padding: 0, margin: 0, marginBottom: 20 }}>
-                  {p.features.map((f) => (
-                    <li
-                      key={f}
-                      className="row"
-                      style={{ gap: 8, fontSize: 13, marginBottom: 8, alignItems: "flex-start" }}
-                    >
-                      <I.Check size={14} style={{ marginTop: 3, flexShrink: 0, color: "var(--accent)" }} />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <CheckoutButton
-                  packId={p.id}
-                  label="Buy pack"
-                  variant={p.popular ? "accent" : "outline"}
-                  size="lg"
-                  fullWidth
-                />
-              </div>
-            ))}
-          </div>
+          <PackUpsellPanel />
         </div>
       </section>
 

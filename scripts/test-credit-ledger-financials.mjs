@@ -213,11 +213,21 @@ assert(
 // fxRateUsed is persisted via String(...) — guard that: we must never
 // parseFloat a decimal(18,8), because IEEE-754 can't hold 8 decimal
 // precision past ~15 total digits.
+// Narrow the negative checks to the fxRateUsed: expression block itself
+// (terminated by the comma after String(fin.fxRateUsed)). Without the
+// narrowing, any unrelated Number()/parseFloat call later in ledger.ts
+// — e.g. Task #27's `Number(payment.annualVariant ?? 0)` for variant
+// extraction — would falsely trip the assertion via the non-greedy
+// [\s\S]*? wildcard.
+const fxBlockMatch = LEDGER_SRC.match(
+  /fxRateUsed:[\s\S]*?String\(fin\.fxRateUsed\)\s*,/
+);
+const fxBlock = fxBlockMatch ? fxBlockMatch[0] : "";
 assert(
   "C6: fxRateUsed persisted via String() (no parseFloat / Number())",
-  /fxRateUsed:[\s\S]*?String\(fin\.fxRateUsed\)/.test(LEDGER_SRC) &&
-    !/fxRateUsed:[\s\S]*?parseFloat/.test(LEDGER_SRC) &&
-    !/fxRateUsed:[\s\S]*?Number\(/.test(LEDGER_SRC)
+  Boolean(fxBlockMatch) &&
+    !/parseFloat/.test(fxBlock) &&
+    !/Number\(/.test(fxBlock)
 );
 
 // Every column appears in the tx.insert().values() payload with a

@@ -550,6 +550,31 @@ const SUITES = [
     name: "degradation-ux",
     file: "test-degradation-ux.mjs",
   },
+  // promos pins Task #27 — Phase E annual-prepay tier, INR pricing on the
+  // user-facing grid, and promo codes end-to-end. Covers: migration 0015
+  // (promo_codes + promo_redemptions tables + payments additive columns),
+  // db/schema/app.ts parity, lib/pricing.ts variant surface (PackVariant,
+  // ANNUAL_DISCOUNT_BPS=2000, packAmountMinor+packCreditsForVariant
+  // annual branches, priceInr fields), lib/promos/resolver.ts 8-gate
+  // validation ladder (isActive → startsAt → expiresAt → currency →
+  // packIds → annualOnly → maxRedemptions → perUserLimit) + kind-aware
+  // discount math, lib/promos/actions.ts server actions (applyPromoCode +
+  // getPromoRedemptionHistory + adminCreate/DisablePromoCode), checkout-
+  // actions plumbing (promo re-resolve at click time for TOCTOU, stamps
+  // promo_code_id + promo_discount_micros + promo_bonus_credits + variant
+  // on payments row), ledger.ts capture hook (writes promo_redemptions +
+  // grants promo_bonus credits idempotent on paymentId), admin rollup
+  // (getPromoCodeInventory with CASE-inside-SUM window/lifetime in one
+  // query), CheckoutButton props (packVariant + promoCode + promo_invalid
+  // friendly copy table), PackUpsellPanel client component (variant
+  // toggle + promo input + prop-drilled grid), and page wire-up (pricing
+  // uses PackUpsellPanel instead of inline grid, /app/billing renders
+  // promo history card, /admin/promos renders inventory + 12-field create
+  // form + disable form action). Placed last in the cluster because
+  // Phase E closes out the Net Margin Roadmap and this suite is a
+  // pure static-parse harness (no route imports, no DB), orthogonal to
+  // every earlier suite.
+  { name: "promos", file: "test-promos.mjs" },
 ];
 
 /**

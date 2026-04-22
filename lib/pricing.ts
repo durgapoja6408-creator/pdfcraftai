@@ -3,6 +3,57 @@
 
 export type CreditPackId = "starter" | "creator" | "pro" | "studio";
 
+/**
+ * Variant of a credit pack purchase.
+ *
+ * Task #27 / Phase E introduces `"annual"` — a one-time purchase of
+ * 12× credits at a 20% price discount. We model this as a variant of
+ * the existing monthly pack rather than a separate SKU because:
+ *
+ *   (a) it reuses the same checkout plumbing (router, adapters,
+ *       webhooks, ledger) — only the `amountMinor` + credits-granted
+ *       numbers change,
+ *   (b) it matches the /pricing FAQ line "Annual plans save 20%" that
+ *       has been public since v1,
+ *   (c) monthly and annual share the same underlying margin model:
+ *       the AI cost per credit is invariant, so a 20% price discount
+ *       on 12× credits lands us at Starter 86.5% / Creator 89.0% /
+ *       Pro 87.8% / Studio 87.1% net margin (vs the monthly claims
+ *       of 88% / 83% / 78% / 73%), verified in
+ *       docs/ai/MARGIN_VERIFICATION.md §12.3 S1 Paddle-variant table.
+ *
+ * Keeping this an explicit union (not a boolean flag) lets the UI,
+ * checkout action, admin rollup, and DB row all speak the same
+ * word — "annual" vs "monthly" — instead of inferring meaning from
+ * a 0/1 that lands weird in logs.
+ */
+export type PackVariant = "monthly" | "annual";
+
+/**
+ * Annual-prepay price discount, in basis points (10_000 = 100%).
+ *
+ *   ANNUAL_DISCOUNT_BPS = 2000 → 20% off the 12× monthly equivalent.
+ *
+ * Rationale for 20% specifically:
+ *   - Matches the longstanding /pricing FAQ claim (changing the number
+ *     retroactively would be a copy-change + growth-post-mortem).
+ *   - Anchored on the "annual discount" norm in SaaS pricing — 16–20%
+ *     is the typical band (Basecamp 16%, Notion 20%, Linear 25%).
+ *     Landing in the middle of that band keeps us competitive without
+ *     pricing ourselves into a margin hole.
+ *   - Our post-Paddle margin headroom under cheap routing can absorb
+ *     a 20% discount across all four packs and still clear the 85%
+ *     floor on Creator/Pro/Studio (see §12.3 S1). Starter dips to
+ *     ~86.5% — still the healthiest credit pack in SaaS we know of.
+ *
+ * Multiplier for annual credits: 12 (12 months). We do NOT multiply
+ * the `bonus` field because the bonus is positioned in UI as a
+ * "buy this month, get X more" offer — layering it 12× on an annual
+ * purchase would break the cost ratio sketched in MARGIN_VERIFICATION.
+ */
+export const ANNUAL_DISCOUNT_BPS = 2000;
+export const ANNUAL_MONTHS = 12;
+
 export type CreditPack = {
   id: CreditPackId;
   name: string;
@@ -13,6 +64,20 @@ export type CreditPack = {
   popular?: boolean;
   bonus?: number;
   bonusExpires?: number; // days
+  /**
+   * Per-pack INR price for the Razorpay rail (Task #27 / Phase E).
+   *
+   * `undefined` falls back to `price × USD_TO_INR_RATE` (the legacy
+   * Task #20 conversion). Explicit non-undefined values override —
+   * this is where we anchor region-appropriate pricing (typically
+   * at or below the raw conversion to match the Indian SaaS market
+   * norm). Reviewed alongside every USD_TO_INR_RATE bump.
+   *
+   * Units: whole INR (NOT paise). `packAmountMinor(pack, "INR")`
+   * multiplies by 100 to get paise, matching Razorpay's amount
+   * convention.
+   */
+  inrPrice?: number;
   /**
    * Claimed gross margin percentage shown on the /pricing page.
    *
@@ -54,6 +119,11 @@ export const CREDIT_PACKS: readonly CreditPack[] = [
     pp: 0.05,
     tagline: "Try the AI tools",
     margin: 88,
+    // Task #27: anchor Starter at ₹399 — below the raw USD×84 = ₹420
+    // conversion. Indian market norm is sub-₹500 for a try-it SKU,
+    // and the 5% nominal gap is absorbed by the better INR checkout
+    // conversion (Razorpay 2% flat beats Paddle's 5% + $0.50).
+    inrPrice: 399,
     features: ["100 credits", "Never expire", "All AI tools", "Email support"],
   },
   {
@@ -67,6 +137,11 @@ export const CREDIT_PACKS: readonly CreditPack[] = [
     bonus: 25,
     bonusExpires: 30,
     margin: 83,
+    // Task #27: Creator at ₹1,499 — raw conversion says ₹1,596. The
+    // round-number discount ("under ₹1.5k") is a documented Indian
+    // SaaS anchor pattern, and the margin model in §12.3 S1
+    // accommodates it.
+    inrPrice: 1499,
     features: [
       "500 credits + 25 bonus",
       "Paid credits never expire",
@@ -84,6 +159,10 @@ export const CREDIT_PACKS: readonly CreditPack[] = [
     bonus: 200,
     bonusExpires: 30,
     margin: 78,
+    // Task #27: Pro at ₹4,999 — raw conversion ₹4,956, rounded up to
+    // the natural psychological anchor. Pro's margin is tightest so
+    // we don't undercut the conversion here.
+    inrPrice: 4999,
     features: [
       "2000 + 200 bonus",
       "BYOK unlocked (+15% infra fee)",
@@ -101,6 +180,10 @@ export const CREDIT_PACKS: readonly CreditPack[] = [
     bonus: 800,
     bonusExpires: 30,
     margin: 73,
+    // Task #27: Studio at ₹12,499 — raw conversion ₹12,516. Team SKU,
+    // typically a procurement purchase not a credit-card impulse, so
+    // we don't PPP-discount further.
+    inrPrice: 12499,
     features: [
       "6000 + 800 bonus",
       "BYOK unlimited · $49/seat infra",
@@ -136,7 +219,28 @@ export const USD_TO_INR_RATE = 84;
  * Pack price in the smallest currency unit for the rail's billing currency.
  *
  *   - "USD" → cents (pack.price × 100) — the Paddle path.
- *   - "INR" → paise (pack.price × USD_TO_INR_RATE × 100, rounded) — Razorpay path.
+ *   - "INR" → paise (pack.inrPrice × 100) if the pack has a dedicated
+ *             INR anchor (Task #27), else the legacy
+ *             pack.price × USD_TO_INR_RATE × 100 fallback — Razorpay path.
+ *
+ * Task #27 / Phase E extensions:
+ *   - `opts.variant` = "annual" applies a 12× multiplier to the base
+ *     price and then a 20% discount (ANNUAL_DISCOUNT_BPS), giving the
+ *     user 12 months of the pack's credits in one charge for 80% of
+ *     the 12-month price.
+ *   - `opts.promoDiscountMicros` subtracts an absolute discount (in
+ *     the billing currency's micros) after the variant pricing. Promo
+ *     applies to the post-variant subtotal — so an ANNUAL promo
+ *     doesn't double-dip on the base annual discount unless the
+ *     campaign explicitly stacks.
+ *   - `opts.promoDiscountBps` applies a percentage discount (in basis
+ *     points) after the variant pricing. Resolver picks exactly one
+ *     of `promoDiscountMicros` / `promoDiscountBps` depending on
+ *     promo kind; the other is undefined. Both-undefined = no promo.
+ *
+ * Return value is floored at 0 — a 100%-off promo on an annual Starter
+ * returns `0` rather than a negative amount (which would fail the
+ * adapter at the provider side).
  *
  * A Currency this module doesn't recognize falls back to USD cents so
  * callers fail closed to the existing Paddle-rail math rather than
@@ -144,12 +248,107 @@ export const USD_TO_INR_RATE = 84;
  */
 export function packAmountMinor(
   pack: CreditPack,
-  currency: "USD" | "INR"
-): number {
-  if (currency === "INR") {
-    return Math.round(pack.price * USD_TO_INR_RATE * 100);
+  currency: "USD" | "INR",
+  opts?: {
+    variant?: PackVariant;
+    promoDiscountMicros?: number;
+    promoDiscountBps?: number;
   }
-  return pack.price * 100;
+): number {
+  const variant: PackVariant = opts?.variant ?? "monthly";
+
+  // Base price in whole units of the target currency.
+  let basePrice: number;
+  if (currency === "INR") {
+    basePrice = pack.inrPrice ?? pack.price * USD_TO_INR_RATE;
+  } else {
+    basePrice = pack.price;
+  }
+
+  // Annual variant: 12× months, minus the annual discount.
+  // Formula chosen to keep intermediate math in whole-unit land:
+  //   monthly_subtotal × 12 × (10_000 − ANNUAL_DISCOUNT_BPS) / 10_000
+  // For ANNUAL_DISCOUNT_BPS = 2000 this gives × 9.6.
+  let subtotalMinor: number;
+  if (variant === "annual") {
+    const annualSubtotal =
+      (basePrice * ANNUAL_MONTHS * (10_000 - ANNUAL_DISCOUNT_BPS)) / 10_000;
+    subtotalMinor = Math.round(annualSubtotal * 100);
+  } else {
+    subtotalMinor = Math.round(basePrice * 100);
+  }
+
+  // Promo discount — exactly one of the two forms will be set; both
+  // being undefined means "no promo".
+  if (typeof opts?.promoDiscountBps === "number") {
+    const disc = Math.floor(
+      (subtotalMinor * opts.promoDiscountBps) / 10_000
+    );
+    subtotalMinor = Math.max(0, subtotalMinor - disc);
+  }
+  if (typeof opts?.promoDiscountMicros === "number") {
+    // promoDiscountMicros is billing-currency micros (1e-6 units);
+    // our subtotal is in minors (1e-2 units). Convert before subtracting.
+    const discMinor = Math.floor(opts.promoDiscountMicros / 10_000);
+    subtotalMinor = Math.max(0, subtotalMinor - discMinor);
+  }
+
+  return subtotalMinor;
+}
+
+/**
+ * Credits granted for a pack purchase, accounting for annual variant.
+ *
+ * Monthly: pack.credits (+ pack.bonus if present, expiring).
+ * Annual: pack.credits × 12 (+ pack.bonus once, NOT multiplied — see
+ *         ANNUAL_DISCOUNT_BPS JSDoc for rationale).
+ *
+ * Returns { paid, bonus, bonusExpiresDays } so the ledger grant in
+ * lib/payments/ledger.ts can split paid vs bonus credits (paid never
+ * expire; bonus expires after bonusExpiresDays). Matches the shape
+ * of the existing ledger.ts grant logic.
+ */
+export function packCreditsForVariant(
+  pack: CreditPack,
+  variant: PackVariant
+): { paid: number; bonus: number; bonusExpiresDays: number | null } {
+  const bonusExpiresDays = pack.bonusExpires ?? null;
+  if (variant === "annual") {
+    return {
+      paid: pack.credits * ANNUAL_MONTHS,
+      bonus: pack.bonus ?? 0,
+      bonusExpiresDays,
+    };
+  }
+  return {
+    paid: pack.credits,
+    bonus: pack.bonus ?? 0,
+    bonusExpiresDays,
+  };
+}
+
+/**
+ * Display-layer helper for the /pricing page.
+ *
+ * Returns `{ monthly, annual }` prices in whole units of the given
+ * currency. Used by the pack card component to render the "annual
+ * saves 20%" toggle without duplicating the variant math at the UI
+ * layer.
+ */
+export function packDisplayPrices(
+  pack: CreditPack,
+  currency: "USD" | "INR"
+): { monthly: number; annual: number; annualSavings: number } {
+  const monthly = packAmountMinor(pack, currency, { variant: "monthly" });
+  const annual = packAmountMinor(pack, currency, { variant: "annual" });
+  // What the user "would have paid" at 12× the monthly — annual is
+  // 80% of that. The savings in minor units is the gap.
+  const annualFullPrice = monthly * ANNUAL_MONTHS;
+  return {
+    monthly,
+    annual,
+    annualSavings: annualFullPrice - annual,
+  };
 }
 
 // --- AI operation costs (Phase 5) -----------------------------------------

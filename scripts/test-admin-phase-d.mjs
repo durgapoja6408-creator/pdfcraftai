@@ -427,10 +427,17 @@ for (const p of PAGES) {
     /export\s+default\s+(async\s+)?function/.test(pageSrc),
     `${p.href} has a default export`
   );
-  // requireAdmin must NOT be duplicated in the page — layout gates.
+  // requireAdmin must NOT be *called* in the page body — layout gates.
+  // The mere presence of the word is OK (e.g. a comment explaining that
+  // requireAdmin is enforced inside the referenced server actions). We
+  // strip // line comments and /* */ block comments before matching to
+  // keep documentation-friendly regexes honest.
+  const stripped = pageSrc
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/[^\n]*/g, "");
   assert(
-    !/requireAdmin/.test(pageSrc),
-    `${p.href} does not re-gate with requireAdmin (layout already gates)`
+    !/\brequireAdmin\s*\(/.test(stripped),
+    `${p.href} does not re-gate with requireAdmin() call (layout already gates)`
   );
 }
 
@@ -458,15 +465,20 @@ for (const name of [
   );
 }
 
-// Promos: placeholder referencing Task #27.
+// Promos: Phase E / Task #27 promoted this page from a placeholder to a
+// real inventory + create/disable UI. The page must still cite Task #27
+// (traceability) and must wire the three Phase-E modules — the server
+// actions (create/disable) and the inventory rollup query.
 const promosSrc = read(PAGES[1].path);
 assert(
   /Task\s*#?27/i.test(promosSrc),
   "/admin/promos cites Task #27"
 );
 assert(
-  /PHASE\s+E\s+PLACEHOLDER/i.test(promosSrc),
-  "/admin/promos flags itself as Phase E placeholder"
+  /adminCreatePromoCodeAction/.test(promosSrc) &&
+    /adminDisablePromoCodeAction/.test(promosSrc) &&
+    /getPromoCodeInventory/.test(promosSrc),
+  "/admin/promos wires adminCreate/Disable actions + getPromoCodeInventory"
 );
 
 // Compliance: pulls from legal-docs + phase-d-queries static constants.

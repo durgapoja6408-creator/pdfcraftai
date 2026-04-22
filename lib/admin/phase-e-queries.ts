@@ -36,7 +36,7 @@
 
 import "server-only";
 
-import { and, desc, gte, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, sql } from "drizzle-orm";
 import { db, schema } from "@/db/client";
 
 // ---------------------------------------------------------------------
@@ -208,6 +208,290 @@ export async function getPromptVersionRollout(opts: {
     return {
       ok: false,
       error: err instanceof Error ? err.message : "rollout_query_failed",
+    };
+  }
+}
+
+// ---------------------------------------------------------------------
+// /admin/promos — code inventory + rollup
+// ---------------------------------------------------------------------
+//
+// The question this answers on the page:
+//
+//   "Which promo codes exist, how many times have they been used, how
+//    much discount have we given away, and which ones are approaching
+//    their redemption caps?"
+//
+// Why one query returning everything instead of a codes-then-stats
+// two-roundtrip pattern:
+// ------------------------------------------------------------------
+// The codes table caps at the low hundreds in practice and each row's
+// redemption stats come from a LEFT JOIN + GROUP BY — one round-trip
+// lands the whole page in one Drizzle call. Splitting would just add
+// latency without giving us query-planner wins.
+//
+// Why a window on the stats:
+// --------------------------
+// Lifetime stats are in promo_redemptions too (aggregated by FK) but
+// operators mostly care "how did this code perform THIS month" when
+// judging a campaign. Giving them the window via ?days= keeps the
+// UI aligned with every other Phase D/E page. Lifetime counts are
+// also surfaced so they can see "this seasonal code was massive last
+// year" without a manual query.
+
+export type PromoCodeInventoryRow = {
+  id: string;
+  code: string;
+  kind: "percent" | "flat" | "bonus_credits";
+  value: number;
+  currency: string | null;
+  packIds: string | null;
+  annualOnly: boolean;
+  maxRedemptions: number | null;
+  perUserLimit: number | null;
+  startsAt: Date | null;
+  expiresAt: Date | null;
+  isActive: boolean;
+  campaign: string | null;
+  notes: string | null;
+  createdAt: Date;
+  createdBy: string | null;
+  disabledAt: Date | null;
+  disabledBy: string | null;
+  /** Redemptions within the configured window (for campaign analysis). */
+  windowRedemptions: number;
+  /** Redemptions since the code was created (the hard cap's denominator). */
+  lifetimeRedemptions: number;
+  /** Sum of discount_micros given away in the window. */
+  windowDiscountMicros: number;
+  /** Total bonus_credits granted in the window (always 0 for percent/flat). */
+  windowBonusCredits: number;
+};
+
+export type PromoInventorySnapshot = {
+  windowDays: number;
+  totalCodes: number;
+  totalActiveCodes: number;
+  /** Sum of windowDiscountMicros across all rows — top-of-page headline. */
+  totalWindowDiscountMicros: number;
+  totalWindowRedemptions: number;
+  rows: PromoCodeInventoryRow[];
+};
+
+/**
+ * Full promo code inventory with windowed + lifetime redemption stats.
+ *
+ * LEFT JOIN so codes that have never been redeemed (a freshly-minted
+ * campaign code the day it ships) still show up with zeros. The
+ * windowed aggregation uses a CASE inside COUNT so a single
+ * promo_redemptions scan gives us both window and lifetime numbers —
+ * cheaper than two separate aggregations.
+ *
+ * Clamped to [1, 365] days to cap the CASE filter cost. A year is the
+ * widest reasonable "campaign analysis window"; anything beyond should
+ * pull from a rollup table (none exists yet — revisit when needed).
+ */
+export async function getPromoCodeInventory(opts: {
+  days: number;
+}): Promise<PhaseEQueryResult<PromoInventorySnapshot>> {
+  const days = Math.min(Math.max(opts.days, 1), 365);
+  const since = new Date(Date.now() - days * msPerDay());
+
+  try {
+    const rollupRows = await db
+      .select({
+        id: schema.promoCodes.id,
+        code: schema.promoCodes.code,
+        kind: schema.promoCodes.kind,
+        value: schema.promoCodes.value,
+        currency: schema.promoCodes.currency,
+        packIds: schema.promoCodes.packIds,
+        annualOnly: schema.promoCodes.annualOnly,
+        maxRedemptions: schema.promoCodes.maxRedemptions,
+        perUserLimit: schema.promoCodes.perUserLimit,
+        startsAt: schema.promoCodes.startsAt,
+        expiresAt: schema.promoCodes.expiresAt,
+        isActive: schema.promoCodes.isActive,
+        campaign: schema.promoCodes.campaign,
+        notes: schema.promoCodes.notes,
+        createdAt: schema.promoCodes.createdAt,
+        createdBy: schema.promoCodes.createdBy,
+        disabledAt: schema.promoCodes.disabledAt,
+        disabledBy: schema.promoCodes.disabledBy,
+        windowRedemptions: sql<number>`SUM(CASE WHEN ${schema.promoRedemptions.createdAt} >= ${since} THEN 1 ELSE 0 END)`.as(
+          "window_redemptions"
+        ),
+        lifetimeRedemptions: sql<number>`COUNT(${schema.promoRedemptions.id})`.as(
+          "lifetime_redemptions"
+        ),
+        windowDiscountMicros: sql<number>`COALESCE(SUM(CASE WHEN ${schema.promoRedemptions.createdAt} >= ${since} THEN ${schema.promoRedemptions.discountMicros} ELSE 0 END), 0)`.as(
+          "window_discount_micros"
+        ),
+        windowBonusCredits: sql<number>`COALESCE(SUM(CASE WHEN ${schema.promoRedemptions.createdAt} >= ${since} THEN ${schema.promoRedemptions.bonusCredits} ELSE 0 END), 0)`.as(
+          "window_bonus_credits"
+        ),
+      })
+      .from(schema.promoCodes)
+      .leftJoin(
+        schema.promoRedemptions,
+        eq(schema.promoRedemptions.promoCodeId, schema.promoCodes.id)
+      )
+      .groupBy(
+        schema.promoCodes.id,
+        schema.promoCodes.code,
+        schema.promoCodes.kind,
+        schema.promoCodes.value,
+        schema.promoCodes.currency,
+        schema.promoCodes.packIds,
+        schema.promoCodes.annualOnly,
+        schema.promoCodes.maxRedemptions,
+        schema.promoCodes.perUserLimit,
+        schema.promoCodes.startsAt,
+        schema.promoCodes.expiresAt,
+        schema.promoCodes.isActive,
+        schema.promoCodes.campaign,
+        schema.promoCodes.notes,
+        schema.promoCodes.createdAt,
+        schema.promoCodes.createdBy,
+        schema.promoCodes.disabledAt,
+        schema.promoCodes.disabledBy
+      )
+      // Active codes first (operators mostly care about those), then
+      // newest-created. Disabled codes sink to the bottom of the
+      // table but remain visible for audit-trail purposes.
+      .orderBy(desc(schema.promoCodes.isActive), desc(schema.promoCodes.createdAt));
+
+    const rows: PromoCodeInventoryRow[] = rollupRows.map((r) => ({
+      id: String(r.id),
+      code: String(r.code),
+      kind: r.kind as PromoCodeInventoryRow["kind"],
+      value: Number(r.value),
+      currency: r.currency ? String(r.currency) : null,
+      packIds: r.packIds ? String(r.packIds) : null,
+      annualOnly: Number(r.annualOnly) === 1,
+      maxRedemptions: r.maxRedemptions !== null ? Number(r.maxRedemptions) : null,
+      perUserLimit: r.perUserLimit !== null ? Number(r.perUserLimit) : null,
+      startsAt: r.startsAt ?? null,
+      expiresAt: r.expiresAt ?? null,
+      isActive: Number(r.isActive) === 1,
+      campaign: r.campaign ? String(r.campaign) : null,
+      notes: r.notes ? String(r.notes) : null,
+      createdAt: r.createdAt ?? new Date(0),
+      createdBy: r.createdBy ? String(r.createdBy) : null,
+      disabledAt: r.disabledAt ?? null,
+      disabledBy: r.disabledBy ? String(r.disabledBy) : null,
+      windowRedemptions: Number(r.windowRedemptions) || 0,
+      lifetimeRedemptions: Number(r.lifetimeRedemptions) || 0,
+      windowDiscountMicros: Number(r.windowDiscountMicros) || 0,
+      windowBonusCredits: Number(r.windowBonusCredits) || 0,
+    }));
+
+    const totalActiveCodes = rows.filter((r) => r.isActive).length;
+    const totalWindowDiscountMicros = rows.reduce(
+      (acc, r) => acc + r.windowDiscountMicros,
+      0
+    );
+    const totalWindowRedemptions = rows.reduce(
+      (acc, r) => acc + r.windowRedemptions,
+      0
+    );
+
+    return {
+      ok: true,
+      data: {
+        windowDays: days,
+        totalCodes: rows.length,
+        totalActiveCodes,
+        totalWindowDiscountMicros,
+        totalWindowRedemptions,
+        rows,
+      },
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error ? err.message : "promo_inventory_query_failed",
+    };
+  }
+}
+
+// ---------------------------------------------------------------------
+// /admin/promos?user=<id> — per-user redemption drill-down
+// ---------------------------------------------------------------------
+//
+// Answers "did this specific customer redeem any promo codes, and
+// which ones?". Called from the admin user-detail surface when
+// investigating a refund, fraud report, or support ticket. Small
+// result set so we don't paginate — just cap at 200 rows and call it.
+
+export type AdminPromoRedemptionRow = {
+  id: string;
+  promoCodeId: string;
+  code: string;
+  campaign: string | null;
+  kind: "percent" | "flat" | "bonus_credits";
+  discountMicros: number;
+  bonusCredits: number;
+  currency: string;
+  packId: string | null;
+  annualVariant: boolean;
+  paymentId: string;
+  redeemedAt: Date;
+};
+
+export async function getPromoRedemptionsForUser(opts: {
+  userId: string;
+}): Promise<PhaseEQueryResult<AdminPromoRedemptionRow[]>> {
+  try {
+    const rows = await db
+      .select({
+        id: schema.promoRedemptions.id,
+        promoCodeId: schema.promoRedemptions.promoCodeId,
+        code: schema.promoCodes.code,
+        campaign: schema.promoCodes.campaign,
+        kind: schema.promoCodes.kind,
+        discountMicros: schema.promoRedemptions.discountMicros,
+        bonusCredits: schema.promoRedemptions.bonusCredits,
+        currency: schema.promoRedemptions.currency,
+        packId: schema.promoRedemptions.packId,
+        annualVariant: schema.promoRedemptions.annualVariant,
+        paymentId: schema.promoRedemptions.paymentId,
+        redeemedAt: schema.promoRedemptions.createdAt,
+      })
+      .from(schema.promoRedemptions)
+      .innerJoin(
+        schema.promoCodes,
+        eq(schema.promoRedemptions.promoCodeId, schema.promoCodes.id)
+      )
+      .where(eq(schema.promoRedemptions.userId, opts.userId))
+      .orderBy(desc(schema.promoRedemptions.createdAt))
+      .limit(200);
+
+    return {
+      ok: true,
+      data: rows.map((r) => ({
+        id: String(r.id),
+        promoCodeId: String(r.promoCodeId),
+        code: String(r.code),
+        campaign: r.campaign ? String(r.campaign) : null,
+        kind: r.kind as AdminPromoRedemptionRow["kind"],
+        discountMicros: Number(r.discountMicros ?? 0),
+        bonusCredits: Number(r.bonusCredits ?? 0),
+        currency: String(r.currency),
+        packId: r.packId ? String(r.packId) : null,
+        annualVariant: Number(r.annualVariant ?? 0) === 1,
+        paymentId: String(r.paymentId),
+        redeemedAt: r.redeemedAt ?? new Date(0),
+      })),
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "promo_user_redemptions_query_failed",
     };
   }
 }
