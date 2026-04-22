@@ -87,6 +87,21 @@ const SUITES = [
   // before dev-hooks so that a router regression is surfaced as a
   // subsystem failure rather than as a tooling failure.
   { name: "ai-router", file: "test-router.mjs" },
+  // ai-evals pins Task #14 — the Phase A golden-set eval harness
+  // scaffold + per-op quality floor. Covers: migration 0011 contract
+  // (ai_eval_runs table + 3 indexes), Drizzle schema parity, the
+  // lib/ai/eval/{types,rubric,golden-set,runner}.ts module surface,
+  // rubric primitive behaviour via dynamic import, golden-set
+  // well-formedness (unique (op,id) pairs, diverse rubric kinds,
+  // must-cover translate + summarize since those are the Task #4/#11
+  // regression targets), runner export contract including
+  // PROMPT_BUILDERS coverage for every op with fixtures, and the
+  // scripts/run-ai-evals.mjs CLI shell. Placed right after ai-router
+  // because runner.ts layers directly on route(op, ...) + the
+  // registry adapter surface — a router export removal breaks both,
+  // and this harness surfaces "runner cannot build ChatInput for op X"
+  // at the right granularity.
+  { name: "ai-evals", file: "test-ai-evals.mjs" },
   // health-ai pins Task #18 (code-side) — the /api/health ai.{configured,
   // providers, defaults} block. Covers: import of the router+registry
   // introspection helpers, probeAi() try/catch degrade path, response-body

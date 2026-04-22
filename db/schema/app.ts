@@ -981,3 +981,91 @@ export const batchJobs = mysqlTable(
     ),
   })
 );
+
+/**
+ * Phase A / Task #14 — eval harness run log.
+ *
+ * One row per (op, golden_id) executed in a single CLI invocation. A
+ * CLI invocation shares one `run_batch_id` so we can group per-op
+ * scores back into a single dashboard row and filter "only runs from
+ * commit SHA X" after a deploy.
+ *
+ * Why we need this
+ * ----------------
+ * Task #4 (2026-04-21) flipped the translate primary Gemini→gpt-4o-mini
+ * for a ~4× cost win, and Task #11 (2026-04-22) tightened per-op output
+ * caps. Both changes CAN silently regress quality. Without a golden-set
+ * harness the first signal is a user complaint two weeks later; with
+ * one, a nightly cron (Phase B) can alarm the same Slack channel as
+ * the margin rollup the moment trailing-7d pass rate drops below
+ * `OP_QUALITY_FLOOR`.
+ *
+ * v1 scope: table + Drizzle + rubric + runner + CLI + test harness.
+ * Cron, Slack alarm, admin page are Phase B work.
+ *
+ * Rubric is deterministic in v1 — regex/shape/numeric-preservation
+ * checks only. No LLM-judge loops: they're slow, expensive, and
+ * non-deterministic across runs (defeats the point of a floor alarm).
+ *
+ * Score encoding
+ * --------------
+ * `overall_score` is basis points 0–10000 (matches
+ * `ai_daily_margin.margin_bps` scale) so trailing-median rollups don't
+ * need double conversion.
+ *
+ * `passed` is 0 | 1 — encoded as int (not bool) to match
+ * `ai_usage.success` / `response_truncated` conventions and allow
+ * efficient `SUM(passed) / COUNT(*)` pass-rate queries.
+ *
+ * No FK to users.id — eval runs are system-invoked, not
+ * user-initiated. `run_batch_id` is the only cross-row anchor.
+ *
+ * Migration: `db/migrations/0011_ai_eval_runs.sql`.
+ */
+export const aiEvalRuns = mysqlTable(
+  "ai_eval_runs",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    runBatchId: varchar("run_batch_id", { length: 36 }).notNull(),
+    // Hostinger sets COMMIT_SHA at deploy; local dev leaves it NULL.
+    commitSha: varchar("commit_sha", { length: 40 }),
+    // One of the 10 AIOp values (router.ts). varchar(32) matches
+    // ai_usage.operation and ai_daily_margin.operation.
+    op: varchar("op", { length: 32 }).notNull(),
+    // Stable identifier from lib/ai/eval/golden-set.ts. (op, golden_id)
+    // is the natural key for "this specific test across time".
+    goldenId: varchar("golden_id", { length: 128 }).notNull(),
+    // Provider actually picked by the router at run time (primary or
+    // fallback). Lets us compare pass rate across the ladder.
+    providerId: varchar("provider_id", { length: 32 }).notNull(),
+    model: varchar("model", { length: 128 }).notNull(),
+    // 0 | 1 — rubric verdict.
+    passed: int("passed").notNull(),
+    // Full per-check breakdown: { checks: [{id, label, passed, weight,
+    // detail?}], score, threshold }. Stored as json so we can
+    // retroactively slice by check id without a schema change.
+    scoreRubric: json("score_rubric").notNull(),
+    // Basis points 0–10000.
+    overallScore: int("overall_score").notNull(),
+    latencyMs: int("latency_ms").notNull(),
+    tokensIn: int("tokens_in"),
+    tokensOut: int("tokens_out"),
+    // If the run paid via real credits (not dry-run), mirror ai_usage's
+    // cost so the margin rollup can net eval spend out of the daily
+    // totals during Phase B. NULL for dry-runs.
+    costMicros: bigint("cost_micros", { mode: "number" }),
+    // Populated when the op threw before producing output. In that
+    // case passed=0 and overall_score=0.
+    errorMessage: varchar("error_message", { length: 512 }),
+    createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
+  },
+  (t) => ({
+    // "Trailing pass rate per op" — covers the nightly floor alarm.
+    opCreatedIdx: index("ai_eval_runs_op_created_idx").on(t.op, t.createdAt),
+    // "All rows from this CLI invocation" — dashboard drill-down.
+    batchIdx: index("ai_eval_runs_batch_idx").on(t.runBatchId),
+    // "Regression check post-deploy" — compare trailing-7d before/after
+    // a commit SHA landed.
+    commitOpIdx: index("ai_eval_runs_commit_op_idx").on(t.commitSha, t.op),
+  })
+);
