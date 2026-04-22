@@ -1,0 +1,167 @@
+-- 0012_credit_ledger_financials.sql
+-- Phase B / Task #15 — expand credit_ledger so every row is self-describing
+-- for net-margin accounting.
+--
+-- Background
+-- ----------
+-- Phase A (Tasks #10-#14, 2026-04-21…2026-04-22) brought AI *gross*
+-- margin under control — router flips, prompt caching, output caps,
+-- daily cost ceiling, Batch API, eval harness. But gross margin is
+-- "revenue − AI COGS"; **net** margin has to also subtract processor
+-- fees, taxes we owe to authorities, FX slippage, refund reserves, and
+-- breakage accounting. None of those numbers land anywhere today —
+-- `credit_ledger` only has `delta`, `reason`, and `note`, so a row that
+-- says "+500 credits, reason=purchase" tells us zero about how much
+-- net revenue the business booked.
+--
+-- Phase B is the "make net margin computable" phase. Task #15 is the
+-- schema foundation: every *future* row (from the Paddle webhook in
+-- Task #16) writes these columns in full; existing rows get either
+-- backfilled from Paddle API history or tagged with a synthetic
+-- estimate via `data_source`.
+--
+-- Columns added
+-- -------------
+-- gross_charge_micros   bigint       What the customer was billed in their
+--                                    currency, in micros (1e-6 units).
+--                                    bigint to tolerate INR paise at volume
+--                                    (a ₹999 charge = 999_000_000 micro-INR,
+--                                    comfortably inside int64).
+-- billing_currency      char(3)      "USD" / "INR" / etc. ISO 4217.
+-- provider              enum         "paddle" | "razorpay" | "manual" |
+--                                    "refund_reversal". MANUAL is grants
+--                                    we mint for promos/support credits;
+--                                    REFUND_REVERSAL marks the debit row
+--                                    that books a refund against the
+--                                    original credit grant (so the
+--                                    /admin/margin view can net them).
+-- processor_fee_micros  bigint       Paddle/Razorpay fee taken before payout.
+--                                    Always expressed in the billing currency.
+-- tax_collected_micros  bigint       GST/VAT/sales tax collected from the
+--                                    customer (i.e. part of what they paid).
+-- tax_treatment         enum         How we account for the tax:
+--                                     - "mor"      Paddle is merchant of
+--                                                  record; they absorb
+--                                                  collection + remittance
+--                                                  and we owe nothing.
+--                                     - "forward"  Razorpay collects GST on
+--                                                  our behalf; we remit to
+--                                                  GoI (so tax_remittable
+--                                                  ≈ tax_collected).
+--                                     - "rcm"      Foreign-buyer reverse
+--                                                  charge mechanism — buyer
+--                                                  self-assesses, we remit
+--                                                  zero.
+--                                     - "none"     Exempt/zero-rated (e.g.
+--                                                  education, <threshold).
+-- tax_remittable_micros bigint       Of `tax_collected`, how much we owe to
+--                                    a tax authority. Zero for MoR, full
+--                                    amount for forward, zero for RCM.
+-- fx_rate_used          decimal(18,8) Rate used to convert billing_currency
+--                                    → USD for the canonical
+--                                    `net_revenue_micros` figure.
+--                                    decimal(18,8) keeps precision past the
+--                                    8th decimal place — more than any FX
+--                                    desk publishes.
+-- fx_slippage_micros    bigint       Realized cost of the FX leg vs. the
+--                                    reference rate at the moment we
+--                                    quoted the price. This is how we
+--                                    attribute "I priced at ₹999 when USD
+--                                    was 83.50, Paddle converted at 83.72"
+--                                    to a real P&L line.
+-- net_revenue_micros    bigint       The canonical net number, expressed in
+--                                    **USD micros**, not billing currency.
+--                                    Formula:
+--                                      gross_charge_micros
+--                                        × (1 / fx_rate_used)         ← into USD
+--                                        − processor_fee_micros_usd
+--                                        − tax_remittable_micros_usd
+--                                        − fx_slippage_micros_usd
+--                                    Computed at insert time by the payment
+--                                    adapter (we don't make MySQL do
+--                                    floating-point arithmetic on writes).
+--                                    The /admin/margin dashboard rolls this
+--                                    up per day without touching FX at
+--                                    query time.
+-- card_fingerprint      varchar(64)  For fraud dedup in Phase D. Provider
+--                                    returns a stable hash of the PAN;
+--                                    we store that hash only, never the
+--                                    PAN itself. Nullable because promo
+--                                    credits / refund reversals have no card.
+-- data_source           enum         Provenance of the financial columns:
+--                                     - "webhook"      Real data from the
+--                                                      Task #16 Paddle (or
+--                                                      Razorpay) webhook.
+--                                                      Authoritative.
+--                                     - "backfill_api" Fetched from the
+--                                                      provider's REST
+--                                                      history endpoint
+--                                                      during a one-shot
+--                                                      backfill script.
+--                                                      Still real, just
+--                                                      not from the
+--                                                      real-time webhook.
+--                                     - "estimate"     Synthetic — we
+--                                                      applied a default
+--                                                      fee % and tax
+--                                                      treatment for
+--                                                      historical rows
+--                                                      the provider no
+--                                                      longer exposes.
+--                                                      Rolled up separately
+--                                                      in /admin/margin so
+--                                                      estimates never
+--                                                      pollute the "real"
+--                                                      net-margin number.
+--
+-- Rollout safety
+-- --------------
+-- All new columns are NULLable with NO default. That's deliberate:
+--   1. ALTER TABLE completes instantly on an empty / small prod table
+--      (MariaDB ADD COLUMN with no default is metadata-only).
+--   2. Legacy rows land with NULL across the board. The admin dashboard
+--      filters NULL as "unknown provenance" — it isn't counted as zero
+--      revenue, which would skew downward. It's counted as "not yet
+--      categorized" and shown in a separate bucket.
+--   3. Task #16 (Paddle webhook handler) will INSERT with every column
+--      populated — NOT NULL guards are enforced at the application
+--      layer there, not here.
+--   4. `data_source` is the audit switch. Rolling back to a pre-Phase-B
+--      world means: drop the columns, ignore the nulls. No data loss on
+--      the `delta` / `reason` core — those are untouched.
+--
+-- Rollback path
+-- -------------
+--   ALTER TABLE credit_ledger
+--     DROP COLUMN gross_charge_micros,
+--     DROP COLUMN billing_currency,
+--     DROP COLUMN provider,
+--     DROP COLUMN processor_fee_micros,
+--     DROP COLUMN tax_collected_micros,
+--     DROP COLUMN tax_treatment,
+--     DROP COLUMN tax_remittable_micros,
+--     DROP COLUMN fx_rate_used,
+--     DROP COLUMN fx_slippage_micros,
+--     DROP COLUMN net_revenue_micros,
+--     DROP COLUMN card_fingerprint,
+--     DROP COLUMN data_source;
+-- ...then revert Drizzle schema + ledger.ts changes in one commit.
+--
+-- No new indexes in this migration. /admin/margin rolls up by
+-- (user_id, date) — already covered by credit_ledger_user_idx +
+-- created_at scans. If the margin dashboard starts lagging we can add a
+-- (data_source, created_at) index later; premature to add now.
+
+ALTER TABLE `credit_ledger`
+  ADD COLUMN `gross_charge_micros`   bigint          DEFAULT NULL,
+  ADD COLUMN `billing_currency`      char(3)         DEFAULT NULL,
+  ADD COLUMN `provider`              varchar(32)     DEFAULT NULL,
+  ADD COLUMN `processor_fee_micros`  bigint          DEFAULT NULL,
+  ADD COLUMN `tax_collected_micros`  bigint          DEFAULT NULL,
+  ADD COLUMN `tax_treatment`         varchar(16)     DEFAULT NULL,
+  ADD COLUMN `tax_remittable_micros` bigint          DEFAULT NULL,
+  ADD COLUMN `fx_rate_used`          decimal(18,8)   DEFAULT NULL,
+  ADD COLUMN `fx_slippage_micros`    bigint          DEFAULT NULL,
+  ADD COLUMN `net_revenue_micros`    bigint          DEFAULT NULL,
+  ADD COLUMN `card_fingerprint`      varchar(64)     DEFAULT NULL,
+  ADD COLUMN `data_source`           varchar(16)     DEFAULT NULL;

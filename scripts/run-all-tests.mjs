@@ -176,6 +176,26 @@ const SUITES = [
   // rewires the hook to call something other than `npm test`, this
   // fails here rather than silently at push time.
   { name: "dev-hooks", file: "test-dev-hooks.mjs" },
+  // credit-ledger-financials pins Phase B / Task #15 — the 12 new
+  // financial columns on credit_ledger (fee / tax / FX / net_revenue /
+  // provider / data_source / card_fingerprint). Covers: migration 0012
+  // shape (additive-only, DEFAULT NULL across the board, no DROP/MODIFY
+  // in executable SQL), Drizzle schema pins (decimal helper imported,
+  // every column declared with matching drizzle-orm helper + length/
+  // precision), lib/payments/ledger.ts wiring (LedgerFinancials type,
+  // financials? on GrantCreditsInput, fxRateUsed persisted as String
+  // to preserve decimal(18,8) precision, every column spread via
+  // `?? null`), and a cross-file invariant that every column name
+  // appears in all three layers (migration ✓ schema ✓ ledger.ts ✓) —
+  // that's the refactor trap the prototype shipped net=0 against when
+  // a column was added to the migration but left out of the write path.
+  // Placed last alongside dev-hooks because this harness is pure
+  // static-parse — no route imports — and the financial columns are
+  // orthogonal to every AI-cluster suite above.
+  {
+    name: "credit-ledger-financials",
+    file: "test-credit-ledger-financials.mjs",
+  },
 ];
 
 /**

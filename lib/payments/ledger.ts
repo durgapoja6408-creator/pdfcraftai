@@ -36,6 +36,48 @@ function packCredits(packId: string): { base: number; bonus: number } | null {
 
 // --- grantCredits ---------------------------------------------------------
 
+/**
+ * Phase B / Task #15 — financial self-description payload.
+ *
+ * When a ledger row is written from a payment capture (Paddle webhook in
+ * Task #16, Razorpay in Task #20, backfill script for historicals), the
+ * caller passes the fully-resolved figures through here so every row is
+ * self-describing for net-margin accounting.
+ *
+ * ALL fields are optional so existing callers (internal grants, refund
+ * debits, promo credits) that don't know about processor fees / tax / FX
+ * keep working with no changes. When `financials` is omitted the new
+ * columns stay NULL — which /admin/margin treats as "not yet categorized",
+ * never as zero revenue.
+ *
+ * Semantic notes:
+ *   - `grossChargeMicros` + `billingCurrency` describe what the customer
+ *     was billed in their currency. `netRevenueMicros` is the canonical
+ *     USD-micros figure the caller already resolved through FX.
+ *   - `provider` of "refund_reversal" is how we book a refund debit row:
+ *     deltas are negative (credits going out), but the column-level
+ *     provenance points back at which rail originated the debit.
+ *   - `dataSource` is the audit switch. "webhook" = real, authoritative;
+ *     "backfill_api" = fetched from provider history REST; "estimate" =
+ *     synthesized from defaults (only used by the backfill script for
+ *     rows the provider can no longer reconstruct).
+ */
+export type LedgerFinancials = {
+  grossChargeMicros?: number;
+  billingCurrency?: string;
+  provider?: "paddle" | "razorpay" | "manual" | "refund_reversal";
+  processorFeeMicros?: number;
+  taxCollectedMicros?: number;
+  taxTreatment?: "mor" | "forward" | "rcm" | "none";
+  taxRemittableMicros?: number;
+  /** decimal(18,8) — pass as string or number; persisted as string. */
+  fxRateUsed?: string | number;
+  fxSlippageMicros?: number;
+  netRevenueMicros?: number;
+  cardFingerprint?: string;
+  dataSource?: "webhook" | "backfill_api" | "estimate";
+};
+
 export type GrantCreditsInput = {
   userId: string;
   /** Positive to grant, negative to debit. Zero is a no-op. */
@@ -50,6 +92,11 @@ export type GrantCreditsInput = {
    * the same webhook replayed ten times grants credits exactly once.
    */
   idempotencyKey: string;
+  /**
+   * Optional net-margin columns (Phase B / Task #15). Omit for internal
+   * grants / debits that don't correspond to a real payment capture.
+   */
+  financials?: LedgerFinancials;
 };
 
 export type GrantCreditsResult =
@@ -76,6 +123,11 @@ export async function grantCredits(
     const newBalance = await db.transaction(async (tx) => {
       // Insert the ledger row first. If the idempotencyKey collides the
       // transaction aborts via duplicate-key error and we return below.
+      //
+      // Phase B / Task #15: spread the optional `financials` payload into
+      // the row so every column lands. `undefined` fields fall through to
+      // DEFAULT NULL (migration 0012 made all new columns nullable).
+      const fin = input.financials ?? {};
       await tx.insert(schema.creditLedger).values({
         id: ledgerId,
         userId: input.userId,
@@ -84,6 +136,23 @@ export async function grantCredits(
         note: input.note ?? null,
         paymentId: input.paymentId ?? null,
         idempotencyKey: input.idempotencyKey,
+        grossChargeMicros: fin.grossChargeMicros ?? null,
+        billingCurrency: fin.billingCurrency ?? null,
+        provider: fin.provider ?? null,
+        processorFeeMicros: fin.processorFeeMicros ?? null,
+        taxCollectedMicros: fin.taxCollectedMicros ?? null,
+        taxTreatment: fin.taxTreatment ?? null,
+        taxRemittableMicros: fin.taxRemittableMicros ?? null,
+        // drizzle-orm's decimal() accepts string to preserve precision.
+        // Accept number too (dev convenience) — stringify before insert.
+        fxRateUsed:
+          fin.fxRateUsed === undefined || fin.fxRateUsed === null
+            ? null
+            : String(fin.fxRateUsed),
+        fxSlippageMicros: fin.fxSlippageMicros ?? null,
+        netRevenueMicros: fin.netRevenueMicros ?? null,
+        cardFingerprint: fin.cardFingerprint ?? null,
+        dataSource: fin.dataSource ?? null,
       });
 
       // Upsert the balance. `ON DUPLICATE KEY UPDATE` handles first-time

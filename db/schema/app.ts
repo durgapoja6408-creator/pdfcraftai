@@ -36,6 +36,7 @@ import {
   mediumtext,
   timestamp,
   date,
+  decimal,
   index,
   uniqueIndex,
   mysqlEnum,
@@ -122,6 +123,37 @@ export const creditLedger = mysqlTable(
     // internal paymentId + event kind so retrying the same webhook is a
     // no-op at the ledger layer. Unique across the table.
     idempotencyKey: varchar("idempotency_key", { length: 128 }),
+    // --- Phase B / Task #15: financial self-description ----------------
+    // Every column below is nullable by migration 0012. Populated in full
+    // by the Task #16 Paddle webhook handler; legacy rows stay NULL until
+    // the backfill script runs (scripts/backfill-credit-ledger.mjs —
+    // Task #15's companion tool).
+    //
+    // Typed as varchar rather than mysqlEnum deliberately: matches the
+    // rest of the table (`payments.providerId` is `varchar(32)` too), and
+    // adding a new provider / tax_treatment / data_source later is a code
+    // change, not an ALTER TABLE. Values are validated at the app layer
+    // in lib/payments/ledger.ts.
+    grossChargeMicros: bigint("gross_charge_micros", { mode: "number" }),
+    billingCurrency: varchar("billing_currency", { length: 3 }),
+    /** One of: "paddle" | "razorpay" | "manual" | "refund_reversal" */
+    provider: varchar("provider", { length: 32 }),
+    processorFeeMicros: bigint("processor_fee_micros", { mode: "number" }),
+    taxCollectedMicros: bigint("tax_collected_micros", { mode: "number" }),
+    /** One of: "mor" | "forward" | "rcm" | "none" */
+    taxTreatment: varchar("tax_treatment", { length: 16 }),
+    taxRemittableMicros: bigint("tax_remittable_micros", { mode: "number" }),
+    // decimal(18,8) — kept as string by drizzle-orm because JS Number
+    // can't hold the full precision. We do math in lib/payments/fx.ts
+    // using string/bigint, never parseFloat.
+    fxRateUsed: decimal("fx_rate_used", { precision: 18, scale: 8 }),
+    fxSlippageMicros: bigint("fx_slippage_micros", { mode: "number" }),
+    // Canonical net figure in USD micros — computed at insert time.
+    netRevenueMicros: bigint("net_revenue_micros", { mode: "number" }),
+    cardFingerprint: varchar("card_fingerprint", { length: 64 }),
+    /** One of: "webhook" | "backfill_api" | "estimate" */
+    dataSource: varchar("data_source", { length: 16 }),
+    // --- End Phase B additions ----------------------------------------
     createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
   },
   (t) => ({
