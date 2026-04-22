@@ -1190,6 +1190,593 @@ export async function getWebhookLogs(opts: {
   }
 }
 
+// --- /admin/refunds --------------------------------------------------
+//
+// Phase C / Task #21. The ledger is the source of truth — every refund
+// the webhook handler processes writes a row with `reason = 'refund'`
+// and `provider = 'refund_reversal'` (see lib/payments/ledger.ts §397
+// and types.ts LedgerFinancials provider-tag rule). Monetary columns
+// on the refund row are negative (Paddle adapter's `neg()` closure),
+// so SUM() yields negative numbers; the page flips sign for display
+// because "refunded $42" reads better than "refunded -$42".
+//
+// Refund rate is defined here as:
+//
+//   |Σ refund net_revenue_micros| / Σ captured gross_charge_micros
+//
+// in the same window. Gross charge is the denominator (not net) because
+// industry chargeback/refund rate benchmarks are quoted against gross
+// volume — the operator wants parity with card-scheme dashboards.
+
+export type RefundRow = {
+  id: string;
+  createdAt: Date;
+  userId: string;
+  userEmail: string | null;
+  provider: string | null;
+  billingCurrency: string | null;
+  grossChargeMicros: number | null;
+  processorFeeMicros: number | null;
+  taxCollectedMicros: number | null;
+  netRevenueMicros: number | null;
+  note: string | null;
+};
+
+export type RefundsByProviderRow = {
+  provider: string;
+  count: number;
+  refundedMicros: number;
+};
+
+export type RefundsDailyRow = {
+  date: string;
+  count: number;
+  refundedMicros: number;
+};
+
+export type RefundsSummary = {
+  refundCount: number;
+  refundedGrossMicros: number;
+  refundedNetMicros: number;
+  refundRateBps: number;
+  capturedGrossMicros: number;
+  daily: RefundsDailyRow[];
+  byProvider: RefundsByProviderRow[];
+  recent: RefundRow[];
+};
+
+export async function getRefundsSummary(opts: {
+  days: number;
+  limit?: number;
+}): Promise<AdminQueryResult<RefundsSummary>> {
+  const since = new Date(Date.now() - opts.days * msPerDay());
+  const limit = Math.min(Math.max(opts.limit ?? 50, 1), 500);
+  try {
+    // Headline numbers — single row.
+    const [headlineRow] = await db
+      .select({
+        n: sql<number>`COUNT(*)`,
+        gross: sql<number>`COALESCE(SUM(${schema.creditLedger.grossChargeMicros}), 0)`,
+        net: sql<number>`COALESCE(SUM(${schema.creditLedger.netRevenueMicros}), 0)`,
+      })
+      .from(schema.creditLedger)
+      .where(
+        and(
+          gte(schema.creditLedger.createdAt, since),
+          eq(schema.creditLedger.reason, "refund")
+        )
+      );
+
+    // Captured gross in same window — denominator for refund rate.
+    const [capturedRow] = await db
+      .select({
+        gross: sql<number>`COALESCE(SUM(${schema.creditLedger.grossChargeMicros}), 0)`,
+      })
+      .from(schema.creditLedger)
+      .where(
+        and(
+          gte(schema.creditLedger.createdAt, since),
+          eq(schema.creditLedger.reason, "purchase"),
+          isNotNull(schema.creditLedger.grossChargeMicros)
+        )
+      );
+
+    const daily = await db
+      .select({
+        date: sql<string>`DATE(${schema.creditLedger.createdAt})`,
+        n: sql<number>`COUNT(*)`,
+        refunded: sql<number>`COALESCE(SUM(${schema.creditLedger.netRevenueMicros}), 0)`,
+      })
+      .from(schema.creditLedger)
+      .where(
+        and(
+          gte(schema.creditLedger.createdAt, since),
+          eq(schema.creditLedger.reason, "refund")
+        )
+      )
+      .groupBy(sql`DATE(${schema.creditLedger.createdAt})`)
+      .orderBy(sql`DATE(${schema.creditLedger.createdAt}) ASC`);
+
+    const byProvider = await db
+      .select({
+        p: sql<string>`COALESCE(${schema.creditLedger.provider}, 'unknown')`,
+        n: sql<number>`COUNT(*)`,
+        refunded: sql<number>`COALESCE(SUM(${schema.creditLedger.netRevenueMicros}), 0)`,
+      })
+      .from(schema.creditLedger)
+      .where(
+        and(
+          gte(schema.creditLedger.createdAt, since),
+          eq(schema.creditLedger.reason, "refund")
+        )
+      )
+      .groupBy(sql`COALESCE(${schema.creditLedger.provider}, 'unknown')`);
+
+    const recent = await db
+      .select({
+        id: schema.creditLedger.id,
+        createdAt: schema.creditLedger.createdAt,
+        userId: schema.creditLedger.userId,
+        email: schema.users.email,
+        provider: schema.creditLedger.provider,
+        billingCurrency: schema.creditLedger.billingCurrency,
+        gross: schema.creditLedger.grossChargeMicros,
+        fee: schema.creditLedger.processorFeeMicros,
+        tax: schema.creditLedger.taxCollectedMicros,
+        net: schema.creditLedger.netRevenueMicros,
+        note: schema.creditLedger.note,
+      })
+      .from(schema.creditLedger)
+      .leftJoin(schema.users, eq(schema.users.id, schema.creditLedger.userId))
+      .where(
+        and(
+          gte(schema.creditLedger.createdAt, since),
+          eq(schema.creditLedger.reason, "refund")
+        )
+      )
+      .orderBy(desc(schema.creditLedger.createdAt))
+      .limit(limit);
+
+    const refundedGross = Number(headlineRow?.gross ?? 0);
+    const refundedNet = Number(headlineRow?.net ?? 0);
+    const capturedGross = Number(capturedRow?.gross ?? 0);
+    const refundRateBps =
+      capturedGross > 0
+        ? Math.round((Math.abs(refundedGross) / capturedGross) * 10_000)
+        : 0;
+
+    return ok({
+      refundCount: Number(headlineRow?.n ?? 0),
+      refundedGrossMicros: refundedGross,
+      refundedNetMicros: refundedNet,
+      refundRateBps,
+      capturedGrossMicros: capturedGross,
+      daily: daily.map((r) => ({
+        date: String(r.date),
+        count: Number(r.n),
+        refundedMicros: Number(r.refunded),
+      })),
+      byProvider: byProvider.map((r) => ({
+        provider: String(r.p),
+        count: Number(r.n),
+        refundedMicros: Number(r.refunded),
+      })),
+      recent: recent.map((r) => ({
+        id: r.id,
+        createdAt: r.createdAt,
+        userId: r.userId,
+        userEmail: r.email ?? null,
+        provider: r.provider ?? null,
+        billingCurrency: r.billingCurrency ?? null,
+        grossChargeMicros: r.gross ?? null,
+        processorFeeMicros: r.fee ?? null,
+        taxCollectedMicros: r.tax ?? null,
+        netRevenueMicros: r.net ?? null,
+        note: r.note ?? null,
+      })),
+    });
+  } catch (err) {
+    return fail<RefundsSummary>(
+      {
+        refundCount: 0,
+        refundedGrossMicros: 0,
+        refundedNetMicros: 0,
+        refundRateBps: 0,
+        capturedGrossMicros: 0,
+        daily: [],
+        byProvider: [],
+        recent: [],
+      },
+      err
+    );
+  }
+}
+
+// --- /admin/chargebacks ----------------------------------------------
+//
+// CAVEAT — the Paddle adapter at lib/payments/adapters/paddle.ts:366
+// skips adjustment webhooks whose `action !== "refund"` (chargeback /
+// credit / etc.), so the `credit_ledger` currently has NO distinct
+// chargeback rows. This page surfaces what we CAN see: the raw
+// `webhook_events` audit log. Every verified adjustment hits that
+// table with `normalized_kind = 'ignored'` (the Paddle adapter's
+// fall-through branch returns null → webhook-handler.ts stamps it
+// as ignored), and the `raw_payload` JSON still carries the
+// `data.action = 'chargeback'` tag so we can filter.
+//
+// Full chargeback ingestion — dedicated normalized kind, ledger row,
+// and dispute flow — is Task #22 (Phase D dunning/refund UX). Until
+// that ships, this page is an ops-honest "here's what's arriving,
+// even if the pipeline currently drops it". The banner on the page
+// spells that out so an operator doesn't assume the zeros are
+// authoritative when they're not.
+
+export type ChargebackRow = {
+  id: string;
+  receivedAt: Date;
+  providerId: string;
+  eventType: string;
+  normalizedKind: string;
+  providerEventId: string;
+  paymentId: string | null;
+};
+
+export type ChargebacksSummary = {
+  count: number;
+  ingestionGap: boolean; // always true until Task #22 ships
+  recent: ChargebackRow[];
+};
+
+export async function getChargebacksSummary(opts: {
+  days: number;
+  limit?: number;
+}): Promise<AdminQueryResult<ChargebacksSummary>> {
+  const since = new Date(Date.now() - opts.days * msPerDay());
+  const limit = Math.min(Math.max(opts.limit ?? 100, 1), 500);
+  try {
+    // MariaDB JSON path extraction. `raw_payload->>'$.data.action'`
+    // returns the unquoted string value of the field — portable across
+    // MySQL 5.7+ / MariaDB 10.2+, the versions Hostinger ships.
+    const rows = await db
+      .select({
+        id: schema.webhookEvents.id,
+        receivedAt: schema.webhookEvents.receivedAt,
+        providerId: schema.webhookEvents.providerId,
+        eventType: schema.webhookEvents.eventType,
+        normalizedKind: schema.webhookEvents.normalizedKind,
+        providerEventId: schema.webhookEvents.providerEventId,
+        paymentId: schema.webhookEvents.paymentId,
+      })
+      .from(schema.webhookEvents)
+      .where(
+        and(
+          gte(schema.webhookEvents.receivedAt, since),
+          sql`JSON_UNQUOTE(JSON_EXTRACT(${schema.webhookEvents.rawPayload}, '$.data.action')) = 'chargeback'`
+        )
+      )
+      .orderBy(desc(schema.webhookEvents.receivedAt))
+      .limit(limit);
+
+    const [headlineRow] = await db
+      .select({ n: sql<number>`COUNT(*)` })
+      .from(schema.webhookEvents)
+      .where(
+        and(
+          gte(schema.webhookEvents.receivedAt, since),
+          sql`JSON_UNQUOTE(JSON_EXTRACT(${schema.webhookEvents.rawPayload}, '$.data.action')) = 'chargeback'`
+        )
+      );
+
+    return ok({
+      count: Number(headlineRow?.n ?? 0),
+      ingestionGap: true,
+      recent: rows.map((r) => ({
+        id: r.id,
+        receivedAt: r.receivedAt,
+        providerId: r.providerId,
+        eventType: r.eventType,
+        normalizedKind: r.normalizedKind,
+        providerEventId: r.providerEventId,
+        paymentId: r.paymentId ?? null,
+      })),
+    });
+  } catch (err) {
+    return fail<ChargebacksSummary>(
+      { count: 0, ingestionGap: true, recent: [] },
+      err
+    );
+  }
+}
+
+// --- /admin/fx -------------------------------------------------------
+//
+// Phase C / Task #21. Surfaces only rows that actually performed a
+// cross-currency conversion — i.e. `fx_rate_used IS NOT NULL`. INR
+// payments on the Razorpay rail will populate this; USD-on-Paddle
+// will leave it NULL (no conversion happened), and legacy rows from
+// before Task #15's schema landed will also be NULL.
+//
+// `fx_rate_used` is stored as `decimal(18, 8)` — drizzle returns it
+// as a string (see schema comment at db/schema/app.ts:147). We keep
+// it as a string in the query layer and parse at the render edge;
+// this module's `FxDailyRow.rateAvg` carries Number so the page can
+// format directly, but be aware AVG(decimal) in MariaDB may return
+// a string too — we coerce via Number() at map time.
+//
+// `fx_slippage_micros` is the difference between the rate we quoted
+// and the benchmark mid-market rate at capture time, in USD micros.
+// Negative = we took a loss on the conversion; positive = the spread
+// went our way. Summing daily lets the operator spot a stale rate
+// feed before it accumulates real money.
+
+export type FxDailyRow = {
+  date: string;
+  txCount: number;
+  slippageMicros: number;
+  rateAvg: number | null;
+};
+
+export type FxByCurrencyRow = {
+  currency: string;
+  txCount: number;
+  slippageMicros: number;
+  rateAvg: number | null;
+};
+
+export type FxSummary = {
+  txCount: number;
+  totalSlippageMicros: number;
+  daily: FxDailyRow[];
+  byCurrency: FxByCurrencyRow[];
+};
+
+export async function getFxSnapshot(opts: {
+  days: number;
+}): Promise<AdminQueryResult<FxSummary>> {
+  const since = new Date(Date.now() - opts.days * msPerDay());
+  try {
+    const [headlineRow] = await db
+      .select({
+        n: sql<number>`COUNT(*)`,
+        slip: sql<number>`COALESCE(SUM(${schema.creditLedger.fxSlippageMicros}), 0)`,
+      })
+      .from(schema.creditLedger)
+      .where(
+        and(
+          gte(schema.creditLedger.createdAt, since),
+          isNotNull(schema.creditLedger.fxRateUsed)
+        )
+      );
+
+    const daily = await db
+      .select({
+        date: sql<string>`DATE(${schema.creditLedger.createdAt})`,
+        n: sql<number>`COUNT(*)`,
+        slip: sql<number>`COALESCE(SUM(${schema.creditLedger.fxSlippageMicros}), 0)`,
+        rate: sql<string>`AVG(${schema.creditLedger.fxRateUsed})`,
+      })
+      .from(schema.creditLedger)
+      .where(
+        and(
+          gte(schema.creditLedger.createdAt, since),
+          isNotNull(schema.creditLedger.fxRateUsed)
+        )
+      )
+      .groupBy(sql`DATE(${schema.creditLedger.createdAt})`)
+      .orderBy(sql`DATE(${schema.creditLedger.createdAt}) ASC`);
+
+    const byCurrency = await db
+      .select({
+        c: sql<string>`COALESCE(${schema.creditLedger.billingCurrency}, 'USD')`,
+        n: sql<number>`COUNT(*)`,
+        slip: sql<number>`COALESCE(SUM(${schema.creditLedger.fxSlippageMicros}), 0)`,
+        rate: sql<string>`AVG(${schema.creditLedger.fxRateUsed})`,
+      })
+      .from(schema.creditLedger)
+      .where(
+        and(
+          gte(schema.creditLedger.createdAt, since),
+          isNotNull(schema.creditLedger.fxRateUsed)
+        )
+      )
+      .groupBy(sql`COALESCE(${schema.creditLedger.billingCurrency}, 'USD')`);
+
+    const toRate = (raw: string | number | null | undefined): number | null => {
+      if (raw === null || raw === undefined) return null;
+      const n = typeof raw === "number" ? raw : Number(raw);
+      return Number.isFinite(n) ? n : null;
+    };
+
+    return ok({
+      txCount: Number(headlineRow?.n ?? 0),
+      totalSlippageMicros: Number(headlineRow?.slip ?? 0),
+      daily: daily.map((r) => ({
+        date: String(r.date),
+        txCount: Number(r.n),
+        slippageMicros: Number(r.slip),
+        rateAvg: toRate(r.rate),
+      })),
+      byCurrency: byCurrency.map((r) => ({
+        currency: String(r.c),
+        txCount: Number(r.n),
+        slippageMicros: Number(r.slip),
+        rateAvg: toRate(r.rate),
+      })),
+    });
+  } catch (err) {
+    return fail<FxSummary>(
+      { txCount: 0, totalSlippageMicros: 0, daily: [], byCurrency: [] },
+      err
+    );
+  }
+}
+
+// --- /admin/tax ------------------------------------------------------
+//
+// Phase C / Task #21. Tax on Paddle rows lands with
+// `tax_treatment = 'mor'` and `tax_remittable_micros = 0` (the
+// Merchant-of-Record invariant — Paddle absorbs remittance, we never
+// owe tax authorities on that rail). Tax on Razorpay rows lands with
+// `tax_treatment = 'forward'` and `tax_remittable_micros = tax_collected_micros`
+// (we're the merchant, we forward IGST to the Indian government).
+// The "our-to-keep" column is `collected - remittable` — under MoR it
+// equals the full collected amount (we keep nothing of the tax Paddle
+// computed on our behalf because Paddle invoices the customer on
+// their own name), under forward it equals zero (every paisa is
+// owed to GST).
+//
+// This page is the feed for the CA's GSTR-1 / GSTR-3B reconciliation
+// workflow — eventually (Task #23) it sprouts a CSV export. For
+// Task #21 scope it's read-only aggregation.
+
+export type TaxByTreatmentRow = {
+  treatment: string;
+  txCount: number;
+  collectedMicros: number;
+  remittableMicros: number;
+  keptMicros: number;
+};
+
+export type TaxByCurrencyRow = {
+  currency: string;
+  txCount: number;
+  collectedMicros: number;
+  remittableMicros: number;
+};
+
+export type TaxDailyRow = {
+  date: string;
+  txCount: number;
+  collectedMicros: number;
+  remittableMicros: number;
+};
+
+export type TaxSummary = {
+  txCount: number;
+  totalCollectedMicros: number;
+  totalRemittableMicros: number;
+  totalKeptMicros: number;
+  byTreatment: TaxByTreatmentRow[];
+  byCurrency: TaxByCurrencyRow[];
+  daily: TaxDailyRow[];
+};
+
+export async function getTaxSnapshot(opts: {
+  days: number;
+}): Promise<AdminQueryResult<TaxSummary>> {
+  const since = new Date(Date.now() - opts.days * msPerDay());
+  try {
+    const [headlineRow] = await db
+      .select({
+        n: sql<number>`COUNT(*)`,
+        collected: sql<number>`COALESCE(SUM(${schema.creditLedger.taxCollectedMicros}), 0)`,
+        remittable: sql<number>`COALESCE(SUM(${schema.creditLedger.taxRemittableMicros}), 0)`,
+      })
+      .from(schema.creditLedger)
+      .where(
+        and(
+          gte(schema.creditLedger.createdAt, since),
+          isNotNull(schema.creditLedger.taxCollectedMicros)
+        )
+      );
+
+    const byTreatment = await db
+      .select({
+        t: sql<string>`COALESCE(${schema.creditLedger.taxTreatment}, 'unknown')`,
+        n: sql<number>`COUNT(*)`,
+        collected: sql<number>`COALESCE(SUM(${schema.creditLedger.taxCollectedMicros}), 0)`,
+        remittable: sql<number>`COALESCE(SUM(${schema.creditLedger.taxRemittableMicros}), 0)`,
+      })
+      .from(schema.creditLedger)
+      .where(
+        and(
+          gte(schema.creditLedger.createdAt, since),
+          isNotNull(schema.creditLedger.taxCollectedMicros)
+        )
+      )
+      .groupBy(sql`COALESCE(${schema.creditLedger.taxTreatment}, 'unknown')`);
+
+    const byCurrency = await db
+      .select({
+        c: sql<string>`COALESCE(${schema.creditLedger.billingCurrency}, 'USD')`,
+        n: sql<number>`COUNT(*)`,
+        collected: sql<number>`COALESCE(SUM(${schema.creditLedger.taxCollectedMicros}), 0)`,
+        remittable: sql<number>`COALESCE(SUM(${schema.creditLedger.taxRemittableMicros}), 0)`,
+      })
+      .from(schema.creditLedger)
+      .where(
+        and(
+          gte(schema.creditLedger.createdAt, since),
+          isNotNull(schema.creditLedger.taxCollectedMicros)
+        )
+      )
+      .groupBy(sql`COALESCE(${schema.creditLedger.billingCurrency}, 'USD')`);
+
+    const daily = await db
+      .select({
+        date: sql<string>`DATE(${schema.creditLedger.createdAt})`,
+        n: sql<number>`COUNT(*)`,
+        collected: sql<number>`COALESCE(SUM(${schema.creditLedger.taxCollectedMicros}), 0)`,
+        remittable: sql<number>`COALESCE(SUM(${schema.creditLedger.taxRemittableMicros}), 0)`,
+      })
+      .from(schema.creditLedger)
+      .where(
+        and(
+          gte(schema.creditLedger.createdAt, since),
+          isNotNull(schema.creditLedger.taxCollectedMicros)
+        )
+      )
+      .groupBy(sql`DATE(${schema.creditLedger.createdAt})`)
+      .orderBy(sql`DATE(${schema.creditLedger.createdAt}) ASC`);
+
+    const collected = Number(headlineRow?.collected ?? 0);
+    const remittable = Number(headlineRow?.remittable ?? 0);
+
+    return ok({
+      txCount: Number(headlineRow?.n ?? 0),
+      totalCollectedMicros: collected,
+      totalRemittableMicros: remittable,
+      totalKeptMicros: collected - remittable,
+      byTreatment: byTreatment.map((r) => {
+        const c = Number(r.collected);
+        const rm = Number(r.remittable);
+        return {
+          treatment: String(r.t),
+          txCount: Number(r.n),
+          collectedMicros: c,
+          remittableMicros: rm,
+          keptMicros: c - rm,
+        };
+      }),
+      byCurrency: byCurrency.map((r) => ({
+        currency: String(r.c),
+        txCount: Number(r.n),
+        collectedMicros: Number(r.collected),
+        remittableMicros: Number(r.remittable),
+      })),
+      daily: daily.map((r) => ({
+        date: String(r.date),
+        txCount: Number(r.n),
+        collectedMicros: Number(r.collected),
+        remittableMicros: Number(r.remittable),
+      })),
+    });
+  } catch (err) {
+    return fail<TaxSummary>(
+      {
+        txCount: 0,
+        totalCollectedMicros: 0,
+        totalRemittableMicros: 0,
+        totalKeptMicros: 0,
+        byTreatment: [],
+        byCurrency: [],
+        daily: [],
+      },
+      err
+    );
+  }
+}
+
 // --- Runtime env snapshot for /admin/deploy --------------------------
 
 export type DeploySnapshot = {

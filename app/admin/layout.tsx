@@ -48,6 +48,13 @@ const NAV: NavItem[] = [
   { section: "Money", href: "/admin/margin", label: "Margin" },
   { section: "Money", href: "/admin/transactions", label: "Transactions" },
   { section: "Money", href: "/admin/credits", label: "Credits" },
+  // Phase C / Task #21 — dedicated surfaces for refund rate, chargeback
+  // firehose, FX slippage, and tax treatment split. Sit in Money
+  // because they're all "did money land / did money leak" questions.
+  { section: "Money", href: "/admin/refunds", label: "Refunds" },
+  { section: "Money", href: "/admin/chargebacks", label: "Chargebacks" },
+  { section: "Money", href: "/admin/fx", label: "FX" },
+  { section: "Money", href: "/admin/tax", label: "Tax" },
   { section: "People", href: "/admin/users", label: "Users" },
   { section: "Ops", href: "/admin/ops", label: "Operations" },
   { section: "Ops", href: "/admin/providers", label: "Providers" },

@@ -213,6 +213,38 @@ const SUITES = [
   // "admin-margin" vs "admin-dashboard" gives the right granularity
   // when debugging which side broke.
   { name: "admin-dashboard", file: "test-admin-dashboard.mjs" },
+  // admin-phase-c pins Task #21 — the Phase C admin surfaces that
+  // sit in the Money section alongside the 14-page Phase B cluster:
+  // /admin/refunds (refund rate in bps against gross), /admin/chargebacks
+  // (raw webhook_events firehose with an ingestion-gap banner until the
+  // Paddle adapter's action!="refund" skip is closed in Task #22),
+  // /admin/fx (USD↔INR slippage on the Razorpay IN rail; USD-only rows
+  // excluded via isNotNull(fx_rate_used)), and /admin/tax (MoR vs
+  // forward vs RCM split driving the GSTR-1 / GSTR-3B input, with soft
+  // invariant violation banners for MoR-remittable≠0 and
+  // forward-remittable≠collected). Covers: query-layer exports
+  // (getRefundsSummary / getChargebacksSummary / getFxSnapshot /
+  // getTaxSnapshot all returning AdminQueryResult<T>), the refund-rate
+  // formula (|refunded_net|/captured_gross, reason='refund' numerator
+  // vs reason='purchase' + gross_charge_micros IS NOT NULL denominator,
+  // floored at 0 when capturedGross=0, rendered via bpsToPercent on the
+  // page), the JSON path filter for chargebacks ($.data.action =
+  // 'chargeback' via portable JSON_UNQUOTE(JSON_EXTRACT)), the tax
+  // invariants (keptMicros = collected − remittable, NULL treatment
+  // coalesced to 'unknown' so legacy rows don't vanish), per-page
+  // contracts (force-dynamic + nodejs + default export + no duplicate
+  // requireAdmin since layout gates), wiring (clampDays + DayPicker
+  // base matches href, errors surfaced via ErrorBanner not thrown),
+  // chargebacks banner keyed off data.ingestionGap with explicit Task
+  // #22 + action!="refund" references, and NAV registration in
+  // app/admin/layout.tsx. Placed directly after admin-dashboard so the
+  // Phase B 14-page and Phase C 4-page clusters sit together at review
+  // time — a refactor of the shared UI primitives
+  // (components/admin/ui.tsx) or the shared format helpers
+  // (lib/admin/format.ts) typically breaks both, and splitting the
+  // harness keeps "admin-dashboard" vs "admin-phase-c" as the right
+  // failure granularity.
+  { name: "admin-phase-c", file: "test-admin-phase-c.mjs" },
   // user-dashboard-v2 pins Task #19 — the Phase B /app/app user-facing
   // surface that complements the admin dashboard. Where admin-dashboard
   // proves "admin can see cost/margin/MoR splits", this suite proves
