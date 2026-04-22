@@ -26,10 +26,12 @@
 //               refund reason filter + gte(createdAt, since) window.
 //   SECTION C — MariaDB JSON path filter: chargebacks query uses
 //               JSON_UNQUOTE(JSON_EXTRACT(raw_payload, '$.data.action'))
-//               = 'chargeback' (not raw_payload->>'$.data.action' —
-//               that syntax is MySQL 5.7+ shorthand that MariaDB
-//               doesn't always grok). ingestionGap: true is pinned
-//               as literal boolean.
+//               IN ('chargeback', 'chargeback_warning',
+//               'chargeback_reverse') after Task #22 — broadened from
+//               the original `= 'chargeback'` equality now that the
+//               adapter handles the full lifecycle. ingestionGap is
+//               drift-detecting (ledgerCount < webhookCount) rather
+//               than the original literal `true` stub.
 //   SECTION D — MoR + forward invariants: tax treatment labels exist
 //               for mor/forward, keptMicros derived as
 //               collected - remittable (not hard-zero), rendering
@@ -42,8 +44,14 @@
 //               query helper from @/lib/admin/queries, consumes
 //               clampDays from @/components/admin/ui, and uses
 //               DayPicker with the right base href.
-//   SECTION G — chargebacks page surfaces the Task #22 ingestion gap
-//               banner with an honest description.
+//   SECTION G — chargebacks page surfaces drift-only banner (replaces
+//               the pre-Task-#22 always-on ingestion-gap banner).
+//   SECTION J — chargeback ingestion (Task #22): kind="chargeback" in
+//               NormalizedPaymentEvent, Paddle adapter three-branch
+//               dispatch (refund / chargeback / ignored), ledger
+//               handleChargeback writes negative debit tagged
+//               `provider = 'chargeback_reversal'`, LedgerFinancials
+//               accepts the new provider tag.
 //   SECTION H — layout NAV wires all four new pages in the Money
 //               section.
 //   SECTION I — run-all-tests.mjs registers the suite right after
@@ -228,22 +236,42 @@ assert(
 
 assert(
   "C1 chargebacks query uses JSON_UNQUOTE(JSON_EXTRACT(...)) not ->> shorthand",
-  /JSON_UNQUOTE\(JSON_EXTRACT\([\s\S]{0,200}'\$\.data\.action'\)\)\s*=\s*'chargeback'/.test(
+  /JSON_UNQUOTE\(JSON_EXTRACT\([\s\S]{0,200}'\$\.data\.action'\)\)\s*IN\s*\(\s*'chargeback'/.test(
     QUERIES_SRC
   ),
   "MariaDB 10.2 doesn't always accept the ->> shorthand; use JSON_UNQUOTE(JSON_EXTRACT(...)) for portability"
 );
 
 assert(
-  "C1 chargebacks query reads from webhook_events (raw_payload scan)",
-  /from\(\s*schema\.webhookEvents\s*\)/.test(QUERIES_SRC),
-  "Chargebacks are not yet in credit_ledger — must scan webhook_events raw payload"
+  "C1 chargebacks JSON filter broadened to include warning + reverse actions",
+  /JSON_UNQUOTE\(JSON_EXTRACT\([\s\S]{0,200}'chargeback'[\s\S]{0,120}'chargeback_warning'[\s\S]{0,120}'chargeback_reverse'/.test(
+    QUERIES_SRC
+  ),
+  "Post-Task-#22 the filter must cover the full dispute lifecycle (chargeback | chargeback_warning | chargeback_reverse)"
 );
 
 assert(
-  "C1 getChargebacksSummary returns ingestionGap: true as a literal",
-  /ingestionGap:\s*true/.test(QUERIES_SRC),
-  "Flag must be literal true until Task #22 closes the gap — the page renders a banner based on this"
+  "C1 chargebacks query double-reads webhook_events and credit_ledger",
+  /from\(\s*schema\.webhookEvents\s*\)/.test(QUERIES_SRC) &&
+    /from\(\s*schema\.creditLedger\s*\)[\s\S]{0,400}eq\(\s*schema\.creditLedger\.provider\s*,\s*"chargeback_reversal"\s*\)/.test(
+      QUERIES_SRC
+    ),
+  "Must read webhook_events (ground truth) AND credit_ledger provider='chargeback_reversal' (downstream mirror) for drift detection"
+);
+
+assert(
+  "C1 getChargebacksSummary ingestionGap is drift-detecting (ledgerCount < webhookCount)",
+  /ingestionGap:\s*ledgerCount\s*<\s*webhookCount/.test(QUERIES_SRC),
+  "Flag must compare ledgerCount to webhookCount — the original `true` literal stub is gone once ingestion is wired"
+);
+
+assert(
+  "C1 ChargebacksSummary type carries webhookCount + ledgerCount + reversed money fields",
+  /webhookCount:\s*number/.test(QUERIES_SRC) &&
+    /ledgerCount:\s*number/.test(QUERIES_SRC) &&
+    /reversedGrossMicros:\s*number/.test(QUERIES_SRC) &&
+    /reversedNetMicros:\s*number/.test(QUERIES_SRC),
+  "ChargebacksSummary must expose the four quant fields the admin page renders"
 );
 
 // =============================================================================
@@ -383,28 +411,36 @@ for (const page of PAGES) {
 }
 
 // =============================================================================
-// SECTION G: chargebacks page surfaces the ingestion-gap banner
+// SECTION G: chargebacks page surfaces drift-only banner
 // =============================================================================
 
 const CHARGEBACKS_PAGE_SRC = PAGE_SRCS.get("/admin/chargebacks");
 
 assert(
-  "G1 chargebacks page renders ingestion-gap banner when data.ingestionGap is true",
+  "G1 chargebacks page keys banner off data.ingestionGap",
   /data\.ingestionGap\s*\?/.test(CHARGEBACKS_PAGE_SRC),
-  "Page must key the banner off data.ingestionGap (literal, from the query) — no hard-coded boolean"
+  "Page must key the banner off data.ingestionGap — no hard-coded boolean"
 );
 
 assert(
-  "G1 chargebacks banner mentions Task #22 as the resolution scope",
-  /Task\s*#22/.test(CHARGEBACKS_PAGE_SRC),
-  "Banner must cite Task #22 so an operator knows when the gap closes"
+  "G1 chargebacks banner describes drift (webhooks vs ledger) not a static gap",
+  /(drift|Ingestion drift|pipeline may have silently broken)/i.test(
+    CHARGEBACKS_PAGE_SRC
+  ),
+  "Banner copy should reflect the post-Task-#22 drift-detection posture, not the original always-on gap caveat"
 );
 
 assert(
-  "G1 chargebacks banner mentions the Paddle adapter action != 'refund' skip",
-  /action\s*!=\s*"refund"/.test(CHARGEBACKS_PAGE_SRC) ||
-    /skips adjustments with action != "refund"/.test(CHARGEBACKS_PAGE_SRC),
-  "Banner must name the precise condition under which the adapter drops the event"
+  "G1 chargebacks page surfaces reversed-gross money via microsToUsd",
+  /microsToUsd\(\s*data\.reversedGrossMicros\s*\)/.test(CHARGEBACKS_PAGE_SRC),
+  "Gross reversed should render through the shared microsToUsd helper"
+);
+
+assert(
+  "G1 chargebacks page shows both webhookCount and ledgerCount stat cards",
+  /formatCount\(\s*data\.webhookCount\s*\)/.test(CHARGEBACKS_PAGE_SRC) &&
+    /formatCount\(\s*data\.ledgerCount\s*\)/.test(CHARGEBACKS_PAGE_SRC),
+  "Both counts must be rendered — the point of the page is to expose drift between them"
 );
 
 // =============================================================================
@@ -439,6 +475,127 @@ assert(
   "I1 admin-phase-c suite follows the other admin suites",
   /"admin-dashboard"[\s\S]{0,8000}"admin-phase-c"/.test(AGG_SRC),
   "admin-phase-c should sit after admin-dashboard — keeps admin-* suites clustered"
+);
+
+// =============================================================================
+// SECTION J: chargeback ingestion (Task #22)
+// =============================================================================
+//
+// Pins the four code paths that close the ingestion gap:
+//   (a) types.ts: NormalizedPaymentEvent has a kind="chargeback" variant
+//   (b) paddle.ts: three-branch adjustment dispatch, buildPaddleChargebackFinancials
+//   (c) ledger.ts: handleChargeback writes negative debit + tags provider
+//   (d) types.ts: LedgerFinancials.provider accepts "chargeback_reversal"
+
+const TYPES_PATH = resolve(ROOT, "lib", "payments", "types.ts");
+const PADDLE_PATH = resolve(ROOT, "lib", "payments", "adapters", "paddle.ts");
+const LEDGER_PATH = resolve(ROOT, "lib", "payments", "ledger.ts");
+
+for (const p of [TYPES_PATH, PADDLE_PATH, LEDGER_PATH]) {
+  if (!existsSync(p)) {
+    console.error(`FATAL: required source file missing: ${p}`);
+    process.exit(1);
+  }
+}
+
+const TYPES_SRC = readFileSync(TYPES_PATH, "utf8");
+const PADDLE_SRC = readFileSync(PADDLE_PATH, "utf8");
+const LEDGER_SRC = readFileSync(LEDGER_PATH, "utf8");
+
+// (a) types.ts — kind="chargeback" variant on NormalizedPaymentEvent
+assert(
+  'J1 types.ts NormalizedPaymentEvent has kind: "chargeback" variant',
+  /kind:\s*"chargeback"/.test(TYPES_SRC),
+  "Without the discriminated-union variant, ledger/adapter can't type-check their dispatch"
+);
+
+assert(
+  "J1 chargeback variant carries providerChargebackRef (distinct from refund's providerRefundRef)",
+  /providerChargebackRef:\s*string/.test(TYPES_SRC),
+  "Keeping the field name narrower avoids cross-kind collision in ledger writes"
+);
+
+assert(
+  "J1 chargeback variant carries optional reason string",
+  /kind:\s*"chargeback"[\s\S]{0,2000}reason\?:\s*string/.test(TYPES_SRC),
+  "Reason code (Paddle's dispute reason) must flow through so /admin/chargebacks can surface it"
+);
+
+// (d) types.ts — LedgerFinancials.provider accepts "chargeback_reversal"
+assert(
+  'J1 LedgerFinancials.provider accepts "chargeback_reversal"',
+  /provider\?:[\s\S]{0,200}"chargeback_reversal"/.test(TYPES_SRC),
+  "Without this the handleChargeback tag assignment fails tsc"
+);
+
+// (b) paddle.ts — three-branch dispatch + chargeback helper
+assert(
+  "J2 paddle.ts dispatches chargeback actions to kind='chargeback'",
+  /(adj\.action\s*===\s*"chargeback"[\s\S]{0,2000}kind:\s*"chargeback")|(\[\s*"chargeback"[\s\S]{0,200}chargeback_warning[\s\S]{0,200}chargeback_reverse)/.test(
+    PADDLE_SRC
+  ),
+  "Adapter must route chargeback / chargeback_warning / chargeback_reverse actions into a kind='chargeback' event"
+);
+
+assert(
+  "J2 paddle.ts emits providerChargebackRef from adj.id",
+  /providerChargebackRef:\s*adj\.id/.test(PADDLE_SRC),
+  "Chargeback event must carry the adjustment id as its chargeback-specific ref"
+);
+
+assert(
+  "J2 paddle.ts defines buildPaddleChargebackFinancials helper",
+  /function\s+buildPaddleChargebackFinancials\s*\(/.test(PADDLE_SRC),
+  "Chargeback financials helper must exist alongside buildPaddleRefundFinancials for symmetry"
+);
+
+assert(
+  "J2 buildPaddleChargebackFinancials marks dataSource='webhook' and taxTreatment='mor'",
+  /function\s+buildPaddleChargebackFinancials[\s\S]{0,2500}dataSource:\s*"webhook"/.test(
+    PADDLE_SRC
+  ) &&
+    /function\s+buildPaddleChargebackFinancials[\s\S]{0,2500}taxTreatment:\s*"mor"/.test(
+      PADDLE_SRC
+    ),
+  "Paddle is the MoR; chargeback reversal is webhook-authoritative with MoR tax posture"
+);
+
+assert(
+  'J2 PaddleAdjustmentEntity.action union includes chargeback_warning + chargeback_reverse',
+  /"chargeback_warning"/.test(PADDLE_SRC) &&
+    /"chargeback_reverse"/.test(PADDLE_SRC),
+  "Adapter's wire-level type must admit the full dispute lifecycle actions"
+);
+
+// (c) ledger.ts — handleChargeback + applyPaymentEvent dispatch + provider tag
+assert(
+  'J3 ledger.ts applyPaymentEvent dispatches kind="chargeback" to handleChargeback',
+  /case\s+"chargeback"\s*:\s*return\s+handleChargeback\s*\(\s*event\s*\)/.test(
+    LEDGER_SRC
+  ),
+  "Switch must route chargeback events into the dedicated handler"
+);
+
+assert(
+  "J3 ledger.ts defines handleChargeback",
+  /(async\s+function|function)\s+handleChargeback\s*\(/.test(LEDGER_SRC),
+  "handleChargeback must exist — without it the applyPaymentEvent dispatch references an undefined symbol"
+);
+
+assert(
+  'J3 handleChargeback tags ledger row provider = "chargeback_reversal"',
+  /handleChargeback[\s\S]{0,6000}provider:\s*"chargeback_reversal"/.test(
+    LEDGER_SRC
+  ),
+  "The distinguishing tag separates chargeback reversals from user-initiated refunds on the /admin surfaces"
+);
+
+assert(
+  "J3 handleChargeback uses chargeback-specific idempotency key",
+  /handleChargeback[\s\S]{0,6000}:chargeback:\$\{[^}]*providerChargebackRef/.test(
+    LEDGER_SRC
+  ),
+  "Idempotency must be keyed on payment + chargeback-ref, not reused from refund key"
 );
 
 // =============================================================================

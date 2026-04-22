@@ -1,30 +1,39 @@
 // app/admin/chargebacks/page.tsx — Chargebacks surface.
 //
-// HONEST STATE: the Paddle adapter at lib/payments/adapters/paddle.ts:366
-// currently skips any adjustment whose `action !== "refund"`, so
-// chargebacks (and the related "credit" action) don't land in
-// `credit_ledger` — they just get stamped as `normalized_kind = 'ignored'`
-// in `webhook_events` and the raw payload sits there carrying the
-// `data.action = 'chargeback'` tag.
+// Phase D / Task #22 CLOSED the ingestion gap. The Paddle adapter at
+// lib/payments/adapters/paddle.ts now dispatches adjustment actions
+// three ways — "refund" → kind="refund", "chargeback" /
+// "chargeback_warning" / "chargeback_reverse" → kind="chargeback", and
+// everything else → kind="ignored". The ledger handler in
+// lib/payments/ledger.ts:handleChargeback writes a negative-signed
+// debit row tagged `provider = 'chargeback_reversal'` and flips the
+// payment into refunded / partial_refund (the payments.status enum
+// has no "chargeback" value yet — future migration).
 //
-// This page reads DIRECTLY from `webhook_events` via a JSON path filter
-// so an operator can at least SEE what's arriving today, even if
-// nothing downstream acts on it. The ingestion gap is spelled out in
-// a banner at the top of the page — "here's what's coming in, but
-// we're not yet reversing credits or updating the payment row; Task
-// #22 closes the gap".
+// This page does a DOUBLE-READ: webhook_events (what Paddle SENT us,
+// via the JSON path filter) and credit_ledger (what we ACTED on, via
+// the provider tag). Healthy state: the two counts agree. If they
+// drift — webhookCount > ledgerCount — we've got an ingestion bug
+// and the banner fires.
 //
-// Why not wait until Task #22 before shipping a page?
-// ---------------------------------------------------
-// Because an operator who doesn't know chargebacks exist in the
-// webhook firehose is going to be surprised when the first one
-// arrives and costs $15–$25 in fees. Surfacing the raw count with
-// the caveat is strictly better than zero visibility.
+// Why keep the webhook-events JSON path filter even after ingestion
+// is wired?
+// -----------------------------------------------------------------
+// Two reasons:
+//   1. Ground truth. webhook_events is the raw audit log, so it's the
+//      authoritative "what Paddle says happened". credit_ledger is
+//      our downstream mirror.
+//   2. Drift detection. If the ingestion pipeline silently breaks
+//      (bad deploy, schema mismatch, SQL error swallowed), the
+//      webhook count will keep climbing while the ledger count
+//      flatlines — the banner catches that without requiring an
+//      alarm rule.
 
 import { getChargebacksSummary } from "@/lib/admin/queries";
 import {
   formatCount,
   formatUtcDateTime,
+  microsToUsd,
 } from "@/lib/admin/format";
 import {
   DayPicker,
@@ -55,26 +64,22 @@ export default async function AdminChargebacksPage({
           Chargebacks
         </h1>
         <p className="muted" style={{ marginTop: 4 }}>
-          Past {days} days. Source: webhook_events (raw payload) filtered by
-          <code style={{ margin: "0 4px" }}>
-            $.data.action = &quot;chargeback&quot;
-          </code>
-          .
+          Past {days} days. Double-read: webhook_events (what Paddle sent)
+          vs credit_ledger (what we booked, provider=
+          <code style={{ margin: "0 4px" }}>chargeback_reversal</code>).
+          Drift means ingestion is broken.
         </p>
         <div style={{ marginTop: 12 }}>
           <DayPicker current={days} base="/admin/chargebacks" />
         </div>
       </header>
 
-      {/* Ingestion-gap banner — painted even when count is 0, because
-          the gap exists regardless of whether a chargeback has fired
-          yet. Use bad-toned ErrorBanner so the operator treats this
-          as a known-debt notice, not a transient failure. */}
+      {/* Drift banner — fires ONLY when ledgerCount < webhookCount.
+          Healthy state (both zero, or both equal and positive) keeps
+          the banner off so the page reads calm on quiet days. */}
       {data.ingestionGap ? (
         <ErrorBanner
-          message={
-            'Ingestion gap: the Paddle adapter currently skips adjustments with action != "refund", so chargebacks are NOT yet written to credit_ledger. Credits are not auto-reversed, payment status is not updated, and refund reserve does not react. This page reads directly from webhook_events so you can SEE what is arriving; Task #22 (Phase D degradation UX + dunning) will close the gap. Raw payload is available on /admin/logs.'
-          }
+          message={`Ingestion drift: webhook_events contains ${data.webhookCount} chargeback event(s) but credit_ledger only shows ${data.ledgerCount} booked reversal(s). The ingestion pipeline may have silently broken — check /admin/logs for failed adapter runs and verify the Paddle adapter dispatch for chargeback/chargeback_warning/chargeback_reverse actions.`}
         />
       ) : null}
 
@@ -91,22 +96,22 @@ export default async function AdminChargebacksPage({
         }}
       >
         <StatCard
-          label="Chargeback events"
-          value={formatCount(data.count)}
-          hint="From webhook_events"
-          tone={data.count > 0 ? "warn" : undefined}
+          label="Webhook events"
+          value={formatCount(data.webhookCount)}
+          hint="From webhook_events (ground truth)"
+          tone={data.webhookCount > 0 ? "warn" : undefined}
         />
         <StatCard
-          label="Ledger-reflected"
-          value="0"
-          hint="Until Task #22"
-          tone={data.count > 0 ? "bad" : undefined}
+          label="Ledger reversals"
+          value={formatCount(data.ledgerCount)}
+          hint="From credit_ledger"
+          tone={data.ingestionGap ? "bad" : undefined}
         />
         <StatCard
-          label="Ingestion status"
-          value="Gap open"
-          hint="See banner above"
-          tone="warn"
+          label="Gross reversed"
+          value={microsToUsd(data.reversedGrossMicros)}
+          hint={`Net ${microsToUsd(data.reversedNetMicros)}`}
+          tone={data.reversedGrossMicros > 0 ? "warn" : undefined}
         />
       </section>
 

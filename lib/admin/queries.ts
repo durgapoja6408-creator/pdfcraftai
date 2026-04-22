@@ -1394,22 +1394,30 @@ export async function getRefundsSummary(opts: {
 
 // --- /admin/chargebacks ----------------------------------------------
 //
-// CAVEAT — the Paddle adapter at lib/payments/adapters/paddle.ts:366
-// skips adjustment webhooks whose `action !== "refund"` (chargeback /
-// credit / etc.), so the `credit_ledger` currently has NO distinct
-// chargeback rows. This page surfaces what we CAN see: the raw
-// `webhook_events` audit log. Every verified adjustment hits that
-// table with `normalized_kind = 'ignored'` (the Paddle adapter's
-// fall-through branch returns null → webhook-handler.ts stamps it
-// as ignored), and the `raw_payload` JSON still carries the
-// `data.action = 'chargeback'` tag so we can filter.
+// Phase D / Task #22 CLOSED the ingestion gap that existed through
+// Phase C. The Paddle adapter now emits kind="chargeback" for
+// adjustments with action in {"chargeback", "chargeback_warning",
+// "chargeback_reverse"}, and lib/payments/ledger.ts:handleChargeback
+// writes a negative-signed debit row tagged `provider =
+// 'chargeback_reversal'`.
 //
-// Full chargeback ingestion — dedicated normalized kind, ledger row,
-// and dispute flow — is Task #22 (Phase D dunning/refund UX). Until
-// that ships, this page is an ops-honest "here's what's arriving,
-// even if the pipeline currently drops it". The banner on the page
-// spells that out so an operator doesn't assume the zeros are
-// authoritative when they're not.
+// This page now does a double-read: `webhook_events` (what Paddle
+// SENT us, via the JSON path filter) and `credit_ledger` (what we
+// ACTED on, via the provider tag). Healthy state: the two counts
+// agree. If they drift, we've got an ingestion bug and the banner
+// fires — the roles are reversed from the Phase C posture.
+//
+// Why keep the webhook-events JSON path filter even after ingestion
+// is wired?
+// -----------------------------------------------------------------
+// Two reasons:
+//   1. Ground truth: webhook_events is the raw audit log, so it's
+//      the authoritative "what Paddle says happened". credit_ledger
+//      is our downstream mirror.
+//   2. Drift detection: if the ingestion pipeline silently breaks
+//      (bad deploy, schema mismatch, SQL error swallowed), the JSON
+//      path count will keep climbing while the ledger count flatlines.
+//      The banner catches that without requiring an alarm rule.
 
 export type ChargebackRow = {
   id: string;
@@ -1422,8 +1430,22 @@ export type ChargebackRow = {
 };
 
 export type ChargebacksSummary = {
-  count: number;
-  ingestionGap: boolean; // always true until Task #22 ships
+  /** Count from webhook_events — what Paddle sent us. Ground truth. */
+  webhookCount: number;
+  /** Count from credit_ledger with provider='chargeback_reversal' — what we booked. */
+  ledgerCount: number;
+  /**
+   * True when ledgerCount < webhookCount — we received chargeback
+   * webhooks but the ledger doesn't reflect them. Drives the banner
+   * on /admin/chargebacks. Matches when both are 0 (healthy: no
+   * chargebacks yet) or when both are equal and positive (healthy:
+   * every chargeback has been booked).
+   */
+  ingestionGap: boolean;
+  /** Sum of absolute value of gross reversals in credit_ledger, in USD micros. */
+  reversedGrossMicros: number;
+  /** Sum of absolute value of net reversals in credit_ledger, in USD micros. */
+  reversedNetMicros: number;
   recent: ChargebackRow[];
 };
 
@@ -1437,6 +1459,11 @@ export async function getChargebacksSummary(opts: {
     // MariaDB JSON path extraction. `raw_payload->>'$.data.action'`
     // returns the unquoted string value of the field — portable across
     // MySQL 5.7+ / MariaDB 10.2+, the versions Hostinger ships.
+    // Post-Task-#22 we also accept chargeback_warning and
+    // chargeback_reverse so the page shows the full dispute lifecycle
+    // rather than only hard chargebacks.
+    const chargebackActionFilter = sql`JSON_UNQUOTE(JSON_EXTRACT(${schema.webhookEvents.rawPayload}, '$.data.action')) IN ('chargeback', 'chargeback_warning', 'chargeback_reverse')`;
+
     const rows = await db
       .select({
         id: schema.webhookEvents.id,
@@ -1448,28 +1475,47 @@ export async function getChargebacksSummary(opts: {
         paymentId: schema.webhookEvents.paymentId,
       })
       .from(schema.webhookEvents)
-      .where(
-        and(
-          gte(schema.webhookEvents.receivedAt, since),
-          sql`JSON_UNQUOTE(JSON_EXTRACT(${schema.webhookEvents.rawPayload}, '$.data.action')) = 'chargeback'`
-        )
-      )
+      .where(and(gte(schema.webhookEvents.receivedAt, since), chargebackActionFilter))
       .orderBy(desc(schema.webhookEvents.receivedAt))
       .limit(limit);
 
     const [headlineRow] = await db
       .select({ n: sql<number>`COUNT(*)` })
       .from(schema.webhookEvents)
+      .where(and(gte(schema.webhookEvents.receivedAt, since), chargebackActionFilter));
+
+    // Ledger-side count. `provider = 'chargeback_reversal'` is the
+    // exact tag handleChargeback stamps. Sum the negative gross/net
+    // as absolute values so the admin stat card reads naturally ("$X
+    // reversed" rather than "-$X").
+    const [ledgerRow] = await db
+      .select({
+        n: sql<number>`COUNT(*)`,
+        grossAbs: sql<number>`COALESCE(-SUM(${schema.creditLedger.grossChargeMicros}), 0)`,
+        netAbs: sql<number>`COALESCE(-SUM(${schema.creditLedger.netRevenueMicros}), 0)`,
+      })
+      .from(schema.creditLedger)
       .where(
         and(
-          gte(schema.webhookEvents.receivedAt, since),
-          sql`JSON_UNQUOTE(JSON_EXTRACT(${schema.webhookEvents.rawPayload}, '$.data.action')) = 'chargeback'`
+          gte(schema.creditLedger.createdAt, since),
+          eq(schema.creditLedger.provider, "chargeback_reversal")
         )
       );
 
+    const webhookCount = Number(headlineRow?.n ?? 0);
+    const ledgerCount = Number(ledgerRow?.n ?? 0);
+    const reversedGrossMicros = Number(ledgerRow?.grossAbs ?? 0);
+    const reversedNetMicros = Number(ledgerRow?.netAbs ?? 0);
+
     return ok({
-      count: Number(headlineRow?.n ?? 0),
-      ingestionGap: true,
+      webhookCount,
+      ledgerCount,
+      // Healthy when ledger has caught up to webhooks. If ledger > webhooks
+      // (shouldn't happen, but defensively), don't flag — that's noisy not
+      // wrong; just means a webhook was purged but the ledger row survived.
+      ingestionGap: ledgerCount < webhookCount,
+      reversedGrossMicros,
+      reversedNetMicros,
       recent: rows.map((r) => ({
         id: r.id,
         receivedAt: r.receivedAt,
@@ -1482,7 +1528,14 @@ export async function getChargebacksSummary(opts: {
     });
   } catch (err) {
     return fail<ChargebacksSummary>(
-      { count: 0, ingestionGap: true, recent: [] },
+      {
+        webhookCount: 0,
+        ledgerCount: 0,
+        ingestionGap: false,
+        reversedGrossMicros: 0,
+        reversedNetMicros: 0,
+        recent: [],
+      },
       err
     );
   }

@@ -187,6 +187,8 @@ export async function applyPaymentEvent(
       return handleFailed(event);
     case "refund":
       return handleRefund(event);
+    case "chargeback":
+      return handleChargeback(event);
     case "subscription_event":
       return handleSubscription(event);
     case "ignored":
@@ -404,6 +406,127 @@ async function handleRefund(
         // own debit row, so this key scheme handles them naturally.
         idempotencyKey: `${payment.id}:refund:${event.providerRefundRef}`,
         financials: refundFinancials,
+      });
+    }
+  }
+
+  return { status: "processed" };
+}
+
+/**
+ * Handle a chargeback webhook. Phase D / Task #22.
+ *
+ * Flow mirrors handleRefund but with three material differences:
+ *
+ *   1. Credit debit scope: chargebacks debit ALL granted credits from
+ *      the original payment (base + bonus), regardless of whether the
+ *      user has consumed some. Rationale: a chargeback means the bank
+ *      reversed the capture; we cannot treat already-consumed credits
+ *      as "paid for" since the underlying payment has been clawed back.
+ *      Balance can and should go negative; the next top-up pays it down.
+ *      Partial chargebacks are rare on card schemes but we still prorate
+ *      by amount fraction for defensiveness.
+ *
+ *   2. Ledger row tag: `provider: "chargeback_reversal"` instead of
+ *      `"refund_reversal"` so /admin/chargebacks and /admin/refunds
+ *      render honest, non-overlapping totals. /admin/margin reads both
+ *      tags as negative revenue and computes net margin correctly.
+ *
+ *   3. payments.status: we flip to "refunded" / "partial_refund" just
+ *      like a refund. Rationale: the payments.status enum doesn't yet
+ *      have a "chargeback" value (would require a migration), and
+ *      semantically the money state is equivalent — funds reversed.
+ *      The distinction between user-initiated refund and bank-initiated
+ *      chargeback lives in credit_ledger.provider and webhook_events,
+ *      which is where an operator needs it for dispute prep anyway.
+ *      A future migration can promote this to a dedicated enum value.
+ *
+ * Idempotent via `${paymentId}:chargeback:${providerChargebackRef}`, so
+ * replayed webhook events and the Paddle chargeback_warning → chargeback
+ * progression (two distinct adjustment ids for what may feel like "the
+ * same" dispute) each land their own row correctly.
+ */
+async function handleChargeback(
+  event: Extract<NormalizedPaymentEvent, { kind: "chargeback" }>
+): Promise<ApplyEventResult> {
+  const [payment] = await db
+    .select({
+      id: schema.payments.id,
+      userId: schema.payments.userId,
+      mode: schema.payments.mode,
+      packId: schema.payments.packId,
+      amountMinor: schema.payments.amountMinor,
+      status: schema.payments.status,
+    })
+    .from(schema.payments)
+    .where(eq(schema.payments.id, event.internalPaymentId))
+    .limit(1);
+
+  if (!payment) {
+    return {
+      status: "error",
+      reason: `no payment row for chargeback on internalPaymentId=${event.internalPaymentId}`,
+    };
+  }
+
+  const isPartial = event.amount.amountMinor < payment.amountMinor;
+  // Flip to refunded/partial_refund. Chargeback-specific status is out
+  // of scope until the enum migration — see function docstring.
+  await db
+    .update(schema.payments)
+    .set({ status: isPartial ? "partial_refund" : "refunded" })
+    .where(eq(schema.payments.id, event.internalPaymentId));
+
+  if (payment.mode === "one_time" && payment.packId) {
+    const pack = packCredits(payment.packId);
+    if (!pack) {
+      return {
+        status: "error",
+        reason: `unknown packId ${payment.packId} on chargeback of ${payment.id}`,
+      };
+    }
+
+    const totalGranted = pack.base + pack.bonus;
+    // Chargeback debit: always proportional to the amount reversed.
+    // Full chargeback (amount >= original) → debit everything granted.
+    // Partial (rare) → prorate. Crucially, UNLIKE refunds we don't cap
+    // at the remaining balance — the money is gone, so the credits
+    // backing it must go too, even if the user already spent some.
+    // Balance going negative is the correct ops signal (see docstring).
+    const creditsToDebit =
+      event.amount.amountMinor >= payment.amountMinor
+        ? totalGranted
+        : Math.round(
+            (event.amount.amountMinor / payment.amountMinor) * totalGranted
+          );
+
+    if (creditsToDebit > 0) {
+      const chargebackFinancials: LedgerFinancials = {
+        ...(event.financials ?? {}),
+        provider: "chargeback_reversal",
+      };
+
+      const noteParts = [
+        `Chargeback ${event.providerChargebackRef}`,
+        isPartial ? "partial" : "full",
+      ];
+      if (event.reason) noteParts.push(`reason: ${event.reason}`);
+
+      await grantCredits({
+        userId: payment.userId,
+        delta: -creditsToDebit,
+        // credit_ledger.reason is varchar(64), not an enum — free-form.
+        // Using a distinct value from "refund" here lets downstream
+        // reporting (and an operator eyeballing the ledger) tell a
+        // user-initiated refund apart from a bank-initiated chargeback
+        // even when the financials shape is identical.
+        reason: "chargeback",
+        note: noteParts.join(" · "),
+        paymentId: payment.id,
+        // Distinct idempotency key prefix from refunds so a chargeback
+        // on a payment that was also partially refunded doesn't collide.
+        idempotencyKey: `${payment.id}:chargeback:${event.providerChargebackRef}`,
+        financials: chargebackFinancials,
       });
     }
   }

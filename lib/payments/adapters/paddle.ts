@@ -357,42 +357,104 @@ export class PaddleProvider implements PaymentProvider {
       };
     }
 
-    // --- Refunds (Paddle calls them adjustments) ------------------------
-    // Paddle models refunds as "adjustments" of action `refund`. The
-    // adjustment references the original transaction id, which is our
-    // providerRef.
+    // --- Adjustments (Paddle's umbrella for refunds + chargebacks) ------
+    //
+    // Paddle models post-capture money movement as `adjustment` entities.
+    // The `action` field tells us WHY money moved:
+    //
+    //   - "refund"      → the user (or we) asked for their money back.
+    //                     Task #16 path; handled as NormalizedPaymentEvent
+    //                     kind="refund".
+    //   - "chargeback"  → the card-issuing bank pulled funds back on the
+    //                     buyer's behalf. Phase D / Task #22 — handled as
+    //                     kind="chargeback". Distinct from refund because
+    //                     (a) we incur a dispute fee, (b) win-rate is
+    //                     roughly 40% industry-wide, (c) ops response is
+    //                     different (gather evidence, not issue refund).
+    //   - "credit"      → Paddle-internal goodwill credit issued on their
+    //                     side without moving money off our account. We
+    //                     don't book these — they're ignored.
+    //   - anything else → future Paddle action we don't yet know about;
+    //                     ignored but audited via webhook_events.
+    //
+    // Both refund and chargeback share the same adjustment shape (totals,
+    // transaction_id, currency_code), so the amount / financials build is
+    // structurally symmetric — only the dispatch + `provider` tag at the
+    // ledger layer (refund_reversal vs chargeback_reversal) differ.
     if (eventType === "adjustment.created" || eventType === "adjustment.updated") {
       const adj = data as PaddleAdjustmentEntity;
-      if (adj.action !== "refund") {
-        return {
-          kind: "ignored",
-          providerId: this.id,
-          providerRef: adj.id ?? "",
-          eventType,
-          occurredAt,
-          providerRaw: scrub(body),
-        };
-      }
+
+      // Shared prelude — all adjustment paths need id + transaction_id.
+      // A missing id here is a Paddle-side anomaly; bail rather than
+      // try to synthesize something the audit log can't dedupe.
       if (!adj.id || !adj.transaction_id) return null;
       const total = adj.totals?.total ?? adj.items?.[0]?.amount;
       const currency = (adj.currency_code ?? "USD") as Currency;
-      // Phase B / Task #16 — negative-signed financials for the refund
-      // debit row. `provider` is left undefined here; the ledger's
-      // handleRefund tags the row as "refund_reversal" before writing.
-      const financials = buildPaddleRefundFinancials(adj);
+
+      if (adj.action === "refund") {
+        // Phase B / Task #16 — negative-signed financials for the refund
+        // debit row. `provider` is left undefined here; the ledger's
+        // handleRefund tags the row as "refund_reversal" before writing.
+        const financials = buildPaddleRefundFinancials(adj);
+        return {
+          kind: "refund",
+          providerId: this.id,
+          providerRef: adj.transaction_id,
+          internalPaymentId,
+          providerRefundRef: adj.id,
+          amount: {
+            amountMinor: Number(total ?? 0),
+            currency,
+          },
+          occurredAt,
+          providerRaw: scrub(body),
+          financials,
+        };
+      }
+
+      if (adj.action === "chargeback" || adj.action === "chargeback_warning" || adj.action === "chargeback_reverse") {
+        // Phase D / Task #22 — close the ingestion gap that /admin/chargebacks
+        // flagged during Phase C. `chargeback_warning` is the pre-chargeback
+        // signal (scheme inquiry); we ingest it as a chargeback too because
+        // at the account level the economics are already in motion, and
+        // /admin/chargebacks wants visibility regardless of the sub-state.
+        // `chargeback_reverse` is a won dispute — Paddle re-credits us;
+        // the ledger row's negative-signed reversal becomes a positive
+        // via the caller's sign convention, so we still emit as kind
+        // "chargeback" and let the ledger interpret the amount sign.
+        //
+        // Negative-signed financials — same builder as refund, but the
+        // ledger tags the debit row as "chargeback_reversal" instead of
+        // "refund_reversal" so /admin/chargebacks and /admin/refunds
+        // can render honest, distinct totals.
+        const financials = buildPaddleChargebackFinancials(adj);
+        return {
+          kind: "chargeback",
+          providerId: this.id,
+          providerRef: adj.transaction_id,
+          internalPaymentId,
+          providerChargebackRef: adj.id,
+          amount: {
+            amountMinor: Number(total ?? 0),
+            currency,
+          },
+          occurredAt,
+          providerRaw: scrub(body),
+          financials,
+          reason: adj.reason,
+        };
+      }
+
+      // "credit" and any unknown action — Paddle-side bookkeeping we
+      // don't need to mirror. Audited via webhook_events but no ledger
+      // write. Stays ignored (same shape the pre-Task-#22 code used).
       return {
-        kind: "refund",
+        kind: "ignored",
         providerId: this.id,
-        providerRef: adj.transaction_id,
-        internalPaymentId,
-        providerRefundRef: adj.id,
-        amount: {
-          amountMinor: Number(total ?? 0),
-          currency,
-        },
+        providerRef: adj.id,
+        eventType,
         occurredAt,
         providerRaw: scrub(body),
-        financials,
       };
     }
 
@@ -747,6 +809,44 @@ export function buildPaddleRefundFinancials(
 }
 
 /**
+ * Build the negative-signed LedgerFinancials shape for a chargeback
+ * adjustment. Identical math to refunds (both reverse the original
+ * capture's gross/fee/tax/earnings), but semantically distinct — the
+ * ledger tags the resulting debit row with `provider: "chargeback_reversal"`
+ * instead of `"refund_reversal"` so /admin/chargebacks, /admin/margin,
+ * and /admin/refunds render honest, non-overlapping totals.
+ *
+ * Phase D / Task #22. See NormalizedPaymentEvent.chargeback for why the
+ * distinction matters downstream (dispute fees, win-rate analysis,
+ * potential fraud flagging).
+ *
+ * NOTE on Paddle's dispute fee: at the time of writing, Paddle charges
+ * a fixed $15 chargeback fee on won+lost disputes on the standard plan.
+ * That fee is NOT included in this adjustment's totals — it shows up
+ * on a separate invoice line on Paddle's monthly payout statement.
+ * We capture it via reconciliation, not webhook, so it's outside the
+ * scope of this builder.
+ */
+export function buildPaddleChargebackFinancials(
+  adj: PaddleAdjustmentEntity
+): LedgerFinancials {
+  const totals = adj.totals;
+  const neg = (x: number | undefined): number | undefined =>
+    x === undefined ? undefined : -x;
+  return {
+    grossChargeMicros: neg(paddleMinorToMicros(totals?.total)),
+    billingCurrency: adj.currency_code,
+    // provider left undefined — ledger fills "chargeback_reversal"
+    processorFeeMicros: neg(paddleMinorToMicros(totals?.fee)),
+    taxCollectedMicros: neg(paddleMinorToMicros(totals?.tax)),
+    taxTreatment: "mor",
+    taxRemittableMicros: 0,
+    netRevenueMicros: neg(paddleMinorToMicros(totals?.earnings)),
+    dataSource: "webhook",
+  };
+}
+
+/**
  * Defensive scrub — Paddle webhook bodies should never include raw PAN
  * since the iframe owns the card fields, but we still strip anything
  * that smells like card data before persisting `providerRaw` to audit.
@@ -835,7 +935,20 @@ type PaddleTransactionEntity = {
 
 type PaddleAdjustmentEntity = {
   id?: string;
-  action?: "refund" | "credit" | "chargeback" | string;
+  /**
+   * Phase D / Task #22 — widened to include chargeback variants. Paddle's
+   * actual enum covers `refund`, `credit`, `chargeback`,
+   * `chargeback_warning` (pre-dispute signal), and `chargeback_reverse`
+   * (won dispute → funds re-credited to us). Keeping `| string` here so
+   * future Paddle actions parse rather than type-error.
+   */
+  action?:
+    | "refund"
+    | "credit"
+    | "chargeback"
+    | "chargeback_warning"
+    | "chargeback_reverse"
+    | string;
   transaction_id?: string;
   currency_code?: string;
   /**
@@ -855,6 +968,14 @@ type PaddleAdjustmentEntity = {
   items?: Array<{
     amount?: string | number;
   }>;
+  /**
+   * Free-form reason from Paddle. For refunds this is usually the operator-
+   * entered reason; for chargebacks it's the card-scheme reason code (e.g.
+   * "fraudulent", "product_not_received"). Threaded onto the normalized
+   * chargeback event so /admin/chargebacks can show WHY the bank pulled
+   * funds back.
+   */
+  reason?: string;
 };
 
 type PaddleSubscriptionEntity = {

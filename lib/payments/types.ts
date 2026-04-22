@@ -156,7 +156,12 @@ export type CheckoutResult = {
 export type LedgerFinancials = {
   grossChargeMicros?: number;
   billingCurrency?: string;
-  provider?: "paddle" | "razorpay" | "manual" | "refund_reversal";
+  provider?:
+    | "paddle"
+    | "razorpay"
+    | "manual"
+    | "refund_reversal"
+    | "chargeback_reversal";
   processorFeeMicros?: number;
   taxCollectedMicros?: number;
   taxTreatment?: "mor" | "forward" | "rcm" | "none";
@@ -226,6 +231,55 @@ export type NormalizedPaymentEvent =
        * payload should leave `provider` undefined — the ledger fills it.
        */
       financials?: LedgerFinancials;
+    }
+  | {
+      /**
+       * Phase D / Task #22 — chargeback (card-scheme dispute the issuer
+       * pulled back funds on). Materially different from `refund`:
+       *   - the user didn't ask; the card-issuing bank initiated
+       *   - we typically incur a dispute fee ($15–$25 on Paddle / 2,000–
+       *     4,000 INR on Razorpay) whether or not we contest
+       *   - on Paddle (MoR) Paddle fights the dispute on our behalf;
+       *     win rates hover around 40% industry-wide
+       *   - funds move out of Paddle's account → back to the issuer;
+       *     our credit_ledger mirrors that with a negative-signed row
+       *     tagged `provider: "chargeback_reversal"`
+       *
+       * Why a distinct `kind` from `refund`:
+       * Both reduce revenue and credits, but the operational response
+       * (dispute evidence, fee absorption, potential fraud flag on the
+       * user) is different. Keeping them as separate normalized kinds
+       * lets /admin/chargebacks and /admin/refunds be honest about WHY
+       * money left, and the per-payment audit reads correctly when an
+       * operator goes back six months to explain a reversal.
+       */
+      kind: "chargeback";
+      providerId: ProviderId;
+      providerRef: string;
+      internalPaymentId: string;
+      /**
+       * Chargeback-side reference (for Paddle this is the adjustment id,
+       * same wire shape as refund's providerRefundRef but semantically
+       * distinct; we keep the field name narrower to avoid collision).
+       */
+      providerChargebackRef: string;
+      amount: Money;
+      occurredAt: Date;
+      providerRaw: unknown;
+      /**
+       * Negative-signed breakdown. Adapters populate gross/fee/tax/net as
+       * negatives of the original capture; the ledger tags `provider` as
+       * "chargeback_reversal" so /admin/chargebacks can distinguish this
+       * from a user-initiated refund even though the sign and shape
+       * match.
+       */
+      financials?: LedgerFinancials;
+      /**
+       * Free-form reason string from the provider (e.g. Paddle's
+       * `reason_code` or the card-scheme chargeback reason). Stored on
+       * the ledger row's `note` for downstream dispute prep.
+       */
+      reason?: string;
     }
   | {
       kind: "subscription_event";
