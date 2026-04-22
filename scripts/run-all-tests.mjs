@@ -169,6 +169,26 @@ const SUITES = [
   // yet — this is the first) so the two margin suites sit together and
   // share their rationale at review time.
   { name: "admin-margin", file: "test-admin-margin.mjs" },
+  // admin-dashboard pins Task #18 — the Phase B /admin/* surface (14
+  // pages). Complements admin-margin above: admin-margin pins the
+  // JSON endpoint + the standalone /app/admin/margin page (the Phase
+  // A7 scaffold), and admin-dashboard pins the 14-page cluster under
+  // app/admin/* + the shared layout gate (lib/admin/guard.ts
+  // requireAdmin → notFound, not 403 — we never advertise the admin
+  // surface to non-admins) + the shared UI primitives
+  // (components/admin/ui.tsx: StatCard / ErrorBanner / Th / Td /
+  // DayPicker / clampDays / SectionTitle / tableStyle) + the 12
+  // aggregator queries (lib/admin/queries.ts: overview / revenue /
+  // costs / margin / users list / user detail / ops / providers /
+  // transactions / credits / webhook logs / deploy snapshot) + the
+  // formatting helpers (lib/admin/format.ts) + the PII-masking
+  // posture (list pages mask email, detail page does not). Placed
+  // right after admin-margin so the two admin suites sit together at
+  // review time — a refactor that renames an export on queries.ts or
+  // guard.ts typically breaks both harnesses, and surfacing as
+  // "admin-margin" vs "admin-dashboard" gives the right granularity
+  // when debugging which side broke.
+  { name: "admin-dashboard", file: "test-admin-dashboard.mjs" },
   // prompt-safety pins Task #26 / PLAN_GAP_ANALYSIS SEV-0 — the
   // defense-in-depth layer against prompt injection on PDF→AI flows.
   // Covers: the lib/ai/prompt-safety.ts module contract (exports,
