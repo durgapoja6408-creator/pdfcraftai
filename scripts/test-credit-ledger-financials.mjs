@@ -47,10 +47,15 @@ const MIG_PATH = resolve(
 );
 const SCHEMA_PATH = resolve(ROOT, "db", "schema", "app.ts");
 const LEDGER_PATH = resolve(ROOT, "lib", "payments", "ledger.ts");
+// Phase B / Task #16 — `LedgerFinancials` type moved from ledger.ts →
+// types.ts. The enum-literal assertions below (C3-C5) now inspect the
+// types.ts source where the discriminated unions live.
+const TYPES_PATH = resolve(ROOT, "lib", "payments", "types.ts");
 
 const MIG_SRC = readFileSync(MIG_PATH, "utf8");
 const SCHEMA_SRC = readFileSync(SCHEMA_PATH, "utf8");
 const LEDGER_SRC = readFileSync(LEDGER_PATH, "utf8");
+const TYPES_SRC = readFileSync(TYPES_PATH, "utf8");
 
 let pass = 0;
 let fail = 0;
@@ -156,9 +161,19 @@ for (const col of COLUMNS) {
 // =============================================================================
 // SECTION C: lib/payments/ledger.ts wiring
 // =============================================================================
+// Phase B / Task #16 — LedgerFinancials moved to types.ts so the Paddle
+// adapter can build the payload without pulling in the ledger module
+// (and so NormalizedPaymentEvent can embed it without a circular import).
+// ledger.ts must still re-export it so callers that import it from
+// "@/lib/payments/ledger" continue to work. Accept either:
+//   - direct definition: `export type LedgerFinancials = { ... }`
+//   - re-export: `export type { LedgerFinancials } from "./types";`
 assert(
-  "C1: LedgerFinancials type exported",
-  /export\s+type\s+LedgerFinancials\s*=/.test(LEDGER_SRC)
+  "C1: LedgerFinancials type exported (direct or re-export from ./types)",
+  /export\s+type\s+LedgerFinancials\s*=/.test(LEDGER_SRC) ||
+    /export\s+type\s*\{\s*[^}]*\bLedgerFinancials\b[^}]*\}\s*from\s*["']\.\/types["']/.test(
+      LEDGER_SRC
+    )
 );
 
 assert(
@@ -166,24 +181,33 @@ assert(
   /financials\?\s*:\s*LedgerFinancials/.test(LEDGER_SRC)
 );
 
+// C3: "refund_reversal" is both a union member in types.ts AND must be
+// the override value the ledger tags onto refund debits. The type-side
+// check + the handleRefund-side check together guarantee we can't
+// silently drop the refund_reversal tag (either by trimming the union
+// or by forgetting to set it in the ledger).
 assert(
-  "C3: provider union includes refund_reversal",
-  /"refund_reversal"/.test(LEDGER_SRC)
+  "C3a: provider union in types.ts includes refund_reversal",
+  /"refund_reversal"/.test(TYPES_SRC)
+);
+assert(
+  "C3b: ledger.ts handleRefund sets provider: \"refund_reversal\"",
+  /provider:\s*"refund_reversal"/.test(LEDGER_SRC)
 );
 
 assert(
-  "C4: tax_treatment union includes mor/forward/rcm/none",
-  /"mor"/.test(LEDGER_SRC) &&
-    /"forward"/.test(LEDGER_SRC) &&
-    /"rcm"/.test(LEDGER_SRC) &&
-    /"none"/.test(LEDGER_SRC)
+  "C4: tax_treatment union in types.ts includes mor/forward/rcm/none",
+  /"mor"/.test(TYPES_SRC) &&
+    /"forward"/.test(TYPES_SRC) &&
+    /"rcm"/.test(TYPES_SRC) &&
+    /"none"/.test(TYPES_SRC)
 );
 
 assert(
-  "C5: data_source union includes webhook/backfill_api/estimate",
-  /"webhook"/.test(LEDGER_SRC) &&
-    /"backfill_api"/.test(LEDGER_SRC) &&
-    /"estimate"/.test(LEDGER_SRC)
+  "C5: data_source union in types.ts includes webhook/backfill_api/estimate",
+  /"webhook"/.test(TYPES_SRC) &&
+    /"backfill_api"/.test(TYPES_SRC) &&
+    /"estimate"/.test(TYPES_SRC)
 );
 
 // fxRateUsed is persisted via String(...) — guard that: we must never

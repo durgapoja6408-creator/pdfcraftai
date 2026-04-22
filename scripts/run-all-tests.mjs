@@ -196,6 +196,33 @@ const SUITES = [
     name: "credit-ledger-financials",
     file: "test-credit-ledger-financials.mjs",
   },
+  // paddle-webhook-financials pins Phase B / Task #16 — the Paddle
+  // webhook handler actually populating the credit_ledger financial
+  // columns that Task #15 scaffolded. Covers: types.ts discriminated-
+  // union contract (LedgerFinancials lives here so adapters can build
+  // the payload without a circular import; payment_captured + refund
+  // variants expose `financials?`), paddle.ts transaction.completed
+  // branch (PaddleTransactionEntity declares the full details.totals
+  // subtree + payments[].payment_method_id; buildPaddleCaptured-
+  // Financials bakes in the Paddle-rail invariants provider="paddle"/
+  // taxTreatment="mor"/dataSource="webhook" and pulls every monetary
+  // field; normalize() attaches financials to the returned event),
+  // paddle.ts adjustment.created refund branch (symmetric negative-
+  // signed builder that leaves `provider` undefined so the ledger
+  // fills "refund_reversal"), ledger.ts call-sites (handleCaptured
+  // threads financials ONLY into the base grant — the bonus row
+  // carries NULL financials by design to avoid double-counting in
+  // /admin/margin aggregates; handleRefund spreads event.financials
+  // under an explicit `provider: "refund_reversal"` override), and
+  // cross-file invariants (v1 leaves fxRateUsed / fxSlippageMicros
+  // undefined — Task #17 scope). Placed right after credit-ledger-
+  // financials because the two suites form a pair: Task #15's columns
+  // are worthless without Task #16's write path, and a Task #15
+  // regression typically breaks Task #16 too.
+  {
+    name: "paddle-webhook-financials",
+    file: "test-paddle-webhook-financials.mjs",
+  },
 ];
 
 /**

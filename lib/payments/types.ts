@@ -123,6 +123,52 @@ export type CheckoutResult = {
   session: CheckoutSession;
 };
 
+// --- Ledger financials ----------------------------------------------------
+
+/**
+ * Phase B / Task #15 — financial self-description payload written onto
+ * every real-payment `credit_ledger` row. Lives here in types.ts (not
+ * ledger.ts) so webhook adapters can build the payload without pulling
+ * in the full ledger module — and so `NormalizedPaymentEvent` can embed
+ * it on the event itself without a circular import.
+ *
+ * ALL fields are optional so existing callers (internal grants, refund
+ * debits, promo credits) that don't know about processor fees / tax / FX
+ * keep working with no changes. When `financials` is omitted the new
+ * columns stay NULL — which /admin/margin treats as "not yet categorized",
+ * never as zero revenue.
+ *
+ * Semantic notes:
+ *   - `grossChargeMicros` + `billingCurrency` describe what the customer
+ *     was billed in their currency. `netRevenueMicros` is the canonical
+ *     USD-micros figure the caller already resolved through FX.
+ *   - `provider` of "refund_reversal" is how we book a refund debit row:
+ *     deltas are negative (credits going out), but the column-level
+ *     provenance points back at which rail originated the debit.
+ *   - `taxTreatment` of "mor" (Paddle absorbs remittance) / "forward"
+ *     (Razorpay collects, we remit) / "rcm" (foreign-buyer reverse
+ *     charge) / "none" drives the admin-side tax dashboard's segmentation.
+ *   - `dataSource` is the audit switch. "webhook" = real, authoritative;
+ *     "backfill_api" = fetched from provider history REST; "estimate" =
+ *     synthesized from defaults (only used by the backfill script for
+ *     rows the provider can no longer reconstruct).
+ */
+export type LedgerFinancials = {
+  grossChargeMicros?: number;
+  billingCurrency?: string;
+  provider?: "paddle" | "razorpay" | "manual" | "refund_reversal";
+  processorFeeMicros?: number;
+  taxCollectedMicros?: number;
+  taxTreatment?: "mor" | "forward" | "rcm" | "none";
+  taxRemittableMicros?: number;
+  /** decimal(18,8) — pass as string or number; persisted as string. */
+  fxRateUsed?: string | number;
+  fxSlippageMicros?: number;
+  netRevenueMicros?: number;
+  cardFingerprint?: string;
+  dataSource?: "webhook" | "backfill_api" | "estimate";
+};
+
 // --- Normalized events ----------------------------------------------------
 
 /**
@@ -134,6 +180,11 @@ export type CheckoutResult = {
  * is recovered from the providerRef via our `payments` table lookup. We
  * write the ledger keyed on `internalPaymentId`, never on providerRef —
  * that's what makes us migration-safe.
+ *
+ * Phase B / Task #16: `payment_captured` and `refund` carry an optional
+ * `financials` payload. Adapters that have rich fee/tax/FX data (Paddle
+ * webhooks, Razorpay reconciliation fetches) populate it; adapters that
+ * don't leave it undefined and the ledger columns stay NULL.
  */
 export type NormalizedPaymentEvent =
   | {
@@ -145,6 +196,8 @@ export type NormalizedPaymentEvent =
       occurredAt: Date;
       /** Raw provider payload, scrubbed of PAN/CVV. Stored for audit. */
       providerRaw: unknown;
+      /** Phase B / Task #16 — fee/tax/FX/net breakdown (Paddle: always set). */
+      financials?: LedgerFinancials;
     }
   | {
       kind: "payment_failed";
@@ -165,6 +218,14 @@ export type NormalizedPaymentEvent =
       amount: Money;
       occurredAt: Date;
       providerRaw: unknown;
+      /**
+       * Phase B / Task #16 — reversal breakdown. For a full refund all
+       * money values are negative (gross/fee/tax/net reversed). The
+       * `provider` field for a refund debit row is conventionally set to
+       * "refund_reversal" by the ledger, so adapters building this
+       * payload should leave `provider` undefined — the ledger fills it.
+       */
+      financials?: LedgerFinancials;
     }
   | {
       kind: "subscription_event";

@@ -19,7 +19,16 @@ import { and, eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db/client";
 import { CREDIT_PACKS } from "@/lib/pricing";
 import type { CreditPackId } from "@/lib/pricing";
-import type { NormalizedPaymentEvent } from "./types";
+import type { LedgerFinancials, NormalizedPaymentEvent } from "./types";
+
+/**
+ * Re-exported from ./types so existing callers that import
+ * `LedgerFinancials` from "@/lib/payments/ledger" continue to work.
+ * The type now lives in types.ts (Phase B / Task #16) so the Paddle
+ * adapter can build the payload without pulling in the ledger module
+ * and so `NormalizedPaymentEvent` can embed it on the event.
+ */
+export type { LedgerFinancials } from "./types";
 
 // --- Pack lookup ----------------------------------------------------------
 
@@ -35,48 +44,6 @@ function packCredits(packId: string): { base: number; bonus: number } | null {
 }
 
 // --- grantCredits ---------------------------------------------------------
-
-/**
- * Phase B / Task #15 — financial self-description payload.
- *
- * When a ledger row is written from a payment capture (Paddle webhook in
- * Task #16, Razorpay in Task #20, backfill script for historicals), the
- * caller passes the fully-resolved figures through here so every row is
- * self-describing for net-margin accounting.
- *
- * ALL fields are optional so existing callers (internal grants, refund
- * debits, promo credits) that don't know about processor fees / tax / FX
- * keep working with no changes. When `financials` is omitted the new
- * columns stay NULL — which /admin/margin treats as "not yet categorized",
- * never as zero revenue.
- *
- * Semantic notes:
- *   - `grossChargeMicros` + `billingCurrency` describe what the customer
- *     was billed in their currency. `netRevenueMicros` is the canonical
- *     USD-micros figure the caller already resolved through FX.
- *   - `provider` of "refund_reversal" is how we book a refund debit row:
- *     deltas are negative (credits going out), but the column-level
- *     provenance points back at which rail originated the debit.
- *   - `dataSource` is the audit switch. "webhook" = real, authoritative;
- *     "backfill_api" = fetched from provider history REST; "estimate" =
- *     synthesized from defaults (only used by the backfill script for
- *     rows the provider can no longer reconstruct).
- */
-export type LedgerFinancials = {
-  grossChargeMicros?: number;
-  billingCurrency?: string;
-  provider?: "paddle" | "razorpay" | "manual" | "refund_reversal";
-  processorFeeMicros?: number;
-  taxCollectedMicros?: number;
-  taxTreatment?: "mor" | "forward" | "rcm" | "none";
-  taxRemittableMicros?: number;
-  /** decimal(18,8) — pass as string or number; persisted as string. */
-  fxRateUsed?: string | number;
-  fxSlippageMicros?: number;
-  netRevenueMicros?: number;
-  cardFingerprint?: string;
-  dataSource?: "webhook" | "backfill_api" | "estimate";
-};
 
 export type GrantCreditsInput = {
   userId: string;
@@ -273,6 +240,14 @@ async function handleCaptured(
     }
 
     // Base credits: idempotency keyed on paymentId + "base".
+    //
+    // Phase B / Task #16 — attribute the full payment's LedgerFinancials
+    // to the BASE row only. The base row is the canonical per-payment
+    // representation in /admin/margin aggregates; putting the same
+    // gross/fee/tax/net breakdown on the bonus row below would double-
+    // count it. Bonus rows carry NULL financials — /admin/margin treats
+    // that as "internal allocation, not revenue" (see Task #15 docs for
+    // the "NULL means not categorized, never zero revenue" semantics).
     const baseResult = await grantCredits({
       userId: payment.userId,
       delta: pack.base,
@@ -280,11 +255,13 @@ async function handleCaptured(
       note: `Pack: ${payment.packId}`,
       paymentId: payment.id,
       idempotencyKey: `${payment.id}:base`,
+      financials: event.financials,
     });
 
     // Bonus credits (if the pack ships with any): separate ledger row
     // so /app/billing can show "500 credits + 25 bonus" cleanly and so
-    // the 30-day bonus expiry rule is trivial to enforce later.
+    // the 30-day bonus expiry rule is trivial to enforce later. No
+    // financials payload — see comment above.
     if (pack.bonus > 0) {
       await grantCredits({
         userId: payment.userId,
@@ -398,6 +375,22 @@ async function handleRefund(
           );
 
     if (creditsToDebit > 0) {
+      // Phase B / Task #16 — thread the refund's negative-signed
+      // financials through. The adapter leaves `provider` undefined on
+      // refund events by convention; here at the ledger we tag the
+      // debit row with "refund_reversal" so /admin/margin can
+      // distinguish a refund reversal from the original charge even
+      // though both rows reference the same paymentId. If the adapter
+      // didn't populate financials (non-Paddle adapters, or future
+      // adapters that can't reconstruct the breakdown) we still land
+      // the provenance tag so the row isn't classified as "not
+      // categorized" — a refund with no financial detail is still
+      // meaningfully a refund_reversal.
+      const refundFinancials: LedgerFinancials = {
+        ...(event.financials ?? {}),
+        provider: "refund_reversal",
+      };
+
       await grantCredits({
         userId: payment.userId,
         delta: -creditsToDebit,
@@ -410,6 +403,7 @@ async function handleRefund(
         // payment can have multiple partial refunds, each with their
         // own debit row, so this key scheme handles them naturally.
         idempotencyKey: `${payment.id}:refund:${event.providerRefundRef}`,
+        financials: refundFinancials,
       });
     }
   }

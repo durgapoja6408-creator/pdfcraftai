@@ -45,13 +45,14 @@
 // docs/STATUS.md Task #1 for the validation plan.
 
 import "server-only";
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHash, createHmac, timingSafeEqual } from "crypto";
 import type { PaymentProvider } from "../provider";
 import { UnsupportedCapabilityError, WebhookSignatureError } from "../provider";
 import type {
   CheckoutInput,
   CheckoutResult,
   Currency,
+  LedgerFinancials,
   Money,
   NormalizedPaymentEvent,
   NormalizedTx,
@@ -319,6 +320,13 @@ export class PaddleProvider implements PaymentProvider {
       if (!txn.id) return null;
       const total = txn.details?.totals?.total ?? txn.items?.[0]?.totals?.total;
       const currency = (txn.currency_code ?? "USD") as Currency;
+      // Phase B / Task #16 — populate LedgerFinancials from the webhook
+      // body. Paddle always gives us totals.{total,subtotal,tax,fee,earnings}
+      // on transaction.completed, so this payload is authoritative and
+      // every /admin/margin column lands with a real value (no
+      // estimate/backfill). The taxTreatment/dataSource/provider fields
+      // are constants for the Paddle rail — the builder bakes them in.
+      const financials = buildPaddleCapturedFinancials(txn);
       return {
         kind: "payment_captured",
         providerId: this.id,
@@ -330,6 +338,7 @@ export class PaddleProvider implements PaymentProvider {
         },
         occurredAt,
         providerRaw: scrub(body),
+        financials,
       };
     }
 
@@ -367,6 +376,10 @@ export class PaddleProvider implements PaymentProvider {
       if (!adj.id || !adj.transaction_id) return null;
       const total = adj.totals?.total ?? adj.items?.[0]?.amount;
       const currency = (adj.currency_code ?? "USD") as Currency;
+      // Phase B / Task #16 — negative-signed financials for the refund
+      // debit row. `provider` is left undefined here; the ledger's
+      // handleRefund tags the row as "refund_reversal" before writing.
+      const financials = buildPaddleRefundFinancials(adj);
       return {
         kind: "refund",
         providerId: this.id,
@@ -379,6 +392,7 @@ export class PaddleProvider implements PaymentProvider {
         },
         occurredAt,
         providerRaw: scrub(body),
+        financials,
       };
     }
 
@@ -609,6 +623,130 @@ function truncate(s: string, n: number): string {
 }
 
 /**
+ * Convert a Paddle-side amount (smallest-unit string, e.g. "1299" for
+ * USD $12.99) into our canonical micros scale (1 currency unit =
+ * 1,000,000 micros). For USD: 1 cent = 10,000 micros.
+ *
+ * Returns undefined if the input is missing or unparseable so the
+ * downstream ledger column stays NULL rather than being silently
+ * zeroed out — /admin/margin treats NULL as "not yet categorized",
+ * never as "zero revenue", which is the right semantics if Paddle
+ * omits a field.
+ *
+ * NOTE: This assumes a two-decimal presentment currency. USD, EUR,
+ * GBP, INR, and the vast majority of Paddle's presentment currencies
+ * fit this. Zero-decimal currencies (JPY, KRW) would need `amount *
+ * 1_000_000` instead — we don't enable those in supportedCurrencies
+ * today, so the assumption is safe. If we ever add JPY support this
+ * needs a per-currency switch.
+ */
+function paddleMinorToMicros(
+  s: string | number | undefined | null
+): number | undefined {
+  if (s === undefined || s === null) return undefined;
+  const n = typeof s === "string" ? Number(s) : s;
+  if (!Number.isFinite(n)) return undefined;
+  // Round to keep downstream math integer-clean — Paddle strings are
+  // always integers but JS Number coercion can introduce a trailing
+  // .0000000001 on some platforms.
+  return Math.round(n * 10_000);
+}
+
+/**
+ * Non-reversible per-card identifier. Paddle's `payment_method_id` is
+ * stable across charges for the same card+customer but is an opaque
+ * token — we hash it so the value we persist can't be used to retrieve
+ * the card or the customer record even if the ledger row leaked. 16
+ * hex chars (64 bits) is enough to cluster-count cards in the margin
+ * dashboard without any meaningful chance of collision at our scale.
+ */
+function fingerprintPaymentMethod(
+  paymentMethodId: string | undefined | null
+): string | undefined {
+  if (!paymentMethodId) return undefined;
+  return createHash("sha256")
+    .update(paymentMethodId)
+    .digest("hex")
+    .slice(0, 16);
+}
+
+/**
+ * Build the LedgerFinancials payload for a Paddle-captured transaction.
+ * Exported as a free function (not a PaddleProvider method) so the test
+ * harness can exercise it against fixture payloads without standing up
+ * a full provider instance with webhook secrets.
+ *
+ * Invariants baked into this payload that are Paddle-specific:
+ *   - provider      = "paddle"           (always — MoR is the whole point)
+ *   - taxTreatment  = "mor"              (Paddle absorbs remit; never "forward")
+ *   - dataSource    = "webhook"          (this code path only runs from verifyWebhook)
+ *   - fxRateUsed / fxSlippageMicros are left undefined in v1. Paddle
+ *     exposes `earnings` in settlement currency but doesn't hand us the
+ *     FX rate on the webhook; benchmark-rate comparison is Task #17.
+ */
+export function buildPaddleCapturedFinancials(
+  txn: PaddleTransactionEntity
+): LedgerFinancials {
+  const totals = txn.details?.totals;
+  const firstPayment = txn.payments?.[0];
+  return {
+    grossChargeMicros: paddleMinorToMicros(totals?.total),
+    billingCurrency: txn.currency_code,
+    provider: "paddle",
+    processorFeeMicros: paddleMinorToMicros(totals?.fee),
+    taxCollectedMicros: paddleMinorToMicros(totals?.tax),
+    taxTreatment: "mor",
+    // Paddle remits tax as MoR — we owe nothing. taxRemittableMicros is
+    // the "what *we* owe the taxman" column, so for MoR rows it is
+    // always 0 (not the same as taxCollected, which is what Paddle
+    // pulled from the buyer).
+    taxRemittableMicros: 0,
+    // `earnings` is already in our settlement currency (USD) — it's the
+    // cleanest definition of "net revenue" we can get without running
+    // our own FX: Paddle has already done subtotal - fee - their take.
+    netRevenueMicros: paddleMinorToMicros(totals?.earnings),
+    cardFingerprint: fingerprintPaymentMethod(firstPayment?.payment_method_id),
+    dataSource: "webhook",
+  };
+}
+
+/**
+ * Build the LedgerFinancials reversal payload for a Paddle refund
+ * (adjustment with action="refund"). All monetary fields are negative
+ * so the ledger row writes as a debit that reverses the original
+ * credit grant.
+ *
+ * IMPORTANT: `provider` is intentionally left undefined here. The ledger's
+ * refund path sets `provider: "refund_reversal"` on the debit row — it's
+ * a ledger-side provenance tag, not an adapter-level fact. See
+ * `NormalizedPaymentEvent.refund.financials` docstring.
+ */
+export function buildPaddleRefundFinancials(
+  adj: PaddleAdjustmentEntity
+): LedgerFinancials {
+  const totals = adj.totals;
+  const neg = (x: number | undefined): number | undefined =>
+    x === undefined ? undefined : -x;
+  return {
+    grossChargeMicros: neg(paddleMinorToMicros(totals?.total)),
+    billingCurrency: adj.currency_code,
+    // provider deliberately left undefined — ledger fills "refund_reversal"
+    processorFeeMicros: neg(paddleMinorToMicros(totals?.fee)),
+    taxCollectedMicros: neg(paddleMinorToMicros(totals?.tax)),
+    taxTreatment: "mor",
+    // MoR refund: Paddle un-remits on their side; we still owe 0 to tax
+    // authorities (we never collected it in the first place).
+    taxRemittableMicros: 0,
+    netRevenueMicros: neg(paddleMinorToMicros(totals?.earnings)),
+    // cardFingerprint intentionally omitted on refunds — the ledger's
+    // refund row points back at the original payment via
+    // internalPaymentId; duplicating the card tag would invite
+    // consistency bugs if the buyer changed cards between charge + refund.
+    dataSource: "webhook",
+  };
+}
+
+/**
  * Defensive scrub — Paddle webhook bodies should never include raw PAN
  * since the iframe owns the card fields, but we still strip anything
  * that smells like card data before persisting `providerRaw` to audit.
@@ -643,16 +781,54 @@ type PaddleTransactionEntity = {
   currency_code?: string;
   custom_data?: Record<string, string>;
   created_at?: string;
+  /**
+   * Paddle Billing returns monetary fields as strings in the smallest unit
+   * of the buyer's presentment currency (cents for USD, paise for INR).
+   * `details.totals` is where the full fee/tax/earnings breakdown lives
+   * for a completed transaction — this is what lets us populate
+   * LedgerFinancials from a webhook without a second REST fetch.
+   *
+   *   subtotal = pre-tax amount the buyer was charged
+   *   tax      = tax collected (Paddle computes + remits as MoR)
+   *   total    = subtotal + tax (what hit the buyer's card)
+   *   fee      = Paddle's processor fee, in presentment currency
+   *   earnings = seller's take, already in seller's settlement currency
+   *              (typically USD for us — Paddle does the FX conversion
+   *              when settling payouts)
+   *
+   * Paddle sometimes also provides a `details.totals` subtree under each
+   * item in `items[]`; we prefer `details.totals` on the transaction
+   * itself because it's always present on `transaction.completed`.
+   */
   details?: {
     totals?: {
       total?: string | number;
       subtotal?: string | number;
+      tax?: string | number;
+      fee?: string | number;
+      earnings?: string | number;
     };
   };
   items?: Array<{
     id?: string;
     totals?: {
       total?: string | number;
+    };
+  }>;
+  /**
+   * Payment instrument details. Paddle populates `payments[]` on every
+   * `transaction.completed`; we use `payment_method_id` (a Paddle-side
+   * stable id per card per customer) as the basis for cardFingerprint —
+   * hashed + truncated so we never store anything reversible.
+   */
+  payments?: Array<{
+    payment_method_id?: string;
+    method_details?: {
+      type?: string;
+      card?: {
+        last4?: string;
+        type?: string;
+      };
     };
   }>;
 };
@@ -662,8 +838,19 @@ type PaddleAdjustmentEntity = {
   action?: "refund" | "credit" | "chargeback" | string;
   transaction_id?: string;
   currency_code?: string;
+  /**
+   * Adjustment `totals` mirrors transaction `details.totals` — Paddle
+   * exposes subtotal/tax/total/fee/earnings on a refund so we can book
+   * a symmetric negative-signed LedgerFinancials reversal. `fee` and
+   * `earnings` may be zero or absent if Paddle didn't return the
+   * processor fee on this refund class.
+   */
   totals?: {
     total?: string | number;
+    subtotal?: string | number;
+    tax?: string | number;
+    fee?: string | number;
+    earnings?: string | number;
   };
   items?: Array<{
     amount?: string | number;
