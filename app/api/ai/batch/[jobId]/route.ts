@@ -283,22 +283,48 @@ async function finalizeJob(
   let wasChunked = false;
   let chunkCount = 1;
   let filename: string;
+  // Phase E audit trail: populated from opPayload inside the summarize
+  // branch, left null for translate (not yet in the A/B registry) and
+  // for legacy batches submitted before 0014 shipped. Read by the
+  // recordAiUsage call at §c so the ai_usage row captures the prompt
+  // variant this batch ran under.
+  let promptVersionForLogging: string | null = null;
+  let experimentIdForLogging: string | null = null;
 
   try {
     if (op === "summarize") {
       const line = results.lines[0]!;
       const depth = opPayload.depth as SummarizeDepth;
       const wasTruncated = Boolean(opPayload.wasTruncated);
+      // Phase E: read the prompt variant that was assigned at submit
+      // time — do NOT re-resolve here. Registry weights may have
+      // shifted in the 24h between submit and finalize, and the audit
+      // row must reflect the variant the batch actually executed
+      // under. Legacy batches submitted before 0014 shipped will have
+      // these as `undefined` in opPayload → cast to null → recordAiUsage
+      // below stores NULL (matching the "unknown pre-registry era"
+      // semantics of the migration comment).
+      const submittedPromptVersion =
+        (opPayload.promptVersion as string | null | undefined) ?? null;
+      const submittedExperimentId =
+        (opPayload.experimentId as string | null | undefined) ?? null;
       const finalized = finalizeSummarizeBatchResult({
         line,
         depth,
         wasTruncated,
+        promptVersion: submittedPromptVersion,
+        experimentId: submittedExperimentId,
       });
       markdown = finalized.markdown;
       model = finalized.model;
       usage = finalized.usage;
       stopReasonForLogging = finalized.stopReason;
       wasTruncatedOverall = finalized.wasTruncated;
+      // Hoist so the §c recordAiUsage call can read them — finalizeSummarizeBatchResult
+      // returns them verbatim from what submit persisted, which is the
+      // variant the batch actually executed under.
+      promptVersionForLogging = finalized.promptVersion;
+      experimentIdForLogging = finalized.experimentId;
       filename = deriveSummaryFilename(
         String(opPayload.filename ?? "document.pdf"),
         depth
@@ -377,6 +403,11 @@ async function finalizeJob(
     responseTruncated: isTruncatedStopReason(stopReasonForLogging ?? undefined),
     ledgerId: spendLedgerId,
     idempotencyKey: spendIdemKey || undefined,
+    // Phase E: capture the variant assigned at submit time (read from
+    // opPayload in §b). Null for translate and legacy pre-0014 rows —
+    // matches the rollup's `WHERE prompt_version IS NOT NULL` filter.
+    promptVersion: promptVersionForLogging,
+    experimentId: experimentIdForLogging,
   });
 
   // -- d. Persist files + ai_outputs + flip status ------------------

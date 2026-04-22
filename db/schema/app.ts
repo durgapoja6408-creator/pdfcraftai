@@ -563,6 +563,20 @@ export const aiUsage = mysqlTable(
     // aggregates via `WHERE response_truncated IS NOT NULL`.
     stopReason: varchar("stop_reason", { length: 32 }),
     responseTruncated: int("response_truncated"),
+    // Phase E / Task #26 — prompt version registry audit columns
+    // (migration 0014_ai_usage_prompt_version.sql). Both nullable:
+    // pre-registry rows are NULL, and calls on ops that haven't opted
+    // into the registry write NULL. See lib/ai/prompts/registry.ts
+    // for the SSOT; these columns are the per-call audit trail that
+    // lets the rollup slice by variant and experiment. `promptVersion`
+    // is the variant id that was resolved (e.g. "v1", "v2-concise").
+    // `experimentId` is non-NULL only when the assignment came from
+    // an active multi-variant experiment — a 100%-weight single-variant
+    // lookup writes promptVersion but leaves experimentId NULL so
+    // "not part of an experiment" is distinguishable from
+    // "experiment ran, variant v1 was picked".
+    promptVersion: varchar("prompt_version", { length: 32 }),
+    experimentId: varchar("experiment_id", { length: 64 }),
     errorCode: varchar("error_code", { length: 64 }),
     ledgerId: varchar("ledger_id", { length: 36 }),
     idempotencyKey: varchar("idempotency_key", { length: 128 }),

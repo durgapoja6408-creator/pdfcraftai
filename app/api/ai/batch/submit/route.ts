@@ -266,6 +266,13 @@ export async function POST(req: Request): Promise<Response> {
       depth: depth!,
       ocrCandidatePages: extracted.ocrCandidatePages,
       customId: `${batchJobId}-0`,
+      // Pass the bucketing seed so A/B variants assigned at submit time
+      // match what the batch actually executed against (the registry
+      // resolver is deterministic per userId). We capture the resolved
+      // version into opPayload below — finalize reads it back rather
+      // than re-resolving (which could return a different variant if
+      // registry weights shift between submit and the 24h batch run).
+      userId,
     });
     requests = [plan.request];
     model = plan.model;
@@ -285,6 +292,11 @@ export async function POST(req: Request): Promise<Response> {
       spendIdempotencyKey: spendKey,
       clientIdempotencyKey: idempotencyKey,
       customIdPrefix: batchJobId,
+      // Audit trail for Phase E A/B testing (migration 0014). Nullable
+      // when the resolver couldn't assign or RECORDING_ENABLED is off —
+      // finalize treats both as "unknown, pass null to recordAiUsage".
+      promptVersion: plan.promptVersion,
+      experimentId: plan.experimentId,
     };
   } else {
     const plan = buildTranslateBatchPlan({

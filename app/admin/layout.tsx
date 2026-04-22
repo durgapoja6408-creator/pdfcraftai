@@ -72,6 +72,14 @@ const NAV: NavItem[] = [
   // intervention today" surfaces, not financial rollups.
   { section: "Ops", href: "/admin/fraud", label: "Fraud" },
   { section: "Ops", href: "/admin/rate-limits", label: "Rate limits" },
+  // Phase E / Task #26 — Prompt registry + A/B experiment rollout
+  // audit. Lives in Ops because it answers "is the right variant
+  // running, and is its traffic split healthy?" — an operator
+  // question, not a revenue/cost rollup. The per-variant cost
+  // deltas from the underlying ai_usage rollup join back to
+  // /admin/margin (which already slices by op); this page is
+  // specifically the rollout / misconfiguration surface.
+  { section: "Ops", href: "/admin/prompts", label: "Prompts" },
   { section: "Platform", href: "/admin/deploy", label: "Deploy" },
   { section: "Platform", href: "/admin/logs", label: "Webhook logs" },
   // Phase D / Task #25 — Compliance coverage map (DPDP / GDPR /

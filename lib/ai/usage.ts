@@ -257,6 +257,27 @@ export type RecordAiUsageInput = {
    * batch spend. Defaults to false.
    */
   batchMode?: boolean;
+  /**
+   * Task #26 / Phase E — prompt version registry audit field
+   * (migration 0014). The PromptVersion.id that was resolved for
+   * this call by `resolvePromptVersion(op, seed)` in
+   * `lib/ai/prompts/registry.ts`. Typically "v1", "v2-concise",
+   * "v3-expert-tone". NULL when the op hasn't opted into the
+   * registry yet — rollout is per-op so early adopters (summarize
+   * first) write the column while later adopters leave it NULL.
+   */
+  promptVersion?: string | null;
+  /**
+   * Task #26 / Phase E — experiment audit field (migration 0014).
+   * NON-NULL only when the variant assignment came from an active
+   * multi-variant experiment at call time (i.e. >1 enabled variant
+   * for that op). A 100%-weight single-variant lookup writes
+   * `promptVersion` but leaves this NULL. The rollup slicer uses
+   * NULL as the signal for "this row's assignment was
+   * deterministic, not randomized," which is a materially different
+   * statistical posture than an A/B-assigned row.
+   */
+  experimentId?: string | null;
 };
 
 export type RecordAiUsageResult =
@@ -330,6 +351,19 @@ export async function recordAiUsage(
       // the value the truncation-rate aggregates explicitly filter out.
       stopReason: normalizeStopReason(input.stopReason),
       responseTruncated: normalizeTruncatedFlag(input.responseTruncated),
+      // Phase E / Task #26 — prompt version registry audit
+      // (migration 0014). Both default to NULL so pre-registry ops
+      // and historical rows stay honest. The registry at
+      // lib/ai/prompts/registry.ts is the SSOT; this is the per-
+      // call audit trail.
+      promptVersion:
+        typeof input.promptVersion === "string" && input.promptVersion.length > 0
+          ? input.promptVersion.slice(0, 32)
+          : null,
+      experimentId:
+        typeof input.experimentId === "string" && input.experimentId.length > 0
+          ? input.experimentId.slice(0, 64)
+          : null,
       errorCode: input.errorCode ?? null,
       ledgerId: input.ledgerId ?? null,
       idempotencyKey: input.idempotencyKey ?? null,

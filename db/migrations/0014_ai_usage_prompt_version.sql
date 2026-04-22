@@ -1,0 +1,108 @@
+-- 0014_ai_usage_prompt_version.sql
+-- Phase E / Task #26 — prompt version registry + A/B testing observability.
+--
+-- Background
+-- ----------
+-- Phase A tightened the prompt surface for quality + margin (Tier 4 of
+-- the Net-Margin Roadmap). That locked in a single "v1" prompt per op.
+-- Phase E takes the next step: let us ship a new prompt variant to a
+-- small % of users, measure whether it wins (same or better quality at
+-- lower tokens, or same cost at measurably better quality), and decide
+-- to promote or kill based on evidence, not opinion.
+--
+-- For A/B routing to produce trustworthy results we have to know, for
+-- every ai_usage row, which prompt variant was active. Today the table
+-- has no such column — a rollup cannot slice by variant, so we would
+-- be stuck in the usual "ship it, hope no one complains, nobody
+-- complained, it must be fine" trap.
+--
+-- What this adds
+-- --------------
+-- Two nullable columns on `ai_usage`:
+--
+--   prompt_version       varchar(32)   — the PromptVersion.id that
+--                                        `resolvePromptVersion(op, seed)`
+--                                        returned for this call.
+--                                        Typically "v1", "v2-concise",
+--                                        "v3-expert-tone", etc. The
+--                                        registry at
+--                                        lib/ai/prompts/registry.ts is
+--                                        the source of truth; this
+--                                        column is the audit trail.
+--
+--   experiment_id        varchar(64)   — when the variant assignment
+--                                        came from an active A/B
+--                                        experiment (i.e. >1 enabled
+--                                        variant on that op at call
+--                                        time), we record the
+--                                        experiment's stable id
+--                                        (e.g. "summarize-concise-vs-
+--                                        balanced-2026Q2"). When the
+--                                        resolution was a 100%-weight
+--                                        single-variant lookup this is
+--                                        NULL — "not part of an
+--                                        experiment" is a meaningfully
+--                                        different state from
+--                                        "experiment ran, variant X
+--                                        won".
+--
+-- Why two columns instead of one
+-- ------------------------------
+-- prompt_version tells us what the model actually saw; experiment_id
+-- tells us whether the assignment was randomized or deterministic. The
+-- rollup needs BOTH:
+--   - "What fraction of summarize calls used v2?" → group by
+--     prompt_version.
+--   - "Across users in experiment summarize-concise-vs-balanced, what's
+--     the output-token delta between v1 and v2?" → join prompt_version
+--     with experiment_id.
+-- Merging them (e.g. encoding the experiment into the version string)
+-- would force the rollup to string-parse every row, and would make
+-- post-experiment renaming expensive. Two narrow columns are the
+-- simplest honest shape.
+--
+-- Why nullable (not DEFAULT 'v1')
+-- -------------------------------
+-- Pre-migration ai_usage rows have no prompt-version information;
+-- defaulting to 'v1' would be a lie ("we know this call used v1") and
+-- would pollute any future rollout-rate metric that scans the full
+-- table. NULL means "unknown — pre-registry era"; the rollup query
+-- filters `WHERE prompt_version IS NOT NULL` when computing split
+-- percentages so historical rows don't skew the signal. Same pattern
+-- we established with response_truncated (0008) and cachedInputTokens
+-- (0007).
+--
+-- Index rationale
+-- ---------------
+-- The primary admin query is "for op X over last N days, what's the
+-- call count per (prompt_version, experiment_id)?" — grouped by those
+-- two columns, filtered by created_at range and operation. A covering
+-- index on (operation, created_at, prompt_version, experiment_id)
+-- would be ideal, but MySQL/MariaDB index-size accounting is allergic
+-- to 4-column indexes on an already heavily-indexed table. The
+-- existing (created_at) index (idx from 0005) covers the WHERE
+-- created_at >= ? predicate; GROUP BY on the two new columns is a
+-- small hash-aggregate on the already-scanned rows. At current
+-- cardinality (~10k rows/day) the hash-group is negligible. We
+-- revisit if ai_usage exceeds 10M rows.
+--
+-- Rollout safety
+-- --------------
+-- Additive ALTER with NULL default → zero write amplification, no
+-- downtime risk on the managed MySQL instance at Hostinger. Safe to
+-- apply before the code that populates these columns ships —
+-- nullable columns with no writers stay NULL forever, no-op.
+--
+-- Deploy gotcha (mirrors Task #22 / #19 pattern):
+--   This migration is NOT auto-applied on deploy — must be piped to
+--   Hostinger MySQL manually BEFORE `lib/ai/prompts/registry.ts`
+--   starts calling `recordAiUsage({ promptVersion, experimentId })`,
+--   otherwise the INSERT throws "Unknown column 'prompt_version'"
+--   and the user-facing AI call 500s. Until the migration lands,
+--   summarize's call-site must be gated behind a feature flag or
+--   reverted; we choose the gated approach — see registry.ts
+--   inline comments.
+
+ALTER TABLE `ai_usage`
+  ADD COLUMN `prompt_version` varchar(32) NULL AFTER `response_truncated`,
+  ADD COLUMN `experiment_id` varchar(64) NULL AFTER `prompt_version`;

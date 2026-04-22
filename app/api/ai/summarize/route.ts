@@ -206,6 +206,11 @@ export async function POST(req: Request): Promise<Response> {
       filename: pdfFile.name,
       depth,
       ocrCandidatePages: extracted.ocrCandidatePages,
+      // Phase E / Task #26 — bucketing seed for prompt-variant A/B
+      // routing. Stable per user so repeated summarize calls by the
+      // same person resolve to the same variant, which is a
+      // precondition for any meaningful cost/quality delta measurement.
+      userId,
     });
   } catch (err) {
     await refundCredits({
@@ -232,6 +237,13 @@ export async function POST(req: Request): Promise<Response> {
       errorCode: err instanceof Error ? err.name : "summarize_failed",
       ledgerId: spendLedgerId,
       idempotencyKey: spendKey,
+      // Phase E / Task #26 — we can't know the resolved variant on the
+      // error path (summarizePdf threw before returning). Leave both
+      // NULL. That's the right shape: the margin rollup's per-variant
+      // aggregates filter on `prompt_version IS NOT NULL` so errored
+      // calls don't skew either side of an A/B split.
+      promptVersion: null,
+      experimentId: null,
     });
     if (err instanceof NoAIProviderConfiguredError) {
       return json(503, { error: "no_ai_provider_configured" });
@@ -270,6 +282,16 @@ export async function POST(req: Request): Promise<Response> {
     responseTruncated: isTruncatedStopReason(summary.stopReason),
     ledgerId: spendLedgerId,
     idempotencyKey: spendKey,
+    // Phase E / Task #26 — stamp the variant the model actually ran.
+    // `summary.promptVersion` is null when the registry's
+    // RECORDING_ENABLED kill switch is off; otherwise it's the
+    // PromptVersion.id the resolver returned (e.g. "v1").
+    // `summary.experimentId` is null when the assignment was
+    // deterministic (single-variant 100%) and the Experiment.id when
+    // randomized — see lib/ai/prompts/registry.ts for the full
+    // contract.
+    promptVersion: summary.promptVersion,
+    experimentId: summary.experimentId,
   });
 
   // -- 6. Persist files row + ai_outputs row ---------------------------

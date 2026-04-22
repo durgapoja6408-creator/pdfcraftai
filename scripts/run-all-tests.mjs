@@ -323,6 +323,51 @@ const SUITES = [
   // both, and this harness surfaces "prompt-safety call-site missing"
   // at the right granularity.
   { name: "prompt-safety", file: "test-prompt-safety.mjs" },
+  // prompt-registry pins Task #26 / Phase E — the prompt version registry
+  // + A/B experiment infra that layers on top of the Phase A1 ai_usage
+  // audit table. Forms a pair with prompt-safety: prompt-safety pins the
+  // INPUT-side defense (injection preamble + user-input wrapping) and
+  // prompt-registry pins the AUDIT side (which variant ran, under which
+  // experiment, at what per-call infra cost). Covers: migration 0014
+  // shape (additive ALTER, `prompt_version varchar(32) NULL` +
+  // `experiment_id varchar(64) NULL` appended AFTER `response_truncated`,
+  // no DEFAULT / no index / no DROP), Drizzle schema parity on the two
+  // new ai_usage columns with matching widths, lib/ai/usage.ts write-
+  // path extension (RecordAiUsageInput gains both fields as string |
+  // null, 32/64 char clamps at persistence, RECORDING_ENABLED null
+  // override still fires), the full lib/ai/prompts/registry.ts module
+  // surface (PromptOp / PromptVersion / Experiment / ResolvedPrompt /
+  // OpRegistryState types, PROMPT_REGISTRY + EXPERIMENTS + RECORDING_
+  // ENABLED constants, stableHashToBps djb2 shape, resolvePromptVersion
+  // with enabled filter + 'v1' fallback + experiment routing,
+  // listAllPromptVersions / listActiveExperiments introspection helpers
+  // for /admin/prompts, classifyOpState four-state enum
+  // single/experiment/misconfigured/empty, __PROMPT_REGISTRY_INTERNALS
+  // test hook), content invariants (all 10 AIOp entries present in
+  // PROMPT_REGISTRY so a future op rename shows up here instead of
+  // silently falling through to 'v1'), summarize op + route wire-up
+  // (module imports resolvePromptVersion, SummarizeInput gains userId,
+  // SummarizeResult + BatchPlan + BatchResult all carry promptVersion +
+  // experimentId, both success and error recordAiUsage call-sites thread
+  // the audit pair), batch wire-up (submit captures into opPayload at
+  // plan time, finalize reads back with ?? null legacy fallback so
+  // pre-0014 batches don't throw), /admin/prompts page contract
+  // (force-dynamic + nodejs runtime + default export, consumes
+  // PROMPT_REGISTRY + classifyOpState + phase-e-queries, red banner on
+  // any op in `misconfigured` state, yellow banner when RECORDING_
+  // ENABLED=false), NAV registration in app/admin/layout.tsx under Ops,
+  // and lib/admin/phase-e-queries.ts contract (PhaseEQueryResult<T>
+  // envelope mirroring PhaseDQueryResult / AdminQueryResult,
+  // server-only pin, isNotNull(prompt_version) rollup filter so
+  // pre-registry rows don't skew per-variant percentages,
+  // groupBy(operation, promptVersion, experimentId) 3-tuple). Placed
+  // right after prompt-safety because the two suites pin opposite
+  // sides of the same module cluster (lib/ai/prompts/*) — a file-level
+  // rewrite to lib/ai/prompts/registry.ts or a rename of PromptOp
+  // breaks both, and splitting the harness keeps "prompt-safety" vs
+  // "prompt-registry" as the right failure granularity when debugging
+  // which side (input defense vs audit trail) broke.
+  { name: "prompt-registry", file: "test-prompt-registry.mjs" },
   // output-moderation pins Task #28 — the OUTPUT-side defense-in-depth
   // companion to prompt-safety's input-side defense. Covers: the
   // lib/ai/output-moderation.ts module contract (ModerationOp aliased

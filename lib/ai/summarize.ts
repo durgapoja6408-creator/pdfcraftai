@@ -36,6 +36,10 @@ import "server-only";
 import { capForOp } from "./output-caps";
 import type { ModerationResult } from "./output-moderation";
 import { assertOutputSafe, moderateOutput } from "./output-moderation";
+import {
+  RECORDING_ENABLED as PROMPT_RECORDING_ENABLED,
+  resolvePromptVersion,
+} from "./prompts/registry";
 import type { AIProvider } from "./provider";
 import { buildSafetyPreamble, wrapUntrustedInput } from "./prompt-safety";
 import { NoRoutableProviderError, route } from "./router";
@@ -63,6 +67,14 @@ export interface SummarizeInput {
    * the universal entry point.
    */
   preferredProvider?: AIProviderId;
+  /**
+   * Phase E / Task #26 — stable bucketing seed for prompt-variant A/B
+   * routing. Typically the caller's authenticated userId. When undefined
+   * the resolver coerces to empty string (all anonymous callers bucket
+   * the same). Threaded through to `recordAiUsage` via the returned
+   * `promptVersion` / `experimentId` fields on `SummarizeResult`.
+   */
+  userId?: string | null;
 }
 
 export interface SummarizeResult {
@@ -90,6 +102,20 @@ export interface SummarizeResult {
    * `none | low | medium | high`.
    */
   moderation: ModerationResult;
+  /**
+   * Phase E / Task #26 — prompt registry audit fields. `promptVersion`
+   * is the PromptVersion.id that `resolvePromptVersion("summarize", …)`
+   * returned for this call (e.g. "v1"); `experimentId` is the active
+   * Experiment.id when the assignment was randomized, null when it was
+   * deterministic (single-variant at 100%). Route handlers forward both
+   * to `recordAiUsage` so the A/B rollup in `/admin/prompts` can slice
+   * the cost + truncation-rate metrics by variant. When
+   * `RECORDING_ENABLED` is false on the registry, both come back as
+   * null regardless of resolver output — that's the kill switch to
+   * flip off A/B recording without rolling back the migration.
+   */
+  promptVersion: string | null;
+  experimentId: string | null;
 }
 
 /**
@@ -138,12 +164,25 @@ export async function summarizePdf(input: SummarizeInput): Promise<SummarizeResu
 
   const { truncatedText, wasTruncated } = truncateForContext(input.text);
 
+  // Phase E / Task #26 — resolve the prompt variant for this call. At v1
+  // ship the resolver returns {version:"v1", experimentId:null} for
+  // every summarize call (one variant at 100% weight, no active
+  // experiment). `buildSystemPrompt` branches on `version` so future
+  // variants can swap the renderer without the call-site changing.
+  // When RECORDING_ENABLED is false we still resolve (so the branch
+  // stays consistent) but null out the audit strings so the DB columns
+  // stay NULL — the kill switch.
+  const resolved = resolvePromptVersion("summarize", input.userId);
+  const promptVersion = PROMPT_RECORDING_ENABLED ? resolved.version : null;
+  const experimentId = PROMPT_RECORDING_ENABLED ? resolved.experimentId : null;
+
   const systemPrompt = buildSystemPrompt({
     filename: input.filename,
     pageCount: input.pageCount,
     depth: input.depth,
     ocrCandidatePages: input.ocrCandidatePages ?? [],
     wasTruncated,
+    promptVersion: resolved.version,
   });
 
   const userPrompt = buildUserPrompt({
@@ -177,6 +216,13 @@ export async function summarizePdf(input: SummarizeInput): Promise<SummarizeResu
     // truncation-rate dashboard.
     stopReason: result.stopReason,
     moderation,
+    // Phase E / Task #26 — registry audit trail. Both are null when
+    // RECORDING_ENABLED is false; otherwise version is always a non-
+    // empty string and experimentId is null when the assignment was
+    // deterministic (single-variant 100%) vs. the Experiment.id when
+    // randomized.
+    promptVersion,
+    experimentId,
   };
 }
 
@@ -188,7 +234,28 @@ function buildSystemPrompt(opts: {
   depth: SummarizeDepth;
   ocrCandidatePages: number[];
   wasTruncated: boolean;
+  /**
+   * Phase E / Task #26 — the PromptVersion.id the resolver returned.
+   * At v1 ship every summarize call resolves to "v1" and this renders
+   * the existing prompt verbatim. When we ship a "v2-concise" variant
+   * this function branches on `promptVersion` and returns the new
+   * renderer's output; the call-site (summarizePdf) and the route
+   * handler stay untouched.
+   */
+  promptVersion: string;
 }): string {
+  // v1 is the only registered variant today. Every id other than "v1"
+  // also routes to the same renderer — if somebody edits the registry
+  // to add "v2" WITHOUT adding a branch here, we want the fallback to
+  // be "v1 behavior", not "undefined prompt" (which would either
+  // throw or ship an empty system prompt that costs tokens for
+  // garbage output). The registry + renderer must move together; the
+  // admin page surfaces a red banner when an id without a renderer
+  // branch ships, which is the intended operator feedback loop.
+  if (opts.promptVersion !== "v1") {
+    // Intentional fallthrough to v1. Document in the registry comment
+    // above when adding a new id.
+  }
   const title = opts.filename ? `"${opts.filename}"` : "an untitled PDF";
   const ocr = opts.ocrCandidatePages.length
     ? `\nPages ${opts.ocrCandidatePages.join(", ")} appear to be scanned ` +
@@ -364,19 +431,30 @@ export function buildSummarizeBatchRequest(input: {
   depth: SummarizeDepth;
   ocrCandidatePages?: number[];
   customId: string;
+  /**
+   * Phase E / Task #26 — stable bucketing seed. Same semantics as
+   * SummarizeInput.userId. Batch submissions carry the submitting
+   * user's id so the resolved variant matches what a realtime call
+   * would have produced for the same user.
+   */
+  userId?: string | null;
 }): {
   request: import("./adapters/openai-batch").BatchRequest;
   model: string;
   wasTruncated: boolean;
   truncatedCharCount: number;
+  promptVersion: string | null;
+  experimentId: string | null;
 } {
   const { truncatedText, wasTruncated } = truncateForContext(input.text);
+  const resolved = resolvePromptVersion("summarize", input.userId);
   const systemPrompt = buildSystemPrompt({
     filename: input.filename,
     pageCount: input.pageCount,
     depth: input.depth,
     ocrCandidatePages: input.ocrCandidatePages ?? [],
     wasTruncated,
+    promptVersion: resolved.version,
   });
   const userPrompt = buildUserPrompt({
     depth: input.depth,
@@ -396,6 +474,12 @@ export function buildSummarizeBatchRequest(input: {
     model: BATCH_MODEL_SUMMARIZE,
     wasTruncated,
     truncatedCharCount: truncatedText.length,
+    // Phase E / Task #26 — forward so the polling route can stamp the
+    // final ai_usage row with the same variant the batch actually
+    // executed under (the system prompt above is built for that
+    // variant). Nulled when RECORDING_ENABLED is off.
+    promptVersion: PROMPT_RECORDING_ENABLED ? resolved.version : null,
+    experimentId: PROMPT_RECORDING_ENABLED ? resolved.experimentId : null,
   };
 }
 
@@ -410,6 +494,16 @@ export function finalizeSummarizeBatchResult(input: {
   line: import("./adapters/openai-batch").BatchResultLine;
   depth: SummarizeDepth;
   wasTruncated: boolean;
+  /**
+   * Phase E / Task #26 — the prompt variant the batch submission was
+   * queued under. Captured at submit time (buildSummarizeBatchRequest)
+   * and persisted on the batch record, then passed back here so the
+   * finalized `ai_usage` row carries the SAME variant id, not a freshly-
+   * resolved one (the registry could have been re-weighted between
+   * submit + finalize, days or even weeks apart for large batches).
+   */
+  promptVersion?: string | null;
+  experimentId?: string | null;
 }): SummarizeResult {
   const { line } = input;
   const markdown = postProcessMarkdown(line.content, input.depth);
@@ -443,5 +537,11 @@ export function finalizeSummarizeBatchResult(input: {
     wasTruncated: input.wasTruncated,
     stopReason,
     moderation,
+    // Phase E / Task #26 — pass through the variant captured at submit
+    // time. Explicit `?? null` so an undefined input (legacy batches
+    // persisted before this field existed) comes back as null on the
+    // return, which the DB column accepts.
+    promptVersion: input.promptVersion ?? null,
+    experimentId: input.experimentId ?? null,
   };
 }
