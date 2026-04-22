@@ -441,7 +441,15 @@ assert(
 
 assert(
   "F1 aggregator orders ai-margin-rollup between health-ai and dev-hooks",
-  /health-ai[\s\S]{0,2000}ai-margin-rollup[\s\S]{0,2000}dev-hooks/.test(
+  // Gap limits bumped Phase B / Task #17: inserting net-margin-rollup's
+  // long rationale block between ai-margin-rollup and dev-hooks pushed
+  // the ai-margin-rollup→dev-hooks distance past the original 2000-char
+  // ceiling. Future suite additions between the two will keep growing
+  // it, so the ceiling is now generous (10k) — the ordering invariant
+  // we actually care about (ai-margin-rollup after health-ai, before
+  // dev-hooks) is still enforced by the direction and anchoring of the
+  // regex, just without a tight char budget.
+  /health-ai[\s\S]{0,10000}ai-margin-rollup[\s\S]{0,10000}dev-hooks/.test(
     AGG_SRC
   ),
   "ai-margin-rollup should sit after health-ai and before dev-hooks"

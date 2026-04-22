@@ -1,0 +1,60 @@
+-- 0013_ai_daily_margin_net_margin.sql
+-- Phase B / Task #17 — three nullable columns on ai_daily_margin so the
+-- daily rollup can record the "finishing touches" that turn AI gross
+-- margin into business net margin:
+--
+--   infra_cost_per_call_micros — amortized share of fixed monthly infra
+--                                (Hostinger Node.js Web App + Cloudflare
+--                                proxy + DB + auth). Divided across the
+--                                prior day's total call count so each
+--                                slice's share scales with how busy the
+--                                fleet was. Displayed at dashboard time as
+--                                a per-call deduction from net revenue.
+--
+--   refund_reserve_micros      — 3% of each slice's revenue_micros_sum
+--                                (configurable via REFUND_RESERVE_BPS;
+--                                default 300 bps). Accrued whenever the
+--                                rollup writes a slice so refunds never
+--                                come out of cash-on-hand; chargebacks and
+--                                goodwill refunds draw it down.
+--
+--   breakage_revenue_micros    — positive revenue recognized (no COGS)
+--                                when a user's credit balance hasn't been
+--                                touched for BREAKAGE_RECOGNITION_MONTHS
+--                                (default 12 months). Stored on a synthetic
+--                                per-day slice (provider='system',
+--                                model='breakage', operation='breakage')
+--                                so the existing
+--                                (date, provider_id, model, operation)
+--                                UNIQUE key handles upsert-on-re-run
+--                                without special-casing.
+--
+-- Why nullable
+-- ------------
+-- Every slice written before this migration has NULL for all three. That
+-- is the intended semantic: "we didn't measure these during Phase A".
+-- The dashboard treats NULL as zero when computing net margin so backfill
+-- isn't required for the migration to be safe. If we ever decide to
+-- synthesize estimates for historical rows, it can run as a separate
+-- backfill job without another ALTER TABLE.
+--
+-- Why no new unique/index
+-- -----------------------
+-- All three columns are pure additive financial metrics. They never
+-- participate in the uniqueness constraint (which is already
+-- date+provider+model+operation) and queries against them are aggregated
+-- daily across slices — the existing ai_daily_margin_date_idx and
+-- ai_daily_margin_date_green_idx cover the access patterns. No new index
+-- needed; keeping the table lean keeps the upsert fast.
+--
+-- Why bigint
+-- ----------
+-- Same rationale as ai_daily_margin.*_micros_sum columns: a high-volume
+-- day's share of infra, or the 3% reserve on a seven-figure-call day,
+-- can exceed int32. Bigint gives us 2^63 - 1 micros of headroom — well
+-- past anything a pre-Series-A PDF SaaS will see.
+
+ALTER TABLE `ai_daily_margin`
+  ADD COLUMN `infra_cost_per_call_micros` bigint NULL,
+  ADD COLUMN `refund_reserve_micros` bigint NULL,
+  ADD COLUMN `breakage_revenue_micros` bigint NULL;

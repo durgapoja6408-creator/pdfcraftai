@@ -111,6 +111,179 @@ export const OP_MARGIN_FLOOR_BPS: Record<string, number> = {
 
 const DEFAULT_FLOOR_BPS = 6000;
 
+// --- Phase B / Task #17 constants --------------------------------------
+//
+// Three env-tunable knobs that let the rollup record the "finishing
+// touches" on net-margin math: infra amortization, refund reserve,
+// credit breakage recognition. Each env var falls back to a sane default
+// so the rollup still works on a fresh deploy; ops can retune them
+// without a code change.
+//
+// INFRA_MONTHLY_USD_MICROS
+// ------------------------
+// Fleet-wide fixed monthly infra cost in µUSD. Default 15_000_000
+// (≈ $15/mo — the Hostinger Node.js Web App + Cloudflare proxy + MySQL
+// budget as of Phase B). Daily share = value / 30. Divided across the
+// prior day's total call count to get the per-call amortization.
+//
+// REFUND_RESERVE_BPS
+// ------------------
+// Basis-points of each slice's revenue to accrue as a refund reserve.
+// Default 300 (3%) — the industry-standard SaaS chargeback/refund
+// expectation. Can be overridden per-env if the real refund rate
+// diverges.
+//
+// BREAKAGE_RECOGNITION_MONTHS
+// ---------------------------
+// How long a credit balance has to sit untouched before we recognize
+// it as breakage revenue. Default 12 — aligns with typical SaaS
+// "dormant account" recognition policy and the pre-Phase-B
+// expected-credit-life assumption in the cost matrix.
+//
+// All three are parsed once at module load; env changes require a
+// deploy (same as every other constant in this file). If the env var
+// is present but unparseable we log a warning and fall back to the
+// default — never throw, so a misconfiguration can't bring the rollup
+// cron down.
+
+function parseIntEnv(name: string, defaultValue: number): number {
+  const raw = process.env[name];
+  if (raw == null || raw === "") return defaultValue;
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n) || n < 0) {
+    console.warn(
+      `[margin-rollup] env ${name}="${raw}" is not a non-negative integer; using default ${defaultValue}`
+    );
+    return defaultValue;
+  }
+  return n;
+}
+
+export const INFRA_MONTHLY_USD_MICROS = parseIntEnv(
+  "INFRA_MONTHLY_USD_MICROS",
+  15_000_000
+);
+export const REFUND_RESERVE_BPS = parseIntEnv("REFUND_RESERVE_BPS", 300);
+export const BREAKAGE_RECOGNITION_MONTHS = parseIntEnv(
+  "BREAKAGE_RECOGNITION_MONTHS",
+  12
+);
+
+/**
+ * Identifier triplet for the synthetic per-day "breakage" slice. Has
+ * to be stable so the UNIQUE(date, provider_id, model, operation) upsert
+ * cleanly overwrites yesterday's breakage figure on re-run. Chosen so
+ * there's zero chance of collision with a real (provider, model, op)
+ * combination — no real provider is called "system", and no pricing-side
+ * op is called "breakage".
+ */
+export const BREAKAGE_SYNTHETIC_SLICE = {
+  providerId: "system",
+  model: "breakage",
+  operation: "breakage",
+} as const;
+
+/**
+ * Compute the per-call share of fleet-wide infra cost for a given date.
+ *
+ * Formula: (INFRA_MONTHLY_USD_MICROS / 30) / prior_day_call_count.
+ *
+ * Rounded to an integer µUSD — we don't need sub-µUSD precision for a
+ * fleet-amortized rate that only shows up as a display-layer deduction.
+ *
+ * Rationale for "prior day" rather than "current day": at rollup time
+ * (00:15 UTC) the current day IS the day we're rolling up, and its
+ * call count is the exact figure we just aggregated. Using today's
+ * count would couple this to the aggregation result, but using
+ * yesterday's makes the rate a predictable input from the day before,
+ * which is both simpler and more defensible as an accrual basis
+ * ("last-known busy-ness"). On day 1 of a deploy with zero history,
+ * we fall back to same-day call count so the first day isn't a giant
+ * outlier; if even that is zero (no traffic), we return 0 — can't
+ * divide by nothing.
+ */
+export async function computeInfraCostPerCallMicros(opts: {
+  date: string;
+  /**
+   * Same-day total call count from the aggregation we just computed.
+   * Used as a fallback if prior-day has no history (first-ever run).
+   */
+  sameDayCallCount: number;
+}): Promise<number> {
+  const dailyInfraMicros = Math.floor(INFRA_MONTHLY_USD_MICROS / 30);
+  const priorDate = utcDateString(
+    new Date(new Date(`${opts.date}T00:00:00.000Z`).getTime() - 24 * 60 * 60 * 1000)
+  );
+
+  type Row = { total: number | string | null };
+  const rows = (await db
+    .select({
+      total: sql<number>`COALESCE(SUM(${schema.aiDailyMargin.callCount}), 0)`,
+    })
+    .from(schema.aiDailyMargin)
+    .where(eq(schema.aiDailyMargin.date, priorDate))) as unknown as Row[];
+
+  const priorCallCount = rows.length > 0 ? Number(rows[0].total) || 0 : 0;
+  const divisor = priorCallCount > 0 ? priorCallCount : opts.sameDayCallCount;
+  if (divisor <= 0) return 0;
+  return Math.round(dailyInfraMicros / divisor);
+}
+
+/**
+ * Compute the aged-balance breakage revenue for a target date.
+ *
+ * Semantic: for each user, sum their `credit_ledger.delta` to get a
+ * current balance, take the MAX(created_at) as last activity, and if
+ * last activity precedes `targetDate - BREAKAGE_RECOGNITION_MONTHS`
+ * AND the balance is positive, recognize `balance *
+ * REFERENCE_USD_MICROS_PER_CREDIT` as breakage revenue.
+ *
+ * Why this shape instead of per-row "credits_remaining":
+ *   - `credit_ledger` is append-only with a signed `delta`; there's no
+ *     per-row remaining column (and maintaining one would be a large
+ *     refactor). Sum of deltas = current balance is both cheaper and
+ *     a direct measurement.
+ *   - The spec talks about "credit_ledger rows with credits_remaining
+ *     > 0 and created_at < NOW() - 12 MONTH". The ABANDONED-ACCOUNT
+ *     interpretation ("user's last activity is > 12 months old") is
+ *     the same shape once you accept that balances are fungible per
+ *     user — individual grant rows aren't separately "remaining" in
+ *     any ledger we care about.
+ *
+ * Returns µUSD recognized. The rollup writes this onto the synthetic
+ * per-day breakage slice; the dashboard can render day-over-day delta
+ * for the "breakage booked today" view.
+ */
+export async function computeBreakageRevenueMicros(opts: {
+  date: string;
+}): Promise<number> {
+  const cutoff = new Date(`${opts.date}T00:00:00.000Z`);
+  cutoff.setUTCMonth(cutoff.getUTCMonth() - BREAKAGE_RECOGNITION_MONTHS);
+
+  type Row = { total_credits: number | string | null };
+  const rows = (await db.execute(
+    sql`SELECT COALESCE(SUM(current_balance), 0) AS total_credits
+        FROM (
+          SELECT user_id,
+                 SUM(delta) AS current_balance,
+                 MAX(created_at) AS last_activity
+          FROM ${schema.creditLedger}
+          GROUP BY user_id
+          HAVING current_balance > 0 AND last_activity < ${cutoff}
+        ) AS abandoned`
+  )) as unknown as [Row[], unknown] | Row[];
+
+  // mysql2 returns [rows, fields]; drizzle .execute may return either
+  // shape depending on driver. Normalise.
+  const resultRows: Row[] = Array.isArray(rows) && Array.isArray(rows[0])
+    ? (rows[0] as Row[])
+    : (rows as Row[]);
+  const totalCredits =
+    resultRows.length > 0 ? Number(resultRows[0].total_credits) || 0 : 0;
+  if (totalCredits <= 0) return 0;
+  return totalCredits * REFERENCE_USD_MICROS_PER_CREDIT;
+}
+
 /**
  * Alarm detectors — Task #21, Tier 3 (MASTER_PLAN §7 gate #6, detect
  * points §5 of docs/ai/COST_MATRIX_3PROVIDER.md).
@@ -308,6 +481,13 @@ export type SliceReport = {
   marginBps: number;
   floorBps: number;
   isGreen: boolean;
+  // --- Phase B / Task #17 — net-margin finishing touches ---------------
+  // Nullable: synthesized breakage slice has infra/reserve = null, real
+  // slices have breakage = null. Dashboard-side rendering handles the
+  // asymmetric presence without branching on provider_id.
+  infraCostPerCallMicros: number | null;
+  refundReserveMicros: number | null;
+  breakageRevenueMicros: number | null;
 };
 
 export type DailyRollupReport = {
@@ -409,6 +589,33 @@ export async function runDailyRollup(
   // 2. Compute margin / floor / green per slice and build the INSERT
   //    values. MySQL accepts numeric strings for DATE columns so we
   //    pass the YYYY-MM-DD string unchanged.
+  //
+  // Phase B / Task #17: also compute (a) fleet-wide per-call infra
+  // amortization rate for this date, (b) 3% refund reserve per slice,
+  // and (c) the synthetic breakage slice for today. All three are
+  // additive fields on ai_daily_margin — they don't change slice-level
+  // is_green / floor gating (that's handled at the admin/margin
+  // display layer).
+  const sameDayCallCount = aggRows.reduce(
+    (sum, r) => sum + (Number(r.call_count) || 0),
+    0
+  );
+  let infraCostPerCallMicros = 0;
+  try {
+    infraCostPerCallMicros = await computeInfraCostPerCallMicros({
+      date: dateStr,
+      sameDayCallCount,
+    });
+  } catch (err) {
+    // Non-fatal — a failed infra-rate lookup shouldn't prevent the
+    // rollup from writing its core slices. We log, keep 0, and let
+    // the dashboard coalesce NULL/0 as "not measured".
+    console.warn(
+      "[margin-rollup] computeInfraCostPerCallMicros failed (non-fatal):",
+      err
+    );
+  }
+
   const slices: SliceReport[] = [];
   const insertValues: Array<{
     id: string;
@@ -428,6 +635,9 @@ export async function runDailyRollup(
     marginBps: number;
     floorBps: number;
     isGreen: number;
+    infraCostPerCallMicros: number | null;
+    refundReserveMicros: number | null;
+    breakageRevenueMicros: number | null;
   }> = [];
 
   for (const row of aggRows) {
@@ -440,6 +650,13 @@ export async function runDailyRollup(
     });
     const floorBps = floorForOp(row.operation);
     const isGreen = marginBps >= floorBps;
+
+    // Task #17: per-slice refund reserve = revenue * BPS / 10_000.
+    // Math.floor so we never over-accrue; a sub-µUSD rounding loss
+    // per slice is immaterial at this scale.
+    const refundReserveMicros = Math.floor(
+      (revenueMicrosSum * REFUND_RESERVE_BPS) / 10_000
+    );
 
     slices.push({
       providerId: row.provider_id,
@@ -454,6 +671,9 @@ export async function runDailyRollup(
       marginBps,
       floorBps,
       isGreen,
+      infraCostPerCallMicros,
+      refundReserveMicros,
+      breakageRevenueMicros: null,
     });
 
     insertValues.push({
@@ -474,7 +694,82 @@ export async function runDailyRollup(
       marginBps,
       floorBps,
       isGreen: isGreen ? 1 : 0,
+      infraCostPerCallMicros,
+      refundReserveMicros,
+      breakageRevenueMicros: null,
     });
+  }
+
+  // Task #17: Breakage synthetic slice. Computed once per day and
+  // upserted as (date, 'system', 'breakage', 'breakage'). is_green=1
+  // and margin_bps=10_000 by fiat — breakage has zero COGS, so it's
+  // trivially above any margin floor. Added to `slices` so the
+  // DailyRollupReport sees it (the admin dashboard renders it as a
+  // positive line item), and to `insertValues` so the upsert writes
+  // it alongside the real slices.
+  //
+  // Writing guard: only emit the synthetic slice on days with at least
+  // one real slice. Otherwise an outage day (no ai_usage activity at
+  // all) would get a lone always-green breakage row, which
+  // computeGreenStreak would accept as "all green" and silently run
+  // the streak through the outage — the exact failure mode the original
+  // "absence of data → not green" invariant exists to prevent.
+  let breakageRevenueMicros = 0;
+  const shouldWriteBreakage = aggRows.length > 0;
+  if (shouldWriteBreakage) {
+    try {
+      breakageRevenueMicros = await computeBreakageRevenueMicros({
+        date: dateStr,
+      });
+    } catch (err) {
+      console.warn(
+        "[margin-rollup] computeBreakageRevenueMicros failed (non-fatal):",
+        err
+      );
+    }
+  }
+
+  if (shouldWriteBreakage) {
+  const breakageSlice: SliceReport = {
+    providerId: BREAKAGE_SYNTHETIC_SLICE.providerId,
+    model: BREAKAGE_SYNTHETIC_SLICE.model,
+    operation: BREAKAGE_SYNTHETIC_SLICE.operation,
+    callCount: 0,
+    successCount: 0,
+    errorCount: 0,
+    costMicrosSum: 0,
+    revenueMicrosSum: 0,
+    creditsSpentSum: 0,
+    marginBps: 10_000, // 100% — breakage is pure revenue
+    floorBps: 0,
+    isGreen: true,
+    infraCostPerCallMicros: null,
+    refundReserveMicros: null,
+    breakageRevenueMicros,
+  };
+  slices.push(breakageSlice);
+  insertValues.push({
+    id: randomUUID(),
+    date: dateStr,
+    providerId: BREAKAGE_SYNTHETIC_SLICE.providerId,
+    model: BREAKAGE_SYNTHETIC_SLICE.model,
+    operation: BREAKAGE_SYNTHETIC_SLICE.operation,
+    callCount: 0,
+    successCount: 0,
+    errorCount: 0,
+    inputTokensSum: 0,
+    outputTokensSum: 0,
+    latencyMsSum: 0,
+    creditsSpentSum: 0,
+    costMicrosSum: 0,
+    revenueMicrosSum: 0,
+    marginBps: 10_000,
+    floorBps: 0,
+    isGreen: 1,
+    infraCostPerCallMicros: null,
+    refundReserveMicros: null,
+    breakageRevenueMicros,
+  });
   }
 
   // 3. Upsert. We do the ON DUPLICATE KEY UPDATE via Drizzle's MySQL
@@ -499,10 +794,20 @@ export async function runDailyRollup(
           marginBps: sql`VALUES(margin_bps)`,
           floorBps: sql`VALUES(floor_bps)`,
           isGreen: sql`VALUES(is_green)`,
+          // Task #17: overwrite the three new financial columns on
+          // re-run too, so a backfill of an older day picks up the
+          // latest infra/reserve/breakage math.
+          infraCostPerCallMicros: sql`VALUES(infra_cost_per_call_micros)`,
+          refundReserveMicros: sql`VALUES(refund_reserve_micros)`,
+          breakageRevenueMicros: sql`VALUES(breakage_revenue_micros)`,
         },
       });
   }
 
+  // Task #17: the synthetic breakage slice is always is_green=1 and
+  // is counted in total slices, so it doesn't move the green-streak
+  // needle on its own — but it DOES push sliceCount up by one. Keep
+  // the green/red accounting honest.
   const greenCount = slices.filter((s) => s.isGreen).length;
   const redCount = slices.length - greenCount;
   const allGreen = slices.length > 0 && redCount === 0;

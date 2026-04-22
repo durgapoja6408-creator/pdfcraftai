@@ -890,6 +890,32 @@ export const aiDailyMargin = mysqlTable(
     marginBps: int("margin_bps").notNull(),
     floorBps: int("floor_bps").notNull(),
     isGreen: int("is_green").notNull().default(0),
+    // --- Phase B / Task #17: net-margin finishing touches --------------
+    // All three nullable (migration 0013). NULL on pre-Task-#17 rows
+    // means "not measured"; the admin margin view coalesces NULL → 0.
+    //
+    // Per-slice share of the fixed monthly infra cost
+    // (INFRA_MONTHLY_USD_MICROS / 30 / prior_day_total_call_count), in
+    // µUSD per call. Same value on every real slice for a given date;
+    // NULL on the synthetic breakage slice.
+    infraCostPerCallMicros: bigint("infra_cost_per_call_micros", {
+      mode: "number",
+    }),
+    // Accrued per-slice refund reserve = revenue_micros_sum *
+    // REFUND_RESERVE_BPS / 10_000 (default 3%). NULL on the synthetic
+    // breakage slice (no revenue to reserve against — breakage IS the
+    // revenue).
+    refundReserveMicros: bigint("refund_reserve_micros", { mode: "number" }),
+    // Populated ONLY on the synthetic per-day breakage slice
+    // (provider='system', model='breakage', operation='breakage').
+    // Revenue recognized (no COGS) when a user's credit balance has sat
+    // untouched for >= BREAKAGE_RECOGNITION_MONTHS. NULL on every real
+    // slice. Day-over-day delta on this field is the breakage booked
+    // for that date.
+    breakageRevenueMicros: bigint("breakage_revenue_micros", {
+      mode: "number",
+    }),
+    // --- End Phase B / Task #17 additions ------------------------------
     createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
   },
   (t) => ({

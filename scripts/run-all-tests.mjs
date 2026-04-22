@@ -123,6 +123,42 @@ const SUITES = [
   // column rename in ai_usage breaks both, and this harness pins the
   // aggregate-side consumer of those columns.
   { name: "ai-margin-rollup", file: "test-ai-margin-rollup.mjs" },
+  // net-margin-rollup pins Task #17 / Phase B /3 — the "finishing
+  // touches" that turn the Phase A gross-margin rollup into a real
+  // business net-margin rollup. Covers: migration 0013 contract
+  // (three nullable bigint columns added to ai_daily_margin —
+  // infra_cost_per_call_micros, refund_reserve_micros,
+  // breakage_revenue_micros — additive-only, no DROP/MODIFY, no new
+  // index), Drizzle schema parity (same three fields declared as
+  // bigint({ mode: "number" }) without .notNull(), existing unique +
+  // three indexes unchanged), lib/ai/margin-rollup.ts public surface
+  // (env-keyed INFRA_MONTHLY_USD_MICROS / REFUND_RESERVE_BPS /
+  // BREAKAGE_RECOGNITION_MONTHS constants with parseIntEnv fallback +
+  // warn-on-misconfig, BREAKAGE_SYNTHETIC_SLICE triplet pinning
+  // provider_id='system'/model='breakage'/operation='breakage',
+  // computeInfraCostPerCallMicros using (monthly/30)/priorCallCount
+  // with same-day fallback and zero-divisor short-circuit,
+  // computeBreakageRevenueMicros using SUM(delta)/MAX(created_at)/
+  // current_balance>0/last_activity<cutoff with REFERENCE_USD_MICROS_
+  // PER_CREDIT conversion), runDailyRollup wiring (SliceReport widened
+  // with three new nullable fields, infra rate computed once per day
+  // outside the slice loop, per-slice reserve = Math.floor(revenue *
+  // BPS / 10_000), insertValues spreads all three new columns, upsert
+  // sets all three via VALUES(), breakage gated on aggRows.length > 0
+  // so empty days still stop the green streak, synthetic breakage
+  // slice pinned at margin_bps=10_000/floor_bps=0/is_green=1/infra+
+  // reserve=null, real slices carry breakageRevenueMicros=null, try/
+  // catch wraps both helpers as non-fatal), and cross-file invariants
+  // (every column name appears in migration + schema + rollup, three
+  // layers in lockstep — same refactor-trap guard as Task #15). Placed
+  // right after ai-margin-rollup because the two suites form a pair:
+  // ai-margin-rollup pins the Phase A gross-margin write path, and
+  // net-margin-rollup pins the Phase B net-margin extensions — a
+  // regression in the Phase A surface (callCount aggregation,
+  // SliceReport shape, upsert call-site) typically breaks both, and
+  // surfacing as "net-margin-rollup" vs "ai-margin-rollup" gives the
+  // right granularity when debugging which side broke.
+  { name: "net-margin-rollup", file: "test-net-margin-rollup.mjs" },
   // admin-margin pins Task #22's READ side — the /api/admin/margin
   // endpoint and its supporting helpers (clampAdminDays,
   // parseAdminEmails, isAdminEmail, getAdminMarginSummary). Forms a
