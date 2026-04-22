@@ -1,0 +1,106 @@
+-- 0016_users_billing_profile.sql
+-- Phase D / Task #23 PART 2 — buyer-side billing profile + GSTIN.
+--
+-- Background
+-- ----------
+-- Task #23 PART 1 shipped the invoice renderer, seller-identity env
+-- reads, tax classifier, and the /api/invoices/[paymentId] route. That
+-- PR left one hard-coded block at lines 153–165 of route.ts:
+--
+--   const buyerCountry = "IN";
+--   const buyerStateCode: IndianStateCode | null = null;
+--   const buyerGstin: string | null = null;
+--
+-- … with the comment "PART 2 of this task lands the /app/account form
+-- that populates real values." This migration is that PART 2 schema
+-- change. Without it we can't:
+--
+--   1. Stamp a B2B buyer's GSTIN on their invoice (required by CBIC
+--      Rule 46 once either seller or buyer crosses registration
+--      threshold — we're below today, but invoicing law requires the
+--      field be printed when present so buyers can claim input tax
+--      credit in their own GST returns).
+--
+--   2. Compute the correct intra_state vs inter_state split on Indian
+--      sales. Today every India sale falls into the "conservative
+--      default = inter_state / IGST" branch in classifyGst because we
+--      don't know the buyer's state. That's compliant (over-tax never
+--      under-tax), but it denies same-state B2B buyers the CGST+SGST
+--      split they'd need for local input-credit.
+--
+--   3. Render export (zero-rated) invoices correctly for non-India
+--      buyers. Today every user gets buyerCountry="IN" hard-coded,
+--      which means a US buyer receives an India-domestic invoice —
+--      wrong tax classification, wrong legal footer.
+--
+-- What this migration adds to `users`
+-- -----------------------------------
+-- All columns are nullable — zero write-amplification on the live
+-- table. A user who never fills the billing form keeps route.ts
+-- falling through to the existing "IN / null / null" defaults, so
+-- this migration is safe to land before the matching form.
+--
+--   gstin                 varchar(15) NULL
+--       CBIC 15-char GSTIN. Nullable because B2C buyers don't have
+--       one. When NOT NULL, the invoice prints "GSTIN: <value>" in
+--       the buyer block and (future Phase E) the tax classifier can
+--       opt the buyer into input-tax-credit flows.
+--
+--   billing_name          varchar(255) NULL
+--       Legal name on the invoice. Usually matches `name` but large
+--       buyers often have "Acme India Pvt Ltd" as billing_name and
+--       "Jane Doe" as the personal name — keeping them separate lets
+--       us render a B2B-compliant legal name without overwriting the
+--       user's display name.
+--
+--   billing_address_line1 varchar(255) NULL
+--   billing_address_line2 varchar(255) NULL
+--       Two free-form lines. CBIC Rule 46 requires a buyer address
+--       when GSTIN is present. Two lines is the industry norm; most
+--       US/EU invoice templates also use 2-line addresses.
+--
+--   billing_city          varchar(128) NULL
+--   billing_postal_code   varchar(32)  NULL
+--   billing_state         char(2)      NULL
+--       For India buyers: the two-digit state code from
+--       INDIAN_STATE_CODES (01..38). For non-India buyers: NULL — we
+--       don't try to validate foreign state codes.
+--
+--   billing_country       char(2)      NULL
+--       ISO-3166 alpha-2. Defaults to NULL (not "IN") so we can tell
+--       "user hasn't filled the form yet" from "user explicitly
+--       confirmed India". route.ts falls back to "IN" when NULL, so
+--       legacy users still get a sensible default invoice.
+--
+-- Why not one JSON column
+-- -----------------------
+-- Discrete columns give us:
+--   - Cheap filtered queries (WHERE billing_country = 'IN') for
+--     Phase E tax-reporting rollups without JSON_EXTRACT.
+--   - Per-column migration stability — adding VAT support later
+--     (billing_vat_id) is a plain ALTER TABLE, no shape upgrade.
+--   - Drizzle schema parity — each column maps cleanly to a typed
+--     field, no JSON type wrangling.
+--
+-- Why no index
+-- ------------
+-- The billing profile is user-scoped and read via PRIMARY KEY(users.id)
+-- lookups in the invoice route and the account form. A secondary index
+-- on gstin or billing_country would add write amplification with zero
+-- query speedup for any known read path. (Phase E's "all buyers in
+-- Maharashtra" admin query would benefit — we'll add it then.)
+--
+-- Rollout safety
+-- --------------
+-- Additive migration, all columns nullable with no DEFAULT changes to
+-- existing columns. Zero rows rewritten. Safe to apply mid-deploy.
+
+ALTER TABLE `users`
+  ADD COLUMN `gstin` varchar(15) NULL AFTER `image`,
+  ADD COLUMN `billing_name` varchar(255) NULL AFTER `gstin`,
+  ADD COLUMN `billing_address_line1` varchar(255) NULL AFTER `billing_name`,
+  ADD COLUMN `billing_address_line2` varchar(255) NULL AFTER `billing_address_line1`,
+  ADD COLUMN `billing_city` varchar(128) NULL AFTER `billing_address_line2`,
+  ADD COLUMN `billing_postal_code` varchar(32) NULL AFTER `billing_city`,
+  ADD COLUMN `billing_state` char(2) NULL AFTER `billing_postal_code`,
+  ADD COLUMN `billing_country` char(2) NULL AFTER `billing_state`;

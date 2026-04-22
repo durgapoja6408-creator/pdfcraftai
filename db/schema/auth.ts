@@ -16,7 +16,13 @@ import {
 } from "drizzle-orm/mysql-core";
 
 // Users — Auth.js requires id, name, email, emailVerified, image.
-// We extend with passwordHash (Credentials provider) and createdAt.
+// We extend with passwordHash (Credentials provider), createdAt, and
+// (Phase D / Task #23 PART 2) the buyer-side billing profile: GSTIN +
+// billing address columns that feed the invoice renderer when the user
+// has opted into a B2B-compliant receipt. All billing_* columns are
+// nullable so a B2C buyer who never fills the form gets the
+// route.ts-side default of "IN / null / null" and the renderer prints
+// a B2C invoice shape. Columns land via 0016_users_billing_profile.sql.
 export const users = mysqlTable(
   "users",
   {
@@ -27,6 +33,21 @@ export const users = mysqlTable(
     image: varchar("image", { length: 1024 }),
     passwordHash: varchar("password_hash", { length: 255 }),
     createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
+    // Billing profile (Task #23 PART 2). See migration 0016.
+    gstin: varchar("gstin", { length: 15 }),
+    billingName: varchar("billing_name", { length: 255 }),
+    billingAddressLine1: varchar("billing_address_line1", { length: 255 }),
+    billingAddressLine2: varchar("billing_address_line2", { length: 255 }),
+    billingCity: varchar("billing_city", { length: 128 }),
+    billingPostalCode: varchar("billing_postal_code", { length: 32 }),
+    // ISO-3166 2-letter state code. For India buyers we constrain to
+    // INDIAN_STATE_CODES at the server-action layer; for non-India
+    // buyers the column stays NULL.
+    billingState: varchar("billing_state", { length: 2 }),
+    // ISO-3166 alpha-2 country code. NULL = user hasn't filled the
+    // form — route.ts falls back to "IN" in that branch, preserving
+    // pre-0016 behaviour.
+    billingCountry: varchar("billing_country", { length: 2 }),
   },
   (t) => ({
     emailIdx: index("users_email_idx").on(t.email),

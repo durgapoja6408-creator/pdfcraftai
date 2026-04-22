@@ -18,6 +18,9 @@
 //   SECTION I — /api/admin/tax/export.csv route shape.
 //   SECTION J — /app/app/receipts + /app/admin/tax page updates.
 //   SECTION K — run-all-tests.mjs registration.
+//   SECTION L — migration 0016 + schema.ts users billing columns (PART 2).
+//   SECTION M — billing-actions.ts + BillingProfileForm + settings wire
+//               + invoice route billing wire + /admin/invoicing page (PART 2).
 //
 // Run: `node scripts/test-invoicing.mjs`
 // Exits 0 on pass, 1 on any failure.
@@ -59,6 +62,37 @@ const CSV_ROUTE_PATH = resolve(
 const RECEIPTS_PAGE_PATH = resolve(ROOT, "app", "app", "receipts", "page.tsx");
 const ADMIN_TAX_PAGE_PATH = resolve(ROOT, "app", "admin", "tax", "page.tsx");
 const AGGREGATOR_PATH = resolve(ROOT, "scripts", "run-all-tests.mjs");
+
+// --- PART 2 file paths --------------------------------------------------
+const MIGRATION_0016_PATH = resolve(
+  ROOT,
+  "db",
+  "migrations",
+  "0016_users_billing_profile.sql"
+);
+const AUTH_SCHEMA_PATH = resolve(ROOT, "db", "schema", "auth.ts");
+const BILLING_ACTIONS_PATH = resolve(
+  ROOT,
+  "lib",
+  "invoicing",
+  "billing-actions.ts"
+);
+const BILLING_FORM_PATH = resolve(
+  ROOT,
+  "components",
+  "app",
+  "settings",
+  "BillingProfileForm.tsx"
+);
+const SETTINGS_PAGE_PATH = resolve(ROOT, "app", "app", "settings", "page.tsx");
+const ADMIN_INVOICING_PAGE_PATH = resolve(
+  ROOT,
+  "app",
+  "admin",
+  "invoicing",
+  "page.tsx"
+);
+const ADMIN_LAYOUT_PATH = resolve(ROOT, "app", "admin", "layout.tsx");
 
 // ------------------------------------------------------------------
 // Harness plumbing
@@ -600,6 +634,292 @@ assert(
 assert(
   /Download CSV/.test(adminTaxSrc),
   "admin/tax page renders a 'Download CSV' link"
+);
+
+// ------------------------------------------------------------------
+// SECTION L — migration 0016 + schema.ts users billing columns
+// ------------------------------------------------------------------
+
+console.log(
+  "\n[SECTION L] migration 0016 + schema.ts users billing columns (PART 2)"
+);
+
+const migration16Src = read(MIGRATION_0016_PATH);
+assert(
+  migration16Src.length > 0,
+  "db/migrations/0016_users_billing_profile.sql exists"
+);
+assert(
+  /ALTER\s+TABLE\s+`users`/.test(migration16Src),
+  "migration 0016 targets the users table"
+);
+for (const col of [
+  "`gstin` varchar(15) NULL",
+  "`billing_name` varchar(255) NULL",
+  "`billing_address_line1` varchar(255) NULL",
+  "`billing_address_line2` varchar(255) NULL",
+  "`billing_city` varchar(128) NULL",
+  "`billing_postal_code` varchar(32) NULL",
+  "`billing_state` char(2) NULL",
+  "`billing_country` char(2) NULL",
+]) {
+  assert(
+    migration16Src.includes(col),
+    `migration 0016 adds column: ${col}`
+  );
+}
+assert(
+  !/NOT\s+NULL/i.test(
+    migration16Src.replace(/--.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "")
+  ),
+  "migration 0016 is additive-only — no NOT NULL columns"
+);
+
+const authSchemaSrc = read(AUTH_SCHEMA_PATH);
+assert(authSchemaSrc.length > 0, "db/schema/auth.ts exists");
+for (const col of [
+  /gstin:\s*varchar\("gstin",\s*\{\s*length:\s*15\s*\}\)/,
+  /billingName:\s*varchar\("billing_name",\s*\{\s*length:\s*255\s*\}\)/,
+  /billingAddressLine1:\s*varchar\("billing_address_line1",\s*\{\s*length:\s*255\s*\}\)/,
+  /billingAddressLine2:\s*varchar\("billing_address_line2",\s*\{\s*length:\s*255\s*\}\)/,
+  /billingCity:\s*varchar\("billing_city",\s*\{\s*length:\s*128\s*\}\)/,
+  /billingPostalCode:\s*varchar\("billing_postal_code",\s*\{\s*length:\s*32\s*\}\)/,
+  /billingState:\s*varchar\("billing_state",\s*\{\s*length:\s*2\s*\}\)/,
+  /billingCountry:\s*varchar\("billing_country",\s*\{\s*length:\s*2\s*\}\)/,
+]) {
+  assert(
+    col.test(authSchemaSrc),
+    `schema.ts users table mirrors column: ${col.source}`
+  );
+}
+
+// ------------------------------------------------------------------
+// SECTION M — billing-actions + BillingProfileForm + settings wire
+//             + invoice route billing wire + /admin/invoicing page
+// ------------------------------------------------------------------
+
+console.log(
+  "\n[SECTION M] billing-actions + BillingProfileForm + settings wire + admin/invoicing page"
+);
+
+// --- billing-actions.ts ---
+const billingActionsSrc = read(BILLING_ACTIONS_PATH);
+assert(
+  billingActionsSrc.length > 0,
+  "lib/invoicing/billing-actions.ts exists"
+);
+assert(
+  /^\s*"use server";/m.test(billingActionsSrc),
+  "billing-actions.ts is a server-actions module"
+);
+assert(
+  /import\s+["']server-only["']/.test(billingActionsSrc),
+  "billing-actions.ts imports 'server-only' guard"
+);
+assert(
+  /export\s+async\s+function\s+updateBillingProfileAction/.test(
+    billingActionsSrc
+  ),
+  "billing-actions.ts exports updateBillingProfileAction"
+);
+assert(
+  /export\s+type\s+BillingProfileState/.test(billingActionsSrc),
+  "billing-actions.ts exports BillingProfileState type"
+);
+assert(
+  /validateGstin\b/.test(billingActionsSrc) &&
+    /INDIAN_STATE_CODES\b/.test(billingActionsSrc),
+  "billing-actions.ts wires validateGstin + INDIAN_STATE_CODES from ./gstin"
+);
+assert(
+  /revalidatePath\(\s*["']\/app\/settings["']\s*\)/.test(billingActionsSrc),
+  "billing-actions.ts revalidates /app/settings on save"
+);
+assert(
+  /revalidatePath\(\s*["']\/app\/receipts["']\s*\)/.test(billingActionsSrc),
+  "billing-actions.ts revalidates /app/receipts on save"
+);
+// Every failure reason mapped to user copy.
+for (const reason of [
+  "empty",
+  "wrong_length",
+  "bad_format",
+  "bad_state_code",
+  "bad_checksum",
+  "not_regular_taxpayer",
+]) {
+  assert(
+    new RegExp(`\\b${reason}\\b\\s*:`).test(billingActionsSrc),
+    `billing-actions.ts maps reason "${reason}" to user-friendly copy`
+  );
+}
+assert(
+  /GSTIN is an India-only identifier/.test(billingActionsSrc),
+  "billing-actions.ts rejects GSTIN with non-IN country"
+);
+
+// --- BillingProfileForm.tsx ---
+const billingFormSrc = read(BILLING_FORM_PATH);
+assert(
+  billingFormSrc.length > 0,
+  "components/app/settings/BillingProfileForm.tsx exists"
+);
+assert(
+  /^\s*"use client";/m.test(billingFormSrc),
+  "BillingProfileForm is a client component"
+);
+assert(
+  /useFormState\b[\s\S]{0,80}updateBillingProfileAction/.test(billingFormSrc),
+  "BillingProfileForm wires useFormState(updateBillingProfileAction)"
+);
+assert(
+  /useFormStatus\b/.test(billingFormSrc),
+  "BillingProfileForm uses useFormStatus for pending-button state"
+);
+assert(
+  /export\s+function\s+BillingProfileForm/.test(billingFormSrc),
+  "BillingProfileForm is a named export"
+);
+for (const fieldName of [
+  'name="billingName"',
+  'name="billingAddressLine1"',
+  'name="billingAddressLine2"',
+  'name="billingCity"',
+  'name="billingPostalCode"',
+  'name="billingState"',
+  'name="billingCountry"',
+  'name="gstin"',
+]) {
+  assert(
+    billingFormSrc.includes(fieldName),
+    `BillingProfileForm renders field: ${fieldName}`
+  );
+}
+assert(
+  /POPULAR_STATES/.test(billingFormSrc) &&
+    /POPULAR_COUNTRIES/.test(billingFormSrc),
+  "BillingProfileForm defines POPULAR_STATES + POPULAR_COUNTRIES inline"
+);
+assert(
+  !/from\s+["']@\/lib\/invoicing\/gstin["']/.test(billingFormSrc),
+  "BillingProfileForm does NOT import from server-only lib/invoicing/gstin"
+);
+
+// --- /app/settings/page.tsx wire-up ---
+const settingsPageSrc = read(SETTINGS_PAGE_PATH);
+assert(
+  /import\s+\{\s*BillingProfileForm\s*\}\s+from\s+["']@\/components\/app\/settings\/BillingProfileForm["']/.test(
+    settingsPageSrc
+  ),
+  "settings page imports BillingProfileForm"
+);
+assert(
+  /<BillingProfileForm\b/.test(settingsPageSrc),
+  "settings page renders <BillingProfileForm />"
+);
+for (const col of [
+  "gstin",
+  "billingName",
+  "billingAddressLine1",
+  "billingAddressLine2",
+  "billingCity",
+  "billingPostalCode",
+  "billingState",
+  "billingCountry",
+]) {
+  assert(
+    new RegExp(`schema\\.users\\.${col}\\b`).test(settingsPageSrc),
+    `settings page selects schema.users.${col}`
+  );
+}
+
+// --- /api/invoices/[paymentId]/route.ts billing-column wire-up ---
+{
+  const routeSrc = invoiceRouteSrc; // already loaded in SECTION H.
+  for (const col of [
+    "billingName",
+    "billingAddressLine1",
+    "billingAddressLine2",
+    "billingCity",
+    "billingPostalCode",
+    "billingState",
+    "billingCountry",
+  ]) {
+    assert(
+      new RegExp(`schema\\.users\\.${col}\\b`).test(routeSrc),
+      `invoice route selects schema.users.${col} (PART 2)`
+    );
+  }
+  assert(
+    /schema\.users\.gstin\b/.test(routeSrc),
+    "invoice route selects schema.users.gstin (PART 2)"
+  );
+  assert(
+    /user\.billingCountry\s*\|\|\s*["']IN["']/.test(routeSrc),
+    "invoice route falls back to 'IN' when billingCountry is NULL"
+  );
+  assert(
+    /INDIAN_STATE_CODES\b/.test(routeSrc),
+    "invoice route validates billingState against INDIAN_STATE_CODES"
+  );
+  assert(
+    /user\.billingName\s*\|\|\s*user\.name/.test(routeSrc),
+    "invoice route prefers billingName over users.name"
+  );
+  // Ensure the pre-PART-2 hard-coded block is gone.
+  assert(
+    !/const\s+buyerCountry\s*:\s*string\s*=\s*["']IN["']/.test(routeSrc),
+    "invoice route no longer hard-codes buyerCountry = 'IN'"
+  );
+}
+
+// --- admin layout NAV wire-up + /admin/invoicing page ---
+const adminLayoutSrc = read(ADMIN_LAYOUT_PATH);
+assert(adminLayoutSrc.length > 0, "app/admin/layout.tsx exists");
+assert(
+  /href:\s*["']\/admin\/invoicing["']/.test(adminLayoutSrc),
+  "admin layout NAV includes /admin/invoicing"
+);
+
+const adminInvoicingSrc = read(ADMIN_INVOICING_PAGE_PATH);
+assert(
+  adminInvoicingSrc.length > 0,
+  "app/admin/invoicing/page.tsx exists"
+);
+assert(
+  /getSellerIdentity\(\)/.test(adminInvoicingSrc),
+  "admin/invoicing page reads getSellerIdentity()"
+);
+assert(
+  /deriveInvoiceNumber\(/.test(adminInvoicingSrc),
+  "admin/invoicing page renders deriveInvoiceNumber per row"
+);
+assert(
+  /schema\.payments\b/.test(adminInvoicingSrc) &&
+    /\.limit\(20\)/.test(adminInvoicingSrc),
+  "admin/invoicing page lists last 20 payments"
+);
+assert(
+  /\/api\/invoices\/\$\{encodeURIComponent\(r\.id\)\}/.test(
+    adminInvoicingSrc
+  ),
+  "admin/invoicing page links to /api/invoices/{payment.id}"
+);
+assert(
+  /Seller identity/.test(adminInvoicingSrc),
+  "admin/invoicing page has 'Seller identity' section"
+);
+assert(
+  /Invoice header logic/.test(adminInvoicingSrc),
+  "admin/invoicing page explains Receipt / Tax Invoice / Export Invoice headers"
+);
+assert(
+  /pending registration/.test(adminInvoicingSrc),
+  "admin/invoicing page surfaces the 'pending registration' pre-GSTIN state"
+);
+assert(
+  /not invoiceable/.test(adminInvoicingSrc),
+  "admin/invoicing page greys out pending/failed/cancelled rows"
 );
 
 // ------------------------------------------------------------------

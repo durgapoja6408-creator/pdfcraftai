@@ -129,18 +129,24 @@ export async function GET(
     };
   }
 
-  // 3. Fetch the buyer profile. We use the users table for name + email;
-  //    country + state + GSTIN come from the (future, Task #23 PART 2)
-  //    billing profile columns. For v1 we default to "IN" if the user
-  //    has no billing profile — that keeps Indian solo users getting
-  //    compliant invoices today. Non-IN buyers currently have to reach
-  //    out via support to correct the country code; that's acceptable
-  //    because our v1 customers are 100% India-side through Razorpay.
+  // 3. Fetch the buyer profile. We use the users table for name + email
+  //    and (Task #23 PART 2) the billing_* columns for country / state /
+  //    GSTIN / address. Users who haven't filled their billing profile
+  //    still get a compliant invoice: the defaults below ("IN" / no
+  //    state / no GSTIN) match the pre-PART-2 hard-coded behaviour.
   const userRows = await db
     .select({
       id: schema.users.id,
       name: schema.users.name,
       email: schema.users.email,
+      gstin: schema.users.gstin,
+      billingName: schema.users.billingName,
+      billingAddressLine1: schema.users.billingAddressLine1,
+      billingAddressLine2: schema.users.billingAddressLine2,
+      billingCity: schema.users.billingCity,
+      billingPostalCode: schema.users.billingPostalCode,
+      billingState: schema.users.billingState,
+      billingCountry: schema.users.billingCountry,
     })
     .from(schema.users)
     .where(eq(schema.users.id, userId))
@@ -150,24 +156,58 @@ export async function GET(
     return NextResponse.json({ error: "user_missing" }, { status: 500 });
   }
 
-  // Default billing context: India, no state, no GSTIN. Good enough for
-  // v1 B2C invoices. PART 2 of this task lands the /app/account form
-  // that populates real values.
-  const buyerCountry = "IN";
-  const buyerStateCode: IndianStateCode | null = null;
-  const buyerGstin: string | null = null;
+  // Resolve buyer country. NULL column = user never filled the form =>
+  // fall back to "IN", preserving the v1 hard-coded default.
+  const buyerCountry = (user.billingCountry || "IN").toUpperCase();
+
+  // Only honour the stored state code if we're an India buyer AND the
+  // value is in the known set. A non-India buyer with a state code is
+  // a user-entered mistake; we drop it silently rather than stamping
+  // garbage on the PDF.
+  let buyerStateCode: IndianStateCode | null = null;
+  if (
+    buyerCountry === "IN" &&
+    user.billingState &&
+    (user.billingState as string) in INDIAN_STATE_CODES
+  ) {
+    buyerStateCode = user.billingState as IndianStateCode;
+  }
+
+  const buyerGstin: string | null =
+    buyerCountry === "IN" && user.gstin ? user.gstin : null;
+
+  // Address lines: skip NULL/empty values so the renderer doesn't
+  // print blank rows. Order: line1, line2, "City, PIN", state name,
+  // country code. State name lookup uses INDIAN_STATE_CODES for IN
+  // buyers — for non-IN buyers we leave billingState out (char(2)
+  // column can't store a full state name anyway).
+  const addressLines: string[] = [];
+  if (user.billingAddressLine1) addressLines.push(user.billingAddressLine1);
+  if (user.billingAddressLine2) addressLines.push(user.billingAddressLine2);
+  const cityPin = [user.billingCity, user.billingPostalCode]
+    .filter((s): s is string => Boolean(s && s.trim()))
+    .join(", ");
+  if (cityPin) addressLines.push(cityPin);
+  if (buyerStateCode) {
+    addressLines.push(
+      `${INDIAN_STATE_CODES[buyerStateCode]} (${buyerStateCode})`
+    );
+  }
+  if (buyerCountry && buyerCountry !== "IN") {
+    addressLines.push(buyerCountry);
+  }
+
   const buyer: BuyerContext = {
-    name: user.name || "PDFCraftAI Customer",
+    // Prefer billing_name over users.name — the former is the legal
+    // entity for B2B receipts, the latter is a display name that may
+    // be a personal full name or a handle.
+    name: user.billingName || user.name || "PDFCraftAI Customer",
     email: user.email || "",
     country: buyerCountry,
     stateCode: buyerStateCode,
     gstin: buyerGstin,
+    addressLines: addressLines.length > 0 ? addressLines : undefined,
   };
-  // Ensure stateCode, if ever non-null from a future db column, is in
-  // the valid set. Belt-and-braces for a free-form varchar column.
-  if (buyer.stateCode && !(buyer.stateCode in INDIAN_STATE_CODES)) {
-    buyer.stateCode = null;
-  }
 
   // 4. Assemble + render.
   const seller = getSellerIdentity();

@@ -55,6 +55,14 @@ const NAV: NavItem[] = [
   { section: "Money", href: "/admin/chargebacks", label: "Chargebacks" },
   { section: "Money", href: "/admin/fx", label: "FX" },
   { section: "Money", href: "/admin/tax", label: "Tax" },
+  // Phase D / Task #23 PART 2 — Invoicing surface. Shows the seller
+  // identity resolved from INVOICE_SELLER_* env vars, flags missing
+  // config (most notably the seller GSTIN before CA-owned registration
+  // lands), and lists the last 20 captured payments with one-click
+  // "download invoice" links. Sits in Money because "can buyers
+  // download a compliant receipt?" is a money-flow question (failed
+  // invoice download = buyer escalates to support = refund risk).
+  { section: "Money", href: "/admin/invoicing", label: "Invoicing" },
   // Phase D / Task #25 — Pricing band. Plans is the read-only audit of
   // CREDIT_PACKS + AI_OPERATION_COSTS; Promos is the placeholder that
   // Task #27 will fill in with the real promo_codes table. Kept in
