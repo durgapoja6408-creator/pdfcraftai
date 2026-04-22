@@ -50,6 +50,10 @@ const SUMMARIZE_ROUTE_PATH = resolve(
   "route.ts"
 );
 const OUTPUT_CAPS_PATH = resolve(ROOT, "lib", "ai", "output-caps.ts");
+// SECTION E (Task #22 follow-up) — registry holds the chat-ladder default
+// model strings that determine which rate-card row gets matched at
+// enrichment time.
+const REGISTRY_PATH = resolve(ROOT, "lib", "ai", "registry.ts");
 
 const MIG_SRC = readFileSync(MIG_PATH, "utf8");
 const MIG_0008_SRC = readFileSync(MIG_0008_PATH, "utf8");
@@ -58,6 +62,7 @@ const USAGE_SRC = readFileSync(USAGE_PATH, "utf8");
 const CHAT_SRC = readFileSync(CHAT_ROUTE_PATH, "utf8");
 const SUMMARIZE_SRC = readFileSync(SUMMARIZE_ROUTE_PATH, "utf8");
 const OUTPUT_CAPS_SRC = readFileSync(OUTPUT_CAPS_PATH, "utf8");
+const REGISTRY_SRC = readFileSync(REGISTRY_PATH, "utf8");
 
 let pass = 0;
 let fail = 0;
@@ -553,6 +558,137 @@ for (const file of OP_MODULES) {
 }
 // chat is an API route rather than a lib module — already covered in D4
 // above (capForOp('chat') assertion).
+
+// =============================================================================
+// SECTION E: Task #22 follow-up — chat_turn cost_micros enrichment contract
+// =============================================================================
+//
+// Why this section exists:
+//
+// The Task #19 close (commit `037f6ea`, 2026-04-21) flagged that some
+// `ai_usage` rows from `/api/ai/chat` were landing with `cost_micros = NULL`
+// even on `success = 1` rows, which would silently break the daily margin
+// rollup's revenue/cost ratio (Task #22, gate #7) — a NULL cost is treated
+// as "unknown" and excluded from margin math, so any drift toward NULLs
+// would either erode the 7-day green streak signal or paper over a real
+// cost regression.
+//
+// Investigation (2026-04-22): the chain that's supposed to populate
+// cost_micros at insert time looks like this —
+//
+//   1. `app/api/ai/chat/route.ts` calls `recordAiUsage({ costMicros: null,
+//      success: true, ... })` on the success path (line ~509-534).
+//   2. `lib/ai/usage.ts:recordAiUsage` enrichment branch (line ~317-329)
+//      sees `costMicros === null && success === true` and calls
+//      `computeCostMicros(model, inTok, outTok, cacheRead, cacheWrite,
+//      batchMode)` — Tier-2 enrichment per MASTER_PLAN §7 gate #6.
+//   3. `computeCostMicros` calls `lookupModelRate(modelId)` against the
+//      `MODEL_RATE_TABLE` (13 entries spanning Anthropic / OpenAI / Gemini)
+//      which prefix-matches so dated suffixes (claude-haiku-4-5-20251001)
+//      still resolve to the base rate.
+//   4. The chat ladder's three default models — `gpt-4o-mini`,
+//      `claude-haiku-4-5-20251001`, `gemini-2.5-flash` — must each match
+//      a `MODEL_RATE_TABLE` entry, otherwise the enrichment returns null
+//      and we're back where we started.
+//
+// The verdict from the investigation was: today, the chain works — all
+// three default models are in the rate card, so success-path chat_turn
+// rows DO get cost_micros populated at insert time. The margin-rollup
+// green-streak signal is meaningful.
+//
+// THE GAP this section closes: nothing currently pins that contract end
+// to end. If anyone (a) swaps `lib/ai/registry.ts:defaultModel` to an
+// unlisted variant (e.g. an experimental gpt-5-preview), (b) drops a
+// `MODEL_RATE_TABLE` entry during a refactor, (c) adds a third
+// `recordAiUsage` call site in chat/route.ts that forgets `costMicros:
+// null`, or (d) flips the enrichment branch from `success ? compute :
+// null` to something that always returns null — the green streak quietly
+// degrades, no test fails, and the regression hides for weeks until
+// someone notices the margin dashboard going blank.
+//
+// Pins (5 assertions):
+//   E1  chat route still passes `costMicros: null` on the success branch
+//       (the trigger condition for Tier-2 enrichment).
+//   E2  chat route also passes `costMicros: null` on the error branch
+//       (defines the design choice: errors stay NULL because the
+//       provider typically didn't return usage, so we can't compute
+//       honestly — the rollup must explicitly exclude these rows).
+//   E3  recordAiUsage's enrichment branch shape is intact: when
+//       `costMicros === null && success === true`, it routes through
+//       `computeCostMicros` with all 6 args.
+//   E4  All three chat-ladder default models in `lib/ai/registry.ts` —
+//       gpt-4o-mini, claude-haiku-4-5, gemini-2.5-flash — exist as
+//       prefixes in `MODEL_RATE_TABLE`. (Prefix because Anthropic ships
+//       dated model strings like `claude-haiku-4-5-20251001` that must
+//       resolve to the base entry via the longest-prefix match in
+//       `lookupModelRate`.)
+//   E5  Each default model is wired through `defaultModel: process.env.X
+//       ?? "..."` in `lib/ai/registry.ts` so an env override can rotate
+//       the model without touching the rate card — but the compiled-in
+//       fallback (the `??` right-hand side) is what ships and what most
+//       deploys actually use, so it's the value that has to be in the
+//       rate card.
+
+assert(
+  "E1 chat route passes costMicros: null on the success path (triggers Tier-2 enrichment)",
+  /success:\s*true,?[\s\S]{0,400}?costMicros:\s*null|costMicros:\s*null,[\s\S]{0,400}?success:\s*true/.test(
+    CHAT_SRC
+  ),
+  "app/api/ai/chat/route.ts must pass `costMicros: null, success: true` on the success branch — that's the trigger condition for the lib/ai/usage.ts enrichment branch (line ~317-329) to call computeCostMicros. If anyone hard-codes a value here, enrichment is bypassed; if anyone removes the field entirely, undefined silently routes the same way but the contract stops being explicit."
+);
+
+assert(
+  "E2 chat route passes costMicros: null on the error path (rollup excludes by design)",
+  /success:\s*false,?[\s\S]{0,400}?costMicros:\s*null|costMicros:\s*null,[\s\S]{0,400}?success:\s*false/.test(
+    CHAT_SRC
+  ),
+  "app/api/ai/chat/route.ts must also pass `costMicros: null, success: false` on the error branch. This is the design choice: provider errors typically don't return usage metadata, so we can't compute honestly. The enrichment branch in usage.ts intentionally returns null on `success === false` — the daily margin rollup excludes these rows from cost math because attributing partial cost to a refunded turn would skew the green-streak signal."
+);
+
+assert(
+  "E3 recordAiUsage enrichment branch routes null+success through computeCostMicros",
+  /enrichedCostMicros\s*=[\s\S]{0,200}?input\.costMicros\s*!==\s*undefined\s*&&\s*input\.costMicros\s*!==\s*null[\s\S]{0,200}?input\.success[\s\S]{0,400}?computeCostMicros\(/.test(
+    USAGE_SRC
+  ),
+  "lib/ai/usage.ts must keep the enrichment branch shape `costMicros !== null ? costMicros : success ? computeCostMicros(...) : null`. Caller-passed cost wins; null+success triggers Tier-2 enrichment; null+failure stays null. Flipping any of the three branches breaks the chat_turn cost_micros population pipeline this section was written to defend."
+);
+
+const CHAT_LADDER_DEFAULTS = [
+  // [registry default-model literal, MODEL_RATE_TABLE prefix it must match]
+  // Why prefix-match: lookupModelRate scans the table looking for
+  // exact OR prefix match (`m.startsWith(k + "-")` or `m.startsWith(k)`),
+  // longest-key wins. So a registry default of
+  // "claude-haiku-4-5-20251001" resolves to the base "claude-haiku-4-5"
+  // rate-card row.
+  ["gpt-4o-mini", "gpt-4o-mini"],
+  ["claude-haiku-4-5", "claude-haiku-4-5"],
+  ["gemini-2.5-flash", "gemini-2.5-flash"],
+];
+
+for (const [defaultModel, ratePrefix] of CHAT_LADDER_DEFAULTS) {
+  assert(
+    `E4 MODEL_RATE_TABLE has an entry for chat-ladder default '${defaultModel}'`,
+    new RegExp(`\\["${ratePrefix.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}"`).test(
+      USAGE_SRC
+    ),
+    `lib/ai/usage.ts:MODEL_RATE_TABLE must contain an entry whose key is "${ratePrefix}" (or a longer prefix that still matches via lookupModelRate's prefix scan). Without this entry, computeCostMicros returns null for every chat_turn that uses '${defaultModel}', and the daily margin rollup loses cost coverage for the entire chat surface — silently. Add the rate row before swapping the default.`
+  );
+}
+
+for (const [defaultModel] of CHAT_LADDER_DEFAULTS) {
+  // Some registry defaults carry a dated suffix (Anthropic ships
+  // `claude-haiku-4-5-20251001`); the regex tolerates an optional
+  // suffix segment after the listed model name so future date bumps
+  // don't trip this pin (lookupModelRate prefix-matches, so the rate
+  // card still resolves correctly).
+  assert(
+    `E5 lib/ai/registry.ts wires '${defaultModel}' as a defaultModel via process.env override`,
+    new RegExp(
+      `defaultModel:\\s*process\\.env\\.[A-Z_]+\\s*\\?\\?\\s*"${defaultModel.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}(?:-[\\w]+)*"`
+    ).test(REGISTRY_SRC),
+    `lib/ai/registry.ts must wire '${defaultModel}' (or a dated variant prefixed with it) as the compiled-in fallback for one of the chat-ladder providers via the \`defaultModel: process.env.X ?? "..."\` pattern. The env override exists so ops can hot-swap models without redeploy, but the compiled-in fallback is what most deploys actually use — so it's the literal that has to be present in the rate card per E4.`
+  );
+}
 
 // =============================================================================
 // Report
