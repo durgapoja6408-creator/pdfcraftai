@@ -49,9 +49,11 @@
 | GA4 Stream ID | `14383455005` |
 | Microsoft Clarity Project ID | `wcsbv536zv` |
 | GitHub repo | `durgapoja6408-creator/pdfcraftai` |
+| Paddle Seller ID | `320957` (vendor account `rajasekarjavaee@gmail.com`, signed up 2026-04-21; **verification in progress**, sandbox live, production gated behind Paddle KYC review) |
+| Paddle vendor dashboard | `https://vendors.paddle.com/` (sandbox toggle in left sidebar) |
 
 **Secrets NOT in this file** (env vars live on Hostinger; PAT + SSH private key live only in `.claude/secrets.env`):
-`GOOGLE_CLIENT_SECRET`, `NEXTAUTH_SECRET`, `MYSQL_URL`, and the PAT/SSH private key itself.
+`GOOGLE_CLIENT_SECRET`, `NEXTAUTH_SECRET`, `MYSQL_URL`, the PAT/SSH private key itself, and `PADDLE_API_KEY` / `PADDLE_CLIENT_TOKEN` / `PADDLE_WEBHOOK_SECRET` once generated.
 
 ## 4. Credentials handoff pattern — `.claude/secrets.env`
 
@@ -76,24 +78,23 @@ HOSTINGER_SSH_PRIVATE_KEY_PATH=/sessions/gifted-funny-franklin/mnt/pdfcraftai.co
 ## 5. Known operational gotchas
 
 - **503 after deploy** → hPanel → Resource Usage → **Stop running process** → app auto-restarts → 503 clears.
-  - **Faster alternative via SSH** (verified 2026-04-21): if SSH is reachable (section 2b creds), `ssh ... 'ps aux | grep next-server | grep -v grep'` — if you see > 3 concurrent `next-server (v14.2.35)` processes plus `bash: fork: retry: Resource temporarily unavailable` on any shell command, that's the process-table-exhaustion 503 signature. Fix: `ssh ... 'pkill -f "next-server"'` — supervisor respawns one clean worker in ~15s. Fall back to hPanel if SSH is throttled ("Connection closed by remote host" is the throttle symptom, seen earlier same day).
 - **Do NOT push-force to main** — Hostinger's GitHub App treats it as a normal push and may redeploy mid-state.
 - **Env var changes require "Save and redeploy"** in Hostinger → this restarts the runtime but doesn't pull new code; pushing to main pulls new code AND restarts.
 
-## 6. Current integration status (as of 2026-04-22)
+## 6. Current integration status (as of 2026-04-21)
 
 - Cloudflare proxy: ACTIVE
 - Sitemap (`/sitemap.xml`): serving 200 — **but old submissions in GSC + Bing point at stale URLs; needs re-submission after latest redeploy**
 - Google OAuth: env vars deployed, consent verified (branding page, 2026-04-19) — **end-to-end sign-in test still pending**
 - Microsoft Clarity: committed + pushed in `36034eb` (2026-04-20); Hostinger redeploy in flight
 - GA4: committed + pushed in `36034eb` (2026-04-20); Hostinger redeploy in flight
-- **Net Margin Roadmap / Phase A progress:** Task #10 (Anthropic prompt caching, `f2420a8`) CLOSED. Task #11 (output-cap centralization + truncation observability, `9a9d455`) CLOSED — migration 0008 applied to prod MySQL, `lib/ai/output-caps.ts` is single source of truth for all 10 ops' `max_output_tokens`, `ai_usage.{stop_reason,response_truncated}` columns + covering index live, 12 suites / 1128 assertions all green. Next: Task #12 (per-user daily cost ceiling + kill switches).
+- **Paddle MoR**: Seller ID `320957` (2026-04-21). Verification in progress (3–7 business day SLA). Sandbox available immediately. Next: generate `PADDLE_API_KEY` + `PADDLE_CLIENT_TOKEN` in sandbox Developer Tools → Authentication. Adapter scaffolded at `lib/payments/adapters/paddle.ts` (pending keys before wiring).
+- **Net Margin initiative — Phase A / Task #12 CLOSED** (2026-04-22, commit `a178f29`): per-user daily cost ceiling ($0.50/user/UTC-day default via `USER_DAILY_COST_MICROS_CAP`, per-user override via new `user_rate_limits` table) + op/provider kill switches via `AI_KILL_{PROVIDER|OP}` env vars. Shared `guardAiRoute()` wired into all 10 op routes BEFORE `spendCredits`. Migration 0009 applied pre-push (errno 150 FK repair: `user → users` to match Drizzle's pluralized NextAuth table). Read-only admin page at `/app/admin/kill-switches`. Next: Task #13 (OpenAI Batch API adapter — 50% discount for non-urgent summarize/compare/generate at 24h SLA).
 
 ## 7. Files to ALWAYS consult
 
 - `CLAUDE.md` (this file) — session bootstrap (credentials + infra)
 - **`docs/STATUS.md` — live punch list: what's DONE, what's PENDING, who owns each. Read this IMMEDIATELY after CLAUDE.md at session start.**
-- **`docs/roadmap/NET_MARGIN_ROADMAP.md` — active initiative: 5 phases (A–E) converting AI gross-margin observability into true net margin + dual-rail payments + admin dashboard v2 + prompt registry. Read this after STATUS.md. Companion files: `ADMIN_PAGES_CATALOG.md` (every admin page spec) and `PHASE_{A..E}_*.md` (per-phase tasks + acceptance criteria).**
 - `docs/DEPLOYMENT_NOTES.md` — detailed env vars, integration status, recovery playbook
 - `app/layout.tsx` — analytics / tracking scripts live here
 - `auth.ts` / `auth.config.ts` — NextAuth v5 Google provider wiring
