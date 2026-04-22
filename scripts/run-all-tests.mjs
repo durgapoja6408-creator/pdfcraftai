@@ -396,6 +396,55 @@ const SUITES = [
     name: "invoicing",
     file: "test-invoicing.mjs",
   },
+  // compliance pins Task #24 / Phase D — the cookie consent + DPDP
+  // Act 2023 + GDPR disclosure surface. Covers: lib/compliance/
+  // consent.ts module surface (CONSENT_COOKIE_NAME pinned to
+  // "pdfcraft_consent", CONSENT_COOKIE_MAX_AGE_SECONDS = 60*60*24*365,
+  // three-level ConsentLevel union, parseConsent + analyticsAllowed
+  // + regionRequiresConsent exports, CONSENT_REQUIRED_COUNTRIES
+  // covers all EU27 + EEA (IS/LI/NO) + GB + IN, CF sentinels "XX" /
+  // "T1" / "" fall through to required=true as safer default,
+  // analyticsAllowed returns level === "all" only so "essential"
+  // (reject) and "none" (no choice yet) both block), components/
+  // compliance/CookieConsent.tsx client banner (begins with
+  // "use client", imports shared constants from @/lib/compliance/
+  // consent rather than copy-pasting string literals, three buttons
+  // Accept all / Essential only / Customize, writes first-party
+  // cookie with Max-Age + Path=/ + SameSite=Lax + Secure (HTTPS-
+  // gated), calls window.location.reload() so the server re-
+  // resolves the analytics gate — router.refresh() is NOT enough
+  // because it doesn't re-run <Script> tags, role="dialog" +
+  // aria-labelledby/describedby for a11y), components/compliance/
+  // ResetConsentButton.tsx withdrawal (also "use client", imports
+  // CONSENT_COOKIE_NAME, deletes the cookie via Max-Age=0 rather
+  // than overwriting to "essential" — GDPR Art. 7(3) + DPDP s. 6(3)
+  // require withdrawal to restore the un-chosen state so the user
+  // can re-evaluate from scratch), app/layout.tsx consent gate
+  // (imports cookies from next/headers + analyticsAllowed +
+  // parseConsent + CONSENT_COOKIE_NAME + CookieConsent, reads the
+  // cookie via cookies().get(CONSENT_COOKIE_NAME), the GA4 + Clarity
+  // <Script> tags are now wrapped in {analyticsOn ? … : null} so
+  // they don't emit until consent is given, <CookieConsent
+  // initialLevel={...} /> is rendered unconditionally because the
+  // component self-hides), app/cookies/page.tsx full policy (imports
+  // ResetConsentButton, lists pdfcraft_consent + authjs.session-
+  // token + _ga + _clck/_clsk, cites GDPR Art. 7(3) + DPDP s. 6(3)
+  // + s. 8(10) Grievance Officer), lib/legal-docs.ts DPDP expansion
+  // (Privacy has "Your rights under the DPDP Act" citing s. 11/12/
+  // 13/14/6(3)/8(10), Children section citing s. 9, cross-border
+  // under s. 16, cookies line discloses consent-gating; DPA names
+  // Data Fiduciary / Data Processor roles and adds DPDP Consent
+  // Manager forward-looking note; Grievance Officer surfaced at
+  // least twice). Placed right after invoicing because Task #23
+  // (invoicing) and Task #24 (compliance) together form the Phase D
+  // "legal/financial paperwork" band — a refactor of LEGAL_DOCS or
+  // the layout wiring typically cascades through both, and
+  // surfacing as "compliance" vs "invoicing" gives the right
+  // granularity when debugging which side broke.
+  {
+    name: "compliance",
+    file: "test-compliance.mjs",
+  },
   // degradation-ux pins Task #22 part 2 — the shared AI-degradation
   // classifier (lib/ai/degradation.ts) + the nine /api/ai/* tool
   // components' call-sites + the dunning scaffold

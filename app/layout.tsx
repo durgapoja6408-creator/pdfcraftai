@@ -1,9 +1,16 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { cookies } from "next/headers";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { MarketingChrome } from "@/components/nav/MarketingChrome";
 import { SessionProviderWrapper } from "@/components/providers/SessionProviderWrapper";
+import { CookieConsent } from "@/components/compliance/CookieConsent";
+import {
+  CONSENT_COOKIE_NAME,
+  analyticsAllowed,
+  parseConsent,
+} from "@/lib/compliance/consent";
 import { auth } from "@/auth";
 import "./globals.css";
 
@@ -70,6 +77,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // returns the session object we'd have fetched on the client anyway.
   const session = await auth();
 
+  // Task #24 — cookie-gated analytics.
+  //
+  // Read the first-party `pdfcraft_consent` cookie and resolve it to
+  // one of "none" | "essential" | "all". The GA4 + Clarity `<Script>`
+  // tags below only render when the level is "all". "none" (not yet
+  // chosen) and "essential" (explicitly rejected) both suppress
+  // analytics. The consent banner component is always rendered but
+  // hides itself when a choice has been made.
+  //
+  // Reading cookies via `next/headers` would mark this layout as
+  // dynamic — but `auth()` above already does, so there's no new
+  // cost. Next.js App Router streams the layout regardless.
+  const consentCookie = cookies().get(CONSENT_COOKIE_NAME)?.value ?? null;
+  const consentLevel = parseConsent(consentCookie);
+  const analyticsOn = analyticsAllowed(consentLevel);
+
   return (
     <html
       lang="en"
@@ -103,34 +126,56 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </SessionProviderWrapper>
 
         {/*
+          Cookie consent banner — renders for visitors with
+          consentLevel === "none" (no cookie set yet). Hides itself
+          when the user has already chosen "essential" or "all".
+          Writes the cookie on the client and triggers a reload so
+          the server re-resolves the analytics gate below.
+        */}
+        <CookieConsent initialLevel={consentLevel} />
+
+        {/*
           Google Analytics (GA4) + Microsoft Clarity — both load with
           strategy="lazyOnload" so they never block LCP / TBT on the
-          critical path. Page-view tracking still captures every visit
-          because these fire once the browser's idle, which is well
-          before the user bounces.
-        */}
-        <Script
-          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-          strategy="lazyOnload"
-        />
-        <Script id="ga4-init" strategy="lazyOnload">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${GA_MEASUREMENT_ID}', { send_page_view: true });
-          `}
-        </Script>
+          critical path.
 
-        <Script id="ms-clarity-init" strategy="lazyOnload">
-          {`
-            (function(c,l,a,r,i,t,y){
-              c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-              t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-              y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-            })(window, document, "clarity", "script", "${CLARITY_PROJECT_ID}");
-          `}
-        </Script>
+          Task #24: these are now CONSENT-GATED. They only emit to
+          the DOM when the visitor has explicitly accepted analytics
+          cookies ("all"). For "none" (not yet chosen) and "essential"
+          (rejected), we render nothing — no beacons, no cookies,
+          no network calls to googletagmanager.com or clarity.ms.
+
+          This is the minimum required by GDPR Art. 6(1)(a) + ePrivacy
+          Directive Art. 5(3) (EU/UK) and the DPDP Act 2023 s. 6
+          (India). See lib/compliance/consent.ts for the full
+          rationale.
+        */}
+        {analyticsOn ? (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+              strategy="lazyOnload"
+            />
+            <Script id="ga4-init" strategy="lazyOnload">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_MEASUREMENT_ID}', { send_page_view: true });
+              `}
+            </Script>
+
+            <Script id="ms-clarity-init" strategy="lazyOnload">
+              {`
+                (function(c,l,a,r,i,t,y){
+                  c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                  t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                  y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+                })(window, document, "clarity", "script", "${CLARITY_PROJECT_ID}");
+              `}
+            </Script>
+          </>
+        ) : null}
       </body>
     </html>
   );

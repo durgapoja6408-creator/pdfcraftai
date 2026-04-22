@@ -20,6 +20,23 @@
 //     out-of-date the moment GA4 + Clarity landed on 2026-04-20.
 //   * Terms gained a "Merchant of record (international customers)" clause
 //     so receipts from Paddle are expected rather than a surprise.
+//
+// 2026-04-22 — Task #24: DPDP Act 2023 (India) + ePrivacy compliance.
+//   * Privacy expanded with a dedicated "Your rights under the DPDP
+//     Act (India)" section covering the six rights granted by s. 11–14
+//     (access, correction, erasure, grievance redressal, nomination,
+//     withdrawal). s. 8(10) mandates a Grievance Officer with a 15-day
+//     response SLA — we name the role + contact.
+//   * Privacy's "Cookies & analytics" section rewritten to disclose
+//     consent-gating — GA4 + Clarity only load on "Accept all". Links
+//     out to /cookies for the per-cookie inventory.
+//   * Privacy adds "Children" section: s. 9 requires verifiable
+//     parental consent for under-18s; we address it directly.
+//   * Privacy adds "Cross-border transfers" specific to DPDP s. 16.
+//   * DPA adds a "DPDP Consent Manager" forward-looking note — MeitY
+//     is expected to notify the Consent Manager framework in
+//     2026/2027; we commit to integrating once the CM framework is
+//     live.
 
 export type LegalSlug =
   | "privacy"
@@ -45,9 +62,9 @@ const SUPPORT_EMAIL = "support@pdfcraftai.com";
 export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = {
   privacy: {
     title: "Privacy Policy",
-    updated: "April 21, 2026",
+    updated: "April 22, 2026",
     intro:
-      "We designed pdfcraft ai to do the least possible with your data. This policy tells you exactly what that means.",
+      "We designed pdfcraft ai to do the least possible with your data. This policy tells you exactly what that means — and how we handle personal data under the GDPR (EU/UK), the DPDP Act 2023 (India), and comparable regimes elsewhere.",
     sections: [
       {
         h: "What we collect",
@@ -63,7 +80,7 @@ export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = {
       },
       {
         h: "Cookies & analytics",
-        p: "We use a first-party cookie for session auth. For product analytics and usability research we use Google Analytics 4 and Microsoft Clarity, both configured with IP anonymization and without advertising identifiers. We do not participate in ad networks and we do not sell personal data.",
+        p: `We use a first-party cookie for session auth and a first-party cookie to remember your consent choice. Product analytics (Google Analytics 4 and Microsoft Clarity) are CONSENT-GATED: they only load if you click "Accept all" on the banner. Essential cookies (sign-in, CSRF, consent memory) always load because the service cannot function without them. We do not run advertising cookies, we do not participate in ad networks, and we do not sell personal data. See the /cookies page for the full inventory and a one-click withdrawal button.`,
       },
       {
         h: "Payments and merchant of record",
@@ -75,15 +92,23 @@ export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = {
       },
       {
         h: "International transfers",
-        p: "Where personal data is transferred outside the EEA or UK, we rely on the applicable EU Standard Contractual Clauses and the UK International Data Transfer Addendum. Paddle operates its own standard contractual clauses with merchants — we sign those at onboarding and flow them through to you.",
+        p: "Where personal data is transferred outside the EEA or UK, we rely on the applicable EU Standard Contractual Clauses and the UK International Data Transfer Addendum. Paddle operates its own standard contractual clauses with merchants — we sign those at onboarding and flow them through to you. For Indian residents under the DPDP Act 2023 s. 16, transfers outside India are limited to countries not restricted by the Central Government's notified list; none of our current sub-processors are in restricted jurisdictions.",
       },
       {
-        h: "Your rights",
-        p: `Export all your data or delete your account instantly from Settings. EU/UK residents: we follow the GDPR framework; email ${SUPPORT_EMAIL} to exercise your rights.`,
+        h: "Your rights (GDPR / UK DPA)",
+        p: `If you are in the EU, EEA, UK, or Switzerland you have the rights of access, rectification, erasure, portability, restriction of processing, and objection under the GDPR framework. You can export all your data or delete your account instantly from Settings. For anything else email ${SUPPORT_EMAIL} — we respond within 30 days.`,
+      },
+      {
+        h: "Your rights under the DPDP Act (India)",
+        p: `If you are a Data Principal in India, the Digital Personal Data Protection Act 2023 grants you: (1) the right to access your personal data and a summary of processing activities (s. 11); (2) the right to correction and erasure (s. 12); (3) the right of grievance redressal within 15 days (s. 13 + s. 8(10)); (4) the right to nominate another person to exercise these rights in the event of death or incapacity (s. 14); (5) the right to withdraw consent at any time, as easily as it was given (s. 6(3)). You can exercise all of these by emailing ${SUPPORT_EMAIL}. Our Grievance Officer for DPDP purposes is reachable at the same address.`,
+      },
+      {
+        h: "Children",
+        p: "pdfcraft ai is not directed at children under 13, and under the DPDP Act 2023 s. 9 we do not knowingly process personal data of individuals under 18 without verifiable parental consent. If you believe a child has created an account without consent, email us and we will delete the account and any associated data.",
       },
       {
         h: "Contact",
-        p: `Privacy and security questions: ${SUPPORT_EMAIL}.`,
+        p: `Privacy and security questions, and DPDP Grievance Officer requests: ${SUPPORT_EMAIL}. We respond within 15 days for DPDP grievances and within 30 days for other privacy requests.`,
       },
     ],
   },
@@ -167,13 +192,13 @@ export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = {
   },
   dpa: {
     title: "Data Processing Addendum",
-    updated: "April 21, 2026",
+    updated: "April 22, 2026",
     intro:
-      "For customers processing personal data of EU/UK/Swiss data subjects. Auto-executed when you subscribe to any paid plan.",
+      "For customers processing personal data of EU/UK/Swiss data subjects, and for Indian Data Fiduciaries routing processing through pdfcraft ai under the DPDP Act 2023. Auto-executed when you subscribe to any paid plan.",
     sections: [
       {
         h: "Roles",
-        p: "You are the Controller of personal data in documents you upload. pdfcraft ai is the Processor acting only on your documented instructions.",
+        p: "For GDPR purposes you are the Controller of personal data in documents you upload; pdfcraft ai is the Processor acting only on your documented instructions. For DPDP Act 2023 purposes (India), you are the Data Fiduciary and pdfcraft ai is the Data Processor — we process personal data only on your instruction and do not determine the purpose or means of processing.",
       },
       {
         h: "Subprocessors",
@@ -181,15 +206,19 @@ export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = {
       },
       {
         h: "International transfers",
-        p: "Where personal data is transferred outside the EEA or UK, we rely on the applicable EU Standard Contractual Clauses and UK IDTA. Paddle operates its own SCCs with merchants; we have signed Paddle's DPA at merchant onboarding. Data residency options (EU-only) will be made available on Studio plans as our infrastructure build-out completes.",
+        p: "Where personal data is transferred outside the EEA or UK, we rely on the applicable EU Standard Contractual Clauses and UK IDTA. Paddle operates its own SCCs with merchants; we have signed Paddle's DPA at merchant onboarding. Under DPDP Act s. 16, Indian personal data may be transferred to any country not restricted by the Central Government's notified list — no current sub-processor is in a restricted jurisdiction. Data residency options (EU-only, IN-only) will be made available on Studio plans as our infrastructure build-out completes.",
+      },
+      {
+        h: "DPDP Consent Manager (forward-looking)",
+        p: "The Ministry of Electronics and Information Technology (MeitY) is expected to notify operational rules and the Consent Manager framework under the DPDP Act 2023 in 2026. Once the CM framework is live and registered Consent Managers are operational, pdfcraft ai will integrate consent artefact lifecycle (issuance, withdrawal, audit trail) via the designated Consent Manager(s) of the Data Fiduciary's choice. Until then, consent is collected directly (see our cookie banner and the /cookies page) and stored in first-party cookies with a full audit trail.",
       },
       {
         h: "Security measures",
         p: "See our Security page for the technical and organizational measures (TOMs) we apply, including encryption, access controls, and our in-progress SOC 2 readiness program.",
       },
       {
-        h: "Data subject rights",
-        p: "We assist you in responding to access, rectification, deletion, and portability requests within 30 days of your forwarded request.",
+        h: "Data subject / Data Principal rights",
+        p: "We assist you in responding to access, rectification, deletion, and portability requests within 30 days of your forwarded request (GDPR) or within 15 days for DPDP Act grievances. Our Grievance Officer is reachable at support@pdfcraftai.com.",
       },
       {
         h: "Audits",
