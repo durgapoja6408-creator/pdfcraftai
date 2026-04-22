@@ -127,6 +127,17 @@ const CACHE_READ_MULTIPLIER = 0.1;
 const CACHE_WRITE_MULTIPLIER = 1.25;
 
 /**
+ * OpenAI Batch API discount (Task #13). Batch submissions route through
+ * the async /v1/batches endpoint with a 24h SLA and OpenAI discounts
+ * BOTH input and output token prices by a flat 50%. The multiplier is
+ * applied after cache math so it composes cleanly (batch runs don't
+ * use prompt caching today — the two features are mutually exclusive
+ * on OpenAI — but the math is written order-independent so that when
+ * Anthropic batch lands in Task #26 both multipliers can stack.)
+ */
+const BATCH_DISCOUNT_MULTIPLIER = 0.5;
+
+/**
  * Compute provider cost in micros (USD × 1e6) given token counts and a
  * model id. Returns null if the model isn't in the rate card — callers
  * pass that null straight to the `cost_micros` column, which the rollup
@@ -148,7 +159,8 @@ export function computeCostMicros(
   inputTokens: number,
   outputTokens: number,
   cachedInputTokens?: number,
-  cacheCreationInputTokens?: number
+  cacheCreationInputTokens?: number,
+  batchMode?: boolean
 ): number | null {
   const rate = lookupModelRate(modelId);
   if (!rate) return null;
@@ -161,11 +173,18 @@ export function computeCostMicros(
   //                 = tokens * usdPerMtok.
   // Round to integer micros — sub-cent precision is already far below
   // the per-call scale, so rounding drift is invisible at rollup time.
-  const cost =
+  let cost =
     inTok * rate.inputUsdPerMtok +
     outTok * rate.outputUsdPerMtok +
     cacheReadTok * rate.inputUsdPerMtok * CACHE_READ_MULTIPLIER +
     cacheWriteTok * rate.inputUsdPerMtok * CACHE_WRITE_MULTIPLIER;
+  if (batchMode) {
+    // Batch runs get a flat 50% on the fully-assembled cost. Applied
+    // last so cache-math stays independently legible and so future
+    // provider-specific batch surfaces can reuse the same multiplier
+    // without reshuffling earlier terms.
+    cost = cost * BATCH_DISCOUNT_MULTIPLIER;
+  }
   return Math.max(0, Math.round(cost));
 }
 
@@ -230,6 +249,14 @@ export type RecordAiUsageInput = {
    * `spendCredits`. A retried call writes one usage row.
    */
   idempotencyKey?: string | null;
+  /**
+   * Task #13 — set to true when this usage row came from an OpenAI
+   * Batch API submission. The auto-enrichment path applies the 50%
+   * discount to `costMicros`, and the margin rollup reads this flag
+   * (once migration 0011 lands in Task #14) to split realtime vs.
+   * batch spend. Defaults to false.
+   */
+  batchMode?: boolean;
 };
 
 export type RecordAiUsageResult =
@@ -275,7 +302,8 @@ export async function recordAiUsage(
             input.inputTokens,
             input.outputTokens,
             cachedIn ?? 0,
-            cacheWriteIn ?? 0
+            cacheWriteIn ?? 0,
+            input.batchMode === true
           )
         : null;
 

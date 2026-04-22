@@ -105,7 +105,20 @@ export class NoAIProviderConfiguredError extends Error {
 }
 
 /** Char budget. See file header for why 240k. */
-const SUMMARIZE_CHAR_BUDGET = 240_000;
+export const SUMMARIZE_CHAR_BUDGET = 240_000;
+
+/**
+ * OpenAI model we route batch submissions through. Intentionally
+ * hardcoded (not read from the router) because batch uses the REST
+ * `/v1/chat/completions` endpoint directly without the streaming
+ * abstraction, so the realtime ROUTING_POLICY isn't relevant.
+ *
+ * gpt-4o-mini is the cheapest text model in our rate card ($0.15 /
+ * $0.60 per Mtok → $0.075 / $0.30 after the batch 50% discount) and
+ * has produced quality-equivalent summaries to haiku/flash in our
+ * side-by-side checks.
+ */
+const BATCH_MODEL_SUMMARIZE = "gpt-4o-mini";
 
 // Token caps per depth are centralized in ./output-caps
 // (OP_OUTPUT_CAP_TABLE.summarize). Task #11 moved them out of this file so
@@ -333,4 +346,102 @@ function postProcessMarkdown(text: string, depth: SummarizeDepth): string {
   }
 
   return cleaned;
+}
+
+// --- batch mode (Task #13) -------------------------------------------
+
+/**
+ * Build the single `BatchRequest` for a summarize submission. The caller
+ * (/api/ai/summarize in batch mode) passes it to `submitBatch` and
+ * persists the `opPayload` so that when the batch completes the
+ * polling route can rebuild a `SummarizeResult`-shaped payload without
+ * needing the original PDF bytes.
+ */
+export function buildSummarizeBatchRequest(input: {
+  text: string;
+  pageCount: number;
+  filename?: string;
+  depth: SummarizeDepth;
+  ocrCandidatePages?: number[];
+  customId: string;
+}): {
+  request: import("./adapters/openai-batch").BatchRequest;
+  model: string;
+  wasTruncated: boolean;
+  truncatedCharCount: number;
+} {
+  const { truncatedText, wasTruncated } = truncateForContext(input.text);
+  const systemPrompt = buildSystemPrompt({
+    filename: input.filename,
+    pageCount: input.pageCount,
+    depth: input.depth,
+    ocrCandidatePages: input.ocrCandidatePages ?? [],
+    wasTruncated,
+  });
+  const userPrompt = buildUserPrompt({
+    depth: input.depth,
+    text: truncatedText,
+  });
+  return {
+    request: {
+      customId: input.customId,
+      model: BATCH_MODEL_SUMMARIZE,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      maxTokens: capForOp("summarize", input.depth),
+      temperature: 0.2,
+    },
+    model: BATCH_MODEL_SUMMARIZE,
+    wasTruncated,
+    truncatedCharCount: truncatedText.length,
+  };
+}
+
+/**
+ * Transform a single batch result line back into the same shape a
+ * realtime `summarizePdf()` call would have returned. Moderation runs
+ * exactly as it does in realtime — if a `critical` finding surfaces,
+ * the thrown error bubbles up to the polling route which marks the
+ * batch as finalized-with-error and refunds credits.
+ */
+export function finalizeSummarizeBatchResult(input: {
+  line: import("./adapters/openai-batch").BatchResultLine;
+  depth: SummarizeDepth;
+  wasTruncated: boolean;
+}): SummarizeResult {
+  const { line } = input;
+  const markdown = postProcessMarkdown(line.content, input.depth);
+
+  const moderation = moderateOutput(markdown, { op: "summarize" });
+  assertOutputSafe(moderation, "summarize");
+
+  // Map OpenAI's `finish_reason` to our StopReason union (see types.ts).
+  // Our union is {end_turn, max_tokens, stop_sequence, tool_use, error};
+  // OpenAI's {stop, length, content_filter, tool_calls, other} maps as
+  // follows. content_filter would never make it here because moderation
+  // runs BEFORE this function and throws on severity=critical, but we
+  // keep a defensive mapping in case the model self-filters.
+  const stopReason: StopReason =
+    line.stopReason === "length"
+      ? "max_tokens"
+      : line.stopReason === "tool_calls"
+        ? "tool_use"
+        : line.stopReason === "content_filter"
+          ? "error"
+          : "end_turn";
+
+  return {
+    markdown,
+    providerId: "openai",
+    model: line.model || BATCH_MODEL_SUMMARIZE,
+    usage: {
+      inputTokens: line.usage.inputTokens,
+      outputTokens: line.usage.outputTokens,
+    },
+    wasTruncated: input.wasTruncated,
+    stopReason,
+    moderation,
+  };
 }

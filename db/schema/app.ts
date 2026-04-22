@@ -875,3 +875,109 @@ export const aiDailyMargin = mysqlTable(
     ),
   })
 );
+
+/**
+ * Phase A / Task #13 — OpenAI Batch API tracking.
+ *
+ * One row per batch submission. Kept separate from `aiOutputs` because a
+ * batch has no artifact to show the user until OpenAI finishes processing
+ * — typically 10–60 minutes, occasionally up to 24h. While the batch is
+ * in flight the user needs status visibility ("your summary is
+ * processing, ETA…"), and when it finalises we write the canonical
+ * `files` + `aiOutputs` rows just like a realtime op would.
+ *
+ * Status lifecycle
+ * ----------------
+ *   "submitted"    — JSONL uploaded + POST /v1/batches returned a batch_id.
+ *   "in_progress"  — OpenAI reports validating / in_progress / finalizing.
+ *   "completed"    — OpenAI reports completed. Our polling route is about
+ *                    to fetch the output JSONL and write ai_outputs.
+ *   "finalized"    — OUR terminal success state. ai_outputs + files
+ *                    written, ai_usage recorded at the 50%-discounted
+ *                    cost, credits NOT refunded.
+ *   "failed"       — OpenAI terminal failure. Credits refunded via the
+ *                    original idempotency key.
+ *   "expired"      — OpenAI didn't finish within 24h. Credits refunded.
+ *   "cancelled"    — Operator or user cancelled. Credits refunded.
+ *
+ * We deliberately mirror OpenAI's status vocabulary where it's
+ * unambiguous and add "finalized" because "completed" in OpenAI-land
+ * means "results are ready to download", not "we've finished serving
+ * the user".
+ *
+ * Credit accounting
+ * -----------------
+ * Credits spend at SUBMISSION time (same as realtime). The 50%
+ * discount lives on `cost_micros` only. See migration 0010's header
+ * comment for the full rationale.
+ *
+ * Migration: `db/migrations/0010_batch_jobs.sql`.
+ */
+export const batchJobs = mysqlTable(
+  "batch_jobs",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    userId: varchar("user_id", { length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // AIOp string — "summarize" | "translate" for Task #13. Other ops
+    // (compare, generate, rewrite) can join later without a schema
+    // change.
+    op: varchar("op", { length: 32 }).notNull(),
+    // OpenAI's batch_... id from POST /v1/batches.
+    openaiBatchId: varchar("openai_batch_id", { length: 128 }).notNull(),
+    status: varchar("status", { length: 32 }).notNull(),
+    // Number of JSONL lines we submitted. For summarize that's always 1;
+    // for translate it equals the chunk count so finalize knows how many
+    // lines to expect back.
+    requestCount: int("request_count").notNull(),
+    // Everything finalize needs to rebuild the answer without going back
+    // to the user's original upload. Shape is op-specific:
+    //   summarize → { filename, depth, pageCount, sourceSha256, ocrCandidatePages }
+    //   translate → { filename, targetLanguage, chunkCount, totalChars,
+    //                  ocrCandidatePages, sourceSha256 }
+    opPayload: json("op_payload").notNull(),
+    // Populated on finalize: per-line token counts + stop reasons,
+    // provider/model echo, aggregate stats. Kept raw-ish for later
+    // analytics without re-polling OpenAI.
+    resultPayload: json("result_payload"),
+    // Client-supplied key. UNIQUE per user prevents double-submit on
+    // retry. Same shape as the realtime idempotencyKey field on
+    // ai_outputs — a client can use the same key for both modes without
+    // collision (the tables are disjoint).
+    idempotencyKey: varchar("idempotency_key", { length: 128 }).notNull(),
+    resultFileId: varchar("result_file_id", { length: 128 }),
+    errorFileId: varchar("error_file_id", { length: 128 }),
+    errorMessage: varchar("error_message", { length: 512 }),
+    tokensIn: bigint("tokens_in", { mode: "number" }),
+    tokensOut: bigint("tokens_out", { mode: "number" }),
+    // Post-50%-discount µUSD. Written to ai_usage.cost_micros on
+    // finalize, so downstream margin dashboards see the batch win
+    // automatically.
+    costMicros: bigint("cost_micros", { mode: "number" }),
+    // FK to the files row that holds the finalized output. NULL until
+    // finalize writes it (or permanently if the batch failed).
+    outputFileId: varchar("output_file_id", { length: 36 }),
+    submittedAt: timestamp("submitted_at", { fsp: 3 }).notNull().defaultNow(),
+    completedAt: timestamp("completed_at", { fsp: 3 }),
+    createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { fsp: 3 })
+      .notNull()
+      .defaultNow()
+      .onUpdateNow(),
+  },
+  (t) => ({
+    userIdemUq: uniqueIndex("batch_jobs_user_idem_uq").on(
+      t.userId,
+      t.idempotencyKey
+    ),
+    userSubmittedIdx: index("batch_jobs_user_submitted_idx").on(
+      t.userId,
+      t.submittedAt
+    ),
+    statusSubmittedIdx: index("batch_jobs_status_submitted_idx").on(
+      t.status,
+      t.submittedAt
+    ),
+  })
+);

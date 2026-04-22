@@ -171,6 +171,38 @@ const ROUTING_POLICY: Record<AIOp, readonly AIProviderId[]> = {
 };
 
 /**
+ * Task #13 — ops that can optionally be submitted via OpenAI's Batch
+ * API instead of realtime streaming. Batch runs get a flat 50%
+ * discount on input + output token cost at a 24h SLA.
+ *
+ * Eligibility criteria (applied in order):
+ *   1. The op's realtime ladder already includes "openai" (we only
+ *      built the OpenAI batch adapter in Task #13; Anthropic batch
+ *      lands in Task #26).
+ *   2. The op is text-only at the wire level — batch doesn't support
+ *      multimodal PDFs (so ocr/sign/generate are ineligible even
+ *      though they pass #1 for generate).
+ *   3. The op has no streaming UX assumption — we can't stream a
+ *      batch's output through the existing chat stream pipe.
+ *
+ * Currently: summarize + translate. Rewrite/table/redact could join
+ * later if we see real demand for async turnaround, but they're
+ * typically single-shot synchronous today.
+ *
+ * The UI shows a "run in batch mode (50% off, 24h SLA)" toggle only
+ * when `isBatchEligible(op)` is true; server-side the op routes
+ * re-check and refuse `mode=batch` for ineligible ops.
+ */
+export const OP_BATCH_ELIGIBLE: ReadonlySet<AIOp> = new Set<AIOp>([
+  "summarize",
+  "translate",
+]);
+
+export function isBatchEligible(op: AIOp): boolean {
+  return OP_BATCH_ELIGIBLE.has(op);
+}
+
+/**
  * Env-var name per op. Set in Hostinger → App → Environment Variables.
  * Overrides take precedence over `ROUTING_POLICY` but still respect
  * `OP_REQUIRED_CAPABILITY`. A typo'd or unconfigured override is

@@ -424,3 +424,145 @@ function postProcessChunk(text: string): string {
 function joinChunks(chunks: string[]): string {
   return chunks.filter((c) => c.length > 0).join("\n\n");
 }
+
+// --- batch mode (Task #13) -------------------------------------------
+
+/**
+ * Hardcoded model for batch translate. See summarize.ts for the same
+ * rationale — batch skips the router and talks to /v1/chat/completions
+ * directly, so there's no ROUTING_POLICY to consult.
+ */
+const BATCH_MODEL_TRANSLATE = "gpt-4o-mini";
+
+export interface TranslateBatchChunkPlan {
+  /** Original chunk index (0-based). Used in the custom_id (`chunk-<i>`). */
+  index: number;
+  /** Char length of the chunk — used to size max_tokens on the request. */
+  chunkChars: number;
+  /** Stable custom_id for this JSONL line. */
+  customId: string;
+}
+
+export interface TranslateBatchPlan {
+  /** One BatchRequest per chunk. */
+  requests: import("./adapters/openai-batch").BatchRequest[];
+  /** Total chunk count — persisted so finalize can assert output parity. */
+  chunkCount: number;
+  /** Summed chars across all chunks (post-ceiling). */
+  totalChars: number;
+  /** True if input was truncated at TRANSLATE_TOTAL_CHAR_CEILING. */
+  wasTruncated: boolean;
+  /** Model used for every request — echoed so finalize can self-verify. */
+  model: string;
+  /** Customer-visible chunk plan — persisted into batch_jobs.op_payload. */
+  chunkPlan: TranslateBatchChunkPlan[];
+}
+
+/**
+ * Plan a batch translation: apply the size ceiling, chunk the text,
+ * build one BatchRequest per chunk. Returns the list of requests for
+ * `submitBatch` plus enough metadata for the polling route to
+ * reassemble the output.
+ */
+export function buildTranslateBatchPlan(input: {
+  text: string;
+  pageCount: number;
+  filename?: string;
+  targetLang: string;
+  targetLangLabel?: string;
+  ocrCandidatePages?: number[];
+  /** Prefix for custom_ids. Caller typically passes the batch_jobs.id. */
+  customIdPrefix: string;
+}): TranslateBatchPlan {
+  const { text: bounded, wasTruncated } = applyCeiling(input.text);
+  const chunks = chunkText(bounded);
+  const totalChars = chunks.reduce((n, c) => n + c.length, 0);
+
+  const requests: import("./adapters/openai-batch").BatchRequest[] = [];
+  const chunkPlan: TranslateBatchChunkPlan[] = [];
+
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i]!;
+    const systemPrompt = buildSystemPrompt({
+      filename: input.filename,
+      pageCount: input.pageCount,
+      targetLang: input.targetLang,
+      targetLangLabel: input.targetLangLabel,
+      ocrCandidatePages: input.ocrCandidatePages ?? [],
+      chunkIndex: i,
+      chunkCount: chunks.length,
+      wasTruncated,
+    });
+    const userPrompt = buildUserPrompt(chunk);
+    const customId = `${input.customIdPrefix}-chunk-${i}`;
+
+    requests.push({
+      customId,
+      model: BATCH_MODEL_TRANSLATE,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      maxTokens: maxTokensForChunk(chunk.length),
+      temperature: 0.1,
+    });
+    chunkPlan.push({ index: i, chunkChars: chunk.length, customId });
+  }
+
+  return {
+    requests,
+    chunkCount: chunks.length,
+    totalChars,
+    wasTruncated,
+    model: BATCH_MODEL_TRANSLATE,
+    chunkPlan,
+  };
+}
+
+/**
+ * Reassemble a TranslateResult from the batch output. Input lines may
+ * arrive out of order — we sort by the numeric suffix of the
+ * custom_id. If any chunk is missing we throw, and the polling route
+ * surfaces that as a finalize failure that refunds the user.
+ */
+export function finalizeTranslateBatchResult(input: {
+  lines: ReadonlyArray<import("./adapters/openai-batch").BatchResultLine>;
+  chunkPlan: TranslateBatchChunkPlan[];
+  wasTruncated: boolean;
+}): TranslateResult {
+  const byCustomId = new Map<string, (typeof input.lines)[number]>();
+  for (const l of input.lines) byCustomId.set(l.customId, l);
+
+  const ordered: string[] = [];
+  let totalIn = 0;
+  let totalOut = 0;
+  let modelUsed = BATCH_MODEL_TRANSLATE;
+
+  for (const plan of input.chunkPlan) {
+    const line = byCustomId.get(plan.customId);
+    if (!line) {
+      throw new Error(
+        `translate batch finalize: missing chunk ${plan.index} (customId=${plan.customId})`
+      );
+    }
+    ordered.push(postProcessChunk(line.content));
+    totalIn += line.usage.inputTokens;
+    totalOut += line.usage.outputTokens;
+    if (line.model) modelUsed = line.model;
+  }
+
+  const markdown = joinChunks(ordered);
+  const moderation = moderateOutput(markdown, { op: "translate" });
+  assertOutputSafe(moderation, "translate");
+
+  return {
+    markdown,
+    providerId: "openai",
+    model: modelUsed,
+    usage: { inputTokens: totalIn, outputTokens: totalOut },
+    chunkCount: input.chunkPlan.length,
+    wasChunked: input.chunkPlan.length > 1,
+    wasTruncated: input.wasTruncated,
+    moderation,
+  };
+}
