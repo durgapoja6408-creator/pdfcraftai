@@ -55,13 +55,29 @@ const NAV: NavItem[] = [
   { section: "Money", href: "/admin/chargebacks", label: "Chargebacks" },
   { section: "Money", href: "/admin/fx", label: "FX" },
   { section: "Money", href: "/admin/tax", label: "Tax" },
+  // Phase D / Task #25 — Pricing band. Plans is the read-only audit of
+  // CREDIT_PACKS + AI_OPERATION_COSTS; Promos is the placeholder that
+  // Task #27 will fill in with the real promo_codes table. Kept in
+  // their own section because they're "what do we charge?" questions
+  // (future-facing), distinct from Money's "what landed?" (past-facing).
+  { section: "Pricing", href: "/admin/plans", label: "Plans" },
+  { section: "Pricing", href: "/admin/promos", label: "Promos" },
   { section: "People", href: "/admin/users", label: "Users" },
   { section: "Ops", href: "/admin/ops", label: "Operations" },
   { section: "Ops", href: "/admin/providers", label: "Providers" },
   { section: "Ops", href: "/admin/router", label: "Router" },
   { section: "Ops", href: "/admin/alarms", label: "Alarms" },
+  // Phase D / Task #25 — Fraud review queue + rate-limit overrides.
+  // Live in Ops because both are operator-facing "who needs
+  // intervention today" surfaces, not financial rollups.
+  { section: "Ops", href: "/admin/fraud", label: "Fraud" },
+  { section: "Ops", href: "/admin/rate-limits", label: "Rate limits" },
   { section: "Platform", href: "/admin/deploy", label: "Deploy" },
   { section: "Platform", href: "/admin/logs", label: "Webhook logs" },
+  // Phase D / Task #25 — Compliance coverage map (DPDP / GDPR /
+  // subprocessors / Grievance Officer). Platform because it's a
+  // cross-cutting attestation surface, not tied to any one feature.
+  { section: "Platform", href: "/admin/compliance", label: "Compliance" },
 ];
 
 export default async function AdminLayout({

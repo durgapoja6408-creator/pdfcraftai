@@ -449,7 +449,11 @@ assert(
   // we actually care about (ai-margin-rollup after health-ai, before
   // dev-hooks) is still enforced by the direction and anchoring of the
   // regex, just without a tight char budget.
-  /health-ai[\s\S]{0,10000}ai-margin-rollup[\s\S]{0,10000}dev-hooks/.test(
+  // Phase D / Task #25: admin-phase-d's rationale block between
+  // ai-margin-rollup and dev-hooks pushed the distance past the
+  // previous 10k ceiling. Bumped to 20k; the invariant (ordering, not
+  // proximity) is still enforced by the sequence anchoring.
+  /health-ai[\s\S]{0,20000}ai-margin-rollup[\s\S]{0,20000}dev-hooks/.test(
     AGG_SRC
   ),
   "ai-margin-rollup should sit after health-ai and before dev-hooks"

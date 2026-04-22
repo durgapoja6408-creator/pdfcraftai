@@ -408,7 +408,14 @@ assert(
 
 assert(
   "G1 admin-margin suite still runs before dev-hooks",
-  /"admin-margin"[\s\S]{0,8000}"dev-hooks"/.test(AGG_SRC),
+  // Phase D / Task #25: adding admin-phase-d's rationale block between
+  // admin-margin and dev-hooks pushed the distance past 8k. The
+  // invariant we actually care about (admin-margin before dev-hooks,
+  // dev-hooks stays last) is still enforced by the direction and
+  // anchoring — the char ceiling is just a sanity cap to ensure they're
+  // in the same declaration block, not a budget. Bumped to 20k to
+  // accommodate multiple future admin-phase-* additions.
+  /"admin-margin"[\s\S]{0,20000}"dev-hooks"/.test(AGG_SRC),
   "dev-hooks must remain last — it's the tooling gate, not a subsystem gate"
 );
 

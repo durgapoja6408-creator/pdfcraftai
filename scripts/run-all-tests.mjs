@@ -245,6 +245,47 @@ const SUITES = [
   // harness keeps "admin-dashboard" vs "admin-phase-c" as the right
   // failure granularity.
   { name: "admin-phase-c", file: "test-admin-phase-c.mjs" },
+  // admin-phase-d pins Task #25 — the 5-page Phase D admin cluster
+  // (plans / promos / compliance / fraud / rate-limits). Forms a
+  // trilogy with admin-dashboard (Phase B, 14 pages) + admin-phase-c
+  // (Phase C, 4 pages). Covers: the lib/admin/phase-d-queries.ts
+  // module surface (PhaseDQueryResult<T> envelope mirroring queries.ts'
+  // AdminQueryResult, FraudSignalsRow / FraudSignalsSnapshot,
+  // RateLimitOverrideRow / RateLimitsSnapshot, SubprocessorRow, the
+  // two async query functions getFraudSignals + getRateLimitOverrides,
+  // plus the three static constant exports SUBPROCESSORS /
+  // DPDP_COVERAGE / GDPR_COVERAGE and the re-export of
+  // DEFAULT_DAILY_COST_CAP_MICROS from lib/ai/rate-limits), the two
+  // Drizzle query shapes (JSON_UNQUOTE(JSON_EXTRACT(rawPayload,
+  // '$.data.action')) IN (...) across the 5 dispute action strings
+  // for the chargeback/dispute velocity signal, user_rate_limits
+  // cap=0 union for the hard-block signal, Map-based dedup keyed on
+  // userId, sort order disputeCount desc then isHardBlocked asc for
+  // fraud; updatedAt desc with email LEFT JOIN from users for rate-
+  // limits; env-vs-compiled-in classification via
+  // resolveDailyCapMicros(null) for the globalDefault), the 5 static
+  // constants' content (the 7 subprocessors matching /dpa's public
+  // disclosure, the 8 DPDP sections s. 6(3)/8(10)/9/11/12/13/14/16,
+  // the 6 GDPR / ePrivacy / EDPB / ICO refs), each of the 5 per-page
+  // contracts (force-dynamic + nodejs runtime + default export + no
+  // duplicate requireAdmin since layout gates), the page-to-module
+  // wiring (plans→lib/pricing for CREDIT_PACKS + AI_OPERATION_COSTS +
+  // USD_TO_INR_RATE + packAmountMinor, promos→Task #27 placeholder
+  // reference, compliance→legal-docs + phase-d-queries,
+  // fraud→getFraudSignals + DayPicker + clampDays + ErrorBanner,
+  // rate-limits→getRateLimitOverrides + DEFAULT_DAILY_COST_CAP_MICROS),
+  // and the 5 NAV entries registered in app/admin/layout.tsx (Pricing
+  // section introduced for Plans + Promos because those are "what do
+  // we charge?" questions distinct from Money's "what landed?", Fraud
+  // and Rate limits in Ops, Compliance in Platform). Placed directly
+  // after admin-phase-c so the admin-dashboard (Phase B) +
+  // admin-phase-c (Phase C) + admin-phase-d (Phase D) trilogy sits
+  // together at review time — a refactor of the shared UI primitives
+  // (components/admin/ui.tsx) or format helpers (lib/admin/format.ts)
+  // typically breaks all three, and splitting the harness keeps
+  // "admin-dashboard" vs "admin-phase-c" vs "admin-phase-d" as the
+  // right failure granularity rather than one mega-suite.
+  { name: "admin-phase-d", file: "test-admin-phase-d.mjs" },
   // user-dashboard-v2 pins Task #19 — the Phase B /app/app user-facing
   // surface that complements the admin dashboard. Where admin-dashboard
   // proves "admin can see cost/margin/MoR splits", this suite proves
