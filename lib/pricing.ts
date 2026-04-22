@@ -110,6 +110,48 @@ export const CREDIT_PACKS: readonly CreditPack[] = [
   },
 ] as const;
 
+// --- Dual-rail currency conversion (Phase C / Task #20) -------------------
+//
+// Approximate USD→INR conversion used ONLY at display/checkout time to
+// price an IN-routed purchase in INR paise. This is intentionally a
+// const, not a live FX feed:
+//
+//   - The actual charge is fixed in INR at checkout creation time;
+//     fluctuation after that is irrelevant (the customer sees one price).
+//   - The adapter's reconciliation path captures the real fee/tax/FX
+//     breakdown from the provider webhook and records it in
+//     credit_ledger.fx_rate_used + fx_slippage_micros (Task #15 cols).
+//     That's the audit-correct rate, not this display approximation.
+//   - A per-pack INR pricing table lives in Task #27 ("Annual-prepay
+//     tier + INR pricing + promo codes"). When that ships, this helper
+//     gets replaced with a per-pack lookup; the const stays only as a
+//     fallback for packs the INR table doesn't yet enumerate.
+//
+// Revision cadence: bump when the mid-market rate moves > 3% for a
+// sustained week. Last reviewed 2026-04-22 (RBI ref ~83.3 INR/USD,
+// rounded up for headroom).
+export const USD_TO_INR_RATE = 84;
+
+/**
+ * Pack price in the smallest currency unit for the rail's billing currency.
+ *
+ *   - "USD" → cents (pack.price × 100) — the Paddle path.
+ *   - "INR" → paise (pack.price × USD_TO_INR_RATE × 100, rounded) — Razorpay path.
+ *
+ * A Currency this module doesn't recognize falls back to USD cents so
+ * callers fail closed to the existing Paddle-rail math rather than
+ * throwing mid-checkout.
+ */
+export function packAmountMinor(
+  pack: CreditPack,
+  currency: "USD" | "INR"
+): number {
+  if (currency === "INR") {
+    return Math.round(pack.price * USD_TO_INR_RATE * 100);
+  }
+  return pack.price * 100;
+}
+
 // --- AI operation costs (Phase 5) -----------------------------------------
 
 /**

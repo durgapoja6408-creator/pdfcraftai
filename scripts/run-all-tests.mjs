@@ -68,6 +68,30 @@ const SUITES = [
   { name: "pdf-tools", file: "test-pdf-tools.mjs" },
   { name: "geo-router", file: "test-geo-router.mjs" },
   { name: "geo-waitlist", file: "test-geo-waitlist.mjs" },
+  // dual-rail-routing pins Task #20 / Phase C item #1 — the checkout
+  // server action's wiring of the pure geo-router decision function
+  // into the real request path. Covers: checkout-actions.ts imports
+  // routeCheckoutByCountry + readCountryHeader, CreateCheckoutResult
+  // error union includes the three new geo error codes (geo_deferred
+  // for Tier 2, geo_blocked for Tier 3, geo_unknown for CF "XX"/"T1"/
+  // missing) alongside the pre-existing non-geo codes (no extras, no
+  // missing), every decision.action branch is handled, the route
+  // branch threads decision.rail + decision.currency into
+  // selectProvider, packAmountMinor + USD_TO_INR_RATE exist on
+  // lib/pricing and are used in checkout-actions to pick paise vs.
+  // cents, both razorpay and paddle rows remain env-gated in the
+  // registry (razorpay supports INR, paddle USD-only so the registry
+  // filter rejects an IN→paddle override), payments.metadata carries
+  // the route audit trail (routeCountry/routeRail/routeCurrency/
+  // routeOverrode), previewRouteDecision is exported as a server
+  // action for pre-Buy UI affordances, and no app/ pages import the
+  // router directly (it stays payments-internal). Placed adjacent to
+  // the geo-router/geo-waitlist pair because this suite is the
+  // consumer of the decision function those two harnesses pin —
+  // a refactor of routeCheckoutByCountry's signature surfaces here
+  // at the right granularity instead of as a confusing checkout
+  // regression miles away in the admin-dashboard suite.
+  { name: "dual-rail-routing", file: "test-dual-rail-routing.mjs" },
   // ai-usage pins the Phase A1 `ai_usage` per-call audit contract: the
   // 0005 migration SQL, the Drizzle schema declaration, the write-path
   // helper, and the recordAiUsage() call-sites in the chat + summarize
