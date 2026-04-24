@@ -65,7 +65,14 @@ export type SummarizeDepth =
   //   faq    §2.1 P1 — extract 6–10 likely Q&A pairs (5 credits)
   //   blog   §2.4 P1 — reformat content as a blog post (10 credits)
   | "faq"
-  | "blog";
+  | "blog"
+  // Task #54:
+  //   readability   §2.5 P1 — Flesch score + complex-sentence flags (3c)
+  //   entities      §2.7 P1 — people/places/orgs/dates (3c)
+  //   social-thread §2.4 P2 — X/LinkedIn-style thread (5c)
+  | "readability"
+  | "entities"
+  | "social-thread";
 
 export interface SummarizeInput {
   /** Extracted PDF text, pages joined with `\f`. */
@@ -372,6 +379,56 @@ function buildSystemPrompt(opts: {
           "the document does not carry. Page citations optional but " +
           "encouraged when making specific claims."
         );
+      case "readability":
+        // §2.5 Readability Score + Suggestions. Heuristic-looking
+        // output but computed by the model — Flesch-Kincaid,
+        // average sentence length, jargon callouts, 3-5 concrete
+        // edit suggestions.
+        return (
+          "Analyse this document for readability. Produce these H2 " +
+          "sections in order: `## Scores` (bulleted: approximate " +
+          "Flesch-Kincaid grade level, average sentence length in words, " +
+          "average syllables per word — explain your estimate without " +
+          "showing arithmetic). `## Complex Sentences` (3–5 verbatim " +
+          "quotes with page citations where a sentence is long or " +
+          "tangled, with a one-line gloss of why). `## Jargon` (5–10 " +
+          "domain-specific terms used without definition, with the " +
+          "word and where it first appears). `## Suggestions` (3–5 " +
+          "concrete edit recommendations a writer could apply). Do " +
+          "NOT rewrite the document — this tool analyses; Rewrite " +
+          "does the actual revision."
+        );
+      case "entities":
+        // §2.7 Extract Key Entities. People / places / organisations /
+        // dates, each with page citations. Markdown tables so the
+        // output flows cleanly into downstream spreadsheets.
+        return (
+          "Extract the named entities that appear in this document. " +
+          "Output 4 H2 sections: `## People`, `## Organisations`, " +
+          "`## Places`, `## Dates`. Under each, a Markdown table with " +
+          "columns `Name | First Appearance | Notes`. \"First " +
+          "Appearance\" is a page number. \"Notes\" is a one-line " +
+          "description of the entity's role in the document (at most " +
+          "12 words). Entities must be explicitly named in the source " +
+          "— do not infer affiliations or coordinates. If a section " +
+          "has no entities, render \"_None found._\" under its header."
+        );
+      case "social-thread":
+        // §2.4 PDF → Social Thread. LinkedIn / X-thread style —
+        // series of 5-10 short posts that together tell the doc's
+        // story. Each post numbered and length-capped.
+        return (
+          "Reformat this document as a 5–10 post social-media thread " +
+          "(LinkedIn / X style). Output as Markdown with one paragraph " +
+          "per post, each prefixed `**Post N/M:**` where M is the total " +
+          "count. Opening post MUST hook the reader with a specific " +
+          "claim, question, or number from the document (not a generic " +
+          "tease). Middle posts carry one idea each, at most ~240 " +
+          "characters, written in a direct first-person-neutral voice " +
+          "(neither corporate nor personal). Closing post summarises " +
+          "the takeaway and invites replies. No emojis unless the " +
+          "source used them. No hashtags."
+        );
     }
   })();
 
@@ -427,6 +484,12 @@ function buildUserPrompt(opts: { depth: SummarizeDepth; text: string }): string 
         return "Generate the FAQ";
       case "blog":
         return "Reformat this as a blog post";
+      case "readability":
+        return "Analyse the readability";
+      case "entities":
+        return "Extract the named entities";
+      case "social-thread":
+        return "Turn this into a social thread";
       case "standard":
       case "detailed":
       default:

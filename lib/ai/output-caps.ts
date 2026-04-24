@@ -175,6 +175,10 @@ export const OP_OUTPUT_CAP_TABLE: CapTable = {
     // Task #53:
     faq: 1500, // 6-10 Q&A pairs with short-paragraph answers.
     blog: 1800, // Full-article structure needs headroom for 3-5 sections.
+    // Task #54:
+    readability: 1200, // Scores + quotes + jargon list + suggestions.
+    entities: 1500, // 4 tables, up to ~50 entities total.
+    "social-thread": 1500, // 5-10 posts, ~240 chars each.
   },
 
   // Compare produces a side-by-side diff narrative. 4000 is

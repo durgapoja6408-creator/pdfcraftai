@@ -20,7 +20,15 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
 
-type Depth = "key-points" | "study-notes" | "eli5" | "faq" | "blog";
+type Depth =
+  | "key-points"
+  | "study-notes"
+  | "eli5"
+  | "faq"
+  | "blog"
+  | "readability"
+  | "entities"
+  | "social-thread";
 
 type Result = {
   fileId?: string;
@@ -353,6 +361,54 @@ export function BlogPostPdfTool() {
       successTitle="Blog post draft ready"
       pricingBlurb="Full blog-post structure — title, lede, 3–5 H2 sections, conclusion. Factual fidelity preserved. 10 credits per PDF."
       relatedHref={{ href: "/tool/ai-rewrite", label: "AI · Rewrite (tone + voice shifts)" }}
+    />
+  );
+}
+
+export function ReadabilityPdfTool() {
+  return (
+    <SummarizeVariantTool
+      depth="readability"
+      toolId="ai-readability"
+      callbackUrl="/tool/ai-readability"
+      prompt="Drop a PDF to score its readability"
+      runLabel="Analyse readability"
+      busyLabel="Analysing…"
+      successTitle="Readability report ready"
+      pricingBlurb="Flesch-Kincaid grade level + complex-sentence callouts + jargon flags + 3–5 concrete edit suggestions. 3 credits per PDF."
+      relatedHref={{ href: "/tool/ai-rewrite", label: "AI · Rewrite (to actually apply the fixes)" }}
+    />
+  );
+}
+
+export function EntitiesPdfTool() {
+  return (
+    <SummarizeVariantTool
+      depth="entities"
+      toolId="ai-entities"
+      callbackUrl="/tool/ai-entities"
+      prompt="Drop a PDF to extract names, places, orgs, and dates"
+      runLabel="Extract entities"
+      busyLabel="Extracting…"
+      successTitle="Entities extracted"
+      pricingBlurb="Four tables — People / Organisations / Places / Dates — with page citations and one-line role notes. 3 credits per PDF."
+      relatedHref={{ href: "/tool/extract-contacts", label: "Extract Contacts (free regex version)" }}
+    />
+  );
+}
+
+export function SocialThreadPdfTool() {
+  return (
+    <SummarizeVariantTool
+      depth="social-thread"
+      toolId="ai-social-thread"
+      callbackUrl="/tool/ai-social-thread"
+      prompt="Drop a PDF to turn it into a 5–10 post social thread"
+      runLabel="Generate thread"
+      busyLabel="Drafting…"
+      successTitle="Social thread ready"
+      pricingBlurb="Numbered 5–10 post thread — hook, idea-per-post, takeaway close. ~240 chars each. LinkedIn or X ready. 5 credits per PDF."
+      relatedHref={{ href: "/tool/ai-blog", label: "PDF to Blog Post (long-form)" }}
     />
   );
 }

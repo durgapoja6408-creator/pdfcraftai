@@ -56,6 +56,9 @@ import {
   Eli5PdfTool,
   FaqPdfTool,
   BlogPostPdfTool,
+  ReadabilityPdfTool,
+  EntitiesPdfTool,
+  SocialThreadPdfTool,
 } from "@/components/tools/SummarizeVariantTool";
 
 type Params = { params: { id: string } };
@@ -116,6 +119,9 @@ const LIVE_TOOL_IDS = new Set<string>([
   "ai-eli5",
   "ai-faq",
   "ai-blog",
+  "ai-readability",
+  "ai-entities",
+  "ai-social-thread",
   "ai-translate",
   "ai-compare",
   "ai-ocr",
@@ -353,6 +359,12 @@ function ToolRunner({ id }: { id: string }) {
       return <FaqPdfTool />;
     case "ai-blog":
       return <BlogPostPdfTool />;
+    case "ai-readability":
+      return <ReadabilityPdfTool />;
+    case "ai-entities":
+      return <EntitiesPdfTool />;
+    case "ai-social-thread":
+      return <SocialThreadPdfTool />;
     case "ai-translate":
       return <TranslatePdfTool />;
     case "ai-compare":

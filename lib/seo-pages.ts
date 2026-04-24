@@ -49,7 +49,10 @@ export type SeoPageSlug =
   | "pdf-to-study-notes"
   | "explain-pdf"
   | "generate-faq-from-pdf"
-  | "pdf-to-blog-post";
+  | "pdf-to-blog-post"
+  | "pdf-readability-score"
+  | "extract-entities-from-pdf"
+  | "pdf-to-social-thread";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -1006,6 +1009,60 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "How long is the output?", a: "~800–1500 words typically; scales with source length. Cap is set to accommodate 3–5 sections with a few paragraphs each." },
     ],
     related: ["ai-blog", "ai-rewrite", "ai-summarize", "ai-generate"],
+  },
+
+  "pdf-readability-score": {
+    tool: "ai-readability",
+    h1: "PDF Readability Score — Flesch-Kincaid grade + edit suggestions",
+    sub: "Analyse a PDF's writing quality: grade level, complex sentences, jargon callouts, concrete edit suggestions. 3 credits.",
+    canonical: "/pdf-readability-score",
+    howTo: [
+      { t: "Drop your PDF", d: "Any text-based document." },
+      { t: "We analyse", d: "Estimate Flesch-Kincaid grade, flag long sentences and jargon without definition." },
+      { t: "Apply the fixes", d: "Use the suggestions in AI · Rewrite to actually apply them." },
+    ],
+    faq: [
+      { q: "Does it rewrite the document?", a: "No — Readability analyses. To revise the text itself, pipe the suggestions into AI · Rewrite." },
+      { q: "How accurate is the Flesch-Kincaid estimate?", a: "Within ±1 grade level for most English text. True precision needs a deterministic calculator; for nuanced judgement (\"is this accessible to a 12-year-old?\") the LLM estimate is usually better." },
+      { q: "Does it handle non-English?", a: "Flesch-Kincaid is English-specific; the complex-sentence + jargon detection degrades gracefully to other Latin-script languages but results are best for English." },
+    ],
+    related: ["ai-readability", "ai-rewrite", "ai-eli5", "ai-summarize"],
+  },
+
+  "extract-entities-from-pdf": {
+    tool: "ai-entities",
+    h1: "Extract named entities from a PDF — people, orgs, places, dates",
+    sub: "Four Markdown tables, page-cited, with one-line role notes. 3 credits.",
+    canonical: "/extract-entities-from-pdf",
+    howTo: [
+      { t: "Drop your PDF", d: "Reports, research, news, legal docs." },
+      { t: "We extract", d: "People, Organisations, Places, Dates — each in its own table with page cites." },
+      { t: "Paste into your system", d: "Markdown tables copy cleanly into Notion, Google Docs, spreadsheets via import." },
+    ],
+    faq: [
+      { q: "How is this different from Extract Contacts?", a: "Extract Contacts (free) finds emails/phones/URLs via regex. Extract Entities (AI, 3 credits) identifies named people, organisations, places, and dates with context — things regex can't catch reliably." },
+      { q: "Does it infer entity relationships?", a: "No — v1 extracts, doesn't link. Two people mentioned in the same document aren't claimed to know each other unless the source says so." },
+      { q: "What about Indian names?", a: "Works across languages / scripts the LLM understands (all Indian scripts supported by Gemini). Accuracy degrades for rare transliterations — verify before critical use." },
+    ],
+    related: ["ai-entities", "extract-contacts", "ai-summarize", "ai-key-points"],
+  },
+
+  "pdf-to-social-thread": {
+    tool: "ai-social-thread",
+    h1: "PDF to social thread — 5–10 post LinkedIn/X thread, publish-ready",
+    sub: "Numbered thread with hook opener, one-idea-per-post body, takeaway close. No emojis, no hashtags, no cringe. 5 credits.",
+    canonical: "/pdf-to-social-thread",
+    howTo: [
+      { t: "Drop your PDF", d: "Whitepaper, report, research paper, case study." },
+      { t: "We structure", d: "5–10 numbered posts at ~240 chars each. Opening hook is specific (a claim, number, or question from the source — not a generic tease)." },
+      { t: "Paste into LinkedIn / X", d: "Copy post-by-post, or use a thread scheduler. Markdown output makes it easy." },
+    ],
+    faq: [
+      { q: "Does it editorialise?", a: "No — the voice is 'direct first-person-neutral', not personal or corporate. No added opinions, no hot takes. If you want a punchier take, run AI · Rewrite on the output with a tone shift." },
+      { q: "Emojis and hashtags?", a: "Intentionally suppressed. Both are noise in most B2B contexts. Add them yourself if your audience expects them." },
+      { q: "How long is each post?", a: "~240 chars — under X's historical cap and well under LinkedIn's limit. If you need a different length, reformat from the Markdown output." },
+    ],
+    related: ["ai-social-thread", "ai-blog", "ai-summarize", "ai-tldr"],
   },
 };
 
