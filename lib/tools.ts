@@ -81,6 +81,8 @@ export const TOOLS: readonly Tool[] = [
   { id: "ai-quiz", name: "PDF to Quiz (MCQ)", desc: "6–12 multiple-choice questions with 4 options, answer key, and explanations.", icon: "Help", free: false, cost: "10 credits / doc", group: "AI" },
   { id: "ai-mindmap", name: "PDF to Mind Map", desc: "Hierarchical outline of a PDF — 4–8 branches, 3 levels deep. Text + JSON export.", icon: "Flow", free: false, cost: "10 credits / doc", group: "AI" },
   { id: "ai-semantic-search", name: "Semantic Search in PDF", desc: "Ask in natural language, get verbatim passages with page refs and relevance notes.", icon: "Search", free: false, cost: "2 credits / search", group: "AI" },
+  { id: "ai-ats-resume", name: "ATS Resume Optimizer", desc: "Tier 3 HR: audit your resume for ATS compatibility + get concrete fixes.", icon: "User", free: false, cost: "10 credits / resume", group: "AI" },
+  { id: "ai-resume-parse", name: "Resume Parser", desc: "Tier 3 HR: parse a resume into structured JSON (ATS / spreadsheet ready).", icon: "User", free: false, cost: "5 credits / resume", group: "AI" },
   { id: "ai-translate", name: "Translate PDF", desc: "Preserve layout across 20+ languages.", icon: "Translate", free: false, cost: "5 credits / doc", group: "AI" },
   { id: "ai-ocr", name: "OCR & Smart Extract", desc: "Turn scans into searchable, structured data.", icon: "Scan", free: false, cost: "~2 credits / page", group: "AI" },
   { id: "ai-rewrite", name: "Rewrite & Rephrase", desc: "Tone shift, simplify, or expand text.", icon: "Edit", free: false, cost: "~3 credits / page", group: "AI" },

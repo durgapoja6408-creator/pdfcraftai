@@ -110,7 +110,12 @@ export type SummarizeDepth =
   //   semantic-search §2.1 P1 — return passages relevant to a
   //   user-provided query. Route reads `query` form field and
   //   threads it through SummarizeInput. (2c per search)
-  | "semantic-search";
+  | "semantic-search"
+  // Task #61 — first Tier 3 vertical wedges:
+  //   ats-resume   §3.6 P0 — ATS compatibility report (10c)
+  //   resume-parse §3.6 P0 — JSON resume → CSV export (~5c/resume)
+  | "ats-resume"
+  | "resume-parse";
 
 export interface SummarizeInput {
   /** Extracted PDF text, pages joined with `\f`. */
@@ -715,6 +720,47 @@ function buildSystemPrompt(opts: {
           "array `[]`. Do NOT paraphrase the source; the passage " +
           "field must be a verbatim quote."
         );
+      case "ats-resume":
+        // §3.6 ATS Resume Optimizer. Treat the document as a
+        // resume, produce an ATS-compatibility report + fixes.
+        return (
+          "Analyse this document as a resume for ATS (Applicant " +
+          "Tracking System) compatibility and general recruiter " +
+          "appeal. Produce these H2 sections in order: " +
+          "`## ATS Score` (bulleted: compatibility rating Low / " +
+          "Medium / High + one-line reason per category — " +
+          "Parseability, Keyword Density, Section Headings, " +
+          "Formatting). `## Critical Fixes` (3–5 bullets of " +
+          "must-fix issues with specific quoted text + suggested " +
+          "change). `## Keyword Gaps` (10 skills/keywords likely " +
+          "missing for the target roles inferred from the doc — " +
+          "if you can't infer a role, say so rather than guess). " +
+          "`## Format Issues` (tables, columns, headers/footers, " +
+          "graphics that break ATS parsing). `## Suggested " +
+          "Summary` (2–3 sentence revised professional summary in " +
+          "standard ATS-friendly prose based on the resume's " +
+          "actual content). Be specific — cite line/section, " +
+          "don't just say 'improve formatting'."
+        );
+      case "resume-parse":
+        // §3.6 Resume Parser. Structured JSON extraction for
+        // bulk recruiter workflows / HR CRM import.
+        return (
+          "Parse this resume into structured JSON. Output ONLY a " +
+          "```json fenced code block containing a single object " +
+          "shaped {\"name\": string, \"email\": string|null, " +
+          "\"phone\": string|null, \"location\": string|null, " +
+          "\"summary\": string|null, \"experience\": " +
+          "[{\"title\": string, \"company\": string, " +
+          "\"start\": string|null, \"end\": string|null, " +
+          "\"bullets\": [string]}], \"education\": " +
+          "[{\"degree\": string, \"institution\": string, " +
+          "\"year\": string|null}], \"skills\": [string], " +
+          "\"links\": [string]}. Preserve the applicant's " +
+          "wording for bullets verbatim; don't paraphrase. Omit " +
+          "or null fields that aren't in the source. Do NOT " +
+          "invent details."
+        );
     }
   })();
 
@@ -808,6 +854,10 @@ function buildUserPrompt(opts: {
         return "Build a mind map";
       case "semantic-search":
         return "Return the relevant passages for this query";
+      case "ats-resume":
+        return "Audit this resume for ATS compatibility";
+      case "resume-parse":
+        return "Parse this resume into structured JSON";
       case "standard":
       case "detailed":
       default:

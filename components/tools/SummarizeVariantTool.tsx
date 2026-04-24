@@ -38,7 +38,8 @@ type Depth =
   | "bias"
   | "proofread"
   | "newsletter"
-  | "video-script";
+  | "video-script"
+  | "ats-resume";
 
 type Result = {
   fileId?: string;
@@ -579,6 +580,22 @@ export function VideoScriptPdfTool() {
       successTitle="Video script ready"
       pricingBlurb="Opening hook + 3–5 × 90s segments + closing CTA. Bracketed stage cues. 10 credits per PDF."
       relatedHref={{ href: "/tool/ai-social-thread", label: "PDF to Social Thread (shorter-form distillation)" }}
+    />
+  );
+}
+
+export function AtsResumeTool() {
+  return (
+    <SummarizeVariantTool
+      depth="ats-resume"
+      toolId="ai-ats-resume"
+      callbackUrl="/tool/ai-ats-resume"
+      prompt="Drop your resume PDF to audit it for ATS compatibility"
+      runLabel="Audit resume"
+      busyLabel="Auditing…"
+      successTitle="ATS audit ready"
+      pricingBlurb="ATS score + critical fixes + keyword gaps + format issues + suggested summary. 10 credits per resume. Tier 3 §3.6 HR & Recruitment."
+      relatedHref={{ href: "/tool/ai-resume-parse", label: "Resume Parser (export to CSV)" }}
     />
   );
 }

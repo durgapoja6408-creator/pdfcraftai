@@ -199,6 +199,9 @@ export const OP_OUTPUT_CAP_TABLE: CapTable = {
     mindmap: 2000, // JSON tree, labels are short so 2000 fits deep docs.
     // Task #60:
     "semantic-search": 1500, // 3-8 passages, each with 1-3 sentence quotes.
+    // Task #61 — Tier 3:
+    "ats-resume": 2000, // 5 sections with specific-fix bullets.
+    "resume-parse": 2500, // Full structured JSON, many experience bullets.
   },
 
   // Compare produces a side-by-side diff narrative. 4000 is

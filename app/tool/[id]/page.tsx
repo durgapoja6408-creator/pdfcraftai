@@ -69,7 +69,9 @@ import {
   ProofreadPdfTool,
   NewsletterPdfTool,
   VideoScriptPdfTool,
+  AtsResumeTool,
 } from "@/components/tools/SummarizeVariantTool";
+import { ResumeParserTool } from "@/components/tools/ResumeParserTool";
 import {
   FlashcardsPdfTool,
   QuizPdfTool,
@@ -152,6 +154,8 @@ const LIVE_TOOL_IDS = new Set<string>([
   "ai-quiz",
   "ai-mindmap",
   "ai-semantic-search",
+  "ai-ats-resume",
+  "ai-resume-parse",
   "ai-translate",
   "ai-compare",
   "ai-ocr",
@@ -423,6 +427,10 @@ function ToolRunner({ id }: { id: string }) {
       return <MindmapPdfTool />;
     case "ai-semantic-search":
       return <SemanticSearchPdfTool />;
+    case "ai-ats-resume":
+      return <AtsResumeTool />;
+    case "ai-resume-parse":
+      return <ResumeParserTool />;
     case "ai-translate":
       return <TranslatePdfTool />;
     case "ai-compare":
