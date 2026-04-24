@@ -202,6 +202,8 @@ export const OP_OUTPUT_CAP_TABLE: CapTable = {
     // Task #61 — Tier 3:
     "ats-resume": 2000, // 5 sections with specific-fix bullets.
     "resume-parse": 2500, // Full structured JSON, many experience bullets.
+    // Task #62:
+    "action-items": 1500, // Single table, up to ~30 rows typical.
   },
 
   // Compare produces a side-by-side diff narrative. 4000 is

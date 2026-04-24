@@ -39,7 +39,8 @@ type Depth =
   | "proofread"
   | "newsletter"
   | "video-script"
-  | "ats-resume";
+  | "ats-resume"
+  | "action-items";
 
 type Result = {
   fileId?: string;
@@ -596,6 +597,22 @@ export function AtsResumeTool() {
       successTitle="ATS audit ready"
       pricingBlurb="ATS score + critical fixes + keyword gaps + format issues + suggested summary. 10 credits per resume. Tier 3 §3.6 HR & Recruitment."
       relatedHref={{ href: "/tool/ai-resume-parse", label: "Resume Parser (export to CSV)" }}
+    />
+  );
+}
+
+export function ActionItemsPdfTool() {
+  return (
+    <SummarizeVariantTool
+      depth="action-items"
+      toolId="ai-action-items"
+      callbackUrl="/tool/ai-action-items"
+      prompt="Drop a PDF (meeting notes, spec, brief) to extract its action items"
+      runLabel="Extract action items"
+      busyLabel="Extracting…"
+      successTitle="Action items extracted"
+      pricingBlurb="Markdown table of actionable TODOs — Task / Owner / Due / Priority / Page. Owners and deadlines blank when not in source. 3 credits per PDF."
+      relatedHref={{ href: "/tool/extract-dates", label: "Extract Dates → Calendar (for deadlines)" }}
     />
   );
 }

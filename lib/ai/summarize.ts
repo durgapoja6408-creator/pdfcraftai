@@ -115,7 +115,11 @@ export type SummarizeDepth =
   //   ats-resume   §3.6 P0 — ATS compatibility report (10c)
   //   resume-parse §3.6 P0 — JSON resume → CSV export (~5c/resume)
   | "ats-resume"
-  | "resume-parse";
+  | "resume-parse"
+  // Task #62:
+  //   action-items §2.7 P2 — TODO list with owner/due-date
+  //   extraction from meeting notes, specs, briefs (3c)
+  | "action-items";
 
 export interface SummarizeInput {
   /** Extracted PDF text, pages joined with `\f`. */
@@ -761,6 +765,30 @@ function buildSystemPrompt(opts: {
           "or null fields that aren't in the source. Do NOT " +
           "invent details."
         );
+      case "action-items":
+        // §2.7 Action Items. Markdown table of actionable TODOs
+        // extracted from meeting notes, specs, briefs, etc.
+        // Owner / due-date / priority surfaced when the source
+        // carries them; left blank otherwise (don't invent).
+        return (
+          "Extract every action item from this document as a " +
+          "Markdown table with columns `Task | Owner | Due | " +
+          "Priority | Page`. Task = a verb-led one-sentence " +
+          "description of what needs doing (\"Review Q3 " +
+          "forecast\", \"Send updated contract to Acme\"). Owner " +
+          "= the person or role assigned; blank if not specified. " +
+          "Due = the deadline in ISO format (YYYY-MM-DD) when " +
+          "the source gives one, plain text otherwise, blank if " +
+          "none. Priority = High / Medium / Low only if the " +
+          "source explicitly marks it; blank otherwise. Page = " +
+          "the source page. Do NOT invent owners or deadlines — " +
+          "leave them blank. Skip aspirational statements " +
+          "(\"we should consider…\") unless accompanied by a " +
+          "concrete commitment. If no action items found, " +
+          "render \"_No action items detected._\" with a one-" +
+          "line note that this doesn't appear to be an " +
+          "actionable document (meeting notes, spec, brief)."
+        );
     }
   })();
 
@@ -858,6 +886,8 @@ function buildUserPrompt(opts: {
         return "Audit this resume for ATS compatibility";
       case "resume-parse":
         return "Parse this resume into structured JSON";
+      case "action-items":
+        return "Extract the action items";
       case "standard":
       case "detailed":
       default:

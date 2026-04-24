@@ -70,6 +70,7 @@ import {
   NewsletterPdfTool,
   VideoScriptPdfTool,
   AtsResumeTool,
+  ActionItemsPdfTool,
 } from "@/components/tools/SummarizeVariantTool";
 import { ResumeParserTool } from "@/components/tools/ResumeParserTool";
 import {
@@ -156,6 +157,7 @@ const LIVE_TOOL_IDS = new Set<string>([
   "ai-semantic-search",
   "ai-ats-resume",
   "ai-resume-parse",
+  "ai-action-items",
   "ai-translate",
   "ai-compare",
   "ai-ocr",
@@ -431,6 +433,8 @@ function ToolRunner({ id }: { id: string }) {
       return <AtsResumeTool />;
     case "ai-resume-parse":
       return <ResumeParserTool />;
+    case "ai-action-items":
+      return <ActionItemsPdfTool />;
     case "ai-translate":
       return <TranslatePdfTool />;
     case "ai-compare":
