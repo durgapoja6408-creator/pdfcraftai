@@ -179,6 +179,12 @@ export const OP_OUTPUT_CAP_TABLE: CapTable = {
     readability: 1200, // Scores + quotes + jargon list + suggestions.
     entities: 1500, // 4 tables, up to ~50 entities total.
     "social-thread": 1500, // 5-10 posts, ~240 chars each.
+    // Task #55:
+    condense: 2000, // Rewriting — output can approach source length.
+    expand: 3000, // Elaborated output runs longer than source.
+    "tone-analyze": 1200, // Voice + audience + attribute bullets.
+    citations: 2400, // BibTeX block + formatted reference list.
+    financials: 1500, // Single wide table, up to ~60 rows.
   },
 
   // Compare produces a side-by-side diff narrative. 4000 is

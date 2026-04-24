@@ -72,7 +72,18 @@ export type SummarizeDepth =
   //   social-thread §2.4 P2 — X/LinkedIn-style thread (5c)
   | "readability"
   | "entities"
-  | "social-thread";
+  | "social-thread"
+  // Task #55:
+  //   condense       §2.6 P1 — tighten prose, 40-60% length (3c)
+  //   expand         §2.6 P2 — elaborate each point (5c)
+  //   tone-analyze   §2.5 P2 — voice + register analysis (3c)
+  //   citations      §2.7 P2 — BibTeX + human-readable refs (5c)
+  //   financials     §2.7 P1 — key numbers with context (5c)
+  | "condense"
+  | "expand"
+  | "tone-analyze"
+  | "citations"
+  | "financials";
 
 export interface SummarizeInput {
   /** Extracted PDF text, pages joined with `\f`. */
@@ -429,6 +440,90 @@ function buildSystemPrompt(opts: {
           "the takeaway and invites replies. No emojis unless the " +
           "source used them. No hashtags."
         );
+      case "condense":
+        // §2.6 Shorten/Condense. Keep every claim and number, cut
+        // redundancy and connective tissue. Aim for 40-60% of source
+        // length. Output IS the condensed document, not a summary.
+        return (
+          "Rewrite this document in a shorter, tighter form. Preserve " +
+          "every factual claim, number, quote, and heading — cut " +
+          "redundancy, throat-clearing, connective tissue, and " +
+          "repeated context. Target ~40–60% of the original length. " +
+          "The output is the document itself, rewritten; NOT a " +
+          "summary. Keep the original section structure (same H2 " +
+          "headings) unless a section is entirely filler, in which " +
+          "case merge it into the adjacent one. Plain neutral prose; " +
+          "no meta-commentary about what you cut."
+        );
+      case "expand":
+        // §2.6 Expand/Elaborate. Every bullet or terse claim gets a
+        // full paragraph. Fidelity rule: no invented facts — if we
+        // lack grounding to elaborate, note that rather than fabricate.
+        return (
+          "Rewrite this document in a fuller, more elaborated form. " +
+          "Each terse bullet or claim becomes a full paragraph with " +
+          "context, examples drawn from the source, and clarifying " +
+          "detail. Preserve every factual claim verbatim. If a bullet " +
+          "cannot be elaborated without inventing context the source " +
+          "doesn't provide, leave it as-is or note that it needs more " +
+          "source input. Target ~140–180% of original length. Same " +
+          "section structure as the source. No filler or padding."
+        );
+      case "tone-analyze":
+        // §2.5 Tone / Style Analyzer. Who's the voice, who's the
+        // audience, what register, what adjectives would describe
+        // the writing. Analysis, not rewrite.
+        return (
+          "Analyse this document's tone and writing style. Produce " +
+          "these H2 sections in order: `## Voice` (one paragraph — " +
+          "who the writer sounds like, what register, what tells you " +
+          "this). `## Intended Audience` (one paragraph — who this " +
+          "is written FOR, evidenced by word choice, assumed " +
+          "background, references). `## Style Attributes` (bullet " +
+          "list: 6–10 adjectives like 'formal', 'hedged', 'assertive', " +
+          "'bureaucratic', each with a 1-line evidence snippet and " +
+          "page cite). `## Observations` (3–5 bullets on anything " +
+          "notable — inconsistent register, shifts mid-document, " +
+          "tells that the document was committee-written, etc.). " +
+          "Do NOT rewrite — this tool analyses."
+        );
+      case "citations":
+        // §2.7 Extract Citations. Returns BibTeX + a human-readable
+        // reference list. Works best on academic/research docs;
+        // handles embedded references and reference-list sections.
+        return (
+          "Extract every citation or reference from this document. " +
+          "Output two H2 sections: `## BibTeX` (a ```bibtex fenced " +
+          "code block containing one BibTeX entry per reference — " +
+          "pick appropriate entry types @article / @book / @inproceedings " +
+          "/ @misc based on what's available; auto-generate citation " +
+          "keys as firstAuthor+year+firstWord). `## Reference List` " +
+          "(a numbered list matching the BibTeX order, formatted in " +
+          "a readable author-year style). If the document is not a " +
+          "research doc (no reference list and no inline citations), " +
+          "render both sections with `_No citations found in this " +
+          "document._` and explain in one line why (e.g. 'This " +
+          "appears to be a product brochure')."
+        );
+      case "financials":
+        // §2.7 Extract Key Financial Numbers. Tables of monetary
+        // figures, percentages, ratios with currency, unit, and
+        // context. Targets Indian finance docs (lakhs/crores) AND
+        // international (millions/billions).
+        return (
+          "Extract the key financial numbers from this document. " +
+          "Output a single Markdown table with columns `Metric | " +
+          "Value | Unit | Period | Page`. Metric = what the number " +
+          "measures (e.g. 'Revenue', 'EBITDA margin', 'Debt-to-equity'). " +
+          "Value = the number as stated. Unit = currency code + scale " +
+          "('INR crore', 'USD million', '%', 'x'). Period = the time " +
+          "window if given (e.g. 'FY2025', 'Q2 2026', 'as of " +
+          "2026-03-31'). Page = where it appears. Capture every " +
+          "monetary figure, ratio, and percentage that has business " +
+          "meaning — not page numbers or form-field IDs. If the " +
+          "document contains no financial data, render " +
+          "`_No financial figures found._` instead of the table."
+        );
     }
   })();
 
@@ -490,6 +585,16 @@ function buildUserPrompt(opts: { depth: SummarizeDepth; text: string }): string 
         return "Extract the named entities";
       case "social-thread":
         return "Turn this into a social thread";
+      case "condense":
+        return "Rewrite this shorter";
+      case "expand":
+        return "Rewrite this expanded";
+      case "tone-analyze":
+        return "Analyse the tone and style";
+      case "citations":
+        return "Extract the citations";
+      case "financials":
+        return "Extract the financial numbers";
       case "standard":
       case "detailed":
       default:

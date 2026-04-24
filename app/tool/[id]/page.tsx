@@ -59,6 +59,11 @@ import {
   ReadabilityPdfTool,
   EntitiesPdfTool,
   SocialThreadPdfTool,
+  CondensePdfTool,
+  ExpandPdfTool,
+  ToneAnalyzePdfTool,
+  CitationsPdfTool,
+  FinancialsPdfTool,
 } from "@/components/tools/SummarizeVariantTool";
 
 type Params = { params: { id: string } };
@@ -122,6 +127,11 @@ const LIVE_TOOL_IDS = new Set<string>([
   "ai-readability",
   "ai-entities",
   "ai-social-thread",
+  "ai-condense",
+  "ai-expand",
+  "ai-tone-analyze",
+  "ai-citations",
+  "ai-financials",
   "ai-translate",
   "ai-compare",
   "ai-ocr",
@@ -365,6 +375,16 @@ function ToolRunner({ id }: { id: string }) {
       return <EntitiesPdfTool />;
     case "ai-social-thread":
       return <SocialThreadPdfTool />;
+    case "ai-condense":
+      return <CondensePdfTool />;
+    case "ai-expand":
+      return <ExpandPdfTool />;
+    case "ai-tone-analyze":
+      return <ToneAnalyzePdfTool />;
+    case "ai-citations":
+      return <CitationsPdfTool />;
+    case "ai-financials":
+      return <FinancialsPdfTool />;
     case "ai-translate":
       return <TranslatePdfTool />;
     case "ai-compare":

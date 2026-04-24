@@ -28,7 +28,12 @@ type Depth =
   | "blog"
   | "readability"
   | "entities"
-  | "social-thread";
+  | "social-thread"
+  | "condense"
+  | "expand"
+  | "tone-analyze"
+  | "citations"
+  | "financials";
 
 type Result = {
   fileId?: string;
@@ -409,6 +414,86 @@ export function SocialThreadPdfTool() {
       successTitle="Social thread ready"
       pricingBlurb="Numbered 5–10 post thread — hook, idea-per-post, takeaway close. ~240 chars each. LinkedIn or X ready. 5 credits per PDF."
       relatedHref={{ href: "/tool/ai-blog", label: "PDF to Blog Post (long-form)" }}
+    />
+  );
+}
+
+export function CondensePdfTool() {
+  return (
+    <SummarizeVariantTool
+      depth="condense"
+      toolId="ai-condense"
+      callbackUrl="/tool/ai-condense"
+      prompt="Drop a PDF to rewrite it tighter"
+      runLabel="Condense"
+      busyLabel="Rewriting…"
+      successTitle="Condensed version ready"
+      pricingBlurb="Tighter rewrite preserving every fact. ~40–60% of original length. Not a summary — the document itself, shorter. 3 credits per PDF."
+      relatedHref={{ href: "/tool/ai-tldr", label: "TL;DR (one-paragraph summary instead)" }}
+    />
+  );
+}
+
+export function ExpandPdfTool() {
+  return (
+    <SummarizeVariantTool
+      depth="expand"
+      toolId="ai-expand"
+      callbackUrl="/tool/ai-expand"
+      prompt="Drop a PDF to elaborate every point"
+      runLabel="Expand"
+      busyLabel="Elaborating…"
+      successTitle="Expanded version ready"
+      pricingBlurb="Each bullet becomes a full paragraph with context + examples from the source. No invented facts. ~140–180% of original length. 5 credits per PDF."
+      relatedHref={{ href: "/tool/ai-rewrite", label: "AI · Rewrite (tone shifts + more)" }}
+    />
+  );
+}
+
+export function ToneAnalyzePdfTool() {
+  return (
+    <SummarizeVariantTool
+      depth="tone-analyze"
+      toolId="ai-tone-analyze"
+      callbackUrl="/tool/ai-tone-analyze"
+      prompt="Drop a PDF to analyse its voice and writing style"
+      runLabel="Analyse tone"
+      busyLabel="Analysing…"
+      successTitle="Tone + style report ready"
+      pricingBlurb="Voice + audience + 6–10 style attributes + observations on tells and shifts. Doesn't rewrite — analyses. 3 credits per PDF."
+      relatedHref={{ href: "/tool/ai-readability", label: "Readability Score (grade-level focus)" }}
+    />
+  );
+}
+
+export function CitationsPdfTool() {
+  return (
+    <SummarizeVariantTool
+      depth="citations"
+      toolId="ai-citations"
+      callbackUrl="/tool/ai-citations"
+      prompt="Drop a research PDF to extract its references as BibTeX"
+      runLabel="Extract citations"
+      busyLabel="Extracting…"
+      successTitle="Citations extracted"
+      pricingBlurb="BibTeX block + human-readable reference list. Auto-generated citation keys. 5 credits per PDF."
+      relatedHref={{ href: "/tool/ai-entities", label: "Extract Entities (people/orgs/places/dates)" }}
+    />
+  );
+}
+
+export function FinancialsPdfTool() {
+  return (
+    <SummarizeVariantTool
+      depth="financials"
+      toolId="ai-financials"
+      callbackUrl="/tool/ai-financials"
+      prompt="Drop a financial PDF to extract its key numbers"
+      runLabel="Extract financials"
+      busyLabel="Extracting…"
+      successTitle="Financials extracted"
+      pricingBlurb="Metric / Value / Unit / Period / Page table. Handles INR crore + USD million + ratios + percentages. 5 credits per PDF."
+      relatedHref={{ href: "/tool/ai-table", label: "AI · Table Extract (any table → Excel)" }}
     />
   );
 }

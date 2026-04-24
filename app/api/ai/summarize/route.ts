@@ -70,6 +70,12 @@ const VALID_DEPTHS: readonly SummarizeDepth[] = [
   "readability",
   "entities",
   "social-thread",
+  // Task #55:
+  "condense",
+  "expand",
+  "tone-analyze",
+  "citations",
+  "financials",
 ];
 
 export async function POST(req: Request): Promise<Response> {
