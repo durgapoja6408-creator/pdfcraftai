@@ -86,6 +86,8 @@ const VALID_DEPTHS: readonly SummarizeDepth[] = [
   // Task #58:
   "flashcards",
   "quiz",
+  // Task #59:
+  "mindmap",
 ];
 
 export async function POST(req: Request): Promise<Response> {

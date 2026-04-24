@@ -101,7 +101,11 @@ export type SummarizeDepth =
   //   flashcards §2.4 P1 — 10-30 Q&A pairs (10c)
   //   quiz       §2.4 P1 — 6-12 MCQs with answer key (10c)
   | "flashcards"
-  | "quiz";
+  | "quiz"
+  // Task #59:
+  //   mindmap §2.4 P1 — hierarchical tree, rendered as
+  //   collapsible nested outline (10c)
+  | "mindmap";
 
 export interface SummarizeInput {
   /** Extracted PDF text, pages joined with `\f`. */
@@ -664,6 +668,22 @@ function buildSystemPrompt(opts: {
           "(not obviously wrong) and not too similar to the correct " +
           "answer. No preamble or postamble."
         );
+      case "mindmap":
+        // §2.4 Mind Map. JSON tree output. UI renders as a
+        // nested collapsible outline with indentation.
+        return (
+          "Produce a mind map of this document as a hierarchical " +
+          "tree. Output ONLY a ```json fenced code block containing " +
+          "a single object shaped {\"root\": \"document title or " +
+          "central topic\", \"branches\": [{\"label\": \"string\", " +
+          "\"children\": [{\"label\": \"string\", \"children\": " +
+          "[...]}]}]}. Branches are the document's top-level " +
+          "sections or themes (4–8). Children drill into each. " +
+          "Labels are SHORT — 2–8 words each. Nest up to 3 levels " +
+          "deep. Each leaf-level label should be a concrete claim " +
+          "or concept. If a node has no children, omit the " +
+          "`children` key or use an empty array."
+        );
     }
   })();
 
@@ -749,6 +769,8 @@ function buildUserPrompt(opts: { depth: SummarizeDepth; text: string }): string 
         return "Generate flashcards";
       case "quiz":
         return "Generate a multiple-choice quiz";
+      case "mindmap":
+        return "Build a mind map";
       case "standard":
       case "detailed":
       default:

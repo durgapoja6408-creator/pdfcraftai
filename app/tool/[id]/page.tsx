@@ -74,6 +74,7 @@ import {
   FlashcardsPdfTool,
   QuizPdfTool,
 } from "@/components/tools/StructuredVariantTool";
+import { MindmapPdfTool } from "@/components/tools/MindmapPdfTool";
 
 type Params = { params: { id: string } };
 
@@ -148,6 +149,7 @@ const LIVE_TOOL_IDS = new Set<string>([
   "ai-video-script",
   "ai-flashcards",
   "ai-quiz",
+  "ai-mindmap",
   "ai-translate",
   "ai-compare",
   "ai-ocr",
@@ -415,6 +417,8 @@ function ToolRunner({ id }: { id: string }) {
       return <FlashcardsPdfTool />;
     case "ai-quiz":
       return <QuizPdfTool />;
+    case "ai-mindmap":
+      return <MindmapPdfTool />;
     case "ai-translate":
       return <TranslatePdfTool />;
     case "ai-compare":
