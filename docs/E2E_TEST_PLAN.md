@@ -277,16 +277,16 @@ For each of the 10 ops: auth-gated, rate-limited, idempotent, metered.
 - **5.2.c** — Session from revoked user → 401. **[BACKLOG]**
 
 ### 5.3 Metering invariants
-- **5.3.a** — Every successful call writes `ai_usage` row with `cost_micros ≥ 0`. **[AUTO]** (ai-usage, 139 pass) + **[MANUAL]** Verified 2026-04-24.
-- **5.3.b** — `cost_micros` = provider billed µUSD; `credits_spent` = pricing markup. **[AUTO]** (ai-margin-rollup)
-- **5.3.c** — `input_tokens` + `output_tokens` + `latency_ms` + `stop_reason` populated. **[AUTO]** + **[MANUAL]**
-- **5.3.d** — `prompt_version` set for Anthropic models. **[AUTO]** (prompt-registry)
+- **5.3.a** — Every successful call writes `ai_usage` row with `cost_micros ≥ 0`. **[AUTO]** + **[MANUAL] PASS 2026-04-24** — latest chat_turn row: cost_micros=91.
+- **5.3.b** — `cost_micros` = provider billed µUSD; `credits_spent` = pricing markup. **[AUTO]** + **[MANUAL] PASS 2026-04-24** — cost=91µ / credits=1 on chat, cost=7770µ / credits=3 on summarize.
+- **5.3.c** — `input_tokens` + `output_tokens` + `latency_ms` + `stop_reason` populated. **[AUTO]** + **[MANUAL] PASS 2026-04-24** — in=602, out=1, lat=1429ms, stop=end_turn.
+- **5.3.d** — `prompt_version` set for Anthropic models, null for OpenAI. **[AUTO]** + **[MANUAL] PASS 2026-04-24** — anthropic summarize row has prompt_version=v1; openai chat_turn has NULL (correct).
 - **5.3.e** — `cached_input_tokens` + `cache_creation_input_tokens` set on prompt-caching paths. **[AUTO]**
 
 ### 5.4 Credit ledger invariants
-- **5.4.a** — Every AI op writes matching `credit_ledger` row with `delta < 0`. **[AUTO]** + **[MANUAL]** Verified 2026-04-24.
+- **5.4.a** — Every AI op writes matching `credit_ledger` row with `delta < 0`. **[AUTO]** + **[MANUAL] PASS 2026-04-24** — verified across 3 ai_* rows (chat_turn=-1, summarize=-3).
 - **5.4.b** — `idempotency_key` prevents double-debit on replay. **[AUTO]** (razorpay-retry-promotion F1)
-- **5.4.c** — Spend happens BEFORE AI call (fail-closed: insufficient balance → 402, no AI call). **[AUTO]** (route-guards)
+- **5.4.c** — Spend happens BEFORE AI call (fail-closed: insufficient balance → 402, no AI call). **[AUTO]** + **[MANUAL] PASS 2026-04-24** — ledger ts 18:45:17.668 precedes ai_usage ts 18:45:19.114 by 1.45s.
 
 ### 5.5 Rate limits
 - **5.5.a** — Per-user daily cost cap ($0.50 default via `USER_DAILY_COST_MICROS_CAP`) hit → 429. **[AUTO]** (ai-router + guardAiRoute)
@@ -372,7 +372,7 @@ All 23 `/admin/*` pages verified render ADMIN-UI for admin gate-pass, 404 for no
 - **7.4.c** — `/admin/router`: AI routing-decision inspector. **[AUTO]**
 
 ### 7.5 Infrastructure
-- **7.5.a** — `/admin/deploy`: last commit, uptimeSec, db latency. **[MANUAL]**
+- **7.5.a** — `/admin/deploy`: last commit, uptimeSec, db latency. **[PARTIAL 2026-04-24]** — page renders + shows Node v20.19.4 + runtime nodejs + repo URL, but commit reads "unknown" (no COMMIT_SHA env var) and "Deployed at" is empty. /api/health knows the commit, /admin/deploy doesn't — Task #32.
 - **7.5.b** — `/admin/prompts`: prompt registry + version history. **[AUTO]** (prompt-registry, 79 pass)
 
 ### 7.6 Non-admin user
@@ -464,15 +464,15 @@ All 23 `/admin/*` pages verified render ADMIN-UI for admin gate-pass, 404 for no
 - **11.2.c** — Stripe-style "something went wrong" with correlation id. **[BACKLOG]**
 
 ### 11.3 Responsive / mobile
-- **11.3.a** — /, /pricing, /app/dashboard render on 375px viewport. **[BACKLOG]**
+- **11.3.a** — /, /pricing, /app/dashboard render on 375px viewport. **[PARTIAL 2026-04-24]** — viewport meta + media queries + fluid containers (max-width:1280px) + mobile nav toggle confirmed; Chrome MCP screenshot limitation prevents pixel-level verification.
 - **11.3.b** — Modal opens full-screen on mobile. **[BACKLOG]**
 
 ### 11.4 Accessibility (WCAG 2.1 AA)
-- **11.4.a** — All interactive elements keyboard-navigable. **[BACKLOG]**
-- **11.4.b** — Focus rings visible. **[BACKLOG]**
-- **11.4.c** — Color contrast ≥ 4.5:1 for body text. **[BACKLOG]**
-- **11.4.d** — Form labels properly associated. **[BACKLOG]**
-- **11.4.e** — Screen-reader: landmarks + skip-to-content. **[BACKLOG]**
+- **11.4.a** — All interactive elements keyboard-navigable. **[PARTIAL 2026-04-24]** — zero buttons/links/form inputs missing accessible labels; zero images missing alt; html lang=en.
+- **11.4.b** — Focus rings visible. **[PASS 2026-04-24]** — stylesheets have :focus outline/box-shadow rules.
+- **11.4.c** — Color contrast ≥ 4.5:1 for body text. **[PASS 2026-04-24]** — body: oklch(0.97) on oklch(0.16) = high contrast (L97 vs L16).
+- **11.4.d** — Form labels properly associated. **[PASS 2026-04-24]** — zero `<input>` elements without `<label for>`, `aria-label`, or `aria-labelledby`.
+- **11.4.e** — Screen-reader: landmarks ✓ (main/nav/header/footer all present); skip-to-content FAIL — no skip link (WCAG 2.1 SC 2.4.1 Level A). Task #31.
 
 ### 11.5 Performance
 - **11.5.a** — Homepage TTI < 3s on 4G. **[BACKLOG]**
