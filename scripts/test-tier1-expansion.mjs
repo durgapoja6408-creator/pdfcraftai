@@ -146,6 +146,15 @@ const NEW_TOOLS = [
     component: "InvoiceGeneratorTool",
     group: "Convert",
   },
+  // Full Edit PDF v1 — the last §1.5 P0 remaining. Canvas render
+  // + pdfjs getTextContent() to enumerate text runs → click
+  // overlay → cover-with-white-rect + redraw via pdf-lib. Standard
+  // font mapping with Helvetica fallback surfaced in UI.
+  {
+    id: "edit-pdf",
+    component: "EditPdfTool",
+    group: "Edit",
+  },
 ];
 
 // =============================================================================

@@ -32,7 +32,8 @@ export type SeoPageSlug =
   | "highlight-pdf"
   | "redact-pdf-free"
   | "extract-pdf-attachments"
-  | "gst-invoice-generator";
+  | "gst-invoice-generator"
+  | "edit-pdf";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -660,6 +661,28 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Is it really free?", a: "Yes, unlimited. No signup, no per-invoice limit." },
     ],
     related: ["invoice-generator", "ai-generate", "to-pdf", "page-numbers"],
+  },
+
+  "edit-pdf": {
+    tool: "edit-pdf",
+    h1: "Edit PDF text — click, type, replace. Free, in your browser",
+    sub: "Click any text on a PDF page to edit it. Font and position preserved. Multi-page, no signup, no watermarks.",
+    canonical: "/edit-pdf",
+    howTo: [
+      { t: "Drop your PDF", d: "Rendered on your device — nothing uploaded." },
+      { t: "Click the text you want to change", d: "Every text run on the page is clickable. The current text appears in an inline editor." },
+      { t: "Type the replacement", d: "Press Enter to save, Escape to cancel. Edits stack — you can change many runs in one session." },
+      { t: "Apply and download", d: "Original text is covered, replacement drawn at the same position with a matched standard font." },
+    ],
+    faq: [
+      { q: "Does it work on scanned PDFs?", a: "No — scans are images, not text. Run AI · OCR first to convert the scan into a searchable PDF, then come back here. Once OCR'd, the detected text becomes editable." },
+      { q: "What about coloured or patterned backgrounds?", a: "This v1 covers the original text with an opaque white rectangle before drawing the replacement. On coloured backgrounds the white rectangle will be visible. For those cases, use Redact first (to blank the region your way), then Add Text Box for the new content." },
+      { q: "Why does my replacement look slightly different?", a: "pdf-lib's standard fonts cover Helvetica / Times / Courier / Symbol / ZapfDingbats in their regular/bold/italic/bold-italic variants. Documents using Roboto, Arial, or an embedded custom font will render replacements in Helvetica — the editor shows a warning chip when that's the case." },
+      { q: "Can I edit images too?", a: "Not yet. This is a v1 text-only release. Image editing (replace, delete, resize) is on the roadmap." },
+      { q: "Will longer text overflow?", a: "Yes — we don't reflow surrounding content, so a replacement much longer than the original may overflow into adjacent text. The editor flashes a warning if your replacement is >40% longer." },
+      { q: "Privacy?", a: "100% client-side. Your PDF never leaves your browser." },
+    ],
+    related: ["edit-pdf", "add-text-box", "redact-free", "ai-rewrite"],
   },
 };
 
