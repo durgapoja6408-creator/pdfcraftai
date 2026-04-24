@@ -40,6 +40,7 @@ import { ExtractAttachmentsTool } from "@/components/tools/ExtractAttachmentsToo
 import { InvoiceGeneratorTool } from "@/components/tools/InvoiceGeneratorTool";
 import { EditPdfTool } from "@/components/tools/EditPdfTool";
 import { SignPdfFreeTool } from "@/components/tools/SignPdfFreeTool";
+import { RepairPdfTool } from "@/components/tools/RepairPdfTool";
 
 type Params = { params: { id: string } };
 
@@ -83,6 +84,7 @@ const LIVE_TOOL_IDS = new Set<string>([
   "invoice-generator",
   "edit-pdf",
   "sign-pdf-free",
+  "repair-pdf",
   "ai-summarize",
   "ai-translate",
   "ai-compare",
@@ -289,6 +291,8 @@ function ToolRunner({ id }: { id: string }) {
       return <EditPdfTool />;
     case "sign-pdf-free":
       return <SignPdfFreeTool />;
+    case "repair-pdf":
+      return <RepairPdfTool />;
     case "ai-summarize":
       return <SummarizePdfTool />;
     case "ai-translate":

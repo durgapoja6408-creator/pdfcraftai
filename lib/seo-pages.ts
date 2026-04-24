@@ -34,7 +34,8 @@ export type SeoPageSlug =
   | "extract-pdf-attachments"
   | "gst-invoice-generator"
   | "edit-pdf"
-  | "sign-pdf-free";
+  | "sign-pdf-free"
+  | "repair-pdf";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -706,6 +707,27 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Privacy?", a: "100% client-side. Your PDF and your signature never leave your browser." },
     ],
     related: ["sign-pdf-free", "ai-sign", "fill-forms", "protect"],
+  },
+
+  "repair-pdf": {
+    tool: "repair-pdf",
+    h1: "Repair PDF — fix corrupt, broken, or stuck PDFs free",
+    sub: "Rebuilds the xref table, drops orphaned objects, recompresses streams. In your browser, no upload, no signup.",
+    canonical: "/repair-pdf",
+    howTo: [
+      { t: "Drop your PDF", d: "Parse attempts run locally — if it's recoverable, we rebuild it in seconds." },
+      { t: "We try strict first", d: "Any parse error is caught and retried with full recovery mode (throwOnInvalidObject: false, ignoreEncryption: true)." },
+      { t: "Re-save with fresh xref", d: "Orphaned objects dropped, xref table rebuilt, content streams recompressed. Usually comes out smaller." },
+      { t: "Download + read the report", d: "Each step's outcome is listed so you know exactly what was repaired." },
+    ],
+    faq: [
+      { q: "What kinds of corruption does this fix?", a: "Stale or out-of-date xref tables, missing trailers, broken page-tree references from truncated uploads, invalid /Info entries, wrong %PDF header, and encryption with a blank password. These cover most 'Adobe won't open this' cases." },
+      { q: "What CAN'T it fix?", a: "PDFs missing the catalog object entirely (nothing to rebuild from), binary corruption inside individual content streams (needs operator-level parsing — not in our MVP), and real password-protected PDFs (unlock those with our Protect tool first)." },
+      { q: "Will it lose any content?", a: "Unreachable pages and orphaned objects are dropped — that's by design. If a page can't be walked via the catalog, it's effectively invisible to every viewer already; the repair doesn't change what you see, it just cleans up the file structure." },
+      { q: "Does it make the file smaller?", a: "Usually yes. Orphaned objects and stale xref entries accumulate in heavily-edited PDFs. The repair report shows the before/after sizes so you know how much was reclaimed." },
+      { q: "Privacy?", a: "100% client-side. pdf-lib parses and re-saves in your browser — nothing uploaded." },
+    ],
+    related: ["repair-pdf", "compress", "flatten-pdf", "pdf-metadata"],
   },
 };
 

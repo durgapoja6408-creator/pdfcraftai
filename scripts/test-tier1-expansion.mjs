@@ -163,6 +163,14 @@ const NEW_TOOLS = [
     component: "SignPdfFreeTool",
     group: "Security",
   },
+  // Repair PDF — Tier 1 §1.2 P1. Strict-first pdf-lib load, retry
+  // with full recovery flags, re-save to rebuild xref + drop
+  // orphaned objects. Reports what was repaired.
+  {
+    id: "repair-pdf",
+    component: "RepairPdfTool",
+    group: "Optimize",
+  },
 ];
 
 // =============================================================================
