@@ -189,6 +189,9 @@ export const OP_OUTPUT_CAP_TABLE: CapTable = {
     sentiment: 1000, // Overall verdict + per-section table + shifts.
     bias: 1500, // 4-5 category sections with quoted evidence.
     proofread: 2000, // Error table can run long on poorly edited docs.
+    // Task #57:
+    newsletter: 1800, // Subject + preheader + 3-5 sections + sign-off.
+    "video-script": 2400, // 3-5 × 90s segments with stage cues.
   },
 
   // Compare produces a side-by-side diff narrative. 4000 is

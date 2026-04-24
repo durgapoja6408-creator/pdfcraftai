@@ -90,7 +90,12 @@ export type SummarizeDepth =
   //   proofread   §2.6 P1 — error list with fixes (5c)
   | "sentiment"
   | "bias"
-  | "proofread";
+  | "proofread"
+  // Task #57:
+  //   newsletter   §2.4 P2 — email-newsletter format (8c)
+  //   video-script §2.4 P2 — intro + segments + outro (10c)
+  | "newsletter"
+  | "video-script";
 
 export interface SummarizeInput {
   /** Extracted PDF text, pages joined with `\f`. */
@@ -587,6 +592,43 @@ function buildSystemPrompt(opts: {
           "proofreading is not perfect — encourage a human review " +
           "for critical work."
         );
+      case "newsletter":
+        // §2.4 PDF → Email Newsletter. Format for a curated email.
+        // Subject line + pre-header + headed sections + CTAs.
+        // Opinions preserved from source, no editorialising.
+        return (
+          "Reformat this document as an email newsletter. Start " +
+          "with `## Subject Line` (one H2, value is a single line " +
+          "under 60 characters). Then `## Preheader` (one line, " +
+          "~90 chars, that complements the subject). Then the " +
+          "email body as Markdown: opening paragraph (hook + what " +
+          "the reader will get in ~3 sentences), 3–5 numbered " +
+          "sections each with a bolded headline and 1–2 paragraphs " +
+          "of content, a `## Read more` section linking to the " +
+          "source or related material (use placeholder `[your " +
+          "link here]` since we don't know where this will be " +
+          "published), and a short sign-off. Voice: direct, " +
+          "informed, not salesy. Preserve factual claims exactly; " +
+          "no invented statistics."
+        );
+      case "video-script":
+        // §2.4 PDF → Video Script. Talking-head style with
+        // intro/segments/outro. Time cues per segment.
+        return (
+          "Reformat this document as a talking-head video script. " +
+          "Structure: `## Opening (0:00–0:30)` — the hook, stated " +
+          "as a direct statement to the viewer. `## Segment 1 " +
+          "(0:30–2:00)`, `## Segment 2 (2:00–3:30)`, etc. — 3–5 " +
+          "segments of ~90 seconds each, each covering one core " +
+          "idea with an H3 title and the spoken-word script below. " +
+          "`## Closing (final 30s)` — takeaway + soft CTA (e.g. " +
+          "'read the full document', 'subscribe'). Bracket " +
+          "stage-direction cues `[cut to slide]`, `[B-roll: … ]` " +
+          "where useful. Conversational register — contractions " +
+          "fine, but no filler words. Preserve factual claims " +
+          "verbatim; no invented quotes or statistics even in the " +
+          "narrator's voice."
+        );
     }
   })();
 
@@ -664,6 +706,10 @@ function buildUserPrompt(opts: { depth: SummarizeDepth; text: string }): string 
         return "Audit for bias + inclusive language";
       case "proofread":
         return "Proofread this";
+      case "newsletter":
+        return "Reformat as a newsletter";
+      case "video-script":
+        return "Turn this into a video script";
       case "standard":
       case "detailed":
       default:

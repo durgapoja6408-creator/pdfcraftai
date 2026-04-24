@@ -36,7 +36,9 @@ type Depth =
   | "financials"
   | "sentiment"
   | "bias"
-  | "proofread";
+  | "proofread"
+  | "newsletter"
+  | "video-script";
 
 type Result = {
   fileId?: string;
@@ -545,6 +547,38 @@ export function ProofreadPdfTool() {
       successTitle="Proofreading report ready"
       pricingBlurb="Error table — Page / Error / Type / Suggested Fix. Genuine errors only (spelling, grammar, agreement, punctuation). 5 credits per PDF."
       relatedHref={{ href: "/tool/ai-rewrite", label: "AI · Rewrite (apply the fixes automatically)" }}
+    />
+  );
+}
+
+export function NewsletterPdfTool() {
+  return (
+    <SummarizeVariantTool
+      depth="newsletter"
+      toolId="ai-newsletter"
+      callbackUrl="/tool/ai-newsletter"
+      prompt="Drop a PDF to reformat as an email newsletter"
+      runLabel="Draft newsletter"
+      busyLabel="Drafting…"
+      successTitle="Newsletter draft ready"
+      pricingBlurb="Subject line + preheader + 3–5 sections + sign-off. Direct voice, no sales-speak. 8 credits per PDF."
+      relatedHref={{ href: "/tool/ai-blog", label: "PDF to Blog Post (longer form)" }}
+    />
+  );
+}
+
+export function VideoScriptPdfTool() {
+  return (
+    <SummarizeVariantTool
+      depth="video-script"
+      toolId="ai-video-script"
+      callbackUrl="/tool/ai-video-script"
+      prompt="Drop a PDF to turn it into a talking-head video script"
+      runLabel="Draft script"
+      busyLabel="Writing…"
+      successTitle="Video script ready"
+      pricingBlurb="Opening hook + 3–5 × 90s segments + closing CTA. Bracketed stage cues. 10 credits per PDF."
+      relatedHref={{ href: "/tool/ai-social-thread", label: "PDF to Social Thread (shorter-form distillation)" }}
     />
   );
 }

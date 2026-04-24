@@ -75,6 +75,8 @@ export const TOOLS: readonly Tool[] = [
   { id: "ai-sentiment", name: "Sentiment Analysis", desc: "Overall + per-section sentiment verdict with evidence and shifts.", icon: "Compare", free: false, cost: "3 credits / doc", group: "AI" },
   { id: "ai-bias", name: "Inclusive Language Audit", desc: "Gendered language + outdated terminology + stereotyping flagged with fixes.", icon: "Shield", free: false, cost: "5 credits / doc", group: "AI" },
   { id: "ai-proofread", name: "Proofread PDF", desc: "Error table — page, quote, type, suggested fix. Spelling + grammar + agreement.", icon: "Edit", free: false, cost: "5 credits / doc", group: "AI" },
+  { id: "ai-newsletter", name: "PDF to Email Newsletter", desc: "Subject + preheader + sections + sign-off. Publish-ready draft.", icon: "Send", free: false, cost: "8 credits / doc", group: "AI" },
+  { id: "ai-video-script", name: "PDF to Video Script", desc: "Talking-head script with 90s segments, hook, stage cues, closing CTA.", icon: "Play", free: false, cost: "10 credits / doc", group: "AI" },
   { id: "ai-translate", name: "Translate PDF", desc: "Preserve layout across 20+ languages.", icon: "Translate", free: false, cost: "5 credits / doc", group: "AI" },
   { id: "ai-ocr", name: "OCR & Smart Extract", desc: "Turn scans into searchable, structured data.", icon: "Scan", free: false, cost: "~2 credits / page", group: "AI" },
   { id: "ai-rewrite", name: "Rewrite & Rephrase", desc: "Tone shift, simplify, or expand text.", icon: "Edit", free: false, cost: "~3 credits / page", group: "AI" },
