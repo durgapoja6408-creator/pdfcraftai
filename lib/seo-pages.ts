@@ -28,7 +28,8 @@ export type SeoPageSlug =
   | "resize-pdf"
   | "remove-pdf-metadata"
   | "add-logo-to-pdf"
-  | "add-text-to-pdf";
+  | "add-text-to-pdf"
+  | "highlight-pdf";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -578,6 +579,27 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Is it really free?", a: "Yes, unlimited. No watermarks, no signup." },
     ],
     related: ["add-text-box", "page-numbers", "image-watermark", "fill-forms"],
+  },
+
+  "highlight-pdf": {
+    tool: "highlight-pdf",
+    h1: "Highlight PDF — drag-to-mark any region, free",
+    sub: "Drag the cursor across a PDF page to highlight. Yellow, green, pink, blue, or orange. Multi-page, no signup, stays in your browser.",
+    canonical: "/highlight-pdf",
+    howTo: [
+      { t: "Drop your PDF", d: "Rendered in your browser — never uploaded." },
+      { t: "Pick a highlight color", d: "Five presets: yellow (default), green, pink, blue, orange." },
+      { t: "Drag over what you want to highlight", d: "Click-drag anywhere on the rendered page. Navigate with Prev / Next to highlight across pages." },
+      { t: "Apply and download", d: "All staged highlights get baked into the PDF at 40% opacity — readable and unmistakable." },
+    ],
+    faq: [
+      { q: "Are these real PDF highlight annotations?", a: "No — this MVP draws semi-transparent rectangles via pdf-lib's drawRectangle. They render consistently in every viewer but aren't interactive annotations that screen readers or copy-paste can inspect. Real /Highlight annotations are on the roadmap for a richer paid Annotate tool." },
+      { q: "Can I move a highlight after placing it?", a: "Not yet. Click the × on the highlight (or on the list below the canvas) to remove and redraw. Edit-in-place is on the list." },
+      { q: "Can I highlight text specifically?", a: "No — it's rectangular regions only. Text-selection-aware highlighting would need the OCR text layer; that's in scope for the AI · OCR tool paired with this one." },
+      { q: "Privacy?", a: "100% client-side. Your PDF is never uploaded." },
+      { q: "Is it really free?", a: "Yes, unlimited. No signup, no watermarks on your output." },
+    ],
+    related: ["highlight-pdf", "add-text-box", "ai-redact", "flatten-pdf"],
   },
 };
 

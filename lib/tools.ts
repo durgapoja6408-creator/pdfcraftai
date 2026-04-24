@@ -37,6 +37,7 @@ export const TOOLS: readonly Tool[] = [
   { id: "remove-metadata", name: "Remove Metadata", desc: "Scrub title, author, creator, and XMP data before sharing.", icon: "Shield", free: true, group: "Security" },
   { id: "image-watermark", name: "Add Logo or Image Watermark", desc: "Stamp a PNG/JPEG logo onto every page. Position, scale, opacity.", icon: "Image", free: true, group: "Edit" },
   { id: "add-text-box", name: "Add Text Box", desc: "Click anywhere on a PDF page to add a text box. Multi-page support.", icon: "Pen", free: true, group: "Edit" },
+  { id: "highlight-pdf", name: "Highlight PDF", desc: "Drag to highlight any region. Yellow, green, pink, blue, or orange.", icon: "Edit", free: true, group: "Edit" },
   { id: "page-numbers", name: "Page Numbers & Watermark", desc: "Add headers, footers, and watermarks.", icon: "Pages", free: true, group: "Edit" },
   { id: "protect", name: "Unlock / Protect PDF", desc: "Add or remove passwords and permissions.", icon: "Lock", free: true, group: "Security" },
 

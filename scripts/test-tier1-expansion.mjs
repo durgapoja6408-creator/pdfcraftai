@@ -112,6 +112,14 @@ const NEW_TOOLS = [
     component: "AddTextBoxTool",
     group: "Edit",
   },
+  // Canvas-heavy P0, drag interaction variant — renders page via
+  // pdfjs, drag-to-select rectangles, pdf-lib drawRectangle at
+  // 40% opacity on apply. 5-color preset palette.
+  {
+    id: "highlight-pdf",
+    component: "HighlightPdfTool",
+    group: "Edit",
+  },
 ];
 
 // =============================================================================
