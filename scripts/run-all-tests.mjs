@@ -459,6 +459,25 @@ const SUITES = [
     name: "razorpay-handoff",
     file: "test-razorpay-handoff.mjs",
   },
+  // razorpay-retry-promotion pins Task #21 — lib/payments/ledger.ts
+  // handleCaptured MUST promote status from pending OR failed to
+  // captured (retry flow: card fails, user pivots to netbanking, same
+  // order captures on a different pay_id). Production evidence from
+  // webhook_events raw_payloads showed 2/7 payments stuck in status=
+  // "failed" despite credits being granted correctly (idempotency key
+  // on the grant path means credits never went wrong; only the
+  // payments.status field + provider_ref were wrong, which broke the
+  // /app/billing "Recent payments" UI and Razorpay-side reconciliation
+  // of pay_id → our DB row for dispute/chargeback lookups). Static-
+  // analysis tests (regex against ledger.ts) — 14 assertions covering
+  // the status-transition guard, providerRef update, metadata-merge
+  // preservation of route-decision fields, priorAttempts entry shape,
+  // the MIRROR property that handleFailed still only demotes pending
+  // (never captured), and idempotency-of-credit-grant invariants.
+  {
+    name: "razorpay-retry-promotion",
+    file: "test-razorpay-retry-promotion.mjs",
+  },
   // invoicing pins Task #23 / Phase D — the receipt/invoice PDF generator
   // + admin tax CSV export. Covers: lib/invoicing/gstin.ts module surface
   // (INDIAN_STATE_CODES 01–38, validateGstin with Mod-36 checksum,

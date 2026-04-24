@@ -224,6 +224,12 @@ async function handleCaptured(
       packId: schema.payments.packId,
       status: schema.payments.status,
       currency: schema.payments.currency,
+      // Task #21 — we need the prior providerRef + metadata so the
+      // retry-promotion branch below can archive the losing pay_id into
+      // metadata.priorAttempts[] without clobbering the existing route
+      // metadata (routeRail/routeCountry/promoCode/…).
+      providerRef: schema.payments.providerRef,
+      metadata: schema.payments.metadata,
       // Task #27 / Phase E — promo + variant fields. Nullable on
       // pre-0015 rows; we coerce to sensible defaults below.
       annualVariant: schema.payments.annualVariant,
@@ -242,14 +248,64 @@ async function handleCaptured(
     };
   }
 
-  // Mark captured (idempotent via status check — re-running doesn't
-  // re-update a refunded row into "captured").
-  if (payment.status === "pending") {
+  // Status-transition guard (Task #21).
+  //
+  // Priority is **captured > failed > pending > refunded**. We allow
+  // promotion from BOTH `pending → captured` (normal first-attempt
+  // success) AND `failed → captured` (retry flow: Razorpay permits up
+  // to ~7 payment attempts on one order_id — card fails, user pivots
+  // to netbanking/UPI, same order captures on a different pay_id).
+  //
+  // Why `failed → captured` was missing before: the original guard
+  // was `status === "pending"` only, so a prior `payment.failed`
+  // webhook (which correctly flips pending → failed) would block the
+  // later `payment.captured` event from updating the row — even
+  // though credits WERE still granted downstream (idempotency key
+  // `${paymentId}:base`). Net effect: credits correct, but
+  // payments.status stuck at "failed" and providerRef pointed at
+  // the losing attempt → /app/billing UI misleadingly showed
+  // "Failed" for a successful purchase AND Razorpay-side
+  // reconciliation couldn't match our DB ref to their captured
+  // pay_id (broken chargeback / dispute lookup).
+  //
+  // Refunded/partial_refund rows are NEVER re-captured here — a
+  // late `payment.captured` event arriving after a refund would be
+  // provider weirdness and silently un-refunding is a real financial
+  // bug. The credit grant below still runs and no-ops via
+  // idempotency key if it really is a replay.
+  if (payment.status === "pending" || payment.status === "failed") {
+    // On retry-promotion, archive the losing pay_id into
+    // metadata.priorAttempts[] so dispute/chargeback lookups can
+    // trace every attempt against this order. Each entry captures
+    // the provider ref, the normalized outcome, and a timestamp.
+    const priorMeta =
+      payment.metadata && typeof payment.metadata === "object"
+        ? (payment.metadata as Record<string, unknown>)
+        : {};
+    const priorAttempts = Array.isArray(priorMeta.priorAttempts)
+      ? [...(priorMeta.priorAttempts as unknown[])]
+      : [];
+    if (
+      payment.status === "failed" &&
+      payment.providerRef &&
+      payment.providerRef !== event.providerRef
+    ) {
+      priorAttempts.push({
+        providerRef: payment.providerRef,
+        outcome: "failed",
+        promotedAt: new Date().toISOString(),
+      });
+    }
+
     await db
       .update(schema.payments)
       .set({
         status: "captured",
         providerRef: event.providerRef,
+        // Merge: keep all existing metadata keys (routeRail, promoCode,
+        // etc.) and only update priorAttempts. Drizzle's json() column
+        // handles serialization — pass the plain object.
+        metadata: { ...priorMeta, priorAttempts },
       })
       .where(eq(schema.payments.id, event.internalPaymentId));
   }
