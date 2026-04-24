@@ -45,6 +45,7 @@ export const TOOLS: readonly Tool[] = [
   { id: "sign-pdf-free", name: "Sign PDF (free)", desc: "Draw, type, or upload your signature and place it on any page.", icon: "Pen", free: true, group: "Security" },
   { id: "repair-pdf", name: "Repair PDF", desc: "Fix broken xref, rebuild page tree, and recompress streams.", icon: "Shield", free: true, group: "Optimize" },
   { id: "markdown-to-pdf", name: "Markdown to PDF", desc: "Turn .md notes into a polished A4 PDF with headings, lists, and code blocks.", icon: "Convert", free: true, group: "Convert" },
+  { id: "text-to-pdf", name: "Text to PDF", desc: "Paste or upload plain text and download a clean PDF. Font, size, margins are yours.", icon: "Convert", free: true, group: "Convert" },
   { id: "page-numbers", name: "Page Numbers & Watermark", desc: "Add headers, footers, and watermarks.", icon: "Pages", free: true, group: "Edit" },
   { id: "protect", name: "Unlock / Protect PDF", desc: "Add or remove passwords and permissions.", icon: "Lock", free: true, group: "Security" },
 

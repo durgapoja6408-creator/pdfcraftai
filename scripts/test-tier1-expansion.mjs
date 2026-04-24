@@ -179,6 +179,13 @@ const NEW_TOOLS = [
     component: "MarkdownToPdfTool",
     group: "Convert",
   },
+  // Text→PDF — paste/upload plain text, pure pdf-lib word-wrap.
+  // Generator (no ToolDropzone), INTAKE_EXEMPT.
+  {
+    id: "text-to-pdf",
+    component: "TextToPdfTool",
+    group: "Convert",
+  },
 ];
 
 // =============================================================================
@@ -263,7 +270,7 @@ for (const tool of NEW_TOOLS) {
   );
   // Generator tools (produce a PDF from a form, no file intake) are
   // exempt from the ToolDropzone check — they have nothing to drop.
-  const INTAKE_EXEMPT = new Set(["invoice-generator", "markdown-to-pdf"]);
+  const INTAKE_EXEMPT = new Set(["invoice-generator", "markdown-to-pdf", "text-to-pdf"]);
   if (!INTAKE_EXEMPT.has(tool.id)) {
     assert(
       `E.${tool.id} component uses <ToolDropzone> for file intake`,

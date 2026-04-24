@@ -42,6 +42,7 @@ import { EditPdfTool } from "@/components/tools/EditPdfTool";
 import { SignPdfFreeTool } from "@/components/tools/SignPdfFreeTool";
 import { RepairPdfTool } from "@/components/tools/RepairPdfTool";
 import { MarkdownToPdfTool } from "@/components/tools/MarkdownToPdfTool";
+import { TextToPdfTool } from "@/components/tools/TextToPdfTool";
 
 type Params = { params: { id: string } };
 
@@ -87,6 +88,7 @@ const LIVE_TOOL_IDS = new Set<string>([
   "sign-pdf-free",
   "repair-pdf",
   "markdown-to-pdf",
+  "text-to-pdf",
   "ai-summarize",
   "ai-translate",
   "ai-compare",
@@ -297,6 +299,8 @@ function ToolRunner({ id }: { id: string }) {
       return <RepairPdfTool />;
     case "markdown-to-pdf":
       return <MarkdownToPdfTool />;
+    case "text-to-pdf":
+      return <TextToPdfTool />;
     case "ai-summarize":
       return <SummarizePdfTool />;
     case "ai-translate":

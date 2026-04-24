@@ -36,7 +36,8 @@ export type SeoPageSlug =
   | "edit-pdf"
   | "sign-pdf-free"
   | "repair-pdf"
-  | "markdown-to-pdf";
+  | "markdown-to-pdf"
+  | "text-to-pdf";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -751,6 +752,26 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Privacy?", a: "100% client-side. Your markdown and PDF never leave the browser." },
     ],
     related: ["markdown-to-pdf", "to-pdf", "ai-generate", "invoice-generator"],
+  },
+
+  "text-to-pdf": {
+    tool: "text-to-pdf",
+    h1: "Text to PDF — free .txt to .pdf converter, in your browser",
+    sub: "Paste plain text or upload a .txt file, choose a font and page size, download the PDF. No signup, no watermarks.",
+    canonical: "/text-to-pdf",
+    howTo: [
+      { t: "Paste or upload", d: "Drop a .txt file or paste directly into the text area." },
+      { t: "Pick your style", d: "Font (Helvetica / Times / Courier), size (8–24 pt), page size (A4 / Letter / Legal), margin (24–144 pt)." },
+      { t: "Generate and download", d: "Line breaks are preserved; long lines auto-wrap to fit the page. Pages add themselves as needed." },
+    ],
+    faq: [
+      { q: "What's the difference vs. Markdown to PDF?", a: "Markdown to PDF interprets syntax — ** becomes bold, # becomes a header, etc. Text to PDF takes your text literally, no syntax interpretation. Use Text to PDF for logs, code, letters, or any content where you don't want formatting rules applied." },
+      { q: "Will long lines wrap?", a: "Yes — greedy word-wrap against the page width using the exact font metrics. If a single word is wider than the line, it gets clipped; keep lines reasonable." },
+      { q: "Are tabs supported?", a: "Tabs expand to 4 spaces so Courier alignment stays consistent. Consider using Courier + a larger margin for code listings." },
+      { q: "How big can the file be?", a: "5 MB of input text. Larger inputs should be split (the output PDF is roughly 1 page per 40 lines at default settings — keep that in mind for page count)." },
+      { q: "Privacy?", a: "100% client-side. Your text and PDF never leave the browser." },
+    ],
+    related: ["text-to-pdf", "markdown-to-pdf", "to-pdf", "ai-generate"],
   },
 };
 
