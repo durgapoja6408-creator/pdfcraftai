@@ -35,7 +35,8 @@ export type SeoPageSlug =
   | "gst-invoice-generator"
   | "edit-pdf"
   | "sign-pdf-free"
-  | "repair-pdf";
+  | "repair-pdf"
+  | "markdown-to-pdf";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -728,6 +729,28 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Privacy?", a: "100% client-side. pdf-lib parses and re-saves in your browser — nothing uploaded." },
     ],
     related: ["repair-pdf", "compress", "flatten-pdf", "pdf-metadata"],
+  },
+
+  "markdown-to-pdf": {
+    tool: "markdown-to-pdf",
+    h1: "Markdown to PDF — free online .md → .pdf converter",
+    sub: "Paste or upload Markdown, get a polished A4 PDF with headings, bold, italic, lists, and code blocks. 100% in your browser.",
+    canonical: "/markdown-to-pdf",
+    howTo: [
+      { t: "Paste or upload", d: "Drop your .md file or paste content directly. Sample loaded by default so you can see the format." },
+      { t: "We render locally", d: "Minimal inline parser + pdf-lib draws each block with Helvetica body / Helvetica-Bold headers / Courier code. No server round-trip." },
+      { t: "Auto-pagination", d: "A4 with 1-inch margins. New pages spawn automatically when content overflows." },
+      { t: "Download", d: "Save the PDF. No watermarks, no signup, no per-file limits." },
+    ],
+    faq: [
+      { q: "What Markdown is supported?", a: "Headers (# ## ###), paragraphs, **bold**, *italic*, `inline code`, fenced code blocks, unordered (-) and ordered (1.) lists, blockquotes (>), horizontal rules (---), and [links](url) rendered as blue text." },
+      { q: "What's NOT supported?", a: "Tables (pipe syntax) and images (![]()) — both are on the v2 roadmap. HTML passthrough is rendered literally. Need those now? Use AI · Generate for more complex layouts." },
+      { q: "Are links clickable in the output PDF?", a: "Not in v1 — links render as blue text without the /Link annotation needed for click-through. Real hyperlinks are on the v2 list." },
+      { q: "What font is used?", a: "Helvetica for body, Helvetica-Bold for headings, Helvetica-Oblique for italic, Courier for inline/block code. These are PDF standard fonts — no font embedding, so output files stay small." },
+      { q: "Can I upload a .txt file?", a: "Yes — plain text is rendered as a single paragraph. For formatting use actual Markdown syntax." },
+      { q: "Privacy?", a: "100% client-side. Your markdown and PDF never leave the browser." },
+    ],
+    related: ["markdown-to-pdf", "to-pdf", "ai-generate", "invoice-generator"],
   },
 };
 

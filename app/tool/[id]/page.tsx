@@ -41,6 +41,7 @@ import { InvoiceGeneratorTool } from "@/components/tools/InvoiceGeneratorTool";
 import { EditPdfTool } from "@/components/tools/EditPdfTool";
 import { SignPdfFreeTool } from "@/components/tools/SignPdfFreeTool";
 import { RepairPdfTool } from "@/components/tools/RepairPdfTool";
+import { MarkdownToPdfTool } from "@/components/tools/MarkdownToPdfTool";
 
 type Params = { params: { id: string } };
 
@@ -85,6 +86,7 @@ const LIVE_TOOL_IDS = new Set<string>([
   "edit-pdf",
   "sign-pdf-free",
   "repair-pdf",
+  "markdown-to-pdf",
   "ai-summarize",
   "ai-translate",
   "ai-compare",
@@ -293,6 +295,8 @@ function ToolRunner({ id }: { id: string }) {
       return <SignPdfFreeTool />;
     case "repair-pdf":
       return <RepairPdfTool />;
+    case "markdown-to-pdf":
+      return <MarkdownToPdfTool />;
     case "ai-summarize":
       return <SummarizePdfTool />;
     case "ai-translate":

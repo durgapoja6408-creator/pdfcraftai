@@ -171,6 +171,14 @@ const NEW_TOOLS = [
     component: "RepairPdfTool",
     group: "Optimize",
   },
+  // Markdown → PDF: first §1.3 Convert TO PDF client-side ship.
+  // Generator tool — no ToolDropzone (user pastes markdown or
+  // uploads .md), INTAKE_EXEMPT.
+  {
+    id: "markdown-to-pdf",
+    component: "MarkdownToPdfTool",
+    group: "Convert",
+  },
 ];
 
 // =============================================================================
@@ -255,7 +263,7 @@ for (const tool of NEW_TOOLS) {
   );
   // Generator tools (produce a PDF from a form, no file intake) are
   // exempt from the ToolDropzone check — they have nothing to drop.
-  const INTAKE_EXEMPT = new Set(["invoice-generator"]);
+  const INTAKE_EXEMPT = new Set(["invoice-generator", "markdown-to-pdf"]);
   if (!INTAKE_EXEMPT.has(tool.id)) {
     assert(
       `E.${tool.id} component uses <ToolDropzone> for file intake`,
