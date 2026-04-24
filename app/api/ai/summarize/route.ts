@@ -63,6 +63,9 @@ const VALID_DEPTHS: readonly SummarizeDepth[] = [
   "key-points",
   "study-notes",
   "eli5",
+  // Task #53 — FAQ + Blog Post variants (see lib/ai/summarize.ts).
+  "faq",
+  "blog",
 ];
 
 export async function POST(req: Request): Promise<Response> {

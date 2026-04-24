@@ -54,6 +54,8 @@ import {
   KeyPointsPdfTool,
   StudyNotesPdfTool,
   Eli5PdfTool,
+  FaqPdfTool,
+  BlogPostPdfTool,
 } from "@/components/tools/SummarizeVariantTool";
 
 type Params = { params: { id: string } };
@@ -112,6 +114,8 @@ const LIVE_TOOL_IDS = new Set<string>([
   "ai-key-points",
   "ai-study-notes",
   "ai-eli5",
+  "ai-faq",
+  "ai-blog",
   "ai-translate",
   "ai-compare",
   "ai-ocr",
@@ -345,6 +349,10 @@ function ToolRunner({ id }: { id: string }) {
       return <StudyNotesPdfTool />;
     case "ai-eli5":
       return <Eli5PdfTool />;
+    case "ai-faq":
+      return <FaqPdfTool />;
+    case "ai-blog":
+      return <BlogPostPdfTool />;
     case "ai-translate":
       return <TranslatePdfTool />;
     case "ai-compare":

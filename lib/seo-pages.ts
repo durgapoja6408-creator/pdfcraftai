@@ -47,7 +47,9 @@ export type SeoPageSlug =
   | "pdf-tldr"
   | "pdf-key-points"
   | "pdf-to-study-notes"
-  | "explain-pdf";
+  | "explain-pdf"
+  | "generate-faq-from-pdf"
+  | "pdf-to-blog-post";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -968,6 +970,42 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Does it work for legal / medical PDFs?", a: "Yes — plain-language summaries of contracts or lab reports are the top use case. But this is NOT legal or medical advice. Verify with a professional before acting." },
     ],
     related: ["ai-eli5", "ai-summarize", "ai-tldr", "ai-key-points"],
+  },
+
+  "generate-faq-from-pdf": {
+    tool: "ai-faq",
+    h1: "Generate FAQ from PDF — 6–10 Q&A pairs, answers cited",
+    sub: "Auto-extract the likely questions a reader would ask, with answers grounded in the source. 5 credits per PDF.",
+    canonical: "/generate-faq-from-pdf",
+    howTo: [
+      { t: "Drop your PDF", d: "Any document — product spec, policy, research paper." },
+      { t: "We infer + answer", d: "Gemini Flash 2.5 asks what a reader would realistically ask and answers only from the source text." },
+      { t: "Ship it", d: "Use as-is on your help center, in onboarding, or as a review deck. Gaps flagged under 'Not covered'." },
+    ],
+    faq: [
+      { q: "How is this different from Chat with PDF?", a: "Chat with PDF lets YOU ask — one question at a time. FAQ Generator predicts the top 6–10 questions your readers will ask and answers them all at once. Flat-fee 5 credits per doc vs 5 credits / 20 questions on Chat." },
+      { q: "Can I trust the answers?", a: "Answers are grounded in the source and page-cited where possible. Gaps the document doesn't address are flagged under a 'Not covered' section rather than made up." },
+      { q: "Can I edit the output?", a: "Yes — result is Markdown; saved to your Files. Paste into any help-center editor." },
+    ],
+    related: ["ai-faq", "ai-chat", "ai-summarize", "ai-key-points"],
+  },
+
+  "pdf-to-blog-post": {
+    tool: "ai-blog",
+    h1: "PDF to Blog Post — publish-ready article in seconds",
+    sub: "Reformat a whitepaper, report, or research PDF as a blog post with hook, sections, and conclusion. 10 credits per PDF.",
+    canonical: "/pdf-to-blog-post",
+    howTo: [
+      { t: "Drop your PDF", d: "Research report, whitepaper, policy brief, case study." },
+      { t: "We restructure", d: "Title + lede + 3–5 H2 sections with paragraphs and bullets + closing. Factual fidelity preserved — no invented claims." },
+      { t: "Edit to taste + ship", d: "Markdown output; drop straight into WordPress, Ghost, Medium, or any Markdown CMS." },
+    ],
+    faq: [
+      { q: "Does it editorialise?", a: "No — we explicitly instruct the model not to add opinions the source doesn't carry. Numbers, dates, quotes preserved exactly. If you want opinion-pieces, use AI · Rewrite with a tone shift afterwards." },
+      { q: "SEO-optimised?", a: "Structurally yes — H1/H2/H3 hierarchy, natural lead-in, scannable bullets. Keyword targeting isn't automatic — add your own keyword tune-up pass before publishing." },
+      { q: "How long is the output?", a: "~800–1500 words typically; scales with source length. Cap is set to accommodate 3–5 sections with a few paragraphs each." },
+    ],
+    related: ["ai-blog", "ai-rewrite", "ai-summarize", "ai-generate"],
   },
 };
 

@@ -60,7 +60,12 @@ export type SummarizeDepth =
   | "detailed"
   | "key-points"
   | "study-notes"
-  | "eli5";
+  | "eli5"
+  // Task #53 additions:
+  //   faq    §2.1 P1 — extract 6–10 likely Q&A pairs (5 credits)
+  //   blog   §2.4 P1 — reformat content as a blog post (10 credits)
+  | "faq"
+  | "blog";
 
 export interface SummarizeInput {
   /** Extracted PDF text, pages joined with `\f`. */
@@ -337,6 +342,36 @@ function buildSystemPrompt(opts: {
           "as `## The Big Idea` (one paragraph), `## The Details` (4–8 short " +
           "bullets in plain language), `## Why It Matters` (one paragraph)."
         );
+      case "faq":
+        // §2.1 Generate FAQ. Extract the questions a careful reader
+        // would actually ask, paired with answers grounded in the doc.
+        return (
+          "Generate a FAQ from this document. Infer 6–10 questions a " +
+          "reader would realistically ask based on what the document " +
+          "covers, then answer each using only information present in " +
+          "the source (cite pages). Format as Markdown: a single `## FAQ` " +
+          "H2, then for each pair an H3 with the question verbatim, " +
+          "followed by a short-paragraph answer under it. Do NOT invent " +
+          "questions the document doesn't actually address; if there's a " +
+          "gap a reader would want filled, put that under a final " +
+          "`### Not covered in this document` section listing the gaps."
+        );
+      case "blog":
+        // §2.4 PDF → Blog Post. Reformat for a general audience with
+        // a blog-appropriate structure. Fidelity rules still apply;
+        // the blog post should not add opinions the source doesn't carry.
+        return (
+          "Reformat this document as a blog post for a general-audience " +
+          "web reader. Structure: a compelling H1 title, one-paragraph " +
+          "lede (the hook), 3–5 H2 sections that progress the narrative " +
+          "(each with 2–4 paragraphs + relevant bullet lists where they " +
+          "help), and a short conclusion under `## Wrapping up` or " +
+          "similar. Tone: informed and direct; no corporate voice, no " +
+          "click-bait. Preserve numeric precision and factual claims " +
+          "from the source exactly; do not editorialise or add opinions " +
+          "the document does not carry. Page citations optional but " +
+          "encouraged when making specific claims."
+        );
     }
   })();
 
@@ -388,6 +423,10 @@ function buildUserPrompt(opts: { depth: SummarizeDepth; text: string }): string 
         return "Produce study notes";
       case "eli5":
         return "Explain this";
+      case "faq":
+        return "Generate the FAQ";
+      case "blog":
+        return "Reformat this as a blog post";
       case "standard":
       case "detailed":
       default:

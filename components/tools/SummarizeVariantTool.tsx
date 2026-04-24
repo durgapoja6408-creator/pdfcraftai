@@ -20,7 +20,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
 
-type Depth = "key-points" | "study-notes" | "eli5";
+type Depth = "key-points" | "study-notes" | "eli5" | "faq" | "blog";
 
 type Result = {
   fileId?: string;
@@ -321,6 +321,38 @@ export function Eli5PdfTool() {
       successTitle="Plain-language explanation ready"
       pricingBlurb="Plain-language explanation — big idea, simple bullets, why it matters. 3 credits per PDF."
       relatedHref={{ href: "/tool/ai-summarize", label: "AI · Summarize (formal voice)" }}
+    />
+  );
+}
+
+export function FaqPdfTool() {
+  return (
+    <SummarizeVariantTool
+      depth="faq"
+      toolId="ai-faq"
+      callbackUrl="/tool/ai-faq"
+      prompt="Drop a PDF to generate a FAQ from it"
+      runLabel="Generate FAQ"
+      busyLabel="Generating…"
+      successTitle="FAQ ready"
+      pricingBlurb="6–10 Q&A pairs inferred from the document. Each answer grounded in the source with page citations. Gaps flagged under 'Not covered'. 5 credits per PDF."
+      relatedHref={{ href: "/tool/ai-chat", label: "Chat with PDF (ask your own questions)" }}
+    />
+  );
+}
+
+export function BlogPostPdfTool() {
+  return (
+    <SummarizeVariantTool
+      depth="blog"
+      toolId="ai-blog"
+      callbackUrl="/tool/ai-blog"
+      prompt="Drop a PDF to reformat as a blog post"
+      runLabel="Generate blog post"
+      busyLabel="Writing…"
+      successTitle="Blog post draft ready"
+      pricingBlurb="Full blog-post structure — title, lede, 3–5 H2 sections, conclusion. Factual fidelity preserved. 10 credits per PDF."
+      relatedHref={{ href: "/tool/ai-rewrite", label: "AI · Rewrite (tone + voice shifts)" }}
     />
   );
 }

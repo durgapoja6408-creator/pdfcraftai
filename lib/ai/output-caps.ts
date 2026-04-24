@@ -172,6 +172,9 @@ export const OP_OUTPUT_CAP_TABLE: CapTable = {
     "key-points": 800,
     "study-notes": 2400,
     eli5: 1000,
+    // Task #53:
+    faq: 1500, // 6-10 Q&A pairs with short-paragraph answers.
+    blog: 1800, // Full-article structure needs headroom for 3-5 sections.
   },
 
   // Compare produces a side-by-side diff narrative. 4000 is
