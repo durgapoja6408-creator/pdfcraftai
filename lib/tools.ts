@@ -23,6 +23,12 @@ export const TOOLS: readonly Tool[] = [
   { id: "pdf-to-office", name: "PDF to Word/Excel/PPT", desc: "Convert PDFs into editable Office files.", icon: "Convert", free: true, group: "Convert" },
   { id: "to-pdf", name: "Word/Image to PDF", desc: "Turn any file into a polished PDF.", icon: "Image", free: true, group: "Convert" },
   { id: "rotate", name: "Rotate & Reorder", desc: "Fix orientation and rearrange pages.", icon: "Rotate", free: true, group: "Organize" },
+  { id: "extract-pages", name: "Extract Pages", desc: "Pick specific pages into a new PDF.", icon: "Pages", free: true, group: "Organize" },
+  { id: "delete-pages", name: "Delete Pages", desc: "Remove pages from a PDF.", icon: "Pages", free: true, group: "Organize" },
+  { id: "pdf-to-jpg", name: "PDF to JPG/PNG", desc: "Export every page as a high-res image.", icon: "Image", free: true, group: "Convert" },
+  { id: "extract-images", name: "Extract Images", desc: "Pull every embedded image out of a PDF.", icon: "Image", free: true, group: "Convert" },
+  { id: "page-count", name: "Page & Word Count", desc: "Instant stats for any PDF.", icon: "Pages", free: true, group: "Edit" },
+  { id: "pdf-metadata", name: "PDF Metadata Editor", desc: "Read, edit, or strip title / author / subject.", icon: "Edit", free: true, group: "Edit" },
   { id: "page-numbers", name: "Page Numbers & Watermark", desc: "Add headers, footers, and watermarks.", icon: "Pages", free: true, group: "Edit" },
   { id: "protect", name: "Unlock / Protect PDF", desc: "Add or remove passwords and permissions.", icon: "Lock", free: true, group: "Security" },
 

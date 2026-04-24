@@ -459,6 +459,18 @@ const SUITES = [
     name: "razorpay-handoff",
     file: "test-razorpay-handoff.mjs",
   },
+  // tier1-expansion pins the 6-tool Tier-1 expansion from
+  // 2026-04-24 (extract-pages, delete-pages, pdf-to-jpg,
+  // extract-images, page-count, pdf-metadata). Catches registry /
+  // dispatcher / LIVE_TOOL_IDS / switch-case drift that would
+  // silently render a "coming soon" placeholder instead of the real
+  // tool. Also pins the privacy invariant: no free Tier-1 tool may
+  // fetch(/api/...) — the reassurance copy on /tool/{id} depends on
+  // it.
+  {
+    name: "tier1-expansion",
+    file: "test-tier1-expansion.mjs",
+  },
   // billing-pending-ageout pins Task #23 — /app/billing shows "Expired"
   // (muted) for payments.status="pending" rows older than 30 min. Razorpay
   // doesn't fire webhooks for orders that never had a payment attempt;

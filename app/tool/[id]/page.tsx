@@ -20,6 +20,12 @@ import { PageNumbersTool } from "@/components/tools/PageNumbersTool";
 import { ImageToPdfTool } from "@/components/tools/ImageToPdfTool";
 import { ProtectPdfTool } from "@/components/tools/ProtectPdfTool";
 import { PdfToOfficeTool } from "@/components/tools/PdfToOfficeTool";
+import { ExtractPagesTool } from "@/components/tools/ExtractPagesTool";
+import { DeletePagesTool } from "@/components/tools/DeletePagesTool";
+import { PdfToJpgTool } from "@/components/tools/PdfToJpgTool";
+import { ExtractImagesTool } from "@/components/tools/ExtractImagesTool";
+import { PageCountTool } from "@/components/tools/PageCountTool";
+import { PdfMetadataTool } from "@/components/tools/PdfMetadataTool";
 
 type Params = { params: { id: string } };
 
@@ -40,6 +46,15 @@ const LIVE_TOOL_IDS = new Set<string>([
   "to-pdf",
   "protect",
   "pdf-to-office",
+  // Tier 1 P0 expansion — all 6 are client-side (pdf-lib + pdfjs-dist),
+  // so they still qualify for the "stays in your browser" reassurance
+  // copy. The ToolRunner switch below maps each id to its component.
+  "extract-pages",
+  "delete-pages",
+  "pdf-to-jpg",
+  "extract-images",
+  "page-count",
+  "pdf-metadata",
   "ai-summarize",
   "ai-translate",
   "ai-compare",
@@ -206,6 +221,18 @@ function ToolRunner({ id }: { id: string }) {
       return <ProtectPdfTool />;
     case "pdf-to-office":
       return <PdfToOfficeTool />;
+    case "extract-pages":
+      return <ExtractPagesTool />;
+    case "delete-pages":
+      return <DeletePagesTool />;
+    case "pdf-to-jpg":
+      return <PdfToJpgTool />;
+    case "extract-images":
+      return <ExtractImagesTool />;
+    case "page-count":
+      return <PageCountTool />;
+    case "pdf-metadata":
+      return <PdfMetadataTool />;
     case "ai-summarize":
       return <SummarizePdfTool />;
     case "ai-translate":
