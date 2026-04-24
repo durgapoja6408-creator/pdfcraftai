@@ -105,7 +105,12 @@ export type SummarizeDepth =
   // Task #59:
   //   mindmap §2.4 P1 — hierarchical tree, rendered as
   //   collapsible nested outline (10c)
-  | "mindmap";
+  | "mindmap"
+  // Task #60:
+  //   semantic-search §2.1 P1 — return passages relevant to a
+  //   user-provided query. Route reads `query` form field and
+  //   threads it through SummarizeInput. (2c per search)
+  | "semantic-search";
 
 export interface SummarizeInput {
   /** Extracted PDF text, pages joined with `\f`. */
@@ -134,6 +139,13 @@ export interface SummarizeInput {
    * `promptVersion` / `experimentId` fields on `SummarizeResult`.
    */
   userId?: string | null;
+  /**
+   * Task #60 — optional search query for `depth: "semantic-search"`.
+   * Ignored by every other depth. When present the buildUserPrompt
+   * branch wraps it and prepends a short instruction so the model
+   * scopes its output to passages relevant to the query.
+   */
+  query?: string;
 }
 
 export interface SummarizeResult {
@@ -247,6 +259,7 @@ export async function summarizePdf(input: SummarizeInput): Promise<SummarizeResu
   const userPrompt = buildUserPrompt({
     depth: input.depth,
     text: truncatedText,
+    query: input.query,
   });
 
   const result = await runChat(provider, {
@@ -684,6 +697,24 @@ function buildSystemPrompt(opts: {
           "or concept. If a node has no children, omit the " +
           "`children` key or use an empty array."
         );
+      case "semantic-search":
+        // §2.1 Semantic Search. Returns JSON list of relevant
+        // passages. The user's query is passed via the user-turn
+        // as <search_query>…</search_query> — see buildUserPrompt.
+        return (
+          "Return the passages from this document that are most " +
+          "relevant to the user's search query (provided in the " +
+          "user turn). Output ONLY a ```json fenced code block " +
+          "containing an array of 3–8 objects, each shaped " +
+          "{\"passage\": \"verbatim quote from the document, " +
+          "1-3 sentences\", \"page\": integer, \"relevance\": " +
+          "\"one line explaining why this matches the query\"}. " +
+          "Order by relevance (most relevant first). Only return " +
+          "passages that genuinely match — if the document " +
+          "doesn't address the query at all, return an empty " +
+          "array `[]`. Do NOT paraphrase the source; the passage " +
+          "field must be a verbatim quote."
+        );
     }
   })();
 
@@ -721,7 +752,11 @@ function buildSystemPrompt(opts: {
   );
 }
 
-function buildUserPrompt(opts: { depth: SummarizeDepth; text: string }): string {
+function buildUserPrompt(opts: {
+  depth: SummarizeDepth;
+  text: string;
+  query?: string;
+}): string {
   // Kept per-depth so the "verb" in the user turn matches what the
   // system prompt's depthLine actually asked for. Drift here →
   // doubled instructions / conflicted outputs.
@@ -771,12 +806,25 @@ function buildUserPrompt(opts: { depth: SummarizeDepth; text: string }): string 
         return "Generate a multiple-choice quiz";
       case "mindmap":
         return "Build a mind map";
+      case "semantic-search":
+        return "Return the relevant passages for this query";
       case "standard":
       case "detailed":
       default:
         return "Summarize in full per the instructions above";
     }
   })();
+  // Task #60: for semantic-search, prepend the user's query to the
+  // user turn. Wrapped in a clearly-labelled section so the model
+  // doesn't confuse the query for document text.
+  if (opts.depth === "semantic-search" && opts.query) {
+    return (
+      `${verb}. The user's query follows inside the search_query tag, ` +
+      `and the document text follows inside the untrusted_input tag.\n\n` +
+      `<search_query>\n${opts.query.slice(0, 500)}\n</search_query>\n\n` +
+      wrapUntrustedInput(opts.text, { sourceLabel: "pdf_text" })
+    );
+  }
   // Task #26: wrap untrusted PDF text in sentinel tags. See prompt-safety.ts.
   return (
     `${verb}. The document text follows inside the untrusted_input tag.\n\n` +

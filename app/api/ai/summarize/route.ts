@@ -88,6 +88,8 @@ const VALID_DEPTHS: readonly SummarizeDepth[] = [
   "quiz",
   // Task #59:
   "mindmap",
+  // Task #60:
+  "semantic-search",
 ];
 
 export async function POST(req: Request): Promise<Response> {
@@ -130,6 +132,20 @@ export async function POST(req: Request): Promise<Response> {
     });
   }
   const depth = depthRaw as SummarizeDepth;
+
+  // Task #60 — optional semantic-search query. Only read when the
+  // depth is semantic-search; other depths silently ignore any
+  // query value. Cap at 500 chars to bound prompt size and avoid
+  // model-side prompt-injection surface.
+  const queryRaw = stringField(form, "query") ?? "";
+  const query =
+    depth === "semantic-search" ? queryRaw.slice(0, 500).trim() : "";
+  if (depth === "semantic-search" && !query) {
+    return json(400, {
+      error: "bad_request",
+      detail: "semantic-search requires a non-empty `query` form field",
+    });
+  }
 
   // Read the PDF once into a buffer. We need it for hashing AND extraction.
   const pdfBytes = new Uint8Array(await pdfFile.arrayBuffer());
@@ -247,6 +263,8 @@ export async function POST(req: Request): Promise<Response> {
       // same person resolve to the same variant, which is a
       // precondition for any meaningful cost/quality delta measurement.
       userId,
+      // Task #60 — semantic-search query (empty string for other depths).
+      query: query || undefined,
     });
   } catch (err) {
     await refundCredits({

@@ -75,6 +75,7 @@ import {
   QuizPdfTool,
 } from "@/components/tools/StructuredVariantTool";
 import { MindmapPdfTool } from "@/components/tools/MindmapPdfTool";
+import { SemanticSearchPdfTool } from "@/components/tools/SemanticSearchPdfTool";
 
 type Params = { params: { id: string } };
 
@@ -150,6 +151,7 @@ const LIVE_TOOL_IDS = new Set<string>([
   "ai-flashcards",
   "ai-quiz",
   "ai-mindmap",
+  "ai-semantic-search",
   "ai-translate",
   "ai-compare",
   "ai-ocr",
@@ -419,6 +421,8 @@ function ToolRunner({ id }: { id: string }) {
       return <QuizPdfTool />;
     case "ai-mindmap":
       return <MindmapPdfTool />;
+    case "ai-semantic-search":
+      return <SemanticSearchPdfTool />;
     case "ai-translate":
       return <TranslatePdfTool />;
     case "ai-compare":

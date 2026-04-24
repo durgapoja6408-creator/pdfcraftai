@@ -197,6 +197,8 @@ export const OP_OUTPUT_CAP_TABLE: CapTable = {
     quiz: 2500, // 6-12 MCQs with 4 options + explanation each.
     // Task #59:
     mindmap: 2000, // JSON tree, labels are short so 2000 fits deep docs.
+    // Task #60:
+    "semantic-search": 1500, // 3-8 passages, each with 1-3 sentence quotes.
   },
 
   // Compare produces a side-by-side diff narrative. 4000 is
