@@ -191,6 +191,9 @@ const NEW_TOOLS = [
   { id: "pdf-to-html", component: "PdfToHtmlTool", group: "Convert" },
   { id: "extract-form-data", component: "ExtractFormDataTool", group: "Edit" },
   { id: "sort-pages", component: "SortPagesTool", group: "Organize" },
+  // Tier 2 §2.7 heuristic batch — regex-based extraction.
+  { id: "extract-contacts", component: "ExtractContactsTool", group: "Convert" },
+  { id: "extract-dates", component: "ExtractDatesTool", group: "Convert" },
 ];
 
 // =============================================================================

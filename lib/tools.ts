@@ -50,6 +50,8 @@ export const TOOLS: readonly Tool[] = [
   { id: "pdf-to-html", name: "PDF to HTML", desc: "Self-contained .html file with inline CSS. Heuristic heading detection.", icon: "Convert", free: true, group: "Convert" },
   { id: "extract-form-data", name: "Extract Form Data", desc: "Pull AcroForm field values as CSV or JSON.", icon: "Pages", free: true, group: "Edit" },
   { id: "sort-pages", name: "Sort Pages", desc: "Drag thumbnails to reorder a PDF's pages visually.", icon: "Pages", free: true, group: "Organize" },
+  { id: "extract-contacts", name: "Extract Emails, Phones, URLs", desc: "Regex-based extraction of contact info from text PDFs. CSV and vCard export.", icon: "Search", free: true, group: "Convert" },
+  { id: "extract-dates", name: "Extract Dates → Calendar", desc: "Find every date in a PDF and download as an .ics calendar file.", icon: "Clock", free: true, group: "Convert" },
   { id: "page-numbers", name: "Page Numbers & Watermark", desc: "Add headers, footers, and watermarks.", icon: "Pages", free: true, group: "Edit" },
   { id: "protect", name: "Unlock / Protect PDF", desc: "Add or remove passwords and permissions.", icon: "Lock", free: true, group: "Security" },
 

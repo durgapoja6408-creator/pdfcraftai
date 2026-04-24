@@ -47,6 +47,8 @@ import { PdfToMarkdownTool } from "@/components/tools/PdfToMarkdownTool";
 import { PdfToHtmlTool } from "@/components/tools/PdfToHtmlTool";
 import { ExtractFormDataTool } from "@/components/tools/ExtractFormDataTool";
 import { SortPagesTool } from "@/components/tools/SortPagesTool";
+import { ExtractContactsTool } from "@/components/tools/ExtractContactsTool";
+import { ExtractDatesTool } from "@/components/tools/ExtractDatesTool";
 
 type Params = { params: { id: string } };
 
@@ -97,6 +99,8 @@ const LIVE_TOOL_IDS = new Set<string>([
   "pdf-to-html",
   "extract-form-data",
   "sort-pages",
+  "extract-contacts",
+  "extract-dates",
   "ai-summarize",
   "ai-translate",
   "ai-compare",
@@ -317,6 +321,10 @@ function ToolRunner({ id }: { id: string }) {
       return <ExtractFormDataTool />;
     case "sort-pages":
       return <SortPagesTool />;
+    case "extract-contacts":
+      return <ExtractContactsTool />;
+    case "extract-dates":
+      return <ExtractDatesTool />;
     case "ai-summarize":
       return <SummarizePdfTool />;
     case "ai-translate":

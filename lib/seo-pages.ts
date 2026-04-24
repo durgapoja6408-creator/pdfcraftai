@@ -41,7 +41,9 @@ export type SeoPageSlug =
   | "pdf-to-markdown"
   | "pdf-to-html"
   | "extract-pdf-form-data"
-  | "reorder-pdf-pages";
+  | "reorder-pdf-pages"
+  | "extract-emails-from-pdf"
+  | "pdf-to-ics-calendar";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -849,6 +851,44 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Privacy?", a: "100% client-side." },
     ],
     related: ["sort-pages", "rotate", "extract-pages", "delete-pages"],
+  },
+
+  "extract-emails-from-pdf": {
+    tool: "extract-contacts",
+    h1: "Extract emails, phones, URLs from a PDF — free, client-side",
+    sub: "Regex-based contact extraction from any text-based PDF. CSV and vCard downloads. No signup, no AI credits.",
+    canonical: "/extract-emails-from-pdf",
+    howTo: [
+      { t: "Drop your PDF", d: "Parsed locally via pdfjs — never uploaded." },
+      { t: "Review the table", d: "Every email, phone, and URL found, with the source page." },
+      { t: "Download CSV or vCard", d: "CSV for spreadsheets; vCard for address-book imports." },
+    ],
+    faq: [
+      { q: "Does it work on scans?", a: "No — scanned / image-only PDFs produce no text. Run AI · OCR first, then come back." },
+      { q: "What about obfuscated emails?", a: "This is regex-based, so patterns like \"jane (at) example (dot) com\" or text-as-image are missed. For those, the paid AI version handles obfuscation." },
+      { q: "How are phone numbers detected?", a: "A practical 10–15 digit pattern that covers common international formats and Indian 10-digit numbers. Sequences like page numbers or ISBN fragments with 8+ identical digits are filtered out." },
+      { q: "Privacy?", a: "100% client-side. Your PDF never leaves the browser." },
+    ],
+    related: ["extract-contacts", "ai-redact", "pdf-to-text", "remove-metadata"],
+  },
+
+  "pdf-to-ics-calendar": {
+    tool: "extract-dates",
+    h1: "PDF to .ics calendar — extract every date into your calendar",
+    sub: "Find every date in a PDF (schedules, contracts, syllabi) and download an .ics file importable into Google Calendar / Apple Calendar / Outlook.",
+    canonical: "/pdf-to-ics-calendar",
+    howTo: [
+      { t: "Drop your PDF", d: "Text extracted locally via pdfjs." },
+      { t: "Dates regex'd + normalised", d: "Supports ISO (2026-04-24), slashes (24/04/2026), named months (24 April 2026). Day-first vs month-first toggle for ambiguous cases." },
+      { t: "Download .ics or CSV", d: "Each date becomes an all-day VEVENT with surrounding context as the SUMMARY." },
+    ],
+    faq: [
+      { q: "Day-first vs month-first?", a: "\"04/05/2026\" is ambiguous — Indian/EU reads it as 4 May; US reads it as April 5. Toggle in the UI; default is day-first (Indian convention)." },
+      { q: "What about contextual dates?", a: "Phrases like \"next Tuesday\" or \"the first Monday of March\" need the paid AI version — regex only matches literal date strings." },
+      { q: "Which calendars accept the .ics?", a: "Any standards-compliant app: Google Calendar (File → Import), Apple Calendar (drag .ics onto the app), Outlook, Fastmail, Proton Calendar." },
+      { q: "Privacy?", a: "100% client-side — nothing uploaded." },
+    ],
+    related: ["extract-dates", "pdf-to-text", "ai-summarize", "page-count"],
   },
 };
 
