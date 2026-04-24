@@ -481,6 +481,19 @@ const SUITES = [
     name: "tier1-expansion",
     file: "test-tier1-expansion.mjs",
   },
+  // schema-drift pins Task #28 — the migration-drift boot-time guard.
+  // After the errno-150 incident on 0009, we learned migrations can
+  // silently fail to land on Hostinger-managed MariaDB. lib/db/schema-
+  // drift.ts introspects Drizzle's schema via getTableConfig and diffs
+  // against information_schema.COLUMNS; /api/health?drift=1 and
+  // /admin/deploy surface the report. This static-analysis test pins
+  // the module surface, the health-route wiring (gated behind ?drift=1,
+  // never flips ok), and the admin-deploy inline renderer. 17
+  // assertions — if a refactor breaks any hinge the guard goes silent.
+  {
+    name: "schema-drift",
+    file: "test-schema-drift.mjs",
+  },
   // billing-pending-ageout pins Task #23 — /app/billing shows "Expired"
   // (muted) for payments.status="pending" rows older than 30 min. Razorpay
   // doesn't fire webhooks for orders that never had a payment attempt;

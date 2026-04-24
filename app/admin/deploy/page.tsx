@@ -19,12 +19,18 @@ import {
   Th,
   tableStyle,
 } from "@/components/admin/ui";
+import { detectSchemaDrift } from "@/lib/db/schema-drift";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export default async function AdminDeployPage() {
   const snap = getDeploySnapshot();
+  // Drift probe — cheap (one information_schema query) and critical:
+  // after the errno-150 incident on 0009, a silently-dropped migration
+  // is the #1 risk. Render the report inline so post-deploy verification
+  // is a single page load. `detectSchemaDrift` never throws.
+  const drift = await detectSchemaDrift();
 
   const githubRepo = "durgapoja6408-creator/pdfcraftai";
   const commitShort = snap.commitSha ? snap.commitSha.slice(0, 7) : null;
@@ -166,6 +172,87 @@ export default async function AdminDeployPage() {
           numbers you see here are exactly what the nightly margin cron will
           use tonight.
         </p>
+      </section>
+
+      <section style={{ marginTop: 24 }}>
+        <SectionTitle>Schema drift</SectionTitle>
+        <div
+          className="card"
+          style={{
+            padding: 16,
+            borderColor: drift.ok ? undefined : "var(--red)",
+            background: drift.ok ? undefined : "var(--red-soft, #fff3f3)",
+          }}
+        >
+          {drift.error ? (
+            <>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>
+                Drift probe errored
+              </div>
+              <code style={{ fontSize: 12, color: "var(--red)" }}>
+                {drift.error}
+              </code>
+            </>
+          ) : drift.ok ? (
+            <div style={{ fontSize: 14 }}>
+              <span style={{ color: "var(--green, #0a7a2a)", fontWeight: 600 }}>
+                OK
+              </span>{" "}
+              — all {drift.expectedTableCount} expected tables match the live
+              schema on <code>{drift.databaseName}</code>.
+            </div>
+          ) : (
+            <>
+              <div
+                style={{
+                  fontWeight: 600,
+                  marginBottom: 10,
+                  color: "var(--red)",
+                }}
+              >
+                Drift detected — a migration may not have landed on{" "}
+                <code>{drift.databaseName}</code>.
+              </div>
+              {drift.missingTables.length > 0 && (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 13, marginBottom: 4 }}>
+                    Missing tables ({drift.missingTables.length}):
+                  </div>
+                  <code style={{ fontSize: 12 }}>
+                    {drift.missingTables.join(", ")}
+                  </code>
+                </div>
+              )}
+              {drift.driftedTables.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 13, marginBottom: 4 }}>
+                    Tables missing columns ({drift.driftedTables.length}):
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12 }}>
+                    {drift.driftedTables.map((d) => (
+                      <li key={d.tableName}>
+                        <code>{d.tableName}</code>:{" "}
+                        <code>{d.missingColumns.join(", ")}</code>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <p className="muted" style={{ marginTop: 12, fontSize: 12 }}>
+                Apply the outstanding migration from{" "}
+                <code>db/migrations/</code> via SSH + <code>mysql</code> client
+                (per CLAUDE.md §6). Migrations are hand-applied because of the
+                errno-150 FK-repair incident on 0009.
+              </p>
+            </>
+          )}
+          <p
+            className="muted"
+            style={{ marginTop: 12, fontSize: 11, letterSpacing: "0.04em" }}
+          >
+            Checked at {drift.checkedAt}
+          </p>
+        </div>
       </section>
     </div>
   );

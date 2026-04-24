@@ -1,10 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { listConfiguredProviderIds } from "@/lib/ai/registry";
 import { currentPolicySnapshot } from "@/lib/ai/router";
 import type { AIOp } from "@/lib/ai/router";
 import type { AIProviderId } from "@/lib/ai/types";
+import {
+  detectSchemaDrift,
+  type SchemaDriftReport,
+} from "@/lib/db/schema-drift";
 
 /**
  * Liveness + readiness health probe.
@@ -111,7 +115,7 @@ function probeAi(): {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const ts = new Date().toISOString();
   const dbStart = Date.now();
   let dbOk = false;
@@ -131,13 +135,27 @@ export async function GET() {
 
   const ai = probeAi();
 
+  // Migration-drift probe — opt-in via `?drift=1`. We don't run it on
+  // every Cloudflare health ping (extra round-trip + information_schema
+  // scan) and drift NEVER flips `ok` — liveness gates on DB ping only.
+  // /admin/deploy and release scripts call with `?drift=1` to surface
+  // the report; Task #28 / CLAUDE.md §6.
+  let schemaDrift: SchemaDriftReport | undefined;
+  if (dbOk && req.nextUrl.searchParams.get("drift") === "1") {
+    schemaDrift = await detectSchemaDrift();
+  }
+
   const body = {
     ok: dbOk,
     service: SERVICE,
     commit: COMMIT_SHA ? COMMIT_SHA.slice(0, 12) : null,
     uptimeSec: Math.floor((Date.now() - STARTED_AT) / 1000),
     db: dbOk
-      ? { ok: true, latencyMs: dbLatency }
+      ? {
+          ok: true,
+          latencyMs: dbLatency,
+          ...(schemaDrift ? { schemaDrift } : {}),
+        }
       : { ok: false, error: dbError ?? "unknown" },
     ai,
     ts,
