@@ -46,6 +46,10 @@ export const TOOLS: readonly Tool[] = [
   { id: "repair-pdf", name: "Repair PDF", desc: "Fix broken xref, rebuild page tree, and recompress streams.", icon: "Shield", free: true, group: "Optimize" },
   { id: "markdown-to-pdf", name: "Markdown to PDF", desc: "Turn .md notes into a polished A4 PDF with headings, lists, and code blocks.", icon: "Convert", free: true, group: "Convert" },
   { id: "text-to-pdf", name: "Text to PDF", desc: "Paste or upload plain text and download a clean PDF. Font, size, margins are yours.", icon: "Convert", free: true, group: "Convert" },
+  { id: "pdf-to-markdown", name: "PDF to Markdown", desc: "Heuristic conversion — detects headings by font size, preserves bold.", icon: "Convert", free: true, group: "Convert" },
+  { id: "pdf-to-html", name: "PDF to HTML", desc: "Self-contained .html file with inline CSS. Heuristic heading detection.", icon: "Convert", free: true, group: "Convert" },
+  { id: "extract-form-data", name: "Extract Form Data", desc: "Pull AcroForm field values as CSV or JSON.", icon: "Pages", free: true, group: "Edit" },
+  { id: "sort-pages", name: "Sort Pages", desc: "Drag thumbnails to reorder a PDF's pages visually.", icon: "Pages", free: true, group: "Organize" },
   { id: "page-numbers", name: "Page Numbers & Watermark", desc: "Add headers, footers, and watermarks.", icon: "Pages", free: true, group: "Edit" },
   { id: "protect", name: "Unlock / Protect PDF", desc: "Add or remove passwords and permissions.", icon: "Lock", free: true, group: "Security" },
 

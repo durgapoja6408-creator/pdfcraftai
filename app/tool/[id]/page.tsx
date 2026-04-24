@@ -43,6 +43,10 @@ import { SignPdfFreeTool } from "@/components/tools/SignPdfFreeTool";
 import { RepairPdfTool } from "@/components/tools/RepairPdfTool";
 import { MarkdownToPdfTool } from "@/components/tools/MarkdownToPdfTool";
 import { TextToPdfTool } from "@/components/tools/TextToPdfTool";
+import { PdfToMarkdownTool } from "@/components/tools/PdfToMarkdownTool";
+import { PdfToHtmlTool } from "@/components/tools/PdfToHtmlTool";
+import { ExtractFormDataTool } from "@/components/tools/ExtractFormDataTool";
+import { SortPagesTool } from "@/components/tools/SortPagesTool";
 
 type Params = { params: { id: string } };
 
@@ -89,6 +93,10 @@ const LIVE_TOOL_IDS = new Set<string>([
   "repair-pdf",
   "markdown-to-pdf",
   "text-to-pdf",
+  "pdf-to-markdown",
+  "pdf-to-html",
+  "extract-form-data",
+  "sort-pages",
   "ai-summarize",
   "ai-translate",
   "ai-compare",
@@ -301,6 +309,14 @@ function ToolRunner({ id }: { id: string }) {
       return <MarkdownToPdfTool />;
     case "text-to-pdf":
       return <TextToPdfTool />;
+    case "pdf-to-markdown":
+      return <PdfToMarkdownTool />;
+    case "pdf-to-html":
+      return <PdfToHtmlTool />;
+    case "extract-form-data":
+      return <ExtractFormDataTool />;
+    case "sort-pages":
+      return <SortPagesTool />;
     case "ai-summarize":
       return <SummarizePdfTool />;
     case "ai-translate":

@@ -186,6 +186,11 @@ const NEW_TOOLS = [
     component: "TextToPdfTool",
     group: "Convert",
   },
+  // Wave 4 batch — the 4 remaining client-side Tier 1 P1 tools.
+  { id: "pdf-to-markdown", component: "PdfToMarkdownTool", group: "Convert" },
+  { id: "pdf-to-html", component: "PdfToHtmlTool", group: "Convert" },
+  { id: "extract-form-data", component: "ExtractFormDataTool", group: "Edit" },
+  { id: "sort-pages", component: "SortPagesTool", group: "Organize" },
 ];
 
 // =============================================================================

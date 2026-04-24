@@ -37,7 +37,11 @@ export type SeoPageSlug =
   | "sign-pdf-free"
   | "repair-pdf"
   | "markdown-to-pdf"
-  | "text-to-pdf";
+  | "text-to-pdf"
+  | "pdf-to-markdown"
+  | "pdf-to-html"
+  | "extract-pdf-form-data"
+  | "reorder-pdf-pages";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -772,6 +776,79 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Privacy?", a: "100% client-side. Your text and PDF never leave the browser." },
     ],
     related: ["text-to-pdf", "markdown-to-pdf", "to-pdf", "ai-generate"],
+  },
+
+  "pdf-to-markdown": {
+    tool: "pdf-to-markdown",
+    h1: "PDF to Markdown — free, heuristic conversion in your browser",
+    sub: "Drop a PDF, get a .md file. Headings detected by font size, bold runs preserved. No AI credits needed.",
+    canonical: "/pdf-to-markdown",
+    howTo: [
+      { t: "Drop your PDF", d: "Parsed locally via pdfjs — no upload." },
+      { t: "We extract text + metadata", d: "Each text run's font size and weight. Top sizes become # H1 / ## H2 / ### H3." },
+      { t: "Download the .md file", d: "Preview visible inline; full file downloadable." },
+    ],
+    faq: [
+      { q: "How does heading detection work?", a: "We build a font-size histogram. The most-common size is body text; anything ≥1.25× body becomes H3, ≥1.6× becomes H2, ≥2× becomes H1. Works well on well-typeset documents." },
+      { q: "What about tables?", a: "Tables lose fidelity — this is a heuristic, not AI. Complex layouts (multi-column, tables, figures) come out as sequential text. For higher-quality conversion, use AI · Rewrite chained with OCR." },
+      { q: "Does it do OCR?", a: "No — scanned / image-only PDFs produce no text. Run AI · OCR first to convert the scan to a text-based PDF, then come back." },
+      { q: "Privacy?", a: "100% client-side — nothing uploaded." },
+    ],
+    related: ["pdf-to-markdown", "pdf-to-text", "ai-ocr", "ai-rewrite"],
+  },
+
+  "pdf-to-html": {
+    tool: "pdf-to-html",
+    h1: "PDF to HTML — free self-contained .html converter",
+    sub: "Single-file HTML with inline CSS, heuristic heading detection, browser-ready output. In your browser.",
+    canonical: "/pdf-to-html",
+    howTo: [
+      { t: "Drop your PDF", d: "Parsed via pdfjs — never uploaded." },
+      { t: "We build a self-contained .html", d: "Inline CSS, Helvetica default, H1/H2/H3 detected by font size, <strong> for bold runs, <hr> between pages." },
+      { t: "Download and open", d: "Works in any browser. No external stylesheets, no CDN dependencies." },
+    ],
+    faq: [
+      { q: "Can I edit the result?", a: "Yes — the HTML uses standard tags (h1/h2/h3/p/strong) and inline styles. Drop it into a wiki, CMS, or editor of choice." },
+      { q: "Does it preserve tables and images?", a: "Tables and images are not supported in v1 — text only. For richer output use AI · OCR (for images) or the paid AI · Rewrite." },
+      { q: "Privacy?", a: "100% client-side." },
+    ],
+    related: ["pdf-to-html", "pdf-to-markdown", "pdf-to-text", "ai-rewrite"],
+  },
+
+  "extract-pdf-form-data": {
+    tool: "extract-form-data",
+    h1: "Extract PDF form data — CSV or JSON, free",
+    sub: "Pull the values out of every AcroForm field (text, checkbox, radio, dropdown, list) and download as CSV or JSON.",
+    canonical: "/extract-pdf-form-data",
+    howTo: [
+      { t: "Drop your filled PDF form", d: "AcroForm fields enumerated locally." },
+      { t: "Review the table", d: "Each field shown with name, type, and current value." },
+      { t: "Download CSV or JSON", d: "CSV for spreadsheets, JSON for scripts." },
+    ],
+    faq: [
+      { q: "What if the PDF has no form fields?", a: "You'll see a clear \"no fields\" message. Static PDFs with visible signature lines aren't form fields — they're just drawn text." },
+      { q: "What about XFA / dynamic forms?", a: "Only classic AcroForm fields are extracted. XFA is Adobe-proprietary and not supported by pdf-lib." },
+      { q: "Privacy?", a: "100% client-side — no data leaves your browser." },
+    ],
+    related: ["extract-form-data", "fill-forms", "ai-table"],
+  },
+
+  "reorder-pdf-pages": {
+    tool: "sort-pages",
+    h1: "Reorder PDF pages — drag thumbnails visually, free",
+    sub: "See every page as a thumbnail. Drag to reorder. Reverse or restore. Download the new PDF.",
+    canonical: "/reorder-pdf-pages",
+    howTo: [
+      { t: "Drop your PDF", d: "Each page renders as a thumbnail client-side." },
+      { t: "Drag to reorder", d: "Click and drag any thumbnail to a new position. Use Reverse for bulk-flip, Restore original to reset." },
+      { t: "Apply and download", d: "pdf-lib copyPages in the new sequence; original untouched." },
+    ],
+    faq: [
+      { q: "Does it change the pages themselves?", a: "No — only the order. Each page's content is copied verbatim into the new sequence." },
+      { q: "Works for large PDFs?", a: "Up to 100MB. Thumbnails render progressively so you can start dragging before all are done." },
+      { q: "Privacy?", a: "100% client-side." },
+    ],
+    related: ["sort-pages", "rotate", "extract-pages", "delete-pages"],
   },
 };
 
