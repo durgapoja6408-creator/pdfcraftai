@@ -26,7 +26,8 @@ export type SeoPageSlug =
   // iLovePDF / Smallpdf rank on the first page — long-tail money.
   | "pdf-to-text"
   | "resize-pdf"
-  | "remove-pdf-metadata";
+  | "remove-pdf-metadata"
+  | "add-logo-to-pdf";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -534,6 +535,27 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Privacy?", a: "Your PDF is processed entirely in your browser — nothing is uploaded or stored." },
     ],
     related: ["remove-metadata", "pdf-metadata", "flatten-pdf", "ai-redact"],
+  },
+
+  "add-logo-to-pdf": {
+    tool: "image-watermark",
+    h1: "Add a logo or image watermark to a PDF — free, in your browser",
+    sub: "Stamp a PNG or JPEG onto every page. Nine-position grid, opacity and scale sliders, per-page selection. No signup, no watermarks on your output.",
+    canonical: "/add-logo-to-pdf",
+    howTo: [
+      { t: "Drop your PDF", d: "Processed on your device — nothing uploaded." },
+      { t: "Pick your logo or watermark image", d: "PNG (with transparency) or JPEG. We show a preview so you can confirm." },
+      { t: "Set position, scale, and opacity", d: "Nine-point grid (corners / edges / center). Scale = % of page's short side. Opacity = 10–100%." },
+      { t: "Apply to all pages or a range", d: "Blank = every page. Or type e.g. 1, 3-5, 9 to target specific pages." },
+    ],
+    faq: [
+      { q: "Will it go behind the text?", a: "No — it draws on top with your chosen opacity. A subtle 20–30% opacity reads as a background stamp even when drawn on top, which is how every major PDF tool handles image watermarks. True behind-content layering requires content-stream surgery that most viewers don't render consistently." },
+      { q: "What image formats?", a: "PNG (including transparency) and JPEG. GIF isn't supported by the PDF spec — convert to PNG first." },
+      { q: "Is aspect ratio preserved?", a: "Yes. Scale sets the maximum dimension; the other side shrinks to keep proportions." },
+      { q: "Will it work on scanned PDFs?", a: "Yes — the watermark draws on top of whatever's already on each page, including scanned images." },
+      { q: "Is it really free?", a: "Yes, unlimited. No signup, no output watermarks, no per-file limits." },
+    ],
+    related: ["image-watermark", "page-numbers", "flatten-pdf", "protect"],
   },
 };
 

@@ -35,6 +35,7 @@ export const TOOLS: readonly Tool[] = [
   { id: "pdf-to-text", name: "PDF to Text", desc: "Extract every page's text as a plain .txt file.", icon: "Convert", free: true, group: "Convert" },
   { id: "resize-pdf", name: "Resize Pages", desc: "Change page size to A4, Letter, Legal, A3, A5, or Tabloid.", icon: "Pages", free: true, group: "Edit" },
   { id: "remove-metadata", name: "Remove Metadata", desc: "Scrub title, author, creator, and XMP data before sharing.", icon: "Shield", free: true, group: "Security" },
+  { id: "image-watermark", name: "Add Logo or Image Watermark", desc: "Stamp a PNG/JPEG logo onto every page. Position, scale, opacity.", icon: "Image", free: true, group: "Edit" },
   { id: "page-numbers", name: "Page Numbers & Watermark", desc: "Add headers, footers, and watermarks.", icon: "Pages", free: true, group: "Edit" },
   { id: "protect", name: "Unlock / Protect PDF", desc: "Add or remove passwords and permissions.", icon: "Lock", free: true, group: "Security" },
 

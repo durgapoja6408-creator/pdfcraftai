@@ -92,6 +92,17 @@ const NEW_TOOLS = [
     component: "RemoveMetadataTool",
     group: "Security",
   },
+  // 2026-04-24 wave 3 — Tier 1 §1.5 P0 image-watermark tool. Splits
+  // from the existing page-numbers tool because image watermarks have
+  // a different control surface (file upload + scale/opacity sliders
+  // vs font/size/color inputs) and target different SEO terms ("add
+  // logo to pdf" vs "add watermark text"). Bundling would bloat
+  // PageNumbersTool (already 598 lines) and muddle the runner UI.
+  {
+    id: "image-watermark",
+    component: "ImageWatermarkTool",
+    group: "Edit",
+  },
 ];
 
 // =============================================================================
