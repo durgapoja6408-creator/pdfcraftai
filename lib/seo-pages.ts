@@ -43,7 +43,8 @@ export type SeoPageSlug =
   | "extract-pdf-form-data"
   | "reorder-pdf-pages"
   | "extract-emails-from-pdf"
-  | "pdf-to-ics-calendar";
+  | "pdf-to-ics-calendar"
+  | "pdf-tldr";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -889,6 +890,25 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Privacy?", a: "100% client-side — nothing uploaded." },
     ],
     related: ["extract-dates", "pdf-to-text", "ai-summarize", "page-count"],
+  },
+
+  "pdf-tldr": {
+    tool: "ai-tldr",
+    h1: "PDF TL;DR — one-paragraph executive summary in seconds",
+    sub: "Drop any PDF, get a 2–4 sentence TL;DR. 2 credits per doc. Faster and cheaper than the full Summarize tool.",
+    canonical: "/pdf-tldr",
+    howTo: [
+      { t: "Drop your PDF", d: "Any PDF, up to 25 MB." },
+      { t: "We extract + summarise", d: "Server-side text extraction + Gemini Flash 2.5 one-paragraph prompt." },
+      { t: "Read the TL;DR", d: "Tight 2–4 sentence executive summary. Full doc saved to your Files if you want to re-run with more depth." },
+    ],
+    faq: [
+      { q: "How is this different from Summarize PDF?", a: "TL;DR is optimised for the \"just tell me what this says\" use case — one paragraph, 2 credits. Summarize gives section headings and bullets at 3 credits, with TL;DR / Standard / Detailed depth pickers. Same backend, different front doors." },
+      { q: "Is it accurate on long PDFs?", a: "The TL;DR runs on the full extracted text up to the model's context window. Very long PDFs may be truncated — we show a warning when that happens and point you at the chunked Detailed mode." },
+      { q: "Does it work on scanned PDFs?", a: "Only if they have a text layer. Scanned / image-only PDFs: run AI · OCR first." },
+      { q: "Signin required?", a: "Yes — all AI tools require a signed-in account (25 free credits on signup, worth ~₹125 of usage)." },
+    ],
+    related: ["ai-tldr", "ai-summarize", "ai-chat", "pdf-to-text"],
   },
 };
 

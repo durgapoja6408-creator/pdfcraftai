@@ -58,6 +58,7 @@ export const TOOLS: readonly Tool[] = [
   // ----- AI -----
   { id: "ai-chat", name: "Chat with PDF", desc: "Ask questions. Get answers cited to pages.", icon: "Chat", free: false, cost: "~5 credits / Q", group: "AI" },
   { id: "ai-summarize", name: "Summarize PDF", desc: "Executive summary + section bullets.", icon: "Summary", free: false, cost: "3 credits / doc", group: "AI" },
+  { id: "ai-tldr", name: "TL;DR Generator", desc: "One-paragraph executive summary. Fast, cheap, precise.", icon: "Summary", free: false, cost: "2 credits / doc", group: "AI" },
   { id: "ai-translate", name: "Translate PDF", desc: "Preserve layout across 20+ languages.", icon: "Translate", free: false, cost: "5 credits / doc", group: "AI" },
   { id: "ai-ocr", name: "OCR & Smart Extract", desc: "Turn scans into searchable, structured data.", icon: "Scan", free: false, cost: "~2 credits / page", group: "AI" },
   { id: "ai-rewrite", name: "Rewrite & Rephrase", desc: "Tone shift, simplify, or expand text.", icon: "Edit", free: false, cost: "~3 credits / page", group: "AI" },
