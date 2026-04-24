@@ -83,7 +83,14 @@ export type SummarizeDepth =
   | "expand"
   | "tone-analyze"
   | "citations"
-  | "financials";
+  | "financials"
+  // Task #56:
+  //   sentiment   §2.5 P2 — document-level + section sentiment (3c)
+  //   bias        §2.5 P3 — inclusive-language audit (5c)
+  //   proofread   §2.6 P1 — error list with fixes (5c)
+  | "sentiment"
+  | "bias"
+  | "proofread";
 
 export interface SummarizeInput {
   /** Extracted PDF text, pages joined with `\f`. */
@@ -524,6 +531,62 @@ function buildSystemPrompt(opts: {
           "document contains no financial data, render " +
           "`_No financial figures found._` instead of the table."
         );
+      case "sentiment":
+        // §2.5 Sentiment Analysis. Overall + per-section sentiment
+        // with evidence. Neutral default for factual docs; flags
+        // shifts between sections explicitly.
+        return (
+          "Analyse the sentiment of this document. Produce an H2 " +
+          "`## Overall Sentiment` (one sentence verdict: positive / " +
+          "negative / neutral / mixed, plus a confidence word like " +
+          "'clear' / 'leaning' / 'split'; one paragraph of evidence). " +
+          "Then `## Per-Section Sentiment` as a table with columns " +
+          "`Section | Sentiment | Evidence`. Section = the H-level " +
+          "heading if present, otherwise a page range. Evidence = " +
+          "one short quoted phrase that drives the verdict. End " +
+          "with `## Notable Shifts` (bullets, or '_None._') — places " +
+          "where sentiment changes across the doc."
+        );
+      case "bias":
+        // §2.5 Bias / Inclusive Language. Flags gendered pronouns
+        // w/o justification, outdated terminology, stereotyping,
+        // passive/defensive diplomatic language. NOT a political
+        // bias audit — structural / language-choice bias only.
+        return (
+          "Audit this document for inclusive-language and structural-" +
+          "bias issues. Produce these H2 sections: `## Gendered " +
+          "Language` (quotes of gendered pronouns, 'man-hours', " +
+          "'chairman', etc. that could be neutralised, with " +
+          "suggested replacements). `## Outdated Terminology` " +
+          "(terms that have modern replacements — e.g. 'blacklist'/" +
+          "'whitelist' → 'blocklist'/'allowlist'). `## Stereotyping " +
+          "or Generalisations` (claims that treat a group as " +
+          "monolithic). `## Accessibility Language` (references to " +
+          "disability, age, etc. that could use person-first " +
+          "framing). `## Suggestions` (3–5 concrete edit actions). " +
+          "This is not a political-bias audit — focus on language " +
+          "choices. If the document is clean on a category, render " +
+          "'_None found._' under that header rather than fabricating " +
+          "issues."
+        );
+      case "proofread":
+        // §2.6 Proofread. Error list (not a rewrite) with location,
+        // type, and fix. Dedicated tool because users who want
+        // errors flagged don't want the document silently rewritten.
+        return (
+          "Proofread this document. Produce a single Markdown table " +
+          "with columns `Page | Error | Type | Suggested Fix`. Error " +
+          "= a short verbatim quote of the problematic text. Type " +
+          "= one of: 'spelling', 'grammar', 'punctuation', " +
+          "'agreement', 'word choice', 'capitalisation', 'style'. " +
+          "Suggested Fix = the corrected phrasing. Capture genuine " +
+          "errors only — don't flag stylistic choices you simply " +
+          "disagree with (e.g. Oxford comma preferences) unless " +
+          "they cause actual ambiguity. If no errors found, render " +
+          "'_No errors detected._' and add one line of caveat that " +
+          "proofreading is not perfect — encourage a human review " +
+          "for critical work."
+        );
     }
   })();
 
@@ -595,6 +658,12 @@ function buildUserPrompt(opts: { depth: SummarizeDepth; text: string }): string 
         return "Extract the citations";
       case "financials":
         return "Extract the financial numbers";
+      case "sentiment":
+        return "Analyse the sentiment";
+      case "bias":
+        return "Audit for bias + inclusive language";
+      case "proofread":
+        return "Proofread this";
       case "standard":
       case "detailed":
       default:

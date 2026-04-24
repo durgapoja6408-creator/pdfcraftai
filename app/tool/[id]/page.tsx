@@ -64,6 +64,9 @@ import {
   ToneAnalyzePdfTool,
   CitationsPdfTool,
   FinancialsPdfTool,
+  SentimentPdfTool,
+  BiasPdfTool,
+  ProofreadPdfTool,
 } from "@/components/tools/SummarizeVariantTool";
 
 type Params = { params: { id: string } };
@@ -132,6 +135,9 @@ const LIVE_TOOL_IDS = new Set<string>([
   "ai-tone-analyze",
   "ai-citations",
   "ai-financials",
+  "ai-sentiment",
+  "ai-bias",
+  "ai-proofread",
   "ai-translate",
   "ai-compare",
   "ai-ocr",
@@ -385,6 +391,12 @@ function ToolRunner({ id }: { id: string }) {
       return <CitationsPdfTool />;
     case "ai-financials":
       return <FinancialsPdfTool />;
+    case "ai-sentiment":
+      return <SentimentPdfTool />;
+    case "ai-bias":
+      return <BiasPdfTool />;
+    case "ai-proofread":
+      return <ProofreadPdfTool />;
     case "ai-translate":
       return <TranslatePdfTool />;
     case "ai-compare":

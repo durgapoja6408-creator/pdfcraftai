@@ -33,7 +33,10 @@ type Depth =
   | "expand"
   | "tone-analyze"
   | "citations"
-  | "financials";
+  | "financials"
+  | "sentiment"
+  | "bias"
+  | "proofread";
 
 type Result = {
   fileId?: string;
@@ -494,6 +497,54 @@ export function FinancialsPdfTool() {
       successTitle="Financials extracted"
       pricingBlurb="Metric / Value / Unit / Period / Page table. Handles INR crore + USD million + ratios + percentages. 5 credits per PDF."
       relatedHref={{ href: "/tool/ai-table", label: "AI · Table Extract (any table → Excel)" }}
+    />
+  );
+}
+
+export function SentimentPdfTool() {
+  return (
+    <SummarizeVariantTool
+      depth="sentiment"
+      toolId="ai-sentiment"
+      callbackUrl="/tool/ai-sentiment"
+      prompt="Drop a PDF to analyse its sentiment"
+      runLabel="Analyse sentiment"
+      busyLabel="Analysing…"
+      successTitle="Sentiment analysis ready"
+      pricingBlurb="Overall verdict + per-section table with evidence + notable shifts between sections. 3 credits per PDF."
+      relatedHref={{ href: "/tool/ai-tone-analyze", label: "Tone & Style Analyzer (voice + register)" }}
+    />
+  );
+}
+
+export function BiasPdfTool() {
+  return (
+    <SummarizeVariantTool
+      depth="bias"
+      toolId="ai-bias"
+      callbackUrl="/tool/ai-bias"
+      prompt="Drop a PDF to audit for inclusive language"
+      runLabel="Audit bias"
+      busyLabel="Auditing…"
+      successTitle="Bias audit ready"
+      pricingBlurb="Gendered language + outdated terminology + stereotyping + accessibility-framing + concrete edit suggestions. 5 credits per PDF."
+      relatedHref={{ href: "/tool/ai-proofread", label: "AI · Proofread (grammar + spelling)" }}
+    />
+  );
+}
+
+export function ProofreadPdfTool() {
+  return (
+    <SummarizeVariantTool
+      depth="proofread"
+      toolId="ai-proofread"
+      callbackUrl="/tool/ai-proofread"
+      prompt="Drop a PDF to proofread it"
+      runLabel="Proofread"
+      busyLabel="Checking…"
+      successTitle="Proofreading report ready"
+      pricingBlurb="Error table — Page / Error / Type / Suggested Fix. Genuine errors only (spelling, grammar, agreement, punctuation). 5 credits per PDF."
+      relatedHref={{ href: "/tool/ai-rewrite", label: "AI · Rewrite (apply the fixes automatically)" }}
     />
   );
 }

@@ -185,6 +185,10 @@ export const OP_OUTPUT_CAP_TABLE: CapTable = {
     "tone-analyze": 1200, // Voice + audience + attribute bullets.
     citations: 2400, // BibTeX block + formatted reference list.
     financials: 1500, // Single wide table, up to ~60 rows.
+    // Task #56:
+    sentiment: 1000, // Overall verdict + per-section table + shifts.
+    bias: 1500, // 4-5 category sections with quoted evidence.
+    proofread: 2000, // Error table can run long on poorly edited docs.
   },
 
   // Compare produces a side-by-side diff narrative. 4000 is
