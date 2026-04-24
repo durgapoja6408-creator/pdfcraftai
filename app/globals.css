@@ -566,3 +566,29 @@ h4 {
 .prose-mini em {
   font-style: italic;
 }
+
+/* --------------------------------------------------------------
+   Skip-to-main-content link (WCAG 2.1 SC 2.4.1 Level A) — Task #31.
+   Off-screen until keyboard-focused, then pulls into view at the
+   top-left of the viewport. CSS-only so it works in a server
+   component and when JavaScript is disabled.
+   -------------------------------------------------------------- */
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 10px 16px;
+  background: var(--accent);
+  color: var(--accent-fg, #fff);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transform: translateY(-100%);
+  transition: transform 120ms;
+  z-index: 9999;
+}
+.skip-link:focus {
+  transform: translateY(0);
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}

@@ -114,37 +114,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="font-sans antialiased">
         {/*
           Skip-to-main-content link — WCAG 2.1 SC 2.4.1 "Bypass Blocks"
-          (Level A). Keyboard users hit Tab once from page load and
-          can jump past the nav. Hidden until focused. Task #31.
-          Targets #main-content which every page component is
-          responsible for providing (e.g. <main id="main-content">).
+          (Level A). Task #31. CSS-only focus/blur handling (no JS
+          handlers) so this works in a server component + works when
+          JavaScript is disabled. The .skip-link class is defined in
+          app/globals.css with `transform: translateY(-100%)` by
+          default and `transform: translateY(0)` on :focus.
         */}
-        <a
-          href="#main-content"
-          className="skip-link"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            padding: "10px 16px",
-            background: "var(--accent)",
-            color: "var(--accent-fg, #fff)",
-            fontSize: 14,
-            fontWeight: 500,
-            borderRadius: 0,
-            // Off-screen by default; on focus, pull into view.
-            transform: "translateY(-100%)",
-            transition: "transform 120ms",
-            zIndex: 9999,
-            textDecoration: "none",
-          }}
-          onFocus={(e) => {
-            e.currentTarget.style.transform = "translateY(0)";
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.transform = "translateY(-100%)";
-          }}
-        >
+        <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
         {/* Prevent theme flash: apply stored theme before React hydrates */}
