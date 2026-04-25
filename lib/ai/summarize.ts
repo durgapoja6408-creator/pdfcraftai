@@ -250,7 +250,22 @@ export type SummarizeDepth =
   | "paraphrase"
   | "plagiarism"
   | "chart-to-table"
-  | "paper-pattern";
+  | "paper-pattern"
+  // Sprint A — 5 Indian govt ID parsers (Tier 3 wedges, §3.x).
+  //   aadhaar         — Aadhaar e-PDF parser; redacts the full
+  //                     12-digit number, only echoes last 4 (10c).
+  //   pan-card        — PAN card e-card / verification PDF parser
+  //                     (10c).
+  //   driving-license — DL extract / Sarathi / Vahan PDF parser
+  //                     with vehicle classes + validity (10c).
+  //   voter-id        — EPIC / Voter ID PDF parser (10c).
+  //   passport        — passport bio page parser including MRZ
+  //                     detection if present (10c).
+  | "aadhaar"
+  | "pan-card"
+  | "driving-license"
+  | "voter-id"
+  | "passport";
 
 export interface SummarizeInput {
   /** Extracted PDF text, pages joined with `\f`. */
@@ -1571,6 +1586,107 @@ function buildSystemPrompt(opts: {
           "exam (TNPSC / UPSC / JEE / NEET / SSC / Banking / " +
           "GATE / etc.)."
         );
+      // Sprint A — 5 Indian govt ID parsers (§3.x).
+      // PRIVACY: Aadhaar full number is a Sensitive Personal Data
+      // Identifier under DPDP Act 2023. We never echo all 12 digits.
+      // PAN, EPIC, DL number, passport number have looser conventions
+      // but still get mask-when-in-doubt treatment.
+      case "aadhaar":
+        return (
+          "Parse this Aadhaar e-PDF (issued via UIDAI / DigiLocker / " +
+          "mAadhaar). Output: `## Holder Identity` (Name, DOB, " +
+          "Gender, Father/Spouse if printed). `## Address` (full " +
+          "address as printed, with PIN). `## Aadhaar Number` (echo " +
+          "ONLY the last 4 digits prefixed by `XXXX-XXXX-`. NEVER " +
+          "print all 12 digits, even if visible). `## VID` (if a " +
+          "Virtual ID is present, echo last 4 only with same XXXX " +
+          "masking). `## Issue Details` (date generated, masking " +
+          "status — masked Aadhaar shows only last 4, full Aadhaar " +
+          "shows all 12). `## QR Code` (whether a QR code is " +
+          "present and its declared content type). `## Privacy " +
+          "Notes` (3-5 bullets explaining what's safe to share, " +
+          "what isn't, when to use Masked Aadhaar / VID). End with " +
+          "a clear caveat: this is data extraction, not identity " +
+          "verification. Do NOT fabricate any field that's not " +
+          "literally on the document."
+        );
+      case "pan-card":
+        return (
+          "Parse this PAN (Permanent Account Number) card or " +
+          "verification PDF. Output: `## Holder Identity` (Name as " +
+          "printed, Father's Name if shown, DOB). `## PAN Number` " +
+          "(echo the full 10-character PAN in standard format " +
+          "AAAAA9999A — PAN is not as sensitive as Aadhaar; this " +
+          "matches NSDL / UTIITSL convention). `## Issue Details` " +
+          "(date of issue if printed, signature presence, " +
+          "photograph presence — say only what's literally " +
+          "visible). `## Card Format` (physical card vs e-PAN PDF " +
+          "vs verification PDF — a one-line classification). `## " +
+          "Linkage Status` (if the PDF includes Aadhaar-PAN linkage " +
+          "status, surface it as a flag — don't echo the Aadhaar " +
+          "number even partially). `## What to Verify` (3-5 things " +
+          "the user should double-check on their physical card vs " +
+          "this PDF). End with: not financial / tax advice."
+        );
+      case "driving-license":
+        return (
+          "Parse this Driving License (DL) extract — typically from " +
+          "Sarathi (Parivahan) or a state RTO portal. Output: `## " +
+          "Holder Identity` (Name, DOB, Father's Name, Blood Group " +
+          "if shown). `## License Details` (DL Number — echo full, " +
+          "Issue Date, Validity From, Validity To, Issuing RTO). " +
+          "`## Address` (full address as printed). `## Vehicle " +
+          "Classes` (Markdown table: Class Code, Description, " +
+          "Granted Date, Validity, Status. Common codes: LMV / MCWG " +
+          "/ MCWOG / HGV / HPMV / TRANS / etc. — translate codes to " +
+          "readable English). `## Endorsements / Suspensions` (any " +
+          "flags shown — DUI history, cancellations, etc.). `## " +
+          "Renewal Watch` (how many days until expiry; flag if " +
+          "<30 days, <90 days, or already expired). `## Cross-" +
+          "Verification Tips` (3-5 points: check on Sarathi portal, " +
+          "verify QR code, etc.). End with: data extraction only, " +
+          "not legal validity verification."
+        );
+      case "voter-id":
+        return (
+          "Parse this Voter ID (EPIC) card or verification PDF " +
+          "issued by the Election Commission of India. Output: `## " +
+          "Holder Identity` (Name, Father/Husband Name, DOB or Age, " +
+          "Gender). `## EPIC Number` (echo full — EPIC is the " +
+          "standard public reference, format usually 3 letters + 7 " +
+          "digits). `## Constituency` (Assembly Constituency name + " +
+          "number, Parliamentary Constituency, State). `## Polling " +
+          "Station` (booth name + number if printed). `## Address` " +
+          "(as printed). `## Issue Details` (issue date, signature " +
+          "presence, hologram description). `## Cross-Verification` " +
+          "(steps to verify on the National Voters' Service Portal " +
+          "(NVSP) or Voter Helpline — type that 3-5 step list). `## " +
+          "Updates Needed` (if address moved / name changed / etc., " +
+          "what form to file: Form 8 vs Form 6 vs Form 7). End " +
+          "with: data extraction only, not voter-eligibility " +
+          "verification."
+        );
+      case "passport":
+        return (
+          "Parse this Indian passport bio page (or international " +
+          "passport bio page) PDF. Output: `## Personal Details` " +
+          "(Surname, Given Names, Nationality, DOB, Place of Birth, " +
+          "Gender). `## Passport Document` (Passport Number — full " +
+          "echo, Type — P/PA/PD, Country Code — IND/etc., Date of " +
+          "Issue, Date of Expiry, Place of Issue). `## MRZ Status` " +
+          "(whether the Machine-Readable Zone is present at the " +
+          "bottom — two lines starting with `P<` for ICAO 9303. " +
+          "Don't echo the MRZ contents, only confirm presence). " +
+          "`## Renewal Watch` (months until expiry; flag if <12 " +
+          "months because many countries require 6+ months " +
+          "validity for entry). `## Document Format Detected` " +
+          "(physical scan vs e-passport with chip indicator vs " +
+          "DigiLocker stamp). `## Travel Tips` (3-5 specific " +
+          "checks: visa pages remaining, signature page completed, " +
+          "ECR / ECNR status if printed). End with: data extraction " +
+          "aid only, not travel-document verification or visa " +
+          "advice."
+        );
       case "scan-report":
         // §3.4 Scan Report (MRI/CT/X-ray/Ultrasound) Plain-language
         // Explainer. STRICTLY non-diagnostic — surfaces what the
@@ -2271,6 +2387,16 @@ function buildUserPrompt(opts: {
         return "Extract data from charts in this PDF";
       case "paper-pattern":
         return "Analyse pattern across years of papers";
+      case "aadhaar":
+        return "Parse this Aadhaar PDF (mask Aadhaar number)";
+      case "pan-card":
+        return "Parse this PAN card / e-PAN PDF";
+      case "driving-license":
+        return "Parse this Driving License extract";
+      case "voter-id":
+        return "Parse this Voter ID / EPIC card";
+      case "passport":
+        return "Parse this passport bio page";
       case "standard":
       case "detailed":
       default:

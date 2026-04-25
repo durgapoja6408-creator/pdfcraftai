@@ -89,7 +89,13 @@ type Depth =
   | "paraphrase"
   | "plagiarism"
   | "chart-to-table"
-  | "paper-pattern";
+  | "paper-pattern"
+  // Sprint A — 5 Indian govt ID parsers (Tier 3 §3.x).
+  | "aadhaar"
+  | "pan-card"
+  | "driving-license"
+  | "voter-id"
+  | "passport";
 
 type Result = {
   fileId?: string;
@@ -1481,6 +1487,88 @@ export function PaperPatternTool() {
       successTitle="Pattern analysis ready"
       pricingBlurb="Tier 3 §3.3 Education: multi-year subject mix + topic frequency + question type trend + difficulty drift + recycle rate + predictions for next paper. 15 credits. Works for TNPSC/UPSC/JEE/NEET/SSC/Banking/GATE/board exams."
       relatedHref={{ href: "/tool/ai-tnpsc", label: "TNPSC Single-Paper Analyzer" }}
+    />
+  );
+}
+
+// Sprint A — 5 Indian govt ID parsers (Tier 3 §3.x).
+
+export function AadhaarParserTool() {
+  return (
+    <SummarizeVariantTool
+      depth="aadhaar"
+      toolId="ai-aadhaar"
+      callbackUrl="/tool/ai-aadhaar"
+      prompt="Drop your Aadhaar e-PDF (UIDAI, mAadhaar, or DigiLocker)"
+      runLabel="Parse Aadhaar"
+      busyLabel="Parsing…"
+      successTitle="Aadhaar details ready"
+      pricingBlurb="Tier 3 §3.x Indian Govt ID: extract holder identity, address, masked Aadhaar (only last 4 echoed), VID status, QR/issue details, privacy guidance. NEVER prints the full 12-digit number — DPDP Act 2023 sensitive data treatment. 10 credits. Data extraction only, not identity verification."
+      relatedHref={{ href: "/tool/ai-pan-card", label: "PAN Card Parser" }}
+    />
+  );
+}
+
+export function PanCardParserTool() {
+  return (
+    <SummarizeVariantTool
+      depth="pan-card"
+      toolId="ai-pan-card"
+      callbackUrl="/tool/ai-pan-card"
+      prompt="Drop your PAN card or e-PAN PDF"
+      runLabel="Parse PAN"
+      busyLabel="Parsing…"
+      successTitle="PAN details ready"
+      pricingBlurb="Tier 3 §3.x Indian Govt ID: holder identity + full PAN (NSDL/UTIITSL convention), card format detection, Aadhaar-PAN linkage status flag (without echoing Aadhaar), verification tips. 10 credits. Not financial / tax advice."
+      relatedHref={{ href: "/tool/ai-itr-form16", label: "ITR / Form 16 Analyzer" }}
+    />
+  );
+}
+
+export function DrivingLicenseParserTool() {
+  return (
+    <SummarizeVariantTool
+      depth="driving-license"
+      toolId="ai-driving-license"
+      callbackUrl="/tool/ai-driving-license"
+      prompt="Drop your DL extract (Sarathi / Parivahan / state RTO portal)"
+      runLabel="Parse DL"
+      busyLabel="Parsing…"
+      successTitle="DL details ready"
+      pricingBlurb="Tier 3 §3.x Indian Govt ID: holder + license number + issue/validity dates + issuing RTO + vehicle classes table (LMV/MCWG/HGV/etc translated to plain English) + endorsements + renewal watch (flags <30/<90 days to expiry). 10 credits. Data extraction only, not legal validity verification."
+      relatedHref={{ href: "/tool/ai-aadhaar", label: "Aadhaar Parser" }}
+    />
+  );
+}
+
+export function VoterIdParserTool() {
+  return (
+    <SummarizeVariantTool
+      depth="voter-id"
+      toolId="ai-voter-id"
+      callbackUrl="/tool/ai-voter-id"
+      prompt="Drop your Voter ID (EPIC) card or e-EPIC PDF"
+      runLabel="Parse Voter ID"
+      busyLabel="Parsing…"
+      successTitle="Voter ID details ready"
+      pricingBlurb="Tier 3 §3.x Indian Govt ID: holder + EPIC number + assembly + parliamentary constituency + polling station + address + cross-verification steps via NVSP / Voter Helpline + form guidance (Form 6/7/8 for updates). 10 credits. Data extraction only, not voter-eligibility verification."
+      relatedHref={{ href: "/tool/ai-aadhaar", label: "Aadhaar Parser" }}
+    />
+  );
+}
+
+export function PassportParserTool() {
+  return (
+    <SummarizeVariantTool
+      depth="passport"
+      toolId="ai-passport"
+      callbackUrl="/tool/ai-passport"
+      prompt="Drop your passport bio page PDF (Indian or international)"
+      runLabel="Parse passport"
+      busyLabel="Parsing…"
+      successTitle="Passport details ready"
+      pricingBlurb="Tier 3 §3.x Indian Govt ID: bio data + passport document fields + MRZ presence detection + 6-month/12-month renewal watch + e-passport/DigiLocker format detection + travel tips (visa pages, ECR/ECNR status). 10 credits. Data extraction only, not travel-document verification or visa advice."
+      relatedHref={{ href: "/tool/ai-aadhaar", label: "Aadhaar Parser" }}
     />
   );
 }

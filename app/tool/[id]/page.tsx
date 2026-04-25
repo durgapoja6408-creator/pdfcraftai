@@ -130,6 +130,13 @@ import {
 } from "@/components/tools/StructuredVariantTool";
 import { MindmapPdfTool } from "@/components/tools/MindmapPdfTool";
 import { SemanticSearchPdfTool } from "@/components/tools/SemanticSearchPdfTool";
+import {
+  AadhaarParserTool,
+  PanCardParserTool,
+  DrivingLicenseParserTool,
+  VoterIdParserTool,
+  PassportParserTool,
+} from "@/components/tools/SummarizeVariantTool";
 import { StampPdfTool } from "@/components/tools/StampPdfTool";
 import { NUpPdfTool } from "@/components/tools/NUpPdfTool";
 import { GrayscalePdfTool } from "@/components/tools/GrayscalePdfTool";
@@ -200,6 +207,12 @@ const LIVE_TOOL_IDS = new Set<string>([
   "free-draw-pdf",
   // Task #96 — add hyperlinks (inverse of strip-links)
   "add-links",
+  // Sprint A — 5 Indian govt ID parsers (Tier 3)
+  "ai-aadhaar",
+  "ai-pan-card",
+  "ai-driving-license",
+  "ai-voter-id",
+  "ai-passport",
   "ai-summarize",
   "ai-tldr",
   "ai-key-points",
@@ -516,6 +529,17 @@ function ToolRunner({ id }: { id: string }) {
       return <FreeDrawTool />;
     case "add-links":
       return <AddLinksTool />;
+    // Sprint A — Indian govt ID parsers (Tier 3 §3.x)
+    case "ai-aadhaar":
+      return <AadhaarParserTool />;
+    case "ai-pan-card":
+      return <PanCardParserTool />;
+    case "ai-driving-license":
+      return <DrivingLicenseParserTool />;
+    case "ai-voter-id":
+      return <VoterIdParserTool />;
+    case "ai-passport":
+      return <PassportParserTool />;
     case "ai-summarize":
       return <SummarizePdfTool />;
     case "ai-tldr":

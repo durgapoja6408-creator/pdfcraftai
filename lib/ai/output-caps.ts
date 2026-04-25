@@ -257,6 +257,12 @@ export const OP_OUTPUT_CAP_TABLE: CapTable = {
     "plagiarism": 2400, // Snapshot + flagged passages + AI-tells + recs.
     "chart-to-table": 2800, // Tables for each chart found, can be many.
     "paper-pattern": 3200, // Multi-year frequency + trend + predictions.
+    // Sprint A — Indian govt ID parsers. All small structured payloads.
+    "aadhaar": 1400, // Holder + masked number + privacy notes.
+    "pan-card": 1400, // PAN + linkage status + verification tips.
+    "driving-license": 1800, // Holder + classes table + endorsements + renewal watch.
+    "voter-id": 1600, // Holder + EPIC + constituency + polling + cross-verify.
+    "passport": 1600, // Bio data + MRZ status + renewal watch + travel tips.
   },
 
   // Compare produces a side-by-side diff narrative. 4000 is

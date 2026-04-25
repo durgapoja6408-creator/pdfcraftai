@@ -148,6 +148,12 @@ const VALID_DEPTHS: readonly SummarizeDepth[] = [
   "plagiarism",
   "chart-to-table",
   "paper-pattern",
+  // Sprint A — 5 Indian govt ID parsers (Tier 3, §3.x).
+  "aadhaar",
+  "pan-card",
+  "driving-license",
+  "voter-id",
+  "passport",
 ];
 
 export async function POST(req: Request): Promise<Response> {

@@ -124,7 +124,12 @@ export type SeoPageSlug =
   | "strip-links"
   | "booklet-pdf"
   | "free-draw-pdf"
-  | "add-links";
+  | "add-links"
+  | "aadhaar-parser"
+  | "pan-card-parser"
+  | "driving-license-parser"
+  | "voter-id-parser"
+  | "passport-parser";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -2398,6 +2403,105 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Inverse?", a: "Strip Hyperlinks. Run Add Hyperlinks → Strip Hyperlinks and you're back where you started. Both tools agree on the same /Link annotation shape." },
     ],
     related: ["strip-links", "highlight-pdf", "add-text-box", "edit-pdf"],
+  },
+
+  "aadhaar-parser": {
+    tool: "ai-aadhaar",
+    h1: "Aadhaar Parser — extract structured data from Aadhaar PDFs",
+    sub: "Drop a UIDAI / mAadhaar / DigiLocker e-Aadhaar PDF. We extract holder identity, address, and metadata — full Aadhaar number is NEVER printed (DPDP Act 2023 compliant). 10 credits.",
+    canonical: "/aadhaar-parser",
+    howTo: [
+      { t: "Drop the PDF", d: "Aadhaar e-PDFs from UIDAI portal, mAadhaar app, or DigiLocker — all formats supported." },
+      { t: "We extract structured fields", d: "Holder identity (name, DOB, gender), full address, masking status, VID flag, QR code presence." },
+      { t: "Aadhaar number is masked", d: "Only the last 4 digits are echoed (XXXX-XXXX-1234). The full 12 digits are NEVER printed in output, even if visible in your PDF — this matches DPDP Act 2023 sensitive-data rules." },
+      { t: "Privacy guidance included", d: "3-5 actionable bullets on what's safe to share, when to use Masked Aadhaar / VID instead, and where this document should not be sent." },
+    ],
+    faq: [
+      { q: "Why is the Aadhaar number masked?", a: "Aadhaar is a Sensitive Personal Data Identifier under India's DPDP Act 2023. Echoing all 12 digits in tool output (logs, screenshots, AI-tool sharing chains) would be a privacy risk we don't take. Even when YOUR PDF shows the full number, we deliberately echo only the last 4." },
+      { q: "What if I need the full number?", a: "Read it directly from your PDF. We render the document in-browser before sending text to the AI; what you see is the source of truth. We just refuse to re-echo the full number in our generated output." },
+      { q: "Is my Aadhaar PDF stored?", a: "No. We process the PDF in-memory for the AI call and discard. Standard pdfcraftai data flow — no long-term storage of input documents beyond the immediate AI call." },
+      { q: "Does it work on a Masked Aadhaar?", a: "Yes — and we surface 'this is already a Masked Aadhaar' in the output so you know your PDF is the safe-to-share variant. Same for VID-based PDFs." },
+    ],
+    related: ["ai-pan-card", "ai-voter-id", "ai-passport", "ai-driving-license"],
+  },
+
+  "pan-card-parser": {
+    tool: "ai-pan-card",
+    h1: "PAN Card Parser — extract data from PAN / e-PAN PDFs",
+    sub: "Drop a PAN card or e-PAN verification PDF (NSDL / UTIITSL / Income Tax Department). We extract holder identity, full PAN, format, and Aadhaar-PAN linkage status. 10 credits.",
+    canonical: "/pan-card-parser",
+    howTo: [
+      { t: "Drop the PDF", d: "Physical card scan, e-PAN, or PAN verification PDF — all common formats supported." },
+      { t: "Holder identity + PAN", d: "Name, Father's Name, DOB, and the full 10-character PAN in standard AAAAA9999A format. PAN is less sensitive than Aadhaar and standard NSDL convention is to echo it." },
+      { t: "Linkage status flag", d: "If the PDF includes Aadhaar-PAN linkage status, we surface it as a flag — without echoing the linked Aadhaar number even partially." },
+      { t: "Card format detection", d: "Physical card vs e-PAN PDF vs verification PDF — one-line classification so you know what type of document you have." },
+    ],
+    faq: [
+      { q: "Why echo the full PAN but mask the Aadhaar?", a: "PAN is a 10-character public reference used routinely on tax documents and bank forms. Aadhaar is regulated by DPDP Act 2023 and even partial leakage carries higher risk. The masking choice mirrors how these IDs are treated by NSDL / UTIITSL / banks themselves." },
+      { q: "Is this tool tax advice?", a: "No. We extract data from the document. For ITR filing or tax planning, see ITR / Form 16 Analyzer for an actual returns-focused tool — and consult a CA for real advice." },
+      { q: "What if my PAN is invalid?", a: "We don't validate against NSDL records — that requires an authenticated API call. We'll flag if the PAN doesn't match the AAAAA9999A format at all, but we won't tell you whether your PAN is registered. Use the Income Tax e-Filing portal for that check." },
+    ],
+    related: ["ai-aadhaar", "ai-itr-form16", "ai-form-26as", "ai-driving-license"],
+  },
+
+  "driving-license-parser": {
+    tool: "ai-driving-license",
+    h1: "Driving License Parser — extract DL extracts from Sarathi / Parivahan",
+    sub: "Drop your DL extract or e-DL PDF. We extract holder identity, license number, vehicle classes (decoded from codes), endorsements, and renewal watch with expiry flagging. 10 credits.",
+    canonical: "/driving-license-parser",
+    howTo: [
+      { t: "Drop the PDF", d: "DL extract from Sarathi (Parivahan), state RTO portal, or DigiLocker." },
+      { t: "Vehicle classes decoded", d: "Codes like LMV / MCWG / MCWOG / HGV / HPMV / TRANS are translated to readable English (Light Motor Vehicle / Motorcycle With Gear / etc.)." },
+      { t: "Renewal watch", d: "We compute days until expiry and flag explicitly if your license expires in <30 days, <90 days, or has already expired." },
+      { t: "Cross-verification tips", d: "3-5 specific steps to verify on the Sarathi portal (QR code check, RTO match, etc.)." },
+    ],
+    faq: [
+      { q: "Will it tell me if my DL is valid?", a: "Sort of. We parse what's printed on your PDF and flag if validity dates have passed. We can NOT cross-check with the Sarathi master database — that's an authenticated API call only the RTO can make." },
+      { q: "What about endorsements / DUI history?", a: "If your DL extract lists endorsements, suspensions, or violation history, we surface them in the output. If your DL is clean, that section is empty." },
+      { q: "International driving permits?", a: "Indian DL only in v1. International Driving Permits (IDPs) follow the 1949/1968 Geneva Convention format and would need a different parser. Not roadmapped." },
+    ],
+    related: ["ai-aadhaar", "ai-pan-card", "ai-voter-id", "ai-passport"],
+  },
+
+  "voter-id-parser": {
+    tool: "ai-voter-id",
+    h1: "Voter ID (EPIC) Parser — extract data from Voter ID / e-EPIC PDFs",
+    sub: "Drop your EPIC card, e-EPIC, or voter ID PDF. We extract holder identity, EPIC number, constituency, polling station, and cross-verification steps via NVSP. 10 credits.",
+    canonical: "/voter-id-parser",
+    howTo: [
+      { t: "Drop the PDF", d: "EPIC card, e-EPIC PDF (downloaded from Voter Helpline), or NVSP verification PDF." },
+      { t: "Holder identity + EPIC", d: "Name, Father / Husband Name, DOB or Age, Gender, and the full EPIC number (3 letters + 7 digits)." },
+      { t: "Constituency mapping", d: "Assembly Constituency name + number, Parliamentary Constituency, State, Polling Station name + number." },
+      { t: "NVSP verification steps", d: "3-5 steps to verify on the National Voters' Service Portal or Voter Helpline app." },
+      { t: "Update form guidance", d: "If you've moved / changed name, we name the right form: Form 6 (new), Form 7 (delete), or Form 8 (correction / address change)." },
+    ],
+    faq: [
+      { q: "Why echo the full EPIC?", a: "EPIC numbers are public references — they appear on the voter rolls themselves, are routinely written on application forms, and aren't classed as sensitive data the way Aadhaar is. NVSP cross-verification requires the full EPIC." },
+      { q: "Will this verify I'm registered?", a: "No. We extract the data; you cross-check on NVSP / Voter Helpline. The portals require captcha + sometimes OTP — that's not something a tool can automate without breaking the verification model." },
+      { q: "What about outdated cards?", a: "We extract whatever's on the PDF. If your address has changed but the card hasn't been updated, we don't know — we'll just print what's printed. The Update form guidance section tells you how to fix that." },
+    ],
+    related: ["ai-aadhaar", "ai-pan-card", "ai-driving-license", "ai-passport"],
+  },
+
+  "passport-parser": {
+    tool: "ai-passport",
+    h1: "Passport Parser — extract data from passport bio pages",
+    sub: "Drop your Indian or international passport bio page PDF. We extract bio data, document fields, MRZ status, renewal watch, and travel-prep tips. 10 credits.",
+    canonical: "/passport-parser",
+    howTo: [
+      { t: "Drop the PDF", d: "Bio page scan, e-passport bio page, or DigiLocker passport PDF. Indian + most international passports supported." },
+      { t: "Bio data extraction", d: "Surname, Given Names, Nationality, DOB, Place of Birth, Gender. Standard ICAO 9303 fields." },
+      { t: "Document fields", d: "Passport Number (full echo), Type (P / PA / PD), Country Code, Date of Issue, Date of Expiry, Place of Issue." },
+      { t: "MRZ status check", d: "Detects if the Machine-Readable Zone (two `P<` lines at the bottom) is present. We confirm presence without echoing the MRZ contents — those duplicate the bio data and don't need to be in output twice." },
+      { t: "Renewal watch", d: "Months until expiry. We explicitly flag if <12 months, because many countries require 6+ months validity for entry." },
+      { t: "Travel tips", d: "ECR / ECNR status flag, blank visa pages count if visible, signature page status. 3-5 actionable items before you book a trip." },
+    ],
+    faq: [
+      { q: "Does this work for international passports?", a: "Most ICAO 9303-compliant passports yes. The bio page format is internationally standardized so the parser generalizes beyond Indian passports. Some country-specific extras (e.g. UK observation pages, US passport card vs book) won't be parsed in v1." },
+      { q: "Why don't you echo the MRZ?", a: "The Machine-Readable Zone is just an OCR-friendly re-encoding of the data already in the visual bio page. Echoing it twice would clutter output without adding signal. We confirm presence so you know your scan captured the bottom of the page (some scans crop it off)." },
+      { q: "Travel-document verification?", a: "No. We extract what's printed. Whether your passport is genuine, current, or accepted by a specific border control is OUTSIDE this tool's scope. For visa or entry questions, check the destination country's official portal." },
+    ],
+    related: ["ai-aadhaar", "ai-pan-card", "ai-voter-id", "ai-driving-license"],
   },
 };
 
