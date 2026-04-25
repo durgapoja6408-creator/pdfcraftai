@@ -213,7 +213,7 @@ export type SummarizeDepth =
   // Task #81 — five more wedges (Tier 2 §2.5/§2.6/§2.8 + Tier 3 §3.3):
   //   improve-writing  §2.6 P1 — clarity / concision rewrite (5c)
   //   paraphrase       §2.6 P1 — paraphrase preserving meaning (5c)
-  //   plagiarism       §2.5 P2 — internal originality check, surfaces
+  //   ai-detector       §2.5 P2 — AI-generated text detector, surfaces
   //   patches that read like quoted/repurposed material (10c)
   //   chart-to-table   §2.8 P1 — extract numeric data from chart
   //   images embedded in the PDF (5c)
@@ -221,7 +221,7 @@ export type SummarizeDepth =
   //   analysis (use to compare 5+ years of past papers) (15c)
   | "improve-writing"
   | "paraphrase"
-  | "plagiarism"
+  | "ai-detector"
   | "chart-to-table"
   // Sprint A (REVERTED — DPDP / liability concerns):
   //   The 5 Indian govt ID parsers (aadhaar, pan-card, driving-
@@ -1100,34 +1100,52 @@ function buildSystemPrompt(opts: {
           "that paraphrasing isn't a substitute for citation — " +
           "credit the original work appropriately."
         );
-      case "plagiarism":
-        // §2.5 Internal originality check (no external corpus).
+      case "ai-detector":
+        // §2.5 AI Content Detector — heuristic detection of LLM-
+        // generated text (ChatGPT, Claude, Gemini, etc.) by
+        // surfacing well-documented stylistic tells.
         return (
-          "Audit this document for internal originality signals. " +
-          "We don't compare against an external corpus, but we " +
-          "DO surface patches that read like quoted, copy-pasted, " +
-          "or repurposed material (sudden register shifts, " +
-          "verbatim citations without attribution, definition-" +
-          "style passages that look lifted from textbooks, " +
-          "boilerplate paragraphs reused across sections). " +
-          "Output: `## Originality Snapshot` (2-3 sentences — " +
-          "broad assessment of how original the prose feels). " +
-          "`## Flagged Passages` (Markdown table: Passage " +
-          "(quoted), Section / page, Suspicion Type (one of: " +
-          "'register-shift', 'unattributed-quote-style', " +
-          "'definition-textbook-style', 'boilerplate-repeat', " +
-          "'AI-generated-tells', 'translated-back-from-other-" +
-          "language'), Recommendation). Mark severity Low/Medium/" +
-          "High. `## AI-Generation Tells` (bullets — specific " +
-          "phrases / structures common in LLM output: " +
-          "'in conclusion', 'it is important to note', " +
-          "'in today's world', overuse of em-dashes, three-item " +
-          "rhetorical lists, etc.). `## Recommendations` (3-5 " +
-          "concrete edits to lift originality + how to attribute " +
-          "borrowed material properly). End with explicit caveat: " +
-          "this is a heuristic check, not a Turnitin / Copyleaks " +
-          "external-corpus scan. For thesis / publication " +
-          "submission, run a real plagiarism service."
+          "Audit this document for signs of AI-generated text. " +
+          "We are looking for the well-documented stylistic " +
+          "fingerprint of large language models (ChatGPT, Claude, " +
+          "Gemini, Llama, Mistral). This is a HEURISTIC analysis " +
+          "based on prose patterns — not a courtroom-grade " +
+          "classifier. " +
+          "Output: `## AI Likelihood Snapshot` (one verdict: " +
+          "'Likely AI-generated', 'Mixed — sections look AI', " +
+          "'Likely human-written', or 'Inconclusive'. Two " +
+          "sentences explaining the call). " +
+          "`## AI-Generation Fingerprints` (Markdown table: " +
+          "Passage (quoted, ~25 words max), Section / page, " +
+          "Tell-Type, Confidence Low/Medium/High. Tell-Types " +
+          "include: 'formulaic-opener' ('In today's world', " +
+          "'In conclusion'), 'hedging-overuse' ('it could be " +
+          "argued that'), 'three-item-rhetoric' (chronic 'X, Y, " +
+          "and Z' triplets), 'em-dash-overuse', 'register-too-" +
+          "polished' (uniform formal voice with no personality), " +
+          "'definition-textbook-style', 'transitional-cliché' " +
+          "('moreover', 'furthermore', 'additionally' as section " +
+          "openers), 'safety-disclaimer-pattern' (unprompted " +
+          "caveats), 'list-then-summary' (LLM-typical structure)). " +
+          "`## Stylometric Indicators` (bullets — sentence-length " +
+          "uniformity, vocabulary-richness drop, lack of " +
+          "idiosyncratic phrasing, absence of typos / minor " +
+          "grammar quirks that humans naturally produce). " +
+          "`## Counter-Evidence` (signals that lean human: " +
+          "specific personal details, idiomatic expressions, " +
+          "minor inconsistencies, opinion shifts). " +
+          "`## How to Humanize` (3-5 concrete edits if the user " +
+          "wants to make AI text read more human: vary sentence " +
+          "length, add specific examples, kill the formulaic " +
+          "openers, drop hedging, add an opinion). " +
+          "End with explicit honest caveat: this is a heuristic " +
+          "based on stylistic patterns, not a definitive " +
+          "classifier. False positives are possible (some humans " +
+          "naturally write in clean, structured prose); false " +
+          "negatives are possible (a careful human edit can mask " +
+          "AI fingerprints). Tools like GPTZero / Originality.ai " +
+          "use trained classifiers and may give different " +
+          "verdicts. Use this as one input, not the verdict."
         );
       case "chart-to-table":
         // §2.8 Extract numeric data from a chart image embedded
@@ -1429,8 +1447,8 @@ function buildUserPrompt(opts: {
         return "Improve the writing in this document";
       case "paraphrase":
         return "Paraphrase this document";
-      case "plagiarism":
-        return "Audit originality of this document";
+      case "ai-detector":
+        return "Detect AI-generated text in this document";
       case "chart-to-table":
         return "Extract data from charts in this PDF";
       case "standard":

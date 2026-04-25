@@ -90,7 +90,7 @@ export type SeoPageSlug =
   | "rewrite-pdf-tone"
   | "improve-pdf-writing"
   | "paraphrase-pdf"
-  | "pdf-plagiarism-check"
+  | "ai-content-detector"
   | "chart-to-data-table"
   | "stamp-pdf"
   | "n-up-pdf"
@@ -1709,26 +1709,28 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Can I use this for academic citations?", a: "Yes for summarising someone else's work in your own words — but you STILL need to cite the original. Paraphrasing without attribution is plagiarism. The 'in your own words' is about wording, not authorship." },
       { q: "Will it sound AI-generated?", a: "We use a high-quality model that produces natural prose. Read it carefully — if a sentence sounds AI-fluent, replace it with your own. The Originality Heuristic Check tool surfaces AI-tells if you want to audit." },
     ],
-    related: ["ai-paraphrase", "ai-improve-writing", "ai-plagiarism", "ai-rewrite"],
+    related: ["ai-paraphrase", "ai-improve-writing", "ai-detector", "ai-rewrite"],
   },
 
-  "pdf-plagiarism-check": {
-    tool: "ai-plagiarism",
-    h1: "PDF Plagiarism Heuristic Check — register shifts, AI-tells, boilerplate",
-    sub: "Drop a PDF. We surface register shifts, definition-textbook style, boilerplate repeats, and AI-generation tells. NOT a Turnitin / Copyleaks external-corpus scan. 10 credits.",
-    canonical: "/pdf-plagiarism-check",
+  "ai-content-detector": {
+    tool: "ai-detector",
+    h1: "AI Content Detector for PDFs — spot ChatGPT, Claude, Gemini text",
+    sub: "Drop a PDF. We surface well-documented LLM stylistic fingerprints: formulaic openers, hedging overuse, em-dash patterns, register-too-polished, three-item rhetoric, transitional clichés. Honest heuristic — not a courtroom-grade classifier. 10 credits.",
+    canonical: "/ai-content-detector",
     howTo: [
-      { t: "Drop the document PDF", d: "Essay, thesis chapter, report, blog post — anything you want to audit for originality." },
-      { t: "We do a heuristic audit", d: "Register shifts (sudden formal voice in casual text), definition-textbook style (classic copy-paste tell), boilerplate repeats, AI-generation tells." },
-      { t: "Get specific recommendations", d: "Which passages look borrowed, why they look borrowed, how to either cite them properly OR rewrite them in your own voice." },
+      { t: "Drop the PDF", d: "Essay, blog post, report, article — anything you want to check for AI-generated text." },
+      { t: "We run a stylometric audit", d: "Compare prose patterns against the well-documented stylistic fingerprint of LLMs (ChatGPT, Claude, Gemini, Llama, Mistral). Flagged passages get a confidence score (Low / Medium / High)." },
+      { t: "Get a verdict + counter-evidence", d: "One-line verdict (Likely AI / Mixed / Likely Human / Inconclusive), table of fingerprints found, AND signals that lean human — so you see both sides of the call." },
+      { t: "Optional: get edit suggestions", d: "If you want to humanize AI text — vary sentence length, drop hedging, kill formulaic openers, add specific examples. We give 3-5 concrete edits." },
     ],
     faq: [
-      { q: "Is this a real plagiarism scan?", a: "NO. Critical distinction. Real plagiarism scans (Turnitin, Copyleaks, iThenticate) compare your text against billions of indexed documents. We don't have that index. We surface internal originality signals — patches that LOOK borrowed based on prose patterns. For thesis / publication submission, you must run a real plagiarism scan in addition." },
-      { q: "What are 'AI-generation tells'?", a: "Phrases / structures common in LLM output: 'in conclusion', 'it is important to note', 'in today's world', overuse of em-dashes, three-item rhetorical lists, hedging phrases like 'while it can be argued'. We surface them so you can rewrite passages that scream AI." },
-      { q: "Why surface 'register shifts'?", a: "If a paragraph in your casual blog post suddenly reads like a textbook, it's likely lifted (or copy-pasted from your earlier formal work). Either cite the source or rewrite to match the surrounding voice." },
-      { q: "How accurate is the audit?", a: "Heuristic. Useful for self-audit before submission. Don't treat it as binary 'plagiarism / not plagiarism' — treat the flagged passages as 'worth a second look'." },
+      { q: "Is this a definitive AI classifier?", a: "No, and we don't pretend it is. This is a heuristic based on stylistic patterns. False positives happen (some humans naturally write in clean, structured prose). False negatives happen (a careful human edit can mask AI fingerprints). Tools like GPTZero / Originality.ai use trained classifiers and may give different verdicts. Treat our output as ONE input, not the verdict." },
+      { q: "What patterns does it look for?", a: "Formulaic openers ('In today's world', 'In conclusion'), hedging overuse ('it could be argued that'), three-item rhetoric (chronic X/Y/Z triplets), em-dash overuse, register-too-polished (uniform formal voice with no personality), definition-textbook style, transitional clichés ('moreover', 'furthermore' as section openers), unprompted safety disclaimers, and stylometric uniformity (sentence-length sameness, vocabulary-richness drop)." },
+      { q: "What's 'counter-evidence'?", a: "Signals that lean human: specific personal details, idiomatic expressions, minor inconsistencies, opinion shifts, casual asides. We surface these alongside the AI fingerprints so the verdict isn't a one-sided witch-hunt." },
+      { q: "How is this different from Turnitin?", a: "Different problem. Turnitin compares your text against an indexed corpus of billions of documents — it catches paraphrased copying. We look at prose style — we catch AI-generated text. They're complementary checks, not substitutes. For academic plagiarism specifically, run Turnitin / Copyleaks / iThenticate in addition." },
+      { q: "Can I use this to rewrite my AI essay so it passes detection?", a: "We give edit suggestions that humanize the prose (vary sentence length, add specifics, drop clichés). But we're not in the business of helping students cheat. The honest use case is: you wrote a draft, you want to know if it reads like AI before submitting." },
     ],
-    related: ["ai-plagiarism", "ai-improve-writing", "ai-paraphrase", "ai-citations"],
+    related: ["ai-detector", "ai-improve-writing", "ai-paraphrase", "ai-proofread"],
   },
 
   "chart-to-data-table": {

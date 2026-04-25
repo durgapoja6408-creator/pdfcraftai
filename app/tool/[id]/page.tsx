@@ -89,7 +89,7 @@ import {
   // Task #81 — Tier 2 §2.5/§2.6/§2.8 + Tier 3 §3.3 wedges.
   ImproveWritingTool,
   ParaphraseTool,
-  PlagiarismHeuristicTool,
+  AiDetectorTool,
   ChartToTableTool,
 } from "@/components/tools/SummarizeVariantTool";
 import { ResumeParserTool } from "@/components/tools/ResumeParserTool";
@@ -223,7 +223,7 @@ const LIVE_TOOL_IDS = new Set<string>([
   // Task #81 — Tier 2 + Tier 3 wedges.
   "ai-improve-writing",
   "ai-paraphrase",
-  "ai-plagiarism",
+  "ai-detector",
   "ai-chart-to-table",
   "ai-translate",
   "ai-compare",
@@ -552,8 +552,8 @@ function ToolRunner({ id }: { id: string }) {
       return <ImproveWritingTool />;
     case "ai-paraphrase":
       return <ParaphraseTool />;
-    case "ai-plagiarism":
-      return <PlagiarismHeuristicTool />;
+    case "ai-detector":
+      return <AiDetectorTool />;
     case "ai-chart-to-table":
       return <ChartToTableTool />;
     case "ai-translate":

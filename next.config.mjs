@@ -264,6 +264,12 @@ const nextConfig = {
       // or more) — the latter matches `/tools` itself, creating an
       // infinite self-redirect loop that 100% breaks the tools index.
       { source: "/tools/:slug+", destination: "/tools", permanent: true },
+      // Task #101 — ai-plagiarism rebrand to ai-detector (AI Content
+      // Detector). Honest positioning: the tool was always a heuristic
+      // AI-text detector, not a real plagiarism scan. Permanent 308s so
+      // GSC + any inbound links transfer their authority to the new URLs.
+      { source: "/tool/ai-plagiarism", destination: "/tool/ai-detector", permanent: true },
+      { source: "/pdf-plagiarism-check", destination: "/ai-content-detector", permanent: true },
     ];
   },
 };

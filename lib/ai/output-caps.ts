@@ -228,7 +228,7 @@ export const OP_OUTPUT_CAP_TABLE: CapTable = {
     // Task #81 — Tier 2 §2.5/§2.6/§2.8 + Tier 3 §3.3 wedges.
     "improve-writing": 4000, // Rewritten doc may be ~80% of input length.
     "paraphrase": 4000, // Same length as input, possibly slightly longer.
-    "plagiarism": 2400, // Snapshot + flagged passages + AI-tells + recs.
+    "ai-detector": 2400, // Verdict + fingerprint table + counter-evidence + humanize tips.
     "chart-to-table": 2800, // Tables for each chart found, can be many.
     // Sprint A REVERTED in Task #99 — 5 Indian govt ID caps removed.
     // Sprint B — Indian financial wedges.

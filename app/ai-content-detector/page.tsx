@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { SeoLandingPage } from "@/components/marketing/SeoLandingPage";
 import { SEO_PAGES } from "@/lib/seo-pages";
 
-const data = SEO_PAGES["pdf-plagiarism-check"];
+const data = SEO_PAGES["ai-content-detector"];
 
 export const metadata: Metadata = {
   title: data.h1,

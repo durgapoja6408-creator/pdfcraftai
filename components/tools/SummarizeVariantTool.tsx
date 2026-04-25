@@ -61,7 +61,7 @@ type Depth =
   // Task #81 Tier 2 + Tier 3 wedges.
   | "improve-writing"
   | "paraphrase"
-  | "plagiarism"
+  | "ai-detector"
   | "chart-to-table"
   // Sprint A REVERTED in Task #99 — 5 govt ID parsers removed.
   // Sprint B — 5 Indian financial wedges (Tier 3 §3.1).
@@ -1024,17 +1024,17 @@ export function ParaphraseTool() {
   );
 }
 
-export function PlagiarismHeuristicTool() {
+export function AiDetectorTool() {
   return (
     <SummarizeVariantTool
-      depth="plagiarism"
-      toolId="ai-plagiarism"
-      callbackUrl="/tool/ai-plagiarism"
-      prompt="Drop a document for an internal originality check"
-      runLabel="Audit originality"
-      busyLabel="Auditing…"
-      successTitle="Originality audit ready"
-      pricingBlurb="Tier 2 §2.5: heuristic check — surfaces register shifts, definition-textbook style, boilerplate repeats, AI-generation tells. NOT a Turnitin / Copyleaks external-corpus scan. 10 credits. For thesis / publication submission, run a real plagiarism service."
+      depth="ai-detector"
+      toolId="ai-detector"
+      callbackUrl="/tool/ai-detector"
+      prompt="Drop a PDF to detect AI-generated text (ChatGPT / Claude / Gemini / etc.)"
+      runLabel="Detect AI"
+      busyLabel="Analysing…"
+      successTitle="AI detection ready"
+      pricingBlurb="Tier 2 §2.5: heuristic AI-content detector — surfaces well-documented LLM stylistic fingerprints (formulaic openers, hedging overuse, em-dash patterns, register-too-polished, three-item rhetoric, transitional clichés). 10 credits. Honest caveat: heuristic only, not a courtroom-grade classifier. False positives + negatives possible."
       relatedHref={{ href: "/tool/ai-improve-writing", label: "Improve Writing" }}
     />
   );

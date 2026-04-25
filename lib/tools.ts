@@ -114,7 +114,7 @@ export const TOOLS: readonly Tool[] = [
   // Task #81 — five more wedges (Tier 2 §2.5/§2.6/§2.8 + Tier 3 §3.3).
   { id: "ai-improve-writing", name: "Improve Writing", desc: "Tier 2: rewrites for clarity + concision (~20-30% shorter) without changing facts, register, or claims.", icon: "Edit", free: false, cost: "5 credits / doc", group: "AI" },
   { id: "ai-paraphrase", name: "Paraphrase PDF", desc: "Tier 2: rewords preserving every claim + number + conclusion. Same length as input. Technical terms preserved.", icon: "Edit", free: false, cost: "5 credits / doc", group: "AI" },
-  { id: "ai-plagiarism", name: "Originality Heuristic Check", desc: "Tier 2: surfaces register shifts, definition-textbook style, boilerplate repeats, AI-generation tells. NOT a Turnitin scan.", icon: "Shield", free: false, cost: "10 credits / doc", group: "AI" },
+  { id: "ai-detector", name: "AI Content Detector", desc: "Detect AI-generated text (ChatGPT / Claude / Gemini) in any PDF. Surfaces formulaic structure, AI-typical phrasing, register shifts. Honest heuristic — not a courtroom-grade scan.", icon: "Shield", free: false, cost: "10 credits / doc", group: "AI" },
   { id: "ai-chart-to-table", name: "Chart → Data Table", desc: "Tier 2 Visual: reads charts visually, extracts data points with axis labels + units. Bar / line / pie / scatter / stacked supported.", icon: "Pages", free: false, cost: "5 credits / chart", group: "AI" },
   { id: "ai-translate", name: "Translate PDF", desc: "Preserve layout across 20+ languages.", icon: "Translate", free: false, cost: "5 credits / doc", group: "AI" },
   { id: "ai-ocr", name: "OCR & Smart Extract", desc: "Turn scans into searchable, structured data.", icon: "Scan", free: false, cost: "~2 credits / page", group: "AI" },

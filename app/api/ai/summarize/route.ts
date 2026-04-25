@@ -118,7 +118,7 @@ const VALID_DEPTHS: readonly SummarizeDepth[] = [
   // Task #81 — five more wedges (Tier 2 §2.5/§2.6/§2.8 + Tier 3 §3.3):
   "improve-writing",
   "paraphrase",
-  "plagiarism",
+  "ai-detector",
   "chart-to-table",
   // Sprint A REVERTED in Task #99 — 5 govt ID parsers removed.
   // Sprint B — 5 Indian financial wedges (Tier 3, §3.1).
