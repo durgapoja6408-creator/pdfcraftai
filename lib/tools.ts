@@ -65,6 +65,12 @@ export const TOOLS: readonly Tool[] = [
   { id: "ai-driving-license", name: "Driving License Parser", desc: "Tier 3 Indian Govt ID: DL extract with vehicle classes + endorsements + renewal watch.", icon: "Pages", free: false, cost: "10 credits / doc", group: "AI" },
   { id: "ai-voter-id", name: "Voter ID (EPIC) Parser", desc: "Tier 3 Indian Govt ID: EPIC + constituency + polling + NVSP cross-verification steps.", icon: "Pages", free: false, cost: "10 credits / doc", group: "AI" },
   { id: "ai-passport", name: "Passport Parser", desc: "Tier 3 Indian Govt ID: bio data + MRZ status + renewal watch + travel tips. India + international.", icon: "Pages", free: false, cost: "10 credits / doc", group: "AI" },
+  // Sprint B — 5 Indian financial wedges (Tier 3 §3.1).
+  { id: "ai-form-26as", name: "Form 26AS Analyzer", desc: "Tier 3 Finance: TDS / tax credit reconciliation across Parts A-E with discrepancy flags.", icon: "Pages", free: false, cost: "15 credits / doc", group: "AI" },
+  { id: "ai-form-15g-15h", name: "Form 15G / 15H Analyzer", desc: "Tier 3 Finance: declaration parser with eligibility check vs basic exemption limits.", icon: "Pages", free: false, cost: "10 credits / doc", group: "AI" },
+  { id: "ai-rent-receipt", name: "Rent Receipts → HRA Summary", desc: "Tier 3 Finance: 12-month rent receipts → HRA exemption math + compliance flags.", icon: "Pages", free: false, cost: "10 credits / doc", group: "AI" },
+  { id: "ai-property-tax", name: "Property Tax Bill Analyzer", desc: "Tier 3 Finance: BBMP / MCD / BMC / KMC bill parser with rebate eligibility + late-payment warnings.", icon: "Pages", free: false, cost: "10 credits / doc", group: "AI" },
+  { id: "ai-stamp-duty", name: "Stamp Duty / e-Stamp Analyzer", desc: "Tier 3 Finance: SHCIL / state-portal e-Stamp parser with duty + party + verification URL.", icon: "Pages", free: false, cost: "10 credits / doc", group: "AI" },
   { id: "page-numbers", name: "Page Numbers & Watermark", desc: "Add headers, footers, and watermarks.", icon: "Pages", free: true, group: "Edit" },
   { id: "protect", name: "Unlock / Protect PDF", desc: "Add or remove passwords and permissions.", icon: "Lock", free: true, group: "Security" },
 

@@ -136,6 +136,11 @@ import {
   DrivingLicenseParserTool,
   VoterIdParserTool,
   PassportParserTool,
+  Form26asAnalyzerTool,
+  Form15g15hAnalyzerTool,
+  RentReceiptAnalyzerTool,
+  PropertyTaxAnalyzerTool,
+  StampDutyAnalyzerTool,
 } from "@/components/tools/SummarizeVariantTool";
 import { StampPdfTool } from "@/components/tools/StampPdfTool";
 import { NUpPdfTool } from "@/components/tools/NUpPdfTool";
@@ -213,6 +218,12 @@ const LIVE_TOOL_IDS = new Set<string>([
   "ai-driving-license",
   "ai-voter-id",
   "ai-passport",
+  // Sprint B — 5 Indian financial wedges (Tier 3 §3.1)
+  "ai-form-26as",
+  "ai-form-15g-15h",
+  "ai-rent-receipt",
+  "ai-property-tax",
+  "ai-stamp-duty",
   "ai-summarize",
   "ai-tldr",
   "ai-key-points",
@@ -540,6 +551,17 @@ function ToolRunner({ id }: { id: string }) {
       return <VoterIdParserTool />;
     case "ai-passport":
       return <PassportParserTool />;
+    // Sprint B — Indian financial wedges (Tier 3 §3.1)
+    case "ai-form-26as":
+      return <Form26asAnalyzerTool />;
+    case "ai-form-15g-15h":
+      return <Form15g15hAnalyzerTool />;
+    case "ai-rent-receipt":
+      return <RentReceiptAnalyzerTool />;
+    case "ai-property-tax":
+      return <PropertyTaxAnalyzerTool />;
+    case "ai-stamp-duty":
+      return <StampDutyAnalyzerTool />;
     case "ai-summarize":
       return <SummarizePdfTool />;
     case "ai-tldr":

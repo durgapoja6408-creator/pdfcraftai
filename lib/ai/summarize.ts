@@ -265,7 +265,18 @@ export type SummarizeDepth =
   | "pan-card"
   | "driving-license"
   | "voter-id"
-  | "passport";
+  | "passport"
+  // Sprint B — 5 Indian financial wedges (Tier 3 §3.1).
+  //   form-26as     — TDS / tax-credit consolidated statement (15c)
+  //   form-15g-15h  — TDS exemption declaration parser (10c)
+  //   rent-receipt  — rent receipts → HRA-friendly summary (10c)
+  //   property-tax  — municipal property tax bill parser (10c)
+  //   stamp-duty    — stamp duty receipt / e-Stamp analyzer (10c)
+  | "form-26as"
+  | "form-15g-15h"
+  | "rent-receipt"
+  | "property-tax"
+  | "stamp-duty";
 
 export interface SummarizeInput {
   /** Extracted PDF text, pages joined with `\f`. */
@@ -1666,6 +1677,124 @@ function buildSystemPrompt(opts: {
           "with: data extraction only, not voter-eligibility " +
           "verification."
         );
+      // Sprint B — Indian financial wedges (§3.1).
+      case "form-26as":
+        return (
+          "Parse this Form 26AS (Tax Credit Statement from TRACES). " +
+          "Output: `## Assessee` (PAN, Name — echo full PAN, last 4 " +
+          "of Aadhaar if linked, AY). `## Part A — TDS on Salary` " +
+          "(table: Deductor, TAN, Section, Total Tax Deducted, " +
+          "Period). `## Part A1 — TDS Other Than Salary` (same " +
+          "table shape, includes 194A interest, 194I rent, 194J " +
+          "professional fees, etc.). `## Part B — TCS` (Tax " +
+          "Collected at Source). `## Part C — Advance Tax / Self-" +
+          "Assessment` (Challans paid, BSR code, dates, amounts). " +
+          "`## Part D — Refund Status` (refunds issued in this AY). " +
+          "`## Part E — High-Value Transactions (AIR / SFT)` " +
+          "(financial transactions reported by banks / mutual funds " +
+          "/ etc., flag any over thresholds). `## Cross-Check Notes` " +
+          "(does total TDS deducted equal sum across deductors? " +
+          "Does any deductor appear here but not on your Form 16?). " +
+          "End with: not tax advice. ITR file numbers should match " +
+          "Form 26AS exactly — discrepancies are the #1 source of " +
+          "ITR notices."
+        );
+      case "form-15g-15h":
+        return (
+          "Parse this Form 15G or Form 15H (declaration of zero / " +
+          "low TDS deduction). Output: `## Form Type` (15G under 18-" +
+          "60 yrs OR 15H for senior citizens 60+ — flag mismatch if " +
+          "DOB inconsistent). `## Declarant` (Name, PAN, DOB, Status " +
+          "— Individual / HUF / etc., Address). `## Income Details` " +
+          "(table: Identification number, Section, Estimated income " +
+          "this FY, Estimated total income for FY). `## Eligibility " +
+          "Check` (basic exemption limit ₹2.5L for <60, ₹3L for " +
+          "60-80, ₹5L for 80+ — flag if total estimated income " +
+          "exceeds the limit, which makes the declaration " +
+          "INVALID). `## Verification` (signature, date, place, " +
+          "verification statement presence). `## Submission Status` " +
+          "(if there's a UIN / acknowledgment number from bank or " +
+          "deductor, surface it). `## Risk Flags` (3-5 things that " +
+          "could invalidate this form — e.g., TDS already " +
+          "deducted; income exceeds limit; declarant has filed " +
+          "ITR with refund). End with: not tax advice. False " +
+          "declarations under section 277 of IT Act carry " +
+          "imprisonment + fine."
+        );
+      case "rent-receipt":
+        return (
+          "Parse this stack of rent receipts (typically 12 months for " +
+          "HRA exemption claim under section 10(13A)). Output: `## " +
+          "Tenant` (Name, address). `## Landlord` (Name, PAN if " +
+          "shown — PAN MANDATORY if annual rent > ₹1L per IT rule, " +
+          "flag if missing for that case). `## Property` (rented " +
+          "address). `## Receipt Detail Table` (table: Receipt #, " +
+          "Month, Amount, Mode of Payment, Date, Stamp Present, " +
+          "Signature Present). `## Annual Rent Total` (sum). `## " +
+          "HRA Eligibility Math` (3 limits: actual HRA received, " +
+          "rent paid - 10% basic, 50% basic for metro / 40% non-" +
+          "metro — minimum of 3 is the eligible amount; show all " +
+          "three if user provides salary basic separately, " +
+          "otherwise just the rent-paid figure). `## Compliance " +
+          "Flags` (red flags: unsigned receipts, missing landlord " +
+          "PAN with rent > ₹1L/yr, missing revenue stamp on " +
+          "receipts > ₹5K, gaps in months covered, mismatched " +
+          "amounts vs. bank-statement evidence the user might " +
+          "want to provide). End with: not tax advice. HRA claims " +
+          "must match rent agreement + bank-transfer evidence."
+        );
+      case "property-tax":
+        return (
+          "Parse this property tax bill (municipal corporation, " +
+          "panchayat, or city municipal council — covers BBMP, MCD, " +
+          "BMC, Chennai Corp, KMC, etc.). Output: `## Property` " +
+          "(Owner Name, Property ID / Khata No / PID, Address, " +
+          "Property Type — Residential / Commercial / Mixed, Built-" +
+          "Up Area, Plot Area). `## Bill Details` (Bill Number, " +
+          "Assessment Year, Half-Year H1/H2 if applicable, Issue " +
+          "Date, Due Date). `## Tax Computation` (table: " +
+          "Component, Basis, Rate, Amount — Property Tax, Library " +
+          "Cess, Health Cess, Solid Waste Cess, Beggary Cess, " +
+          "etc.). `## Outstanding Dues` (any prior unpaid amounts " +
+          "+ accrued interest / penalty). `## Total Payable`. `## " +
+          "Payment Options` (online portal, bank counter, " +
+          "authorized centers — list whatever the bill mentions). " +
+          "`## Rebate Eligibility` (early-payment rebate, " +
+          "self-assessment rebate, women / senior / disabled " +
+          "rebates if your municipality offers — flag if the bill " +
+          "mentions but doesn't apply). `## Late-Payment " +
+          "Consequences` (per-month interest, penalty %, " +
+          "disconnection of water/services if applicable). End " +
+          "with: data extraction only, not legal/financial advice. " +
+          "Cross-check Property ID against your latest sale-deed " +
+          "or khata."
+        );
+      case "stamp-duty":
+        return (
+          "Parse this stamp duty receipt / e-Stamp certificate / " +
+          "challan (Indian — covers SHCIL e-Stamp, state-portal e-" +
+          "Stamp, franking-machine receipt, traditional stamp " +
+          "paper). Output: `## Document` (Stamp Certificate / " +
+          "Receipt Number, Issue Date, Issuing Authority, State, " +
+          "Status — Valid / Used / Cancelled). `## Transaction " +
+          "Type` (Sale Deed / Lease Agreement / Gift Deed / Power " +
+          "of Attorney / Affidavit / Loan Agreement / etc.). `## " +
+          "Parties` (First Party — buyer/lessee, Second Party — " +
+          "seller/lessor). `## Property / Subject` (if a property " +
+          "transaction: address, survey number; if not, brief " +
+          "description). `## Stamp Duty Paid` (amount, percentage " +
+          "of consideration — typical IN ranges: 5-7% for sale " +
+          "deeds, varies by state/gender/urban). `## Registration " +
+          "Fee` (separate from stamp duty, usually 1%). `## " +
+          "Validity Check` (e-Stamp certificates have a unique " +
+          "ID verifiable on shcilestamp.com or state-specific " +
+          "portal — surface the verification URL). `## Common " +
+          "Issues` (3-5 risk flags: under-stamping, expired " +
+          "certificate used, mismatched parties vs deed, etc.). " +
+          "End with: data extraction only, not legal advice. " +
+          "Always verify e-Stamp authenticity on the official " +
+          "issuing portal before relying on it."
+        );
       case "passport":
         return (
           "Parse this Indian passport bio page (or international " +
@@ -2397,6 +2526,16 @@ function buildUserPrompt(opts: {
         return "Parse this Voter ID / EPIC card";
       case "passport":
         return "Parse this passport bio page";
+      case "form-26as":
+        return "Parse this Form 26AS tax credit statement";
+      case "form-15g-15h":
+        return "Parse this Form 15G / 15H declaration";
+      case "rent-receipt":
+        return "Parse rent receipts for HRA-friendly summary";
+      case "property-tax":
+        return "Parse this property tax bill";
+      case "stamp-duty":
+        return "Parse this stamp duty receipt / e-Stamp";
       case "standard":
       case "detailed":
       default:

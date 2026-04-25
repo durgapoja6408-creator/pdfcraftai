@@ -129,7 +129,12 @@ export type SeoPageSlug =
   | "pan-card-parser"
   | "driving-license-parser"
   | "voter-id-parser"
-  | "passport-parser";
+  | "passport-parser"
+  | "form-26as-analyzer"
+  | "form-15g-15h-analyzer"
+  | "rent-receipt-analyzer"
+  | "property-tax-analyzer"
+  | "stamp-duty-analyzer";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -2502,6 +2507,100 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Travel-document verification?", a: "No. We extract what's printed. Whether your passport is genuine, current, or accepted by a specific border control is OUTSIDE this tool's scope. For visa or entry questions, check the destination country's official portal." },
     ],
     related: ["ai-aadhaar", "ai-pan-card", "ai-voter-id", "ai-driving-license"],
+  },
+
+  "form-26as-analyzer": {
+    tool: "ai-form-26as",
+    h1: "Form 26AS Analyzer — TDS / tax credit reconciliation",
+    sub: "Drop your Form 26AS from TRACES. We parse Parts A through E, surface deductor-by-deductor TDS, advance tax challans, refunds, and high-value transactions, and flag discrepancies that commonly trigger ITR notices. 15 credits.",
+    canonical: "/form-26as-analyzer",
+    howTo: [
+      { t: "Drop the PDF", d: "Form 26AS downloaded from the TRACES portal (incometax.gov.in). Both the password-protected and unlocked versions work — unlock first if needed." },
+      { t: "Full reconciliation", d: "Parts A (TDS Salary), A1 (TDS Other), B (TCS), C (Advance / Self-Assessment Tax), D (Refunds), E (High-Value AIR / SFT) — all parsed into structured tables." },
+      { t: "Discrepancy flags", d: "Cross-check totals across deductors, find deductors that show on 26AS but not on your Form 16, surface AIR transactions that exceed reporting thresholds." },
+    ],
+    faq: [
+      { q: "Is this tax filing advice?", a: "No. We extract structured data from your 26AS for sanity-checking against your ITR draft. For the actual ITR filing math, use the Income Tax e-Filing portal or a CA. Mismatches between ITR and 26AS are the #1 cause of CPC notices — this tool catches those before you file." },
+      { q: "What about AIR / SFT transactions?", a: "Part E surfaces high-value financial transactions reported by banks, mutual funds, registrars, and others. We flag any over the standard SFT thresholds (₹10L savings deposit, ₹2L MF investment, etc.) so you can be ready for Income Tax inquiries on those." },
+      { q: "Will this work for older AYs?", a: "Yes — Form 26AS structure has been stable for years. The PDF-based version (post-2017) is what we parse. If you have a pre-2017 Form 16AS in a different format, results may be partial." },
+    ],
+    related: ["ai-itr-form16", "ai-salary-slip", "ai-rent-receipt", "ai-form-15g-15h"],
+  },
+
+  "form-15g-15h-analyzer": {
+    tool: "ai-form-15g-15h",
+    h1: "Form 15G / 15H Analyzer — TDS exemption declaration check",
+    sub: "Drop your Form 15G or Form 15H. We detect which form by age, parse declarant + income details, and run an eligibility check against the basic exemption limit so you know whether the declaration is valid. 10 credits.",
+    canonical: "/form-15g-15h-analyzer",
+    howTo: [
+      { t: "Drop the PDF", d: "The completed 15G or 15H — either bank-issued, downloaded from incometax.gov.in, or a scanned signed copy." },
+      { t: "Form type detection", d: "15G if declarant is under 60, 15H if 60+. We flag if DOB and form choice are inconsistent." },
+      { t: "Eligibility check", d: "Compares your stated estimated total income against the basic exemption limit (₹2.5L / ₹3L / ₹5L by age band). If you exceed, the declaration is invalid — submitting an invalid 15G/15H carries imprisonment + fine under section 277." },
+      { t: "Risk flags", d: "TDS already deducted, ITR with refund filed (which negates eligibility), missing PAN, missing signature." },
+    ],
+    faq: [
+      { q: "Is this tax advice?", a: "No. We extract data and flag risks. Whether to actually submit a 15G/15H is your decision (with advice from a CA if your case is non-trivial). False declarations carry section 277 penalties — imprisonment plus fine — so the eligibility check is one we surface honestly." },
+      { q: "Can I use this for joint accounts?", a: "Form 15G/15H is filed individually per holder per income source. If you have a joint FD, both holders typically need to file. Our parser handles a single declaration at a time — run it twice for joint cases." },
+      { q: "What about 15CA / 15CB?", a: "Different forms (foreign remittance). Not in this tool's scope. We'd need a separate parser for those and they're usually CA-prepared anyway." },
+    ],
+    related: ["ai-form-26as", "ai-itr-form16", "ai-bank-statement", "ai-mutual-fund"],
+  },
+
+  "rent-receipt-analyzer": {
+    tool: "ai-rent-receipt",
+    h1: "Rent Receipts → HRA Summary — 12-month receipts to exemption math",
+    sub: "Drop a stack of rent receipts and we'll produce a per-month receipt table, annual total, the section 10(13A) HRA exemption math, and compliance flags (landlord PAN, revenue stamp, signatures). 10 credits.",
+    canonical: "/rent-receipt-analyzer",
+    howTo: [
+      { t: "Drop the receipts", d: "All 12 months of rent receipts in one PDF. Scanned, photographed, or printed-from-template — all work." },
+      { t: "Receipt table", d: "Per-month: receipt number, month, amount, payment mode, date, stamp presence, signature presence." },
+      { t: "HRA math", d: "Three limits per section 10(13A): actual HRA received, rent paid - 10% basic salary, 50%/40% basic for metro/non-metro. Minimum is the eligible exemption." },
+      { t: "Compliance flags", d: "Landlord PAN required when annual rent > ₹1L (Income Tax rule). Revenue stamp required on receipts > ₹5K. Missing signatures. Gaps in months." },
+    ],
+    faq: [
+      { q: "What about rent agreements?", a: "Receipts and rent agreement are separate documents. Both are needed for an HRA claim — we parse the receipts. For agreement review, see the Rental Agreement tool." },
+      { q: "What if my landlord doesn't give a PAN?", a: "If annual rent is ≤₹1L, landlord PAN is not mandatory per IT rules. If > ₹1L, employer can refuse the HRA exemption without it. Common employer-side check during ITR. We surface this as a hard flag in the output." },
+      { q: "Bank-transfer evidence?", a: "Rent paid via bank transfer (UPI, NEFT, IMPS) is the gold standard for ITR scrutiny — it gives a paper trail beyond just receipts. We don't ingest your bank statement, but the output flags 'consider attaching bank-transfer screenshots' if cash is the dominant mode in your receipts." },
+    ],
+    related: ["ai-form-26as", "ai-itr-form16", "ai-bank-statement", "ai-rental"],
+  },
+
+  "property-tax-analyzer": {
+    tool: "ai-property-tax",
+    h1: "Property Tax Bill Analyzer — BBMP, MCD, BMC, Chennai Corp, KMC",
+    sub: "Drop your municipal property tax bill. We parse property identification, tax components (cess breakdown), outstanding dues with interest, rebate eligibility, and late-payment consequences. 10 credits.",
+    canonical: "/property-tax-analyzer",
+    howTo: [
+      { t: "Drop the PDF", d: "Bill from BBMP (Bangalore), MCD (Delhi), BMC (Mumbai), Chennai Corp, KMC (Kolkata), and most other municipal corporations / panchayats." },
+      { t: "Property + tax computation", d: "Owner, Property ID / Khata No / PID, address, type, area. Tax components: base property tax + library cess + health cess + solid waste cess + beggary cess (city-specific)." },
+      { t: "Outstanding + rebates", d: "Prior unpaid amounts with accrued interest. Rebate eligibility (early-payment, women, senior citizens, disabled — varies by city)." },
+      { t: "Late consequences", d: "Per-month interest rate, penalty %, water/services disconnection threshold if applicable." },
+    ],
+    faq: [
+      { q: "Is this legal advice for property disputes?", a: "No. We extract data from the bill. Property disputes (wrong owner name, wrong area, double taxation) need municipal corporation grievance filing or a property lawyer." },
+      { q: "What if my Property ID doesn't match my sale deed?", a: "We surface that as a 'cross-check' flag but don't auto-fix. Property ID mismatches are common after Khata transfers, address changes, or municipal re-numbering — they need to be fixed at the corporation, not in the bill itself." },
+      { q: "Will this work for panchayat-level bills?", a: "Yes for the well-formatted ones. Hand-written panchayat receipts may have partial extraction — modal 'Markdown table' output may have gaps for unstructured documents." },
+    ],
+    related: ["ai-property", "ai-rera", "ai-stamp-duty", "ai-sale-deed"],
+  },
+
+  "stamp-duty-analyzer": {
+    tool: "ai-stamp-duty",
+    h1: "Stamp Duty / e-Stamp Analyzer — SHCIL, state portals, franking",
+    sub: "Drop your stamp duty receipt or e-Stamp certificate. We identify the issuing platform (SHCIL / state portal / franking / traditional), parse parties, transaction type, duty paid, registration fee, and surface the verification URL. 10 credits.",
+    canonical: "/stamp-duty-analyzer",
+    howTo: [
+      { t: "Drop the PDF", d: "SHCIL e-Stamp certificate, state-portal e-Stamp (Maharashtra GRAS, Delhi e-Stamp, Karnataka, etc.), franking machine receipt, or scanned traditional stamp paper." },
+      { t: "Document identification", d: "Stamp Certificate / Receipt Number, Issue Date, Issuing Authority, State, Status (Valid / Used / Cancelled)." },
+      { t: "Parties + transaction", d: "First party (buyer/lessee), Second party (seller/lessor), transaction type (Sale Deed / Lease / Gift / PoA / Affidavit / Loan / etc.), property address if applicable." },
+      { t: "Duty + verification", d: "Stamp duty paid (amount + % of consideration), registration fee, and the verification URL on the issuing portal so you can confirm authenticity before relying on it." },
+    ],
+    faq: [
+      { q: "Why surface the verification URL?", a: "e-Stamp certificates have unique IDs that can be cross-checked on shcilestamp.com or the state portal. This is the only way to confirm a certificate is genuine and hasn't been used elsewhere — paper alone is forgeable." },
+      { q: "What about under-stamping?", a: "We flag if the duty paid looks low for the transaction type relative to typical state rates (e.g., Maharashtra sale deed = 6%, Karnataka = 5.6%, urban Delhi = 6%, etc.) — but state rates change, gender/age rebates apply, and we can't tell consideration without seeing the deed itself. Treat as a directional flag." },
+      { q: "Common e-Stamp scams?", a: "Three: forged certificates (verify on portal), expired certificates re-used (e-Stamps generally must be used within 6 months of issue for property transactions), and certificates issued for one transaction being used for another. Our output includes a 'Common Issues' checklist." },
+    ],
+    related: ["ai-sale-deed", "ai-rental", "ai-property-tax", "ai-property"],
   },
 };
 

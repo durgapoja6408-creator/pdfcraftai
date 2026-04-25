@@ -95,7 +95,13 @@ type Depth =
   | "pan-card"
   | "driving-license"
   | "voter-id"
-  | "passport";
+  | "passport"
+  // Sprint B — 5 Indian financial wedges (Tier 3 §3.1).
+  | "form-26as"
+  | "form-15g-15h"
+  | "rent-receipt"
+  | "property-tax"
+  | "stamp-duty";
 
 type Result = {
   fileId?: string;
@@ -1569,6 +1575,88 @@ export function PassportParserTool() {
       successTitle="Passport details ready"
       pricingBlurb="Tier 3 §3.x Indian Govt ID: bio data + passport document fields + MRZ presence detection + 6-month/12-month renewal watch + e-passport/DigiLocker format detection + travel tips (visa pages, ECR/ECNR status). 10 credits. Data extraction only, not travel-document verification or visa advice."
       relatedHref={{ href: "/tool/ai-aadhaar", label: "Aadhaar Parser" }}
+    />
+  );
+}
+
+// Sprint B — 5 Indian financial wedges (Tier 3 §3.1).
+
+export function Form26asAnalyzerTool() {
+  return (
+    <SummarizeVariantTool
+      depth="form-26as"
+      toolId="ai-form-26as"
+      callbackUrl="/tool/ai-form-26as"
+      prompt="Drop your Form 26AS (TDS / tax credit statement from TRACES)"
+      runLabel="Parse Form 26AS"
+      busyLabel="Parsing…"
+      successTitle="Form 26AS analysis ready"
+      pricingBlurb="Tier 3 §3.1 Finance: full reconciliation across Parts A / A1 / B / C / D / E (TDS salary, TDS other, TCS, advance tax, refunds, AIR/SFT). Cross-checks deductor totals + flags discrepancies that commonly trigger ITR notices. 15 credits. Not tax advice — match your ITR figures to 26AS exactly."
+      relatedHref={{ href: "/tool/ai-itr-form16", label: "ITR / Form 16 Analyzer" }}
+    />
+  );
+}
+
+export function Form15g15hAnalyzerTool() {
+  return (
+    <SummarizeVariantTool
+      depth="form-15g-15h"
+      toolId="ai-form-15g-15h"
+      callbackUrl="/tool/ai-form-15g-15h"
+      prompt="Drop your Form 15G or Form 15H declaration"
+      runLabel="Parse declaration"
+      busyLabel="Parsing…"
+      successTitle="Declaration analysis ready"
+      pricingBlurb="Tier 3 §3.1 Finance: detect 15G vs 15H by age, parse declarant + income details, run eligibility check against basic exemption limits, surface risk flags that could invalidate the declaration. 10 credits. Not tax advice — false declarations carry imprisonment + fine under section 277."
+      relatedHref={{ href: "/tool/ai-form-26as", label: "Form 26AS Analyzer" }}
+    />
+  );
+}
+
+export function RentReceiptAnalyzerTool() {
+  return (
+    <SummarizeVariantTool
+      depth="rent-receipt"
+      toolId="ai-rent-receipt"
+      callbackUrl="/tool/ai-rent-receipt"
+      prompt="Drop a stack of rent receipts (typically 12 months for HRA)"
+      runLabel="Parse receipts"
+      busyLabel="Parsing…"
+      successTitle="HRA-friendly summary ready"
+      pricingBlurb="Tier 3 §3.1 Finance: per-receipt table + annual rent total + HRA exemption math (3 limits per section 10(13A)) + compliance flags (landlord PAN required when rent > ₹1L/yr, revenue stamp on receipts > ₹5K, signature presence). 10 credits. Not tax advice — HRA claims must match rent agreement + bank-transfer evidence."
+      relatedHref={{ href: "/tool/ai-itr-form16", label: "ITR / Form 16 Analyzer" }}
+    />
+  );
+}
+
+export function PropertyTaxAnalyzerTool() {
+  return (
+    <SummarizeVariantTool
+      depth="property-tax"
+      toolId="ai-property-tax"
+      callbackUrl="/tool/ai-property-tax"
+      prompt="Drop your municipal property tax bill (BBMP / MCD / BMC / Chennai / KMC etc.)"
+      runLabel="Parse bill"
+      busyLabel="Parsing…"
+      successTitle="Property tax analysis ready"
+      pricingBlurb="Tier 3 §3.5 / §3.1: property identification + tax computation breakdown (cess components) + outstanding dues with interest + rebate eligibility (early-payment, women / senior / disabled) + late-payment consequences. 10 credits. Cross-check Property ID against your latest sale-deed."
+      relatedHref={{ href: "/tool/ai-property", label: "Property Document Checker" }}
+    />
+  );
+}
+
+export function StampDutyAnalyzerTool() {
+  return (
+    <SummarizeVariantTool
+      depth="stamp-duty"
+      toolId="ai-stamp-duty"
+      callbackUrl="/tool/ai-stamp-duty"
+      prompt="Drop your stamp duty receipt / e-Stamp certificate / challan"
+      runLabel="Parse stamp duty"
+      busyLabel="Parsing…"
+      successTitle="Stamp duty analysis ready"
+      pricingBlurb="Tier 3 §3.5: identifies SHCIL e-Stamp / state-portal / franking / traditional stamp paper, parses parties + transaction type + duty paid + registration fee, surfaces verification URL, flags common issues (under-stamping, expired certificate, party mismatch). 10 credits. Always verify e-Stamp authenticity on the official issuing portal."
+      relatedHref={{ href: "/tool/ai-sale-deed", label: "Sale Deed Analyzer" }}
     />
   );
 }

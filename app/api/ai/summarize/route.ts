@@ -154,6 +154,12 @@ const VALID_DEPTHS: readonly SummarizeDepth[] = [
   "driving-license",
   "voter-id",
   "passport",
+  // Sprint B — 5 Indian financial wedges (Tier 3, §3.1).
+  "form-26as",
+  "form-15g-15h",
+  "rent-receipt",
+  "property-tax",
+  "stamp-duty",
 ];
 
 export async function POST(req: Request): Promise<Response> {

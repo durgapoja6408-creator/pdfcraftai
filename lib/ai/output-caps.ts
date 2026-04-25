@@ -263,6 +263,12 @@ export const OP_OUTPUT_CAP_TABLE: CapTable = {
     "driving-license": 1800, // Holder + classes table + endorsements + renewal watch.
     "voter-id": 1600, // Holder + EPIC + constituency + polling + cross-verify.
     "passport": 1600, // Bio data + MRZ status + renewal watch + travel tips.
+    // Sprint B — Indian financial wedges.
+    "form-26as": 3200, // Multi-section TDS table + reconciliation notes.
+    "form-15g-15h": 1800, // Form fields + eligibility check + risk flags.
+    "rent-receipt": 2400, // 12-month receipt table + HRA math + compliance.
+    "property-tax": 2200, // Property + tax components + dues + rebates.
+    "stamp-duty": 1800, // Document + parties + duty + verification.
   },
 
   // Compare produces a side-by-side diff narrative. 4000 is
