@@ -236,7 +236,21 @@ export type SummarizeDepth =
   | "electricity-bill"
   | "telecom-bill"
   | "builder-agreement"
-  | "balance-sheet";
+  | "balance-sheet"
+  // Task #81 — five more wedges (Tier 2 §2.5/§2.6/§2.8 + Tier 3 §3.3):
+  //   improve-writing  §2.6 P1 — clarity / concision rewrite (5c)
+  //   paraphrase       §2.6 P1 — paraphrase preserving meaning (5c)
+  //   plagiarism       §2.5 P2 — internal originality check, surfaces
+  //   patches that read like quoted/repurposed material (10c)
+  //   chart-to-table   §2.8 P1 — extract numeric data from chart
+  //   images embedded in the PDF (5c)
+  //   paper-pattern    §3.3 P2 — multi-year question-paper pattern
+  //   analysis (use to compare 5+ years of past papers) (15c)
+  | "improve-writing"
+  | "paraphrase"
+  | "plagiarism"
+  | "chart-to-table"
+  | "paper-pattern";
 
 export interface SummarizeInput {
   /** Extracted PDF text, pages joined with `\f`. */
@@ -1435,6 +1449,128 @@ function buildSystemPrompt(opts: {
           "this is a parsing aid — banks and lawyers may still " +
           "need original EC for diligence."
         );
+      case "improve-writing":
+        // §2.6 Improve Writing — clarity / concision rewrite.
+        return (
+          "Rewrite this document to improve clarity and concision " +
+          "without changing the meaning. Output: `## Improved " +
+          "Version` (the rewritten text in full). `## Edit " +
+          "Summary` (3-5 bullets describing the kinds of changes " +
+          "you made — e.g. 'split four 30-word sentences into " +
+          "two-sentence pairs', 'replaced 12 instances of " +
+          "passive voice with active', 'cut redundant " +
+          "qualifiers like \"absolutely\", \"basically\"', " +
+          "'tightened nominalisations'). Rules: preserve every " +
+          "claim, number, and proper noun verbatim. Do NOT add " +
+          "facts or examples not present in the original. Do NOT " +
+          "change the document's register (a legal contract " +
+          "stays formal; a casual blog stays casual). Aim for " +
+          "20-30% shorter overall but never at the cost of " +
+          "losing meaning. End with a one-line note about " +
+          "approximate length reduction."
+        );
+      case "paraphrase":
+        // §2.6 Paraphrase preserving meaning.
+        return (
+          "Paraphrase this document in your own words while " +
+          "preserving every claim, number, and conclusion. " +
+          "Output: `## Paraphrased Version` (the rewritten text " +
+          "in full). `## How the Wording Changed` (3-5 bullets — " +
+          "e.g. 'restructured opening from passive to active', " +
+          "'replaced jargon \"leveraging\" with \"using\"', " +
+          "'broke up two compound paragraphs'). Rules: never " +
+          "alter facts, never add interpretation, never drop a " +
+          "claim — paraphrasing is a wording change, not a " +
+          "summary. Aim for similar length to the original, not " +
+          "shorter. Preserve technical terms when no plainer " +
+          "synonym would be accurate (e.g. don't paraphrase " +
+          "'amortisation' as 'paying off'). End with a note " +
+          "that paraphrasing isn't a substitute for citation — " +
+          "credit the original work appropriately."
+        );
+      case "plagiarism":
+        // §2.5 Internal originality check (no external corpus).
+        return (
+          "Audit this document for internal originality signals. " +
+          "We don't compare against an external corpus, but we " +
+          "DO surface patches that read like quoted, copy-pasted, " +
+          "or repurposed material (sudden register shifts, " +
+          "verbatim citations without attribution, definition-" +
+          "style passages that look lifted from textbooks, " +
+          "boilerplate paragraphs reused across sections). " +
+          "Output: `## Originality Snapshot` (2-3 sentences — " +
+          "broad assessment of how original the prose feels). " +
+          "`## Flagged Passages` (Markdown table: Passage " +
+          "(quoted), Section / page, Suspicion Type (one of: " +
+          "'register-shift', 'unattributed-quote-style', " +
+          "'definition-textbook-style', 'boilerplate-repeat', " +
+          "'AI-generated-tells', 'translated-back-from-other-" +
+          "language'), Recommendation). Mark severity Low/Medium/" +
+          "High. `## AI-Generation Tells` (bullets — specific " +
+          "phrases / structures common in LLM output: " +
+          "'in conclusion', 'it is important to note', " +
+          "'in today's world', overuse of em-dashes, three-item " +
+          "rhetorical lists, etc.). `## Recommendations` (3-5 " +
+          "concrete edits to lift originality + how to attribute " +
+          "borrowed material properly). End with explicit caveat: " +
+          "this is a heuristic check, not a Turnitin / Copyleaks " +
+          "external-corpus scan. For thesis / publication " +
+          "submission, run a real plagiarism service."
+        );
+      case "chart-to-table":
+        // §2.8 Extract numeric data from a chart image embedded
+        // in the PDF.
+        return (
+          "Extract the numeric data from any charts / graphs / " +
+          "infographics embedded in this PDF and recreate them " +
+          "as tables. The PDF's text won't carry the data — you " +
+          "must read the chart visually. Output: For each chart " +
+          "found, a section: `## Chart N — <chart title from the " +
+          "figure caption>` followed by `**Type:** <bar / line / " +
+          "pie / scatter / stacked / 100%-stacked / radar / " +
+          "histogram>`, `**Source:** <page N>`, then a Markdown " +
+          "table with the data points. Read axis labels and " +
+          "units faithfully. For values you can't read precisely " +
+          "from the visual, give a range (e.g. '170-180') with " +
+          "a confidence note. For pie charts, columns are " +
+          "Segment + Percentage. For stacked bars, columns are " +
+          "Category + each Stack-Layer. After all charts, end " +
+          "with a `## Charts Found` summary table (chart #, " +
+          "title, page, type, # data points). If a chart's data " +
+          "is genuinely illegible (low resolution, no " +
+          "gridlines), surface that explicitly rather than " +
+          "inventing numbers."
+        );
+      case "paper-pattern":
+        // §3.3 Multi-year question-paper pattern analyzer.
+        return (
+          "Analyse this stack of question papers (typically 5-10 " +
+          "years of the same exam concatenated). The user wants " +
+          "to know what questions / topics / patterns recur and " +
+          "which trend up or down. Output: `## Papers Detected` " +
+          "(table: Year, Total Questions, Total Marks, " +
+          "Sections). `## Subject / Section Mix Over Time` " +
+          "(Markdown table — rows = subjects/sections, columns = " +
+          "years, cells = #questions or %share. Reveals shifts " +
+          "in syllabus weighting). `## Topic Frequency Across " +
+          "Years` (table: Topic, Year-1, Year-2 ... ; aggregated " +
+          "list sorted desc by total. The actual top of this " +
+          "list is your high-yield study list). `## Question " +
+          "Type Trend` (factual MCQ vs application-based vs " +
+          "assertion-reason vs match-following ratio over " +
+          "years). `## Difficulty Drift` (Easy / Medium / Hard " +
+          "% per year). `## Question Recycle Rate` (questions " +
+          "that appear verbatim or near-verbatim across years — " +
+          "list them). `## Predictions` (5-7 specific topics " +
+          "with high probability of appearing next, ranked, " +
+          "with reasoning anchored in the data above — not " +
+          "generic 'study hard'). `## Strategy Implications` " +
+          "(3-5 bullets on study allocation, ignored sub-topics " +
+          "the data suggests are safe to deprioritise, etc.). " +
+          "Use exam-specific vocabulary if you can identify the " +
+          "exam (TNPSC / UPSC / JEE / NEET / SSC / Banking / " +
+          "GATE / etc.)."
+        );
       case "scan-report":
         // §3.4 Scan Report (MRI/CT/X-ray/Ultrasound) Plain-language
         // Explainer. STRICTLY non-diagnostic — surfaces what the
@@ -2125,6 +2261,16 @@ function buildUserPrompt(opts: {
         return "Audit this builder agreement";
       case "balance-sheet":
         return "Extract financials from this report";
+      case "improve-writing":
+        return "Improve the writing in this document";
+      case "paraphrase":
+        return "Paraphrase this document";
+      case "plagiarism":
+        return "Audit originality of this document";
+      case "chart-to-table":
+        return "Extract data from charts in this PDF";
+      case "paper-pattern":
+        return "Analyse pattern across years of papers";
       case "standard":
       case "detailed":
       default:

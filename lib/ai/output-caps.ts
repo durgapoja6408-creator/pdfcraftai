@@ -251,6 +251,12 @@ export const OP_OUTPUT_CAP_TABLE: CapTable = {
     "telecom-bill": 1800, // Plan vs usage + add-ons + recommendations.
     "builder-agreement": 3200, // Pricing + dates + red flags + RERA protections + verifications.
     "balance-sheet": 4000, // Full BS + P&L + cash flow + computed ratios.
+    // Task #81 — Tier 2 §2.5/§2.6/§2.8 + Tier 3 §3.3 wedges.
+    "improve-writing": 4000, // Rewritten doc may be ~80% of input length.
+    "paraphrase": 4000, // Same length as input, possibly slightly longer.
+    "plagiarism": 2400, // Snapshot + flagged passages + AI-tells + recs.
+    "chart-to-table": 2800, // Tables for each chart found, can be many.
+    "paper-pattern": 3200, // Multi-year frequency + trend + predictions.
   },
 
   // Compare produces a side-by-side diff narrative. 4000 is

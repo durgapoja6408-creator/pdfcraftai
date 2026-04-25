@@ -82,7 +82,13 @@ type Depth =
   | "electricity-bill"
   | "telecom-bill"
   | "builder-agreement"
-  | "balance-sheet";
+  | "balance-sheet"
+  // Task #81 Tier 2 + Tier 3 wedges.
+  | "improve-writing"
+  | "paraphrase"
+  | "plagiarism"
+  | "chart-to-table"
+  | "paper-pattern";
 
 type Result = {
   fileId?: string;
@@ -1326,6 +1332,88 @@ export function BalanceSheetTool() {
       successTitle="Financials extracted"
       pricingBlurb="Tier 3 §3.1 Finance: structured JSON of balance sheet + P&L + cash flow with line items preserved verbatim + computed ratios (current ratio, D/E, ROE, ROA, interest coverage) where derivable. Ind AS / IFRS / Indian GAAP aware. 25 credits."
       relatedHref={{ href: "/tool/ai-bank-statement", label: "Bank Statement Parser" }}
+    />
+  );
+}
+
+// Task #81 — five more wedges.
+
+export function ImproveWritingTool() {
+  return (
+    <SummarizeVariantTool
+      depth="improve-writing"
+      toolId="ai-improve-writing"
+      callbackUrl="/tool/ai-improve-writing"
+      prompt="Drop a document to improve clarity and concision"
+      runLabel="Improve writing"
+      busyLabel="Editing…"
+      successTitle="Improved writing ready"
+      pricingBlurb="Tier 2 §2.6: rewrites for clarity + concision (~20-30% shorter) without changing facts, register, or claims. Edit-summary surfaces the kinds of changes made (passive→active, redundant qualifiers cut, etc.). 5 credits."
+      relatedHref={{ href: "/tool/ai-paraphrase", label: "Paraphrase" }}
+    />
+  );
+}
+
+export function ParaphraseTool() {
+  return (
+    <SummarizeVariantTool
+      depth="paraphrase"
+      toolId="ai-paraphrase"
+      callbackUrl="/tool/ai-paraphrase"
+      prompt="Drop a document to paraphrase"
+      runLabel="Paraphrase"
+      busyLabel="Rewording…"
+      successTitle="Paraphrased version ready"
+      pricingBlurb="Tier 2 §2.6: re-words preserving every claim + number + conclusion. Same length as input. Technical terms preserved when no plainer synonym would be accurate. NOT a substitute for citation. 5 credits."
+      relatedHref={{ href: "/tool/ai-improve-writing", label: "Improve Writing" }}
+    />
+  );
+}
+
+export function PlagiarismHeuristicTool() {
+  return (
+    <SummarizeVariantTool
+      depth="plagiarism"
+      toolId="ai-plagiarism"
+      callbackUrl="/tool/ai-plagiarism"
+      prompt="Drop a document for an internal originality check"
+      runLabel="Audit originality"
+      busyLabel="Auditing…"
+      successTitle="Originality audit ready"
+      pricingBlurb="Tier 2 §2.5: heuristic check — surfaces register shifts, definition-textbook style, boilerplate repeats, AI-generation tells. NOT a Turnitin / Copyleaks external-corpus scan. 10 credits. For thesis / publication submission, run a real plagiarism service."
+      relatedHref={{ href: "/tool/ai-improve-writing", label: "Improve Writing" }}
+    />
+  );
+}
+
+export function ChartToTableTool() {
+  return (
+    <SummarizeVariantTool
+      depth="chart-to-table"
+      toolId="ai-chart-to-table"
+      callbackUrl="/tool/ai-chart-to-table"
+      prompt="Drop a PDF with charts / graphs to extract as data tables"
+      runLabel="Extract chart data"
+      busyLabel="Reading charts…"
+      successTitle="Chart data extracted"
+      pricingBlurb="Tier 2 §2.8 Visual: reads charts visually (bar / line / pie / scatter / stacked), extracts data points faithfully with axis labels and units. For values it can't read precisely, returns a range with confidence note. 5 credits."
+      relatedHref={{ href: "/tool/ai-table", label: "AI Table Extract" }}
+    />
+  );
+}
+
+export function PaperPatternTool() {
+  return (
+    <SummarizeVariantTool
+      depth="paper-pattern"
+      toolId="ai-paper-pattern"
+      callbackUrl="/tool/ai-paper-pattern"
+      prompt="Drop 5+ years of past papers (concatenated) for pattern analysis"
+      runLabel="Find patterns"
+      busyLabel="Analysing…"
+      successTitle="Pattern analysis ready"
+      pricingBlurb="Tier 3 §3.3 Education: multi-year subject mix + topic frequency + question type trend + difficulty drift + recycle rate + predictions for next paper. 15 credits. Works for TNPSC/UPSC/JEE/NEET/SSC/Banking/GATE/board exams."
+      relatedHref={{ href: "/tool/ai-tnpsc", label: "TNPSC Single-Paper Analyzer" }}
     />
   );
 }

@@ -142,6 +142,12 @@ const VALID_DEPTHS: readonly SummarizeDepth[] = [
   "telecom-bill",
   "builder-agreement",
   "balance-sheet",
+  // Task #81 — five more wedges (Tier 2 §2.5/§2.6/§2.8 + Tier 3 §3.3):
+  "improve-writing",
+  "paraphrase",
+  "plagiarism",
+  "chart-to-table",
+  "paper-pattern",
 ];
 
 export async function POST(req: Request): Promise<Response> {

@@ -113,6 +113,12 @@ import {
   TelecomBillTool,
   BuilderAgreementTool,
   BalanceSheetTool,
+  // Task #81 — Tier 2 §2.5/§2.6/§2.8 + Tier 3 §3.3 wedges.
+  ImproveWritingTool,
+  ParaphraseTool,
+  PlagiarismHeuristicTool,
+  ChartToTableTool,
+  PaperPatternTool,
 } from "@/components/tools/SummarizeVariantTool";
 import { ResumeParserTool } from "@/components/tools/ResumeParserTool";
 import { BankStatementTool } from "@/components/tools/BankStatementTool";
@@ -249,6 +255,12 @@ const LIVE_TOOL_IDS = new Set<string>([
   "ai-telecom-bill",
   "ai-builder-agreement",
   "ai-balance-sheet",
+  // Task #81 — Tier 2 + Tier 3 wedges.
+  "ai-improve-writing",
+  "ai-paraphrase",
+  "ai-plagiarism",
+  "ai-chart-to-table",
+  "ai-paper-pattern",
   "ai-translate",
   "ai-compare",
   "ai-ocr",
@@ -611,6 +623,17 @@ function ToolRunner({ id }: { id: string }) {
       return <BuilderAgreementTool />;
     case "ai-balance-sheet":
       return <BalanceSheetTool />;
+    // Task #81 — Tier 2 + Tier 3 wedges.
+    case "ai-improve-writing":
+      return <ImproveWritingTool />;
+    case "ai-paraphrase":
+      return <ParaphraseTool />;
+    case "ai-plagiarism":
+      return <PlagiarismHeuristicTool />;
+    case "ai-chart-to-table":
+      return <ChartToTableTool />;
+    case "ai-paper-pattern":
+      return <PaperPatternTool />;
     case "ai-translate":
       return <TranslatePdfTool />;
     case "ai-compare":
