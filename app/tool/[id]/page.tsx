@@ -364,11 +364,101 @@ export default function ToolRunnerPage({ params }: Params) {
               />
             )}
           </div>
+
+          {/* Related tools — same-group siblings. Improves on-page
+              context for users + passes PageRank between related
+              pages. Renders for ALL tools (free + AI). */}
+          <RelatedTools currentId={tool.id} group={tool.group} />
         </div>
       </section>
 
       <div style={{ padding: "80px 0" }} />
     </main>
+  );
+}
+
+function RelatedTools({ currentId, group }: { currentId: string; group: string }) {
+  // Pick up to 6 same-group siblings, dropping the current tool.
+  // Prefer LIVE tools so we don't link out to dead ends.
+  const siblings = TOOLS.filter(
+    (t) => t.group === group && t.id !== currentId && LIVE_TOOL_IDS.has(t.id)
+  ).slice(0, 6);
+  if (siblings.length === 0) return null;
+  return (
+    <section style={{ marginTop: 48 }}>
+      <h2 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 4px" }}>
+        Related PDF tools
+      </h2>
+      <p className="muted" style={{ fontSize: 13, marginTop: 0, marginBottom: 16 }}>
+        Other tools in the {group} category — built on the same private,
+        in-browser pipeline.
+      </p>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: 12,
+        }}
+      >
+        {siblings.map((t) => (
+          <Link
+            key={t.id}
+            href={`/tool/${t.id}`}
+            className="card"
+            style={{
+              padding: 14,
+              textDecoration: "none",
+              color: "inherit",
+              display: "block",
+              transition: "transform 0.15s ease, border-color 0.15s ease",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 600,
+                marginBottom: 4,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              {t.name}
+              {t.free ? (
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 500,
+                    padding: "2px 6px",
+                    borderRadius: 4,
+                    background: "rgba(56, 189, 248, 0.12)",
+                    color: "rgb(56, 189, 248)",
+                  }}
+                >
+                  Free
+                </span>
+              ) : (
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 500,
+                    padding: "2px 6px",
+                    borderRadius: 4,
+                    background: "rgba(251, 146, 60, 0.12)",
+                    color: "rgb(251, 146, 60)",
+                  }}
+                >
+                  AI
+                </span>
+              )}
+            </div>
+            <div className="muted" style={{ fontSize: 12, lineHeight: 1.4 }}>
+              {t.desc}
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }
 
