@@ -106,6 +106,12 @@ const VALID_DEPTHS: readonly SummarizeDepth[] = [
   "property",
   "discharge",
   "itr-form16",
+  // Task #67 — Tier 3 §3.6 + §3.3 + §3.1 P0 wedges:
+  "cover-letter",
+  "jd-match",
+  "tnpsc",
+  "jee-neet",
+  "multi-bank",
 ];
 
 export async function POST(req: Request): Promise<Response> {
@@ -149,17 +155,28 @@ export async function POST(req: Request): Promise<Response> {
   }
   const depth = depthRaw as SummarizeDepth;
 
-  // Task #60 — optional semantic-search query. Only read when the
-  // depth is semantic-search; other depths silently ignore any
-  // query value. Cap at 500 chars to bound prompt size and avoid
-  // model-side prompt-injection surface.
+  // Task #60 — optional query. Semantic-search caps at 500 chars.
+  // Task #67 — cover-letter + jd-match also read `query` (job
+  // description) and cap at 2000 chars. cover-letter treats the JD
+  // as optional (generic letter if missing); jd-match REQUIRES it.
   const queryRaw = stringField(form, "query") ?? "";
-  const query =
-    depth === "semantic-search" ? queryRaw.slice(0, 500).trim() : "";
+  const query = (() => {
+    if (depth === "semantic-search") return queryRaw.slice(0, 500).trim();
+    if (depth === "cover-letter" || depth === "jd-match") {
+      return queryRaw.slice(0, 2000).trim();
+    }
+    return "";
+  })();
   if (depth === "semantic-search" && !query) {
     return json(400, {
       error: "bad_request",
       detail: "semantic-search requires a non-empty `query` form field",
+    });
+  }
+  if (depth === "jd-match" && !query) {
+    return json(400, {
+      error: "bad_request",
+      detail: "jd-match requires a non-empty `query` form field (the JD)",
     });
   }
 

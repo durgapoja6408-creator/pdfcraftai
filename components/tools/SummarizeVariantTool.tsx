@@ -46,7 +46,13 @@ type Depth =
   | "syllabus"
   | "property"
   | "discharge"
-  | "itr-form16";
+  | "itr-form16"
+  // Task #67 Tier 3 P0 wedges.
+  | "cover-letter"
+  | "jd-match"
+  | "tnpsc"
+  | "jee-neet"
+  | "multi-bank";
 
 type Result = {
   fileId?: string;
@@ -68,10 +74,27 @@ export function SummarizeVariantTool(props: {
   successTitle: string;
   pricingBlurb: string;
   relatedHref?: { href: string; label: string };
+  /**
+   * Task #67 — optional query field. When present, the tool renders
+   * a textarea above the pricing blurb and sends its value as the
+   * `query` form field on submit. Used by cover-letter (optional JD)
+   * and jd-match (required JD).
+   */
+  queryField?: {
+    label: string;
+    placeholder: string;
+    /** When true, Run button disables until the textarea has content. */
+    required?: boolean;
+    /** Default 2000 — matches the backend cap for JD-driven depths. */
+    maxLength?: number;
+    /** Helper caption shown under the textarea. */
+    helperText?: string;
+  };
 }) {
   const router = useRouter();
   const { status } = useSession();
   const [file, setFile] = useState<File | null>(null);
+  const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
@@ -86,6 +109,7 @@ export function SummarizeVariantTool(props: {
 
   const reset = () => {
     setFile(null);
+    setQuery("");
     setError(null);
     setResult(null);
   };
@@ -93,6 +117,10 @@ export function SummarizeVariantTool(props: {
   const run = async () => {
     if (!file) {
       setError("Attach a PDF first.");
+      return;
+    }
+    if (props.queryField?.required && !query.trim()) {
+      setError(`${props.queryField.label} is required.`);
       return;
     }
     const fresh = await getSession();
@@ -114,6 +142,10 @@ export function SummarizeVariantTool(props: {
       form.append("pdf", file);
       form.append("depth", props.depth);
       form.append("idempotencyKey", idempotencyKey);
+      if (props.queryField && query.trim()) {
+        const cap = props.queryField.maxLength ?? 2000;
+        form.append("query", query.trim().slice(0, cap));
+      }
       const res = await fetch("/api/ai/summarize", { method: "POST", body: form });
       const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
 
@@ -188,6 +220,41 @@ export function SummarizeVariantTool(props: {
           >
             <I.X size={14} />
           </button>
+        </div>
+      )}
+
+      {props.queryField && (
+        <div className="card" style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+          <label
+            htmlFor={`${props.toolId}-query`}
+            style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-subtle)" }}
+          >
+            {props.queryField.label.toUpperCase()}
+            {props.queryField.required ? " *" : " (OPTIONAL)"}
+          </label>
+          <textarea
+            id={`${props.toolId}-query`}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={props.queryField.placeholder}
+            disabled={busy}
+            maxLength={props.queryField.maxLength ?? 2000}
+            rows={6}
+            style={{
+              padding: "10px 12px",
+              borderRadius: "var(--radius)",
+              border: "1px solid var(--border-strong)",
+              background: "var(--bg-1)",
+              color: "var(--fg)",
+              fontSize: 13,
+              lineHeight: 1.5,
+              resize: "vertical",
+              fontFamily: "inherit",
+            }}
+          />
+          {props.queryField.helperText && (
+            <div className="subtle" style={{ fontSize: 11 }}>{props.queryField.helperText}</div>
+          )}
         </div>
       )}
 
@@ -290,7 +357,11 @@ export function SummarizeVariantTool(props: {
           <button
             type="button"
             className="btn btn-primary"
-            disabled={!file || busy}
+            disabled={
+              !file ||
+              busy ||
+              (props.queryField?.required ? !query.trim() : false)
+            }
             onClick={run}
           >
             {busy ? props.busyLabel : props.runLabel}
@@ -715,6 +786,106 @@ export function ItrAnalyzerTool() {
       successTitle="Tax analysis ready"
       pricingBlurb="Tier 3 §3.1 Finance: Income summary + deductions claimed + tax computation + observations + suggested actions. 20 credits. Not tax advice — consult a CA."
       relatedHref={{ href: "/tool/ai-bank-statement", label: "Bank Statement Parser" }}
+    />
+  );
+}
+
+// Task #67 — Tier 3 §3.6, §3.3, §3.1 P0 wedges.
+
+export function CoverLetterTool() {
+  return (
+    <SummarizeVariantTool
+      depth="cover-letter"
+      toolId="ai-cover-letter"
+      callbackUrl="/tool/ai-cover-letter"
+      prompt="Drop your resume as a PDF — we'll tailor a cover letter"
+      runLabel="Draft cover letter"
+      busyLabel="Writing…"
+      successTitle="Cover letter ready"
+      pricingBlurb="Tier 3 §3.6 HR: 300–350 word tailored cover letter with 3-bullet customisation notes so you can swap in alternatives. 5 credits. Paste the JD for a tailored letter; leave blank for a generic-but-strong version."
+      queryField={{
+        label: "Job description",
+        placeholder:
+          "Paste the JD here — role, responsibilities, required skills, company context. Leave blank for a generic strong letter.",
+        required: false,
+        maxLength: 2000,
+        helperText:
+          "Optional. Up to 2000 characters. The letter will highlight the resume lines that best map to the JD's requirements.",
+      }}
+      relatedHref={{ href: "/tool/ai-jd-match", label: "Resume → JD Matcher" }}
+    />
+  );
+}
+
+export function JdMatchTool() {
+  return (
+    <SummarizeVariantTool
+      depth="jd-match"
+      toolId="ai-jd-match"
+      callbackUrl="/tool/ai-jd-match"
+      prompt="Drop your resume — we'll score it against the JD"
+      runLabel="Run fit analysis"
+      busyLabel="Scoring…"
+      successTitle="Fit analysis ready"
+      pricingBlurb="Tier 3 §3.6 HR: Fit score 0–100 + per-requirement alignment table + strengths + gaps + missing-keywords (ATS blockers) + concrete next steps. 5 credits per resume."
+      queryField={{
+        label: "Job description",
+        placeholder:
+          "Paste the full JD — role, responsibilities, required skills, qualifications, nice-to-haves, company context.",
+        required: true,
+        maxLength: 2000,
+        helperText:
+          "Required. Up to 2000 characters. Paste the JD exactly as it appears on the job post — we map every listed requirement to your resume.",
+      }}
+      relatedHref={{ href: "/tool/ai-ats-resume", label: "ATS Resume Optimizer" }}
+    />
+  );
+}
+
+export function TnpscAnalyzerTool() {
+  return (
+    <SummarizeVariantTool
+      depth="tnpsc"
+      toolId="ai-tnpsc"
+      callbackUrl="/tool/ai-tnpsc"
+      prompt="Drop a TNPSC question paper or answer key"
+      runLabel="Analyse TNPSC paper"
+      busyLabel="Analysing…"
+      successTitle="TNPSC analysis ready"
+      pricingBlurb="Tier 3 §3.3 Education: Per-question breakdown with subject tag + correct answer + difficulty. Subject-wise distribution table. Topic frequency. Strategy notes specific to the TNPSC scheme. 15 credits."
+      relatedHref={{ href: "/tool/ai-jee-neet", label: "JEE/NEET Previous-Year Analyzer" }}
+    />
+  );
+}
+
+export function JeeNeetAnalyzerTool() {
+  return (
+    <SummarizeVariantTool
+      depth="jee-neet"
+      toolId="ai-jee-neet"
+      callbackUrl="/tool/ai-jee-neet"
+      prompt="Drop a JEE Main / JEE Advanced / NEET-UG previous-year paper"
+      runLabel="Analyse JEE/NEET paper"
+      busyLabel="Analysing…"
+      successTitle="JEE/NEET analysis ready"
+      pricingBlurb="Tier 3 §3.3 Education: Per-question table + chapter-frequency tables per subject + high-yield topics + 12-week revision plan + score-maximisation strategy. 20 credits."
+      relatedHref={{ href: "/tool/ai-syllabus", label: "Syllabus → Study Plan" }}
+    />
+  );
+}
+
+export function MultiBankMergerTool() {
+  return (
+    <SummarizeVariantTool
+      depth="multi-bank"
+      toolId="ai-multi-bank"
+      callbackUrl="/tool/ai-multi-bank"
+      prompt="Drop a multi-bank statement PDF (SBI / HDFC / ICICI / Axis / Kotak…)"
+      runLabel="Merge statements"
+      busyLabel="Parsing…"
+      successTitle="Consolidated statement ready"
+      pricingBlurb="Tier 3 §3.1 Finance: Parses statements from multiple Indian banks concatenated in one PDF. Outputs per-bank summaries + a consolidated transaction view with category breakdown. 20 credits."
+      relatedHref={{ href: "/tool/ai-bank-statement", label: "Single Bank Statement Parser" }}
     />
   );
 }

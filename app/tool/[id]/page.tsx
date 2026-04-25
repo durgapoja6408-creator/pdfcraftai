@@ -77,6 +77,12 @@ import {
   PropertyDocTool,
   DischargeSummaryTool,
   ItrAnalyzerTool,
+  // Task #67 — Tier 3 §3.6, §3.3, §3.1 P0 wedges.
+  CoverLetterTool,
+  JdMatchTool,
+  TnpscAnalyzerTool,
+  JeeNeetAnalyzerTool,
+  MultiBankMergerTool,
 } from "@/components/tools/SummarizeVariantTool";
 import { ResumeParserTool } from "@/components/tools/ResumeParserTool";
 import { BankStatementTool } from "@/components/tools/BankStatementTool";
@@ -174,6 +180,12 @@ const LIVE_TOOL_IDS = new Set<string>([
   "ai-property",
   "ai-discharge",
   "ai-itr-form16",
+  // Task #67 — Tier 3 §3.6, §3.3, §3.1 P0 wedges.
+  "ai-cover-letter",
+  "ai-jd-match",
+  "ai-tnpsc",
+  "ai-jee-neet",
+  "ai-multi-bank",
   "ai-translate",
   "ai-compare",
   "ai-ocr",
@@ -467,6 +479,17 @@ function ToolRunner({ id }: { id: string }) {
       return <DischargeSummaryTool />;
     case "ai-itr-form16":
       return <ItrAnalyzerTool />;
+    // Task #67 — Tier 3 §3.6, §3.3, §3.1 P0 wedges.
+    case "ai-cover-letter":
+      return <CoverLetterTool />;
+    case "ai-jd-match":
+      return <JdMatchTool />;
+    case "ai-tnpsc":
+      return <TnpscAnalyzerTool />;
+    case "ai-jee-neet":
+      return <JeeNeetAnalyzerTool />;
+    case "ai-multi-bank":
+      return <MultiBankMergerTool />;
     case "ai-translate":
       return <TranslatePdfTool />;
     case "ai-compare":

@@ -215,6 +215,12 @@ export const OP_OUTPUT_CAP_TABLE: CapTable = {
     "property": 2200, // 6 sections + chain-of-title bullets.
     "discharge": 2000, // 7 sections, plain-language rewrite.
     "itr-form16": 2000, // 5 sections incl. tax computation table.
+    // Task #67 — §3.6, §3.3, §3.1 P0 wedges.
+    "cover-letter": 1200, // ≤350-word letter + 3-bullet customizations.
+    "jd-match": 2200, // Fit score + alignment table + 4 bullet sections.
+    "tnpsc": 3200, // Per-question table can be 100+ rows for a full paper.
+    "jee-neet": 3600, // Per-question table + per-subject chapter-frequency tables + revision plan.
+    "multi-bank": 4000, // Multi-bank JSON — can span hundreds of transactions per statement.
   },
 
   // Compare produces a side-by-side diff narrative. 4000 is

@@ -138,7 +138,26 @@ export type SummarizeDepth =
   //   itr-form16 §3.1 P1 — Indian tax doc analyzer (20c)
   | "property"
   | "discharge"
-  | "itr-form16";
+  | "itr-form16"
+  // Task #67 — five more Tier 3 P0 wedges:
+  //   cover-letter §3.6 P0 — tailored cover letter from resume +
+  //   optional JD (5c). Uses `query` field for JD.
+  //   jd-match     §3.6 P0 — resume vs JD fit report with gap
+  //   analysis (5c/resume). Uses `query` field for JD.
+  //   tnpsc        §3.3 P0 — TNPSC answer-key analyzer (₹299/mo
+  //   or 15c). Table of questions with correct answer + user
+  //   marks if available.
+  //   jee-neet     §3.3 P0 — JEE/NEET previous-year paper
+  //   analyser — subject-wise topic frequency + difficulty
+  //   distribution + revision plan (₹499/mo or 20c).
+  //   multi-bank   §3.1 P0 — merge multiple Indian bank
+  //   statements into one consolidated transaction view with
+  //   per-bank summary (20c).
+  | "cover-letter"
+  | "jd-match"
+  | "tnpsc"
+  | "jee-neet"
+  | "multi-bank";
 
 export interface SummarizeInput {
   /** Extracted PDF text, pages joined with `\f`. */
@@ -998,6 +1017,143 @@ function buildSystemPrompt(opts: {
           "the output — this tool extracts data; interpretation " +
           "belongs with a clinician."
         );
+      case "cover-letter":
+        // §3.6 Cover Letter Generator. Input = user's resume PDF.
+        // If a JD is supplied via `query`, tailor to it.
+        return (
+          "Write a tailored cover letter based on the attached " +
+          "resume. Output a single cover letter (no commentary, " +
+          "no alternatives). Structure: `## Cover Letter` header, " +
+          "then the letter body with greeting, three paragraphs, " +
+          "and closing. Paragraph 1 — opening that names the " +
+          "target role + hook (best credential from the resume). " +
+          "Paragraph 2 — two or three concrete achievements from " +
+          "the resume with quantified impact, mapped to the JD's " +
+          "requirements if a JD is provided. Paragraph 3 — why " +
+          "this company / role specifically + a clear call to " +
+          "action (\"I'd welcome the chance to discuss...\"). " +
+          "Keep it under 350 words. Neutral professional tone, " +
+          "no clichés (\"self-motivated team player\", \"hit the " +
+          "ground running\"). End with `## Key Customizations` — " +
+          "3 bullets describing WHICH resume lines were surfaced " +
+          "for which JD requirements, so the user can swap in " +
+          "alternatives. If no JD was provided, generate a " +
+          "generic-but-strong version and note that in the " +
+          "customization section."
+        );
+      case "jd-match":
+        // §3.6 Resume → JD Matcher. Input = resume PDF. JD in
+        // `query`. Output a fit-score + gap analysis.
+        return (
+          "Score the attached resume against the job description " +
+          "provided in the search_query tag. Output: `## Fit " +
+          "Score` (single number 0-100 with one sentence " +
+          "explaining the score — be blunt, this is self-audit). " +
+          "`## Role Alignment` (a 3-column Markdown table: " +
+          "Requirement | Resume Evidence | Match (✓ strong / ◐ " +
+          "partial / ✗ missing). One row per explicit JD " +
+          "requirement.). `## Strengths` (3-5 bullets — the " +
+          "resume achievements that most strongly back the JD). " +
+          "`## Gaps` (bullets — requirements with ✗ or ◐; for " +
+          "each gap, suggest one concrete thing the candidate " +
+          "could add or emphasise). `## Keywords Missing` (plain " +
+          "list — JD-critical terms absent from the resume; these " +
+          "are likely ATS blockers). `## Suggested Next Steps` " +
+          "(3 concrete actions: re-words, projects to add, " +
+          "certifications to pursue). If no JD is provided via " +
+          "the query, return just the resume audit section of " +
+          "ats-resume-optimizer style output and note the missing " +
+          "JD in a top-level callout."
+        );
+      case "tnpsc":
+        // §3.3 TNPSC Answer Key Analyzer. Input = TNPSC question
+        // paper OR TNPSC-released answer key PDF. Produce a
+        // question-by-question analysis.
+        return (
+          "Analyse this TNPSC (Tamil Nadu Public Service " +
+          "Commission) question paper or answer key. Output: " +
+          "`## Exam Identified` (paper name, exam date, subject, " +
+          "question count, marking scheme if visible). `## " +
+          "Question Analysis` — a Markdown table with columns: " +
+          "#, Question (short), Subject-Tag (History / Geography " +
+          "/ Polity / Economy / Science / Aptitude / Tamil Lit / " +
+          "Current Affairs), Correct Answer (from the key), " +
+          "Expected Difficulty (Easy / Medium / Hard — based on " +
+          "the TNPSC pattern you know). One row per question; " +
+          "include EVERY question present. `## Subject-Wise " +
+          "Distribution` (a table with Subject, #Questions, " +
+          "%Total, Avg-Difficulty). `## Topic Frequency` " +
+          "(bullets — recurring topics you'd prioritise for the " +
+          "next attempt). `## Strategy Notes` (3-5 bullets on " +
+          "which sections to cram vs deprioritise, pacing, and " +
+          "score-maximisation — specific to the TNPSC scheme of " +
+          "examination). Use Tamil Nadu–specific context where " +
+          "relevant (Tamil Thaayaga history, state polity, Tamil " +
+          "Nadu geography/economy)."
+        );
+      case "jee-neet":
+        // §3.3 JEE / NEET Previous Year Analyzer. Input = JEE
+        // or NEET question paper PDF.
+        return (
+          "Analyse this JEE or NEET previous-year question paper. " +
+          "Output: `## Paper Identified` (which exam — JEE Main / " +
+          "JEE Advanced / NEET-UG, year, shift/phase if visible, " +
+          "subject split). `## Question Table` — a Markdown " +
+          "table with columns: #, Question Type (MCQ / " +
+          "Numerical / Assertion-Reason / Match-following), " +
+          "Subject (Physics / Chemistry / Biology for NEET; " +
+          "Physics / Chemistry / Math for JEE), Chapter, " +
+          "Sub-topic, Difficulty (Easy / Medium / Hard), Expected " +
+          "Marks. One row per question. `## Chapter Frequency` — " +
+          "a table per subject: Chapter, #Questions, %Subject, " +
+          "Cumulative Difficulty. Sort high→low frequency. `## " +
+          "High-Yield Topics` — 6–10 chapters that showed up " +
+          "most; for each, one line on why it's high-yield (e.g. " +
+          "\"Thermodynamics — 4 Qs, all Medium+, carries 16 " +
+          "marks\"). `## Revision Plan` — a week-by-week plan " +
+          "for a 12-week runway before the exam, weighted by " +
+          "frequency × difficulty. `## Score-Maximisation Notes` " +
+          "— 3–5 bullets on attempts strategy (which subject " +
+          "first, how much time per Q, when to skip, accuracy vs " +
+          "speed trade-offs). Be specific to the JEE/NEET " +
+          "marking scheme (e.g. negative-marking penalties)."
+        );
+      case "multi-bank":
+        // §3.1 Multi-Bank Merger. Input = concatenated bank
+        // statements (user uploads a merged PDF containing
+        // statements from multiple banks). Output consolidated
+        // JSON + per-bank summary.
+        return (
+          "Parse this multi-bank statement PDF into structured " +
+          "JSON. The document contains statements from MULTIPLE " +
+          "banks concatenated together. Output ONLY a ```json " +
+          "fenced code block containing a single object shaped " +
+          "{\"period\": {\"from\": string|null (ISO date), " +
+          "\"to\": string|null}, \"banks\": [{\"bank\": string " +
+          "(SBI / HDFC / ICICI / Axis / Kotak / etc.), " +
+          "\"account_mask\": string|null (last 4 digits), " +
+          "\"opening_balance\": number|null, \"closing_balance\": " +
+          "number|null, \"total_credits\": number, \"total_debits\": " +
+          "number, \"transactions\": [{\"date\": string (ISO " +
+          "YYYY-MM-DD), \"description\": string, \"type\": " +
+          "string (one of: 'credit', 'debit'), \"amount\": " +
+          "number, \"balance\": number|null, \"category\": string " +
+          "(one of: 'salary', 'transfer', 'upi', 'atm', 'emi', " +
+          "'bills', 'shopping', 'food', 'fuel', 'investment', " +
+          "'refund', 'interest', 'fee', 'other')}]}], " +
+          "\"consolidated\": {\"total_credits\": number, " +
+          "\"total_debits\": number, \"net_flow\": number, " +
+          "\"transaction_count\": number, \"bank_count\": number, " +
+          "\"by_category\": [{\"category\": string, \"credits\": " +
+          "number, \"debits\": number, \"count\": number}]}}. " +
+          "Detect the bank from transaction narration patterns, " +
+          "account-statement formatting, or bank logos/text. " +
+          "Merge all transactions into a single sorted-by-date " +
+          "view inside each bank, and also aggregate in " +
+          "`consolidated`. Include EVERY transaction. Do NOT " +
+          "invent amounts or dates; if a row is illegible, skip " +
+          "it rather than guessing. Round amounts to 2 decimals."
+        );
     }
   })();
 
@@ -1112,6 +1268,16 @@ function buildUserPrompt(opts: {
         return "Simplify this discharge summary";
       case "itr-form16":
         return "Analyse this tax document";
+      case "cover-letter":
+        return "Draft a tailored cover letter from this resume";
+      case "jd-match":
+        return "Score this resume against the job description";
+      case "tnpsc":
+        return "Analyse this TNPSC paper";
+      case "jee-neet":
+        return "Analyse this JEE/NEET paper";
+      case "multi-bank":
+        return "Parse this multi-bank statement";
       case "standard":
       case "detailed":
       default:
@@ -1126,6 +1292,21 @@ function buildUserPrompt(opts: {
       `${verb}. The user's query follows inside the search_query tag, ` +
       `and the document text follows inside the untrusted_input tag.\n\n` +
       `<search_query>\n${opts.query.slice(0, 500)}\n</search_query>\n\n` +
+      wrapUntrustedInput(opts.text, { sourceLabel: "pdf_text" })
+    );
+  }
+  // Task #67: JD-driven resume tools (cover-letter + jd-match) use
+  // the same `query` threading as semantic-search. The query here
+  // carries the job description, capped at 2000 chars to preserve
+  // budget for the resume itself.
+  if (
+    (opts.depth === "cover-letter" || opts.depth === "jd-match") &&
+    opts.query
+  ) {
+    return (
+      `${verb}. The job description follows inside the search_query tag, ` +
+      `and the resume text follows inside the untrusted_input tag.\n\n` +
+      `<search_query>\n${opts.query.slice(0, 2000)}\n</search_query>\n\n` +
       wrapUntrustedInput(opts.text, { sourceLabel: "pdf_text" })
     );
   }

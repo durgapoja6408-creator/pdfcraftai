@@ -92,6 +92,12 @@ export const TOOLS: readonly Tool[] = [
   { id: "ai-property", name: "Property Document Checker", desc: "Tier 3 Real Estate: red flags + missing docs + chain of title in Indian sale deeds / khata / EC.", icon: "Shield", free: false, cost: "30 credits / doc", group: "AI" },
   { id: "ai-discharge", name: "Discharge Summary Simplifier", desc: "Tier 3 Healthcare: plain-language rewrite for patients + families. Not medical advice.", icon: "Chat", free: false, cost: "10 credits / summary", group: "AI" },
   { id: "ai-itr-form16", name: "ITR / Form 16 Analyzer", desc: "Tier 3 Finance: income summary + deductions + tax computation + suggested actions.", icon: "Receipt", free: false, cost: "20 credits / doc", group: "AI" },
+  // Task #67 — Tier 3 §3.6, §3.3, §3.1 P0 wedges.
+  { id: "ai-cover-letter", name: "Cover Letter Generator", desc: "Tier 3 HR: tailored cover letter from your resume + optional JD. 300–350 words with customisation notes.", icon: "Edit", free: false, cost: "5 credits / letter", group: "AI" },
+  { id: "ai-jd-match", name: "Resume ↔ JD Matcher", desc: "Tier 3 HR: fit score + per-requirement alignment table + missing-keyword ATS audit. Paste the JD, drop the resume.", icon: "Compare", free: false, cost: "5 credits / resume", group: "AI" },
+  { id: "ai-tnpsc", name: "TNPSC Answer Key Analyzer", desc: "Tier 3 Education: per-question breakdown + subject distribution + topic frequency + TNPSC-specific strategy notes.", icon: "Book", free: false, cost: "15 credits / paper", group: "AI" },
+  { id: "ai-jee-neet", name: "JEE/NEET Previous-Year Analyzer", desc: "Tier 3 Education: per-question table + chapter frequency + high-yield topics + 12-week revision plan.", icon: "Book", free: false, cost: "20 credits / paper", group: "AI" },
+  { id: "ai-multi-bank", name: "Multi-Bank Statement Merger", desc: "Tier 3 Finance: parse SBI/HDFC/ICICI/Axis/Kotak statements concatenated in one PDF. Per-bank + consolidated view.", icon: "Receipt", free: false, cost: "20 credits / doc", group: "AI" },
   { id: "ai-translate", name: "Translate PDF", desc: "Preserve layout across 20+ languages.", icon: "Translate", free: false, cost: "5 credits / doc", group: "AI" },
   { id: "ai-ocr", name: "OCR & Smart Extract", desc: "Turn scans into searchable, structured data.", icon: "Scan", free: false, cost: "~2 credits / page", group: "AI" },
   { id: "ai-rewrite", name: "Rewrite & Rephrase", desc: "Tone shift, simplify, or expand text.", icon: "Edit", free: false, cost: "~3 credits / page", group: "AI" },
