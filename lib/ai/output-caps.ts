@@ -227,6 +227,12 @@ export const OP_OUTPUT_CAP_TABLE: CapTable = {
     "nda": 2400, // Risk flags + negotiation + standard sections.
     "sale-deed": 2800, // Property schedule + chain of title + risk flags + verifications.
     "employment": 2400, // Comp + termination + risk flags + missing protections.
+    // Task #77 — Tier 3 §3.4, §3.5, §3.2, §3.1 P1 wedges.
+    "medical-bill": 2400, // Itemised + insurance + reimbursable + next-steps.
+    "prescription": 1800, // JSON medications list — usually <12 drugs.
+    "rera": 2800, // Project + approvals + risk flags + checklist.
+    "ec": 2400, // Encumbrance table + chain summary + gaps.
+    "salary-slip": 1600, // Compact JSON earnings + deductions + YTD.
   },
 
   // Compare produces a side-by-side diff narrative. 4000 is

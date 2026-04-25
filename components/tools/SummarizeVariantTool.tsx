@@ -58,7 +58,13 @@ type Depth =
   | "mutual-fund"
   | "nda"
   | "sale-deed"
-  | "employment";
+  | "employment"
+  // Task #77 Tier 3 P1 wedges.
+  | "medical-bill"
+  | "prescription"
+  | "rera"
+  | "ec"
+  | "salary-slip";
 
 type Result = {
   fileId?: string;
@@ -974,6 +980,88 @@ export function EmploymentContractTool() {
       successTitle="Contract review ready"
       pricingBlurb="Tier 3 §3.2 Legal: Compensation + term + termination + risk flags (non-compete, IP assignment, training bond) + missing protections + negotiation points. 20 credits. Not legal advice."
       relatedHref={{ href: "/tool/ai-nda", label: "NDA Analyzer" }}
+    />
+  );
+}
+
+// Task #77 — five more Tier 3 P1 wedges.
+
+export function MedicalBillTool() {
+  return (
+    <SummarizeVariantTool
+      depth="medical-bill"
+      toolId="ai-medical-bill"
+      callbackUrl="/tool/ai-medical-bill"
+      prompt="Drop a hospital bill / medical bill / insurance claim doc"
+      runLabel="Analyse bill"
+      busyLabel="Analysing…"
+      successTitle="Medical bill analysis ready"
+      pricingBlurb="Tier 3 §3.4 Healthcare: itemised charges + insurance / cashless status + IRDAI-reimbursable vs excluded + pre/post-hospitalisation notes. 20 credits. Not a guarantee of reimbursement — IRDAI rules + your policy wording control."
+      relatedHref={{ href: "/tool/ai-blood-test", label: "Blood Test Report Parser" }}
+    />
+  );
+}
+
+export function PrescriptionParserTool() {
+  return (
+    <SummarizeVariantTool
+      depth="prescription"
+      toolId="ai-prescription"
+      callbackUrl="/tool/ai-prescription"
+      prompt="Drop a prescription (printed or handwritten)"
+      runLabel="Parse prescription"
+      busyLabel="Reading…"
+      successTitle="Prescription parsed"
+      pricingBlurb="Tier 3 §3.4 Healthcare: handwritten + printed prescriptions parsed into structured JSON — drug name, strength, dosage, frequency, duration, route, with confidence flags. Indian conventions (BD/TDS/HS/SOS, 1-0-1) understood. 10 credits. Not medical advice — verify with the prescriber if any line shows low confidence."
+      relatedHref={{ href: "/tool/ai-medical-bill", label: "Medical Bill Analyzer" }}
+    />
+  );
+}
+
+export function ReraAnalyzerTool() {
+  return (
+    <SummarizeVariantTool
+      depth="rera"
+      toolId="ai-rera"
+      callbackUrl="/tool/ai-rera"
+      prompt="Drop a RERA registration / annexure / builder agreement"
+      runLabel="Audit RERA doc"
+      busyLabel="Analysing…"
+      successTitle="RERA audit ready"
+      pricingBlurb="Tier 3 §3.5 Real Estate: project details + approvals (CC/OC/EC) + risk flags (registration revoked, area-on-super-built-up, hidden charges) + buyer protections + verification checklist. 25 credits. Not legal advice — engage a real estate lawyer + check your state RERA portal."
+      relatedHref={{ href: "/tool/ai-sale-deed", label: "Sale Deed Analyzer" }}
+    />
+  );
+}
+
+export function EncumbranceCertTool() {
+  return (
+    <SummarizeVariantTool
+      depth="ec"
+      toolId="ai-ec"
+      callbackUrl="/tool/ai-ec"
+      prompt="Drop an Encumbrance Certificate (EC) from a Sub-Registrar's office"
+      runLabel="Parse EC"
+      busyLabel="Parsing…"
+      successTitle="EC parsed"
+      pricingBlurb="Tier 3 §3.2 Legal: chronological encumbrance table + chain-of-title narrative + risk flags (active mortgages, suspicious quick-flips, broken chain) + coverage gaps + recommended next steps. 15 credits."
+      relatedHref={{ href: "/tool/ai-sale-deed", label: "Sale Deed Analyzer" }}
+    />
+  );
+}
+
+export function SalarySlipTool() {
+  return (
+    <SummarizeVariantTool
+      depth="salary-slip"
+      toolId="ai-salary-slip"
+      callbackUrl="/tool/ai-salary-slip"
+      prompt="Drop an Indian salary slip / pay slip"
+      runLabel="Parse slip"
+      busyLabel="Parsing…"
+      successTitle="Salary slip parsed"
+      pricingBlurb="Tier 3 §3.1 Finance: structured JSON with employer / employee / period / earnings / deductions / totals / YTD. Preserves idiosyncratic component names (Special Allowance, LTA, etc.) for accurate YoY comparison. 10 credits."
+      relatedHref={{ href: "/tool/ai-itr-form16", label: "ITR / Form 16 Analyzer" }}
     />
   );
 }

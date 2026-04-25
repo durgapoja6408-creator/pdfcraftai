@@ -89,6 +89,12 @@ import {
   NdaAnalyzerTool,
   SaleDeedAnalyzerTool,
   EmploymentContractTool,
+  // Task #77 — Tier 3 §3.4, §3.5, §3.2, §3.1 P1 wedges.
+  MedicalBillTool,
+  PrescriptionParserTool,
+  ReraAnalyzerTool,
+  EncumbranceCertTool,
+  SalarySlipTool,
 } from "@/components/tools/SummarizeVariantTool";
 import { ResumeParserTool } from "@/components/tools/ResumeParserTool";
 import { BankStatementTool } from "@/components/tools/BankStatementTool";
@@ -201,6 +207,12 @@ const LIVE_TOOL_IDS = new Set<string>([
   "ai-nda",
   "ai-sale-deed",
   "ai-employment",
+  // Task #77 — Tier 3 §3.4, §3.5, §3.2, §3.1 P1 wedges.
+  "ai-medical-bill",
+  "ai-prescription",
+  "ai-rera",
+  "ai-ec",
+  "ai-salary-slip",
   "ai-translate",
   "ai-compare",
   "ai-ocr",
@@ -519,6 +531,17 @@ function ToolRunner({ id }: { id: string }) {
       return <SaleDeedAnalyzerTool />;
     case "ai-employment":
       return <EmploymentContractTool />;
+    // Task #77 — Tier 3 §3.4, §3.5, §3.2, §3.1 P1 wedges.
+    case "ai-medical-bill":
+      return <MedicalBillTool />;
+    case "ai-prescription":
+      return <PrescriptionParserTool />;
+    case "ai-rera":
+      return <ReraAnalyzerTool />;
+    case "ai-ec":
+      return <EncumbranceCertTool />;
+    case "ai-salary-slip":
+      return <SalarySlipTool />;
     case "ai-translate":
       return <TranslatePdfTool />;
     case "ai-compare":

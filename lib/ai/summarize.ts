@@ -173,7 +173,22 @@ export type SummarizeDepth =
   | "mutual-fund"
   | "nda"
   | "sale-deed"
-  | "employment";
+  | "employment"
+  // Task #77 — five more Tier 3 P1 wedges:
+  //   medical-bill §3.4 — Indian medical bill / insurance claim
+  //   prep with itemised charges + Cashless/reimbursement notes (20c)
+  //   prescription §3.4 — handwritten prescription parser into
+  //   structured medication list (10c)
+  //   rera         §3.5 — RERA project document audit + risk flags (25c)
+  //   ec           §3.2 — Encumbrance Certificate parser with
+  //   chain of liens / mortgages over time (15c)
+  //   salary-slip  §3.1 — Indian salary slip analyzer with
+  //   YoY-friendly normalised structure (10c)
+  | "medical-bill"
+  | "prescription"
+  | "rera"
+  | "ec"
+  | "salary-slip";
 
 export interface SummarizeInput {
   /** Extracted PDF text, pages joined with `\f`. */
@@ -1255,6 +1270,152 @@ function buildSystemPrompt(opts: {
           "senior or India-specific issues consult an employment " +
           "lawyer."
         );
+      case "medical-bill":
+        // §3.4 Medical Bill / Insurance Claim Prep.
+        return (
+          "Analyse this Indian medical bill / hospital bill / " +
+          "insurance claim document. Output: `## Bill Identified` " +
+          "(hospital name, patient (PII-masked), admission date, " +
+          "discharge date, IP/OP, total billed, total payable). " +
+          "`## Itemised Charges` (Markdown table: Category " +
+          "(Room/ICU, Doctor's Fees, Investigations, Medicines, " +
+          "Procedures, Consumables, Implants, Other), Amount, " +
+          "%Total, # Items). `## Insurance / Cashless` (insurer if " +
+          "visible, sum-insured used, cashless approval status, " +
+          "co-pay / deductible amount, dis-allowed items). `## " +
+          "Likely Reimbursable` (line items typically covered by " +
+          "Indian health insurance — IRDAI standard exclusions " +
+          "noted separately). `## Likely Non-Reimbursable` " +
+          "(IRDAI-excluded items: registration fees, food charges, " +
+          "diapers, attendant fees, telephone, etc.). `## Pre-/" +
+          "Post-Hospitalisation Notes` (if claim pertains to a " +
+          "hospitalisation, list the items potentially claimable " +
+          "in the 30-day pre and 60-day post windows). `## " +
+          "Suggested Next Steps` (concrete actions: documents to " +
+          "compile for claim, common reasons claims get denied, " +
+          "discharge summary cross-check). End with note this is " +
+          "a parsing + checklist aid, NOT a guarantee of " +
+          "reimbursement — IRDAI rules + your specific policy " +
+          "wording control."
+        );
+      case "prescription":
+        // §3.4 Prescription Parser (handwritten + printed).
+        return (
+          "Parse this Indian prescription (printed or handwritten) " +
+          "into structured JSON. Output ONLY a ```json fenced code " +
+          "block with shape: {\"prescriber\": {\"name\": " +
+          "string|null, \"qualification\": string|null, " +
+          "\"registration_no\": string|null, \"clinic\": " +
+          "string|null}, \"patient\": {\"name\": string|null, " +
+          "\"age\": string|null, \"sex\": string|null, \"date\": " +
+          "string|null (ISO YYYY-MM-DD)}, \"diagnosis\": " +
+          "string|null, \"medications\": [{\"name\": string (the " +
+          "drug name as written, brand or generic), \"strength\": " +
+          "string|null (e.g. '500 mg'), \"dosage\": string|null " +
+          "(e.g. '1 tablet'), \"frequency\": string|null (e.g. " +
+          "'twice daily', '1-0-1', 'BD'), \"duration\": " +
+          "string|null (e.g. '5 days', '14 days'), \"timing\": " +
+          "string|null (e.g. 'after food', 'before sleep'), " +
+          "\"route\": string|null (oral / IV / topical / inhaled), " +
+          "\"confidence\": string (one of: 'high', 'medium', " +
+          "'low' — based on legibility)}], \"investigations\": " +
+          "[string] (lab tests prescribed), \"follow_up\": " +
+          "string|null (next visit instructions)}. " +
+          "Handwriting interpretation rules: when illegible mark " +
+          "the field as null and set confidence='low'. NEVER " +
+          "guess a drug name — wrong drug is a safety risk. Use " +
+          "Indian prescribing conventions: '1-0-1' means morning-" +
+          "noon-night; 'BD'=twice daily; 'TDS'=thrice daily; " +
+          "'HS'=at bedtime; 'SOS'=as needed. End with no extra " +
+          "commentary outside the JSON."
+        );
+      case "rera":
+        // §3.5 RERA Document Analyzer.
+        return (
+          "Analyse this Indian RERA (Real Estate Regulatory " +
+          "Authority) project document — registration certificate, " +
+          "annexure, agreement for sale, or builder-buyer agreement. " +
+          "Output: `## Project Identified` (project name, RERA " +
+          "registration number, state RERA authority, promoter / " +
+          "developer name, registration date, completion deadline). " +
+          "`## Project Details` (location, total units, area type " +
+          "(carpet/built-up/super), launched towers/blocks, common " +
+          "amenities listed in the registration). `## Approvals & " +
+          "Sanctions` (commencement certificate, environment " +
+          "clearance, occupancy/completion certificates referenced). " +
+          "`## Risk Flags` (table: Issue, Severity, Quote, " +
+          "Recommendation. Common flags: missing OC/CC, expired " +
+          "approvals, registration revoked/lapsed, complaints / " +
+          "penalties on RERA portal, unrealistic completion " +
+          "timelines, area calculated on super-built-up vs RERA-" +
+          "mandated carpet area, hidden charges in agreement, " +
+          "unilateral termination rights for builder, no penalty " +
+          "for delay). `## Buyer Protections Present` (clauses " +
+          "that work for the buyer per RERA Act 2016). `## " +
+          "Verification Checklist` (concrete actions: cross-check " +
+          "registration on state RERA portal, ask for OC, verify " +
+          "encumbrance, RERA complaints search). End with note " +
+          "that this is an audit aid for buyers, NOT legal advice " +
+          "— consult a real estate lawyer + your state's RERA " +
+          "filings before purchasing."
+        );
+      case "ec":
+        // §3.2 / §3.5 Encumbrance Certificate Parser.
+        return (
+          "Parse this Indian Encumbrance Certificate (EC) issued " +
+          "by the Sub-Registrar's office. Output: `## Document " +
+          "Identified` (issuing SRO, application number, date " +
+          "issued, period covered (from-to), property description, " +
+          "applicant name). `## Encumbrances Found` (Markdown " +
+          "table: Date, Document Number, Document Type (Sale Deed " +
+          "/ Mortgage / Settlement / Gift / Lease / Release / " +
+          "Other), Parties (PII-masked), Consideration, " +
+          "Description). Sort chronologically. If 'Nil " +
+          "Encumbrance' is stated, surface that prominently. `## " +
+          "Chain Summary` (paragraph narrative: how the property " +
+          "title moved through these documents — useful to spot " +
+          "broken chains or missing predecessors). `## Risk Flags` " +
+          "(active mortgages still in force, cross-referenced " +
+          "deeds outside this EC's period that need separate ECs " +
+          "for verification, suspicious quick-flips, sale by power " +
+          "of attorney without principal verification). `## " +
+          "Coverage Gaps` (years not covered by this EC — if you " +
+          "have only 2014-2024 EC, recommend pulling the prior " +
+          "30y to satisfy bank-loan diligence). `## Recommended " +
+          "Next Steps` (additional ECs to pull, cross-reference " +
+          "with khata + property tax history). End with note " +
+          "this is a parsing aid — banks and lawyers may still " +
+          "need original EC for diligence."
+        );
+      case "salary-slip":
+        // §3.1 Salary Slip Analyzer.
+        return (
+          "Parse this Indian salary slip / pay slip into " +
+          "structured JSON. Output ONLY a ```json fenced code " +
+          "block with shape: {\"employer\": string|null, " +
+          "\"employee\": {\"name\": string|null, \"id\": " +
+          "string|null, \"designation\": string|null, " +
+          "\"department\": string|null, \"PAN\": string|null " +
+          "(masked: 'XXXXX1234X'), \"UAN\": string|null}, " +
+          "\"period\": {\"month\": string|null, \"year\": " +
+          "string|null, \"days_paid\": number|null, " +
+          "\"days_present\": number|null, \"days_loss_of_pay\": " +
+          "number|null}, \"earnings\": [{\"head\": string (e.g. " +
+          "'Basic', 'HRA', 'Special Allowance', 'LTA', " +
+          "'Performance Bonus'), \"amount\": number, \"taxable\": " +
+          "boolean|null}], \"deductions\": [{\"head\": string " +
+          "(e.g. 'EPF', 'Professional Tax', 'TDS', 'Health " +
+          "Insurance', 'Loan EMI'), \"amount\": number, " +
+          "\"statutory\": boolean|null}], \"totals\": {\"gross\": " +
+          "number, \"deductions\": number, \"net_pay\": number, " +
+          "\"reimbursements\": number|null}, \"ytd\": {\"gross\": " +
+          "number|null, \"tds\": number|null, \"epf_employee\": " +
+          "number|null, \"epf_employer\": number|null} (only if " +
+          "the slip shows YTD)}. Use exact label names from the " +
+          "slip rather than normalising — preserves idiosyncratic " +
+          "components. Round amounts to 2 decimals. Do NOT add " +
+          "commentary outside the JSON."
+        );
       case "multi-bank":
         // §3.1 Multi-Bank Merger. Input = concatenated bank
         // statements (user uploads a merged PDF containing
@@ -1425,6 +1586,16 @@ function buildUserPrompt(opts: {
         return "Audit this sale deed";
       case "employment":
         return "Review this employment contract";
+      case "medical-bill":
+        return "Analyse this medical bill";
+      case "prescription":
+        return "Parse this prescription";
+      case "rera":
+        return "Audit this RERA document";
+      case "ec":
+        return "Parse this Encumbrance Certificate";
+      case "salary-slip":
+        return "Parse this salary slip";
       case "standard":
       case "detailed":
       default:
