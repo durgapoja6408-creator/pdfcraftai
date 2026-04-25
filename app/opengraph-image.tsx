@@ -1,4 +1,4 @@
-// app/opengraph-image.tsx — Site-wide default OG image (Task #74).
+// app/opengraph-image.tsx - Site-wide default OG image (Task #74).
 //
 // Next 14 reads this file and exposes the rendered output at
 // /opengraph-image. Every page inherits it as the default
@@ -7,7 +7,7 @@
 // We use Next's `ImageResponse` API which renders limited JSX/CSS
 // on Vercel-style Edge runtime to a 1200x630 PNG at build/render
 // time. Twitter, LinkedIn, Slack, WhatsApp, Facebook, iMessage,
-// Discord — all consume this. Today every preview is blank; after
+// Discord - all consume this. Today every preview is blank; after
 // this lands, every share card shows the brand and tagline.
 //
 // No external assets required. We use system-safe geometry + text
@@ -16,10 +16,10 @@
 import { ImageResponse } from "next/og";
 
 // Hostinger LSAPI runs on Node, not edge. Keep this on the default
-// Node runtime — works the same, just needs Node's `Buffer` for
+// Node runtime - works the same, just needs Node's `Buffer` for
 // the PNG encode. Edge would 503 here.
 export const alt =
-  "pdfcraft ai — Every PDF tool you need. Free, AI-powered, no signup.";
+  "pdfcraft ai - Every PDF tool you need. Free, AI-powered, no signup.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -141,16 +141,16 @@ export default async function OgImage(): Promise<ImageResponse> {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ color: "#3ecf8e", fontSize: 28 }}>✓</span> 87 tools
+            <span style={{ color: "#3ecf8e", fontSize: 28 }}>+</span> 87 tools
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ color: "#3ecf8e", fontSize: 28 }}>✓</span> Free forever
+            <span style={{ color: "#3ecf8e", fontSize: 28 }}>+</span> Free forever
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ color: "#3ecf8e", fontSize: 28 }}>✓</span> No signup
+            <span style={{ color: "#3ecf8e", fontSize: 28 }}>+</span> No signup
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ color: "#3ecf8e", fontSize: 28 }}>✓</span> AI-powered
+            <span style={{ color: "#3ecf8e", fontSize: 28 }}>+</span> AI-powered
           </div>
         </div>
       </div>
