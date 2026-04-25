@@ -11,8 +11,80 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
 
   const firstWord = tool.name.split(" ")[0].toLowerCase();
 
+  // ---------- JSON-LD structured data (Task #72) -------------------
+  //
+  // Two schemas per landing — both eligible for rich results in
+  // Google SERPs and both directly built from data we already carry:
+  //
+  //   1. HowTo  — the 3-step howTo[] array maps 1:1 onto schema.org
+  //      HowToStep entries. When Google grants the rich result, the
+  //      step list shows directly under our title in search.
+  //   2. FAQPage — the faq[] array maps onto schema.org Question /
+  //      Answer entries. Eligible for the "People also ask" treatment
+  //      and an expandable FAQ block under our SERP entry.
+  //
+  // We also include a SoftwareApplication object so the tool itself
+  // gets identified as software (offer field uses Free vs Paid based
+  // on tool.free). Helps Google classify the page beyond a generic
+  // article.
+  //
+  // All emitted via <script type="application/ld+json"> blocks at the
+  // top of <main> — Google's structured-data parser reads from any
+  // depth in the body, but rendering near the top keeps them above
+  // the fold of the parser pass.
+  const SITE = "https://pdfcraftai.com";
+  const pageUrl = `${SITE}${data.canonical}`;
+  const howToLd = {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: data.h1,
+    description: data.sub,
+    totalTime: "PT2M", // ~2-min ballpark for any of these tools
+    step: data.howTo.map((s, i) => ({
+      "@type": "HowToStep",
+      position: i + 1,
+      name: s.t,
+      text: s.d,
+      url: `${pageUrl}#step-${i + 1}`,
+    })),
+  };
+  const faqLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: data.faq.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
+  const appLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: data.h1,
+    description: data.sub,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: pageUrl,
+    offers: tool.free
+      ? { "@type": "Offer", price: "0", priceCurrency: "USD" }
+      : { "@type": "Offer", priceCurrency: "USD", description: tool.cost },
+    publisher: { "@type": "Organization", name: "pdfcraft ai", url: SITE },
+  };
+
   return (
     <main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(appLd) }}
+      />
       {/* ===== Hero ===== */}
       <section style={{ paddingTop: 80, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, opacity: 0.3 }} className="grid-bg" />

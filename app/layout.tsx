@@ -110,6 +110,52 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         <link rel="dns-prefetch" href="https://www.clarity.ms" />
         <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="" />
+        {/*
+          Site-wide JSON-LD (Task #72). Two types in one block:
+          - Organization: identifies the brand entity to Google so it
+            can build a Knowledge Panel and connect signals across
+            social/citations.
+          - WebSite with potentialAction: enables a Sitelinks Search
+            Box in SERPs ("search pdfcraft ai" surfaces the search
+            field directly under our SERP entry).
+          Per-page HowTo + FAQPage + SoftwareApplication blocks live
+          on the SEO landings via SeoLandingPage.
+        */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "Organization",
+                  "@id": "https://pdfcraftai.com/#org",
+                  name: "pdfcraft ai",
+                  url: "https://pdfcraftai.com",
+                  logo: "https://pdfcraftai.com/icon.png",
+                  description:
+                    "Every PDF tool you need — free forever for the basics, AI-enhanced for the advanced.",
+                },
+                {
+                  "@type": "WebSite",
+                  "@id": "https://pdfcraftai.com/#website",
+                  url: "https://pdfcraftai.com",
+                  name: "pdfcraft ai",
+                  publisher: { "@id": "https://pdfcraftai.com/#org" },
+                  potentialAction: {
+                    "@type": "SearchAction",
+                    target: {
+                      "@type": "EntryPoint",
+                      urlTemplate:
+                        "https://pdfcraftai.com/tools?q={search_term_string}",
+                    },
+                    "query-input": "required name=search_term_string",
+                  },
+                },
+              ],
+            }),
+          }}
+        />
       </head>
       <body className="font-sans antialiased">
         {/*
