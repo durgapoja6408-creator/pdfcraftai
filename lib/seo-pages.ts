@@ -122,7 +122,8 @@ export type SeoPageSlug =
   | "n-up-pdf"
   | "grayscale-pdf"
   | "strip-links"
-  | "booklet-pdf";
+  | "booklet-pdf"
+  | "free-draw-pdf";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -2356,6 +2357,26 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Does this work for very long PDFs?", a: "Saddle-stitch tops out around 80 pages (20 sheets) before the fold gets bulky and pages start to creep at the spine. For longer documents, perfect-bound (multiple signatures glued at the spine) is the right approach — that's not what this tool does." },
     ],
     related: ["n-up-pdf", "merge", "split", "extract-pages"],
+  },
+
+  "free-draw-pdf": {
+    tool: "free-draw-pdf",
+    h1: "Draw on PDF — sketch, mark up, and annotate any page in your browser",
+    sub: "Free-draw pen tool for PDFs. 5 colors, adjustable stroke width, multi-page navigation. Pure browser — your file never leaves your device.",
+    canonical: "/free-draw-pdf",
+    howTo: [
+      { t: "Drop the PDF", d: "Up to 50 MB. Multi-page documents work — Prev/Next navigation moves between pages and preserves your strokes per-page." },
+      { t: "Pick color and width", d: "Black, red, blue, green, or orange. Stroke width 1-8pt." },
+      { t: "Draw freely", d: "Click and drag — your strokes appear live as a smooth pen line. Multiple strokes per page, undo any time." },
+      { t: "Apply and download", d: "Strokes are baked into the page content stream as SVG paths. Output PDF reads identically in every viewer." },
+    ],
+    faq: [
+      { q: "Are these real PDF annotations?", a: "Strokes go into the page's content stream as SVG paths — not as /Ink annotation objects. The visual result is identical and works everywhere; the difference matters only if a downstream tool needs to enumerate / edit annotations after the fact (e.g., Adobe Acrobat's annotation panel). For that workflow, paid Annotate ships /Ink annotations proper." },
+      { q: "Can I erase a single stroke?", a: "Click ↶ Undo to remove the last stroke on the current page (page-aware undo — won't accidentally remove a stroke from another page). For finer-grain editing, a stroke list is shown so you can remove any specific stroke before applying. After Apply, strokes become part of the page content and need Edit PDF or another redaction step to remove." },
+      { q: "Will my drawing line up exactly with what I see on screen?", a: "Yes. We track every pointer point in CSS pixels, convert to PDF points using the canvas's actual rendered size, and apply via pdf-lib's drawSvgPath at the same coordinates. Resize the window mid-drawing — committed strokes still align because they're stored in PDF space, not in CSS pixels." },
+      { q: "Can I draw with a stylus or finger on tablet?", a: "Yes. The tool uses Pointer Events, which handle mouse, touch, and pen input uniformly. Pressure sensitivity isn't honored in v1 (stroke width is fixed per stroke); proper pressure-aware ink is on the paid roadmap." },
+    ],
+    related: ["highlight-pdf", "add-text-box", "sign-pdf-free", "redact-free"],
   },
 };
 

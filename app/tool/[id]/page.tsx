@@ -135,6 +135,7 @@ import { NUpPdfTool } from "@/components/tools/NUpPdfTool";
 import { GrayscalePdfTool } from "@/components/tools/GrayscalePdfTool";
 import { StripLinksTool } from "@/components/tools/StripLinksTool";
 import { BookletPdfTool } from "@/components/tools/BookletPdfTool";
+import { FreeDrawTool } from "@/components/tools/FreeDrawTool";
 
 type Params = { params: { id: string } };
 
@@ -194,6 +195,8 @@ const LIVE_TOOL_IDS = new Set<string>([
   // Task #94 — more client-side gap fillers
   "strip-links",
   "booklet-pdf",
+  // Task #95 — canvas-overlay free-draw annotation
+  "free-draw-pdf",
   "ai-summarize",
   "ai-tldr",
   "ai-key-points",
@@ -506,6 +509,8 @@ function ToolRunner({ id }: { id: string }) {
       return <StripLinksTool />;
     case "booklet-pdf":
       return <BookletPdfTool />;
+    case "free-draw-pdf":
+      return <FreeDrawTool />;
     case "ai-summarize":
       return <SummarizePdfTool />;
     case "ai-tldr":
