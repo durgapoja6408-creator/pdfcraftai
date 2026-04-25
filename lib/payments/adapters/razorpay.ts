@@ -371,6 +371,74 @@ export class RazorpayProvider implements PaymentProvider {
     }
   }
 
+  /**
+   * Reverse sweep — Task #24. Anchored on a single provider ref (the
+   * Razorpay order id we stored on `payments.provider_ref`). Hits
+   * /orders/<id>/payments and returns the dominant payment attempt.
+   *
+   * Subscription rows (`sub_xxx`) are out of scope here — their state
+   * changes flow through subscription_event webhooks, not the one-time
+   * captured/failed reconciliation path. We return null so the sweep
+   * skips them.
+   *
+   * Errors:
+   * - 400 BAD_REQUEST_ERROR for unknown ids → null (sandbox/live drift,
+   *   or providerRef stored before the order was actually created).
+   * - 5xx / network → throw, caller counts as error and moves on.
+   */
+  async fetchPaymentStatus(providerRef: string): Promise<NormalizedTx | null> {
+    if (providerRef.startsWith("sub_")) return null;
+
+    type Item = {
+      id: string;
+      status: string;
+      amount: number;
+      currency: string;
+      created_at: number;
+      notes?: { internalPaymentId?: string };
+    };
+    let res: { count: number; items: Item[] };
+    try {
+      res = await this.call<{ count: number; items: Item[] }>(
+        "GET",
+        `/orders/${encodeURIComponent(providerRef)}/payments`
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      // Razorpay returns 400 for "order id is invalid" / unknown ids.
+      // Treat 400 and 404 alike — the order isn't actionable on their
+      // side, so there's nothing for the sweep to recover.
+      if (msg.includes(" 400:") || msg.includes(" 404:")) return null;
+      throw err;
+    }
+
+    if (!res.items || res.items.length === 0) return null;
+
+    // Pick the dominant attempt: captured/authorized > refunded > failed
+    // > anything else. A single order can have multiple attempts (user
+    // failed then retried); we want the most-positive outcome to drive
+    // the ledger sync.
+    const ranked = res.items
+      .slice()
+      .sort((a, b) => statusRank(b.status) - statusRank(a.status));
+    const top = ranked[0];
+
+    return {
+      providerId: this.id,
+      // Use the *payment* id (not the order id) so the synthesized
+      // event lands a unique providerRef on the ledger row. Falling
+      // back to the order id would collide across retries.
+      providerRef: top.id,
+      internalPaymentId: top.notes?.internalPaymentId ?? null,
+      status: mapRazorpayStatus(top.status),
+      amount: {
+        amountMinor: top.amount,
+        currency: top.currency as Currency,
+      },
+      occurredAt: new Date(top.created_at * 1000),
+    };
+  }
+
   // --- HTTP --------------------------------------------------------------
 
   private async call<T>(
@@ -416,6 +484,28 @@ function mapRazorpayStatus(
       return "refunded";
     default:
       return "pending";
+  }
+}
+
+/**
+ * Used by the reverse sweep when an order has multiple payment attempts
+ * (typical: failed-then-succeeded). Rank in "ledger materiality" order so
+ * the most consequential outcome wins.
+ */
+function statusRank(s: string): number {
+  switch (s) {
+    case "captured":
+      return 5;
+    case "authorized":
+      return 4;
+    case "refunded":
+      return 3;
+    case "failed":
+      return 2;
+    case "created":
+      return 1;
+    default:
+      return 0;
   }
 }
 

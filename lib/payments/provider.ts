@@ -110,6 +110,36 @@ export interface PaymentProvider {
    * occurredAt-ascending order so the cron can checkpoint progress.
    */
   listTransactionsSince(since: Date): AsyncIterable<NormalizedTx>;
+
+  /**
+   * Reverse-direction reconciliation: given a provider-side reference
+   * (an order id, a transaction id) that our DB still has marked
+   * "pending", ask the provider what really happened. Used by the
+   * reverse-sweep arm of `runReconciliation` (Task #24).
+   *
+   * Why this is separate from `listTransactionsSince`:
+   * - `listTransactionsSince` is a forward sweep — it asks the provider
+   *   "what happened in the last N hours" and matches against our DB.
+   *   That catches webhooks we missed AS LONG AS the listing endpoint
+   *   surfaces the tx within the lookback window.
+   * - But Razorpay's /payments listing only returns *attempted* payments.
+   *   Orders whose checkout modal was opened but never completed never
+   *   show up there, so a `payments` row with status='pending' and a
+   *   real order id sits forever even though Razorpay knows the order
+   *   was either captured (on a different attempt the listing missed)
+   *   or abandoned. The reverse sweep is the belt-and-suspenders fix.
+   *
+   * Return shape:
+   * - `null` means "the provider has no actionable record for this ref"
+   *   (unknown id / out-of-scope subscription / sandbox-vs-live key
+   *   drift). The caller leaves the DB row alone.
+   * - A NormalizedTx is fed straight into the same `reconcileOne` path
+   *   the forward sweep uses, so synthesis is idempotent.
+   *
+   * Optional because not every adapter implements it. The reverse sweep
+   * skips providers whose `fetchPaymentStatus` is undefined.
+   */
+  fetchPaymentStatus?(providerRef: string): Promise<NormalizedTx | null>;
 }
 
 /**
