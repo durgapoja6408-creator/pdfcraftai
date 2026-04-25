@@ -7,6 +7,7 @@ const COLS: Col[] = [
     title: "Product",
     links: [
       ["Tools", "/tools"],
+      ["Use cases", "/use-cases"],
       ["Agent", "/agent"],
       ["Macros", "/macros"],
       ["Bulk", "/bulk"],
