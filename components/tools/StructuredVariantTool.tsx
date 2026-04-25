@@ -178,6 +178,7 @@ export function StructuredVariantTool(props: {
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
         : `ik-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
 
     try {
       const form = new FormData();
@@ -186,6 +187,9 @@ export function StructuredVariantTool(props: {
       form.append("idempotencyKey", idempotencyKey);
       const res = await fetch("/api/ai/summarize", { method: "POST", body: form });
       const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      const processingMs = Math.round(
+        (typeof performance !== "undefined" ? performance.now() : Date.now()) - t0,
+      );
 
       if (res.ok || res.status === 207) {
         const markdown = String(body.markdown ?? "");
@@ -194,12 +198,14 @@ export function StructuredVariantTool(props: {
           setError(
             "The AI returned output in an unexpected format. This usually resolves on retry."
           );
+          trackTool.error({ errorCode: "parse_failed", depth: props.depth });
           return;
         }
         if (props.mode === "flashcards") {
           const cards = asFlashcards(parsed);
           if (cards.length === 0) {
             setError("No valid flashcards returned. Try a text-heavier PDF.");
+            trackTool.error({ errorCode: "no_items_returned", depth: props.depth });
             return;
           }
           setFlashcards(cards);
@@ -207,16 +213,19 @@ export function StructuredVariantTool(props: {
           const items = asQuizItems(parsed);
           if (items.length === 0) {
             setError("No valid quiz items returned. Try a text-heavier PDF.");
+            trackTool.error({ errorCode: "no_items_returned", depth: props.depth });
             return;
           }
           setQuizItems(items);
         }
+        const credit = Number(body.creditCost ?? 0);
         setMeta({
-          creditCost: Number(body.creditCost ?? 0),
+          creditCost: credit,
           newBalance: typeof body.newBalance === "number" ? body.newBalance : undefined,
           fileId: typeof body.fileId === "string" ? body.fileId : undefined,
           rawMarkdown: markdown,
         });
+        trackTool.success({ creditCost: credit, depth: props.depth, processingMs });
         return;
       }
       const classified = classifyAiError(res.status, body);
@@ -225,9 +234,11 @@ export function StructuredVariantTool(props: {
           ? classified.userMessage
           : "Something went wrong. Try again in a moment."
       );
+      trackTool.error({ errorCode: `http_${res.status}`, depth: props.depth });
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Request failed.");
+      trackTool.error({ errorCode: "network_error", depth: props.depth });
     } finally {
       setBusy(false);
     }

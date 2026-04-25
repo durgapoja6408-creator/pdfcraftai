@@ -121,6 +121,7 @@ export function SemanticSearchPdfTool() {
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
         : `ik-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
 
     try {
       const form = new FormData();
@@ -130,11 +131,13 @@ export function SemanticSearchPdfTool() {
       form.append("idempotencyKey", idempotencyKey);
       const res = await fetch("/api/ai/summarize", { method: "POST", body: form });
       const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      const processingMs = Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - t0);
 
       if (res.ok || res.status === 207) {
         const markdown = String(body.markdown ?? "");
         const parsed = extractJsonArray(markdown);
         if (!parsed) {
+          trackTool.error({ errorCode: "parse_failed", depth: "semantic-search" });
           setError("Couldn't parse the AI's response. Usually resolves on retry.");
           return;
         }
@@ -144,6 +147,7 @@ export function SemanticSearchPdfTool() {
           creditCost: Number(body.creditCost ?? 0),
           newBalance: typeof body.newBalance === "number" ? body.newBalance : undefined,
         });
+        trackTool.success({ creditCost: Number(body.creditCost ?? 0), depth: "semantic-search", processingMs });
         return;
       }
       const classified = classifyAiError(res.status, body);
@@ -152,9 +156,11 @@ export function SemanticSearchPdfTool() {
           ? classified.userMessage
           : "Something went wrong. Try again in a moment."
       );
+      trackTool.error({ errorCode: `http_${res.status}`, depth: "semantic-search" });
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Request failed.");
+      trackTool.error({ errorCode: "network_error", depth: "semantic-search" });
     } finally {
       setBusy(false);
     }

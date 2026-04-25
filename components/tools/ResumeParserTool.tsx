@@ -210,6 +210,7 @@ export function ResumeParserTool() {
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
         : `ik-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
 
     try {
       const form = new FormData();
@@ -218,6 +219,7 @@ export function ResumeParserTool() {
       form.append("idempotencyKey", idempotencyKey);
       const res = await fetch("/api/ai/summarize", { method: "POST", body: form });
       const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      const processingMs = Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - t0);
 
       if (res.ok || res.status === 207) {
         const markdown = String(body.markdown ?? "");
@@ -234,6 +236,7 @@ export function ResumeParserTool() {
           creditCost: Number(body.creditCost ?? 0),
           newBalance: typeof body.newBalance === "number" ? body.newBalance : undefined,
         });
+        trackTool.success({ creditCost: Number(body.creditCost ?? 0), depth: "resume-parse", processingMs });
         return;
       }
       const classified = classifyAiError(res.status, body);
@@ -242,9 +245,11 @@ export function ResumeParserTool() {
           ? classified.userMessage
           : "Something went wrong. Try again in a moment."
       );
+      trackTool.error({ errorCode: `http_${res.status}`, depth: "resume-parse" });
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Request failed.");
+      trackTool.error({ errorCode: "network_error", depth: "resume-parse" });
     } finally {
       setBusy(false);
     }

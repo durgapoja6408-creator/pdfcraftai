@@ -177,6 +177,7 @@ export function OcrPdfTool() {
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
         : `ik-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
 
     try {
       const form = new FormData();
@@ -192,14 +193,21 @@ export function OcrPdfTool() {
         string,
         unknown
       >;
+      const processingMs = Math.round(
+        (typeof performance !== "undefined" ? performance.now() : Date.now()) - t0,
+      );
 
       if (res.ok) {
+        const credit = Number(body.creditCost ?? 0);
+        const pages = typeof body.processedPageCount === "number"
+          ? body.processedPageCount
+          : (typeof body.pageCount === "number" ? body.pageCount : undefined);
         setResult({
           fileId: typeof body.fileId === "string" ? body.fileId : undefined,
           filename:
             typeof body.filename === "string" ? body.filename : undefined,
           markdown: String(body.markdown ?? ""),
-          creditCost: Number(body.creditCost ?? 0),
+          creditCost: credit,
           newBalance:
             typeof body.newBalance === "number" ? body.newBalance : undefined,
           pageCount:
@@ -212,19 +220,21 @@ export function OcrPdfTool() {
           model: String(body.model ?? ""),
           wasTruncated: Boolean(body.wasTruncated),
         });
+        trackTool.success({ creditCost: credit, pageCount: pages, processingMs });
         return;
       }
 
       if (res.status === 207) {
         // Compute succeeded, persistence failed. Show the markdown so
         // the user doesn't lose the work they paid for.
+        const credit = Number(body.creditCost ?? 0);
+        const pages = typeof body.processedPageCount === "number"
+          ? body.processedPageCount
+          : undefined;
         setResult({
           markdown: String(body.markdown ?? ""),
-          creditCost: Number(body.creditCost ?? 0),
-          processedPageCount:
-            typeof body.processedPageCount === "number"
-              ? body.processedPageCount
-              : undefined,
+          creditCost: credit,
+          processedPageCount: pages,
           providerId: String(body.providerId ?? ""),
           model: String(body.model ?? ""),
           wasTruncated: Boolean(body.wasTruncated),
@@ -233,6 +243,7 @@ export function OcrPdfTool() {
               ? body.detail
               : "OCR completed, but the result couldn't be saved to your files. Copy it below before leaving.",
         });
+        trackTool.success({ creditCost: credit, pageCount: pages, processingMs });
         return;
       }
 
@@ -245,6 +256,7 @@ export function OcrPdfTool() {
       }
 
       setError(mapErrorBody(res.status, body));
+      trackTool.error({ errorCode: `http_${res.status}` });
     } catch (err) {
       console.error(err);
       setError(
@@ -252,6 +264,7 @@ export function OcrPdfTool() {
           ? err.message
           : "OCR failed — check your connection and try again."
       );
+      trackTool.error({ errorCode: "network_error" });
     } finally {
       setBusy(false);
     }

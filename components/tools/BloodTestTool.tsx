@@ -179,6 +179,7 @@ export function BloodTestTool() {
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
         : `ik-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
 
     try {
       const form = new FormData();
@@ -187,11 +188,13 @@ export function BloodTestTool() {
       form.append("idempotencyKey", idempotencyKey);
       const res = await fetch("/api/ai/summarize", { method: "POST", body: form });
       const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      const processingMs = Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - t0);
 
       if (res.ok || res.status === 207) {
         const parsed = extractJsonObject(String(body.markdown ?? ""));
         const obj = parsed ? asReport(parsed) : null;
         if (!obj) {
+          trackTool.error({ errorCode: "parse_failed", depth: "blood-test" });
           setError("Couldn't parse this as a lab report. Ensure the PDF has named tests with values.");
           return;
         }
@@ -200,13 +203,16 @@ export function BloodTestTool() {
           creditCost: Number(body.creditCost ?? 0),
           newBalance: typeof body.newBalance === "number" ? body.newBalance : undefined,
         });
+        trackTool.success({ creditCost: Number(body.creditCost ?? 0), depth: "blood-test", processingMs });
         return;
       }
       const classified = classifyAiError(res.status, body);
       setError("userMessage" in classified ? classified.userMessage : "Something went wrong. Try again.");
+      trackTool.error({ errorCode: `http_${res.status}`, depth: "blood-test" });
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Request failed.");
+      trackTool.error({ errorCode: "network_error", depth: "blood-test" });
     } finally {
       setBusy(false);
     }
