@@ -106,7 +106,18 @@ export type SeoPageSlug =
   | "scan-report-explainer"
   | "encumbrance-certificate-parser"
   | "expense-report-builder"
-  | "ncert-chapter-summarizer";
+  | "ncert-chapter-summarizer"
+  // Task #86 — 10 SEO landings for Tier 2 AI variants.
+  | "pdf-to-quiz"
+  | "pdf-to-mindmap"
+  | "syllabus-to-study-plan"
+  | "extract-tables-from-pdf"
+  | "rewrite-pdf-tone"
+  | "multi-year-paper-pattern"
+  | "improve-pdf-writing"
+  | "paraphrase-pdf"
+  | "pdf-plagiarism-check"
+  | "chart-to-data-table";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -2047,6 +2058,200 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Does it cover competitive exam syllabi?", a: "NCERT IS the foundation for most Indian competitive exams (UPSC, JEE/NEET, SSC). For competitive-exam-specific analysis use UPSC / JEE-NEET / SSC-Banking analysers." },
     ],
     related: ["ai-ncert", "ai-syllabus", "ai-flashcards", "ai-paper-pattern"],
+  },
+
+  // ---------------------------------------------------------------
+  // Task #86 — 10 SEO landings for Tier 2 AI variants.
+  // ---------------------------------------------------------------
+
+  "pdf-to-quiz": {
+    tool: "ai-quiz",
+    h1: "PDF to Quiz — 6-12 MCQs with answer key + explanations",
+    sub: "Drop a study material PDF. We generate 6-12 multiple-choice questions with an answer key and per-question explanations. 10 credits.",
+    canonical: "/pdf-to-quiz",
+    howTo: [
+      { t: "Drop the source PDF", d: "Textbook chapter, lecture notes, training material, or product documentation." },
+      { t: "We generate MCQs", d: "Each question has 4 options + correct answer + explanation. Difficulty mix: ~40% easy / 40% medium / 20% hard." },
+      { t: "Use as practice or assessment", d: "Self-test, classroom quiz, employee training assessment. Export as JSON for LMS integration." },
+    ],
+    faq: [
+      { q: "How does this differ from PDF to Flashcards?", a: "Quizzes are MCQs (4 options + 1 right answer + explanation). Flashcards are open Q/A pairs. Quizzes test recognition + selection; flashcards test recall." },
+      { q: "Are the wrong-answer options plausible?", a: "Yes — distractors (wrong options) are intentionally similar to the correct answer in length and concept-domain. We don't generate trivially-wrong options that defeat the purpose of testing." },
+      { q: "Will it work for technical content?", a: "Yes — engineering, medical, legal, finance content. Edge case: very dense formal-logic content where one term has subtle distinctions sometimes generates ambiguous distractors. Always sanity-check before using high-stakes." },
+      { q: "LMS-compatible export?", a: "JSON output. SCORM / xAPI / QTI export is on the roadmap if there's signal." },
+    ],
+    related: ["ai-quiz", "ai-flashcards", "ai-mindmap", "ai-study-notes"],
+  },
+
+  "pdf-to-mindmap": {
+    tool: "ai-mindmap",
+    h1: "PDF to Mind Map — hierarchical concept tree, expandable",
+    sub: "Drop a PDF. We build a hierarchical mind map of the document — root concept → main topics → sub-topics → details. Renders as a collapsible nested outline. 10 credits.",
+    canonical: "/pdf-to-mindmap",
+    howTo: [
+      { t: "Drop the PDF", d: "Research paper, book chapter, business plan, study material — anything with hierarchical structure." },
+      { t: "We extract the tree", d: "Root → main branches → sub-branches → leaf details. Auto-detected depth, typically 3-5 levels." },
+      { t: "Read collapsed", d: "Each node expands on click. Easier to scan than a linear summary; preserves the nested relationships." },
+    ],
+    faq: [
+      { q: "Is this a visual mind map?", a: "Currently a structured text outline that mimics mind-map hierarchy. Visual SVG mind-map rendering (with branches radiating from a centre) is on the roadmap." },
+      { q: "How does it choose what's a main branch vs a leaf?", a: "Heuristic from document structure — section / chapter headers become main branches; bullet lists and definitions become leaves. Documents without clear headers are restructured by topic." },
+      { q: "Export to mind-mapping software?", a: "OPML / Markdown export for now (XMind / MindNode / iThoughts compatible). Native FreeMind .mm and Miro JSON on the roadmap." },
+      { q: "Will it work for very long documents?", a: "Yes but the depth gets unwieldy past 200 pages. For book-length content, summarise into chapters first, then mind-map each chapter." },
+    ],
+    related: ["ai-mindmap", "ai-flashcards", "ai-quiz", "ai-study-notes"],
+  },
+
+  "syllabus-to-study-plan": {
+    tool: "ai-syllabus",
+    h1: "Syllabus to Study Plan — week-by-week schedule with practice checkpoints",
+    sub: "Drop a course syllabus. We turn it into a 12-week (default) study plan with topic map, hours per topic, and practice checkpoints. 20 credits.",
+    canonical: "/syllabus-to-study-plan",
+    howTo: [
+      { t: "Drop the syllabus PDF", d: "TNPSC / UPSC / JEE / NEET / NCERT / university course / coaching institute syllabus — all supported." },
+      { t: "We sequence the weeks", d: "Topic map of the syllabus + week-by-week table (Week N | Topics | Hours | Practice Checkpoint)." },
+      { t: "Get final-week strategy", d: "Last-week revision plan: what to revise, in what order, with what tools (mock tests, summaries, flashcards)." },
+    ],
+    faq: [
+      { q: "Why default to 12 weeks?", a: "Most quarterly competitive-exam preparation cycles, semester courses, and bootcamps fit a 12-week container. We auto-detect shorter (6-week boot camps) or longer (full-year syllabi) and adjust." },
+      { q: "What's a 'practice checkpoint'?", a: "A concrete activity that tests retention — a mock test, a problem set, a summary essay. NOT a passive 'review your notes' instruction. Concrete tasks anchor study sessions." },
+      { q: "Will it adapt to my pace?", a: "The default plan assumes ~8 hrs/week. If you have more or less time, scale the Hours column proportionally — the topic-priority order stays the same." },
+      { q: "Does it know exam-specific weighting?", a: "For TNPSC / UPSC / JEE / NEET / SSC / Banking / GATE — yes, we weight high-yield topics heavier. For generic course syllabi, we treat topics as roughly equal-weight unless the syllabus document specifies otherwise." },
+    ],
+    related: ["ai-syllabus", "ai-tnpsc", "ai-upsc", "ai-jee-neet"],
+  },
+
+  "extract-tables-from-pdf": {
+    tool: "ai-table",
+    h1: "Extract Tables from PDF — AI-cleaned, multi-page aware, Excel export",
+    sub: "Drop a PDF with tables (financial statements, scientific data, schedules). We extract every table — even multi-page — with headers correctly aligned + Excel/CSV export. 5 credits.",
+    canonical: "/extract-tables-from-pdf",
+    howTo: [
+      { t: "Drop the PDF", d: "Financial statements, scientific data tables, government data PDFs, train timetables — anything with tabular data." },
+      { t: "We extract all tables", d: "Multi-page tables stitched correctly. Merged cells handled. Header rows aligned. Numbers preserved verbatim." },
+      { t: "Download as Excel / CSV", d: "Or copy directly. Each table is a separate sheet in the Excel export." },
+    ],
+    faq: [
+      { q: "How is this different from copy-paste from PDF?", a: "Copy-paste from PDF mangles tables — column boundaries collapse, merged cells break, multi-page tables fragment. AI-aware table extraction reconstructs the structure semantically." },
+      { q: "Will it handle tables that span pages?", a: "Yes. Continuation tables on the next page are stitched into a single output table when the headers match." },
+      { q: "Are numbers preserved exactly?", a: "Yes — explicitly. We don't reformat or round numbers; we copy them character-by-character from the source. Critical for financial / scientific data where precision matters." },
+      { q: "What about complex nested tables?", a: "Tables with multi-row headers (e.g. quarterly data with 'Q1' / 'Q2' / 'Q3' / 'Q4' under a 'FY24' grouping) are handled. Truly nested sub-tables (a table inside a cell) are surfaced separately." },
+    ],
+    related: ["ai-table", "pdf-to-excel", "ai-balance-sheet", "ai-bank-statement"],
+  },
+
+  "rewrite-pdf-tone": {
+    tool: "ai-rewrite",
+    h1: "Rewrite PDF in Different Tone — formal, casual, academic, simple",
+    sub: "Drop a PDF and pick a target tone (formal / casual / academic / simple / persuasive). We rewrite preserving meaning. 5 credits.",
+    canonical: "/rewrite-pdf-tone",
+    howTo: [
+      { t: "Drop the PDF", d: "Email draft, blog post, business proposal, academic paper — any prose document." },
+      { t: "Pick the target tone", d: "Formal (legal / corporate), Casual (friendly / blog), Academic (peer-review style), Simple (5th-grade level), Persuasive (sales / marketing)." },
+      { t: "Read and refine", d: "Output preserves every fact and number; only voice and word choice change. Refine manually for sensitive contexts." },
+    ],
+    faq: [
+      { q: "How is this different from Improve Writing?", a: "Improve Writing makes the same prose tighter (clarity + concision). Rewrite Tone changes the register — same meaning in a different voice. Use both: improve first, then re-tone for the audience." },
+      { q: "Will it preserve technical accuracy in 'Simple' mode?", a: "Yes — we never simplify by lying. Technical terms get an explanation in parentheses on first use. If something genuinely can't be simplified without losing accuracy, we leave it untranslated." },
+      { q: "Can I provide a custom tone?", a: "Currently the 5 preset tones. For custom (e.g. 'in the voice of a 1990s news anchor'), use Improve Writing or AI Generate with a custom prompt — those have more flexibility." },
+      { q: "What about non-English content?", a: "Best on English. For Indian-language content, AI Translate first, then re-tone." },
+    ],
+    related: ["ai-rewrite", "ai-improve-writing", "ai-paraphrase", "ai-proofread"],
+  },
+
+  "multi-year-paper-pattern": {
+    tool: "ai-paper-pattern",
+    h1: "Multi-Year Question Paper Pattern Analysis — predict next paper",
+    sub: "Concatenate 5+ years of past exam papers. We surface topic frequency over years, question-type trends, difficulty drift, and predict topics likely to recur. 15 credits.",
+    canonical: "/multi-year-paper-pattern",
+    howTo: [
+      { t: "Concatenate past papers", d: "Use our free Merge PDF tool to combine 5-10 years of the same exam (TNPSC / UPSC / JEE / NEET / SSC / Banking / GATE / board) into one PDF." },
+      { t: "Drop the merged PDF", d: "We detect each year's paper boundary and tag every question across all years." },
+      { t: "Get pattern + predictions", d: "Subject mix over time + topic frequency + question-type trend + difficulty drift + recycle rate + predicted topics for next paper, ranked." },
+    ],
+    faq: [
+      { q: "How accurate are the predictions?", a: "Pattern-based, not crystal-ball. We rank topics by their cumulative frequency × difficulty across years. The top 6-10 topics WILL appear in some form on the next paper, but exact wording and difficulty-level depend on the paper-setter's taste that year." },
+      { q: "What's a 'recycle rate'?", a: "Questions that appear verbatim or near-verbatim across years. Some exams (especially SSC / state PSCs) have higher recycle rates than others (UPSC almost never repeats). Recycled questions are free marks if you've prepped correctly." },
+      { q: "How many years should I include?", a: "5-10 years is the sweet spot. Less than 5 and trends are noisy; more than 10 and old syllabus changes pollute the signal." },
+      { q: "Does it work for state-board exams?", a: "Yes — CBSE 10th / 12th, state-board paper sets are well-supported. We've also tested on coaching-institute mock paper sets (where recycle rates are very high)." },
+    ],
+    related: ["ai-paper-pattern", "ai-tnpsc", "ai-jee-neet", "ai-upsc"],
+  },
+
+  "improve-pdf-writing": {
+    tool: "ai-improve-writing",
+    h1: "Improve PDF Writing — clarity + concision rewrite, ~25% shorter",
+    sub: "Drop any prose PDF. We rewrite for clarity and concision (~20-30% shorter) without changing facts, register, or claims. Preserves voice. 5 credits.",
+    canonical: "/improve-pdf-writing",
+    howTo: [
+      { t: "Drop the PDF", d: "Email draft, business proposal, blog post, white paper, policy document — anything you want tighter." },
+      { t: "We rewrite", d: "Same meaning, fewer words. Cut redundant qualifiers, split run-on sentences, replace passive voice where it doesn't add nuance." },
+      { t: "Read and refine", d: "Edit-summary explains the kinds of changes made. Keep what works, push back on what doesn't." },
+    ],
+    faq: [
+      { q: "Will it change my voice?", a: "Register is preserved — formal stays formal, casual stays casual. But within that register, sentence-level choices may shift. Read the rewrite aloud — if a sentence doesn't sound like you, replace it with your own version (and the cleaner alternative is still in front of you for comparison)." },
+      { q: "What about my unique phrasings?", a: "We err on the side of keeping unusual or distinctive phrasings if they're working. We cut clichés (\"thinking outside the box\"), redundant qualifiers (\"absolutely critical\"), and obvious filler (\"in today's world\"). We don't cut craft." },
+      { q: "How much shorter?", a: "20-30% typical. For very tight documents (well-written news copy, scientific abstracts), only 5-10% reduction. For drafts (which is what most people send), 30-40%." },
+      { q: "Will it work for fiction / poetry?", a: "Use cautiously. The rewriter is calibrated for non-fiction prose — fiction has deliberate redundancy, rhythm, and voice that doesn't benefit from a 'concision' pass." },
+    ],
+    related: ["ai-improve-writing", "ai-paraphrase", "ai-rewrite", "ai-proofread"],
+  },
+
+  "paraphrase-pdf": {
+    tool: "ai-paraphrase",
+    h1: "Paraphrase PDF — re-word preserving every claim and number",
+    sub: "Drop a PDF. We paraphrase preserving every claim, number, and conclusion. Same length as input. Technical terms preserved when no plainer synonym fits. 5 credits.",
+    canonical: "/paraphrase-pdf",
+    howTo: [
+      { t: "Drop the PDF", d: "Any prose document. Common use cases: report drafts that need a fresh phrasing, citations to summarise in your own words, content syndication." },
+      { t: "We rephrase, not re-imagine", d: "Same length as input, every fact preserved, every number quoted exactly. Only the wording changes." },
+      { t: "Cite the original", d: "Paraphrasing is a wording change, not a substitute for citation. Always credit the original source." },
+    ],
+    faq: [
+      { q: "How is this different from Improve Writing?", a: "Improve Writing CUTS words. Paraphrase keeps the SAME length but in different wording. Use Paraphrase when you need the same content in a different voice. Use Improve when you want it tighter." },
+      { q: "Will technical terms be replaced?", a: "Only when a plainer synonym exists without losing meaning. 'Amortisation' won't be paraphrased to 'paying off' because that loses precision. 'Leveraging' will be paraphrased to 'using' because the precision is fake to begin with." },
+      { q: "Can I use this for academic citations?", a: "Yes for summarising someone else's work in your own words — but you STILL need to cite the original. Paraphrasing without attribution is plagiarism. The 'in your own words' is about wording, not authorship." },
+      { q: "Will it sound AI-generated?", a: "We use a high-quality model that produces natural prose. Read it carefully — if a sentence sounds AI-fluent, replace it with your own. The Originality Heuristic Check tool surfaces AI-tells if you want to audit." },
+    ],
+    related: ["ai-paraphrase", "ai-improve-writing", "ai-plagiarism", "ai-rewrite"],
+  },
+
+  "pdf-plagiarism-check": {
+    tool: "ai-plagiarism",
+    h1: "PDF Plagiarism Heuristic Check — register shifts, AI-tells, boilerplate",
+    sub: "Drop a PDF. We surface register shifts, definition-textbook style, boilerplate repeats, and AI-generation tells. NOT a Turnitin / Copyleaks external-corpus scan. 10 credits.",
+    canonical: "/pdf-plagiarism-check",
+    howTo: [
+      { t: "Drop the document PDF", d: "Essay, thesis chapter, report, blog post — anything you want to audit for originality." },
+      { t: "We do a heuristic audit", d: "Register shifts (sudden formal voice in casual text), definition-textbook style (classic copy-paste tell), boilerplate repeats, AI-generation tells." },
+      { t: "Get specific recommendations", d: "Which passages look borrowed, why they look borrowed, how to either cite them properly OR rewrite them in your own voice." },
+    ],
+    faq: [
+      { q: "Is this a real plagiarism scan?", a: "NO. Critical distinction. Real plagiarism scans (Turnitin, Copyleaks, iThenticate) compare your text against billions of indexed documents. We don't have that index. We surface internal originality signals — patches that LOOK borrowed based on prose patterns. For thesis / publication submission, you must run a real plagiarism scan in addition." },
+      { q: "What are 'AI-generation tells'?", a: "Phrases / structures common in LLM output: 'in conclusion', 'it is important to note', 'in today's world', overuse of em-dashes, three-item rhetorical lists, hedging phrases like 'while it can be argued'. We surface them so you can rewrite passages that scream AI." },
+      { q: "Why surface 'register shifts'?", a: "If a paragraph in your casual blog post suddenly reads like a textbook, it's likely lifted (or copy-pasted from your earlier formal work). Either cite the source or rewrite to match the surrounding voice." },
+      { q: "How accurate is the audit?", a: "Heuristic. Useful for self-audit before submission. Don't treat it as binary 'plagiarism / not plagiarism' — treat the flagged passages as 'worth a second look'." },
+    ],
+    related: ["ai-plagiarism", "ai-improve-writing", "ai-paraphrase", "ai-citations"],
+  },
+
+  "chart-to-data-table": {
+    tool: "ai-chart-to-table",
+    h1: "Chart to Data Table — extract numeric data from chart images",
+    sub: "Drop a PDF with charts (bar / line / pie / scatter / stacked). We read each chart visually and extract its data points as Markdown tables with axis labels and units. 5 credits.",
+    canonical: "/chart-to-data-table",
+    howTo: [
+      { t: "Drop the PDF", d: "Research paper, financial report, government data PDF — anything with embedded charts." },
+      { t: "We read every chart", d: "Bar / line / pie / scatter / stacked / 100%-stacked / radar / histogram supported. Axis labels + units extracted faithfully." },
+      { t: "Use the data", d: "Markdown tables for each chart. For values that aren't precisely readable from the visual, we return a range with confidence note rather than inventing." },
+    ],
+    faq: [
+      { q: "How accurate are the extracted values?", a: "For clear charts with gridlines and labels, very accurate. For chart images at low resolution OR without gridlines, we return ranges (e.g. '170-180') with a confidence note. We don't invent precise numbers." },
+      { q: "Will it work for unusual chart types?", a: "Common types covered. Sankey diagrams, treemaps, sunburst, parallel coordinates — these are handled best-effort. If you have a niche chart type that matters, run it and check the output before relying." },
+      { q: "Per-chart pricing?", a: "5 credits per chart found in the PDF. A 10-chart report is 50 credits. We list every chart in the summary so you can audit the count." },
+      { q: "Export?", a: "Markdown tables (copy-paste ready). For Excel-friendly export, CSV is on the roadmap. Right now copy from the markdown table into a spreadsheet works fine." },
+    ],
+    related: ["ai-chart-to-table", "ai-table", "ai-balance-sheet", "ai-research-paper"],
   },
 };
 
