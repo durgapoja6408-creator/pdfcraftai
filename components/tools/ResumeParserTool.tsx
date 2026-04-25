@@ -11,7 +11,7 @@
 // upload would be compelling but ships later — v1 is single-file
 // to validate the prompt quality before scaling the plumbing.
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { classifyAiError } from "@/lib/ai/degradation";
@@ -25,7 +25,7 @@ import {
   sha256HexOfBytes,
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
-import { useTrackToolView } from "./useToolTracking";
+import { useToolTracking } from "./useToolTracking";
 
 type Experience = {
   title: string;
@@ -163,7 +163,8 @@ function resumeToCsv(r: Resume): string {
 }
 
 export function ResumeParserTool() {
-  useTrackToolView("ai-resume-parse", "AI");
+  const trackTool = useToolTracking("ai-resume-parse", "AI");
+  useEffect(() => trackTool.view(), [trackTool]);
   const router = useRouter();
   const { status } = useSession();
   const [file, setFile] = useState<File | null>(null);
@@ -181,7 +182,8 @@ export function ResumeParserTool() {
     setResume(null);
     setMeta(null);
     setFile(f);
-  }, []);
+    trackTool.upload(f);
+  }, [trackTool]);
 
   const reset = () => {
     setFile(null);
@@ -194,6 +196,8 @@ export function ResumeParserTool() {
     if (!file) return;
     const fresh = await getSession();
     if (!fresh?.user) {
+      trackTool.signupRedirect("/tool/ai-resume-parse");
+
       router.push("/login?callbackUrl=/tool/ai-resume-parse");
       return;
     }

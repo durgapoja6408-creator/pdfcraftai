@@ -12,7 +12,7 @@
 // dependency. A future v2 could pipe the same JSON through a
 // Mermaid / Markmap renderer for the classic radial look.
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { classifyAiError } from "@/lib/ai/degradation";
@@ -26,7 +26,7 @@ import {
   sha256HexOfBytes,
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
-import { useTrackToolView } from "./useToolTracking";
+import { useToolTracking } from "./useToolTracking";
 
 type TreeNode = {
   label: string;
@@ -152,7 +152,8 @@ function TreeList({ nodes, depth = 0 }: { nodes: TreeNode[]; depth?: number }) {
 }
 
 export function MindmapPdfTool() {
-  useTrackToolView("ai-mindmap", "AI");
+  const trackTool = useToolTracking("ai-mindmap", "AI");
+  useEffect(() => trackTool.view(), [trackTool]);
   const router = useRouter();
   const { status } = useSession();
   const [file, setFile] = useState<File | null>(null);
@@ -168,7 +169,8 @@ export function MindmapPdfTool() {
     setMindmap(null);
     setMeta(null);
     setFile(f);
-  }, []);
+    trackTool.upload(f);
+  }, [trackTool]);
 
   const reset = () => {
     setFile(null);
@@ -181,6 +183,8 @@ export function MindmapPdfTool() {
     if (!file) return;
     const fresh = await getSession();
     if (!fresh?.user) {
+      trackTool.signupRedirect("/tool/ai-mindmap");
+
       router.push("/login?callbackUrl=/tool/ai-mindmap");
       return;
     }

@@ -15,7 +15,7 @@
 // Search at 2 credits per search vs Chat at 5 credits per 20
 // questions.
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { classifyAiError } from "@/lib/ai/degradation";
@@ -23,7 +23,7 @@ import { useSession, getSession } from "next-auth/react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
-import { useTrackToolView } from "./useToolTracking";
+import { useToolTracking } from "./useToolTracking";
 
 type Passage = {
   passage: string;
@@ -65,7 +65,8 @@ function asPassages(arr: unknown[]): Passage[] {
 }
 
 export function SemanticSearchPdfTool() {
-  useTrackToolView("ai-semantic-search", "AI");
+  const trackTool = useToolTracking("ai-semantic-search", "AI");
+  useEffect(() => trackTool.view(), [trackTool]);
   const router = useRouter();
   const { status } = useSession();
   const [file, setFile] = useState<File | null>(null);
@@ -84,7 +85,8 @@ export function SemanticSearchPdfTool() {
     setPassages(null);
     setMeta(null);
     setFile(f);
-  }, []);
+    trackTool.upload(f);
+  }, [trackTool]);
 
   const reset = () => {
     setFile(null);
@@ -105,6 +107,8 @@ export function SemanticSearchPdfTool() {
     }
     const fresh = await getSession();
     if (!fresh?.user) {
+      trackTool.signupRedirect("/tool/ai-semantic-search");
+
       router.push("/login?callbackUrl=/tool/ai-semantic-search");
       return;
     }

@@ -18,7 +18,7 @@
 //     one more abstraction layer in code that's already shipping
 //     fine.
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { classifyAiError } from "@/lib/ai/degradation";
@@ -32,6 +32,7 @@ import {
   sha256HexOfBytes,
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
+import { useToolTracking } from "./useToolTracking";
 
 type Flashcard = { q: string; a: string; page: number };
 type QuizItem = {
@@ -123,6 +124,8 @@ export function StructuredVariantTool(props: {
 }) {
   const router = useRouter();
   const { status } = useSession();
+  const trackTool = useToolTracking(props.toolId, "AI");
+  useEffect(() => trackTool.view(), [trackTool]);
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -143,7 +146,8 @@ export function StructuredVariantTool(props: {
     setQuizItems(null);
     setMeta(null);
     setFile(f);
-  }, []);
+    trackTool.upload(f);
+  }, [trackTool]);
 
   const reset = () => {
     setFile(null);
@@ -160,6 +164,7 @@ export function StructuredVariantTool(props: {
     }
     const fresh = await getSession();
     if (!fresh?.user) {
+      trackTool.signupRedirect(props.callbackUrl);
       router.push(`/login?callbackUrl=${encodeURIComponent(props.callbackUrl)}`);
       return;
     }
