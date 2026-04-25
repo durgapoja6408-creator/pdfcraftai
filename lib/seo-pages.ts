@@ -40,6 +40,7 @@ export type SeoPageSlug =
   | "edit-pdf"
   | "sign-pdf-free"
   | "repair-pdf"
+  | "flatten-pdf"
   | "markdown-to-pdf"
   | "text-to-pdf"
   | "pdf-to-markdown"
@@ -799,6 +800,26 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Privacy?", a: "100% client-side. pdf-lib parses and re-saves in your browser — nothing uploaded." },
     ],
     related: ["repair-pdf", "compress", "flatten-pdf", "pdf-metadata"],
+  },
+
+  "flatten-pdf": {
+    tool: "flatten-pdf",
+    h1: "Flatten PDF — bake forms, annotations, and signatures into static content",
+    sub: "Make a PDF un-editable: form fields become permanent text, annotations get burned in, signatures lock in place. Free, in-browser.",
+    canonical: "/flatten-pdf",
+    howTo: [
+      { t: "Drop your PDF", d: "Up to 100 MB. Forms, annotations, comments, and editable signatures are all detected." },
+      { t: "Click Flatten", d: "Form field values are written as static text. Annotations and digital signatures lock in place. The output behaves like a printed scan." },
+      { t: "Download", d: "Recipients can read but cannot edit, modify form values, or remove highlights and signatures." },
+    ],
+    faq: [
+      { q: "Why flatten?", a: "Form fields and annotations stay editable by anyone with a PDF reader. Flattening converts them into part of the page itself, locking the file in its current state. Use this before sharing a final version where you don't want recipients accidentally (or intentionally) modifying values." },
+      { q: "Is flattening reversible?", a: "No. Flattening is permanent — once form fields are baked into the page, you can't get them back as fields. Always save the unflattened working copy alongside the flattened deliverable." },
+      { q: "Will signatures still verify after flattening?", a: "Visual signatures stay visible. Cryptographic signatures are invalidated by flattening because the byte layout changes — the signature becomes a visible stamp without the verification chain. Sign after flattening if you need cryptographic validity." },
+      { q: "What about comments and highlights?", a: "All annotations get burned into the page. Highlight color overlays become permanent yellow/blue/etc. tints. Comment text becomes either visible text or is dropped depending on the comment type." },
+      { q: "Privacy?", a: "100% client-side. The flatten operation runs in your browser via pdf-lib. Your file never uploads." },
+    ],
+    related: ["sign-pdf-free", "page-numbers", "remove-metadata", "compress"],
   },
 
   "markdown-to-pdf": {

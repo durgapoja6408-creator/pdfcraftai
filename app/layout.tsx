@@ -143,11 +143,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="dns-prefetch" href="https://api.anthropic.com" />
         <link rel="preconnect" href="https://api.openai.com" crossOrigin="" />
         {/*
-          Preload the icon SVG used in nav. It's the only above-the-fold
-          image on most pages; preload removes it from the critical path.
-        */}
-        <link rel="preload" href="/icon.svg" as="image" type="image/svg+xml" />
-        {/*
           Site-wide JSON-LD (Task #72). Two types in one block:
           - Organization: identifies the brand entity to Google so it
             can build a Knowledge Panel and connect signals across
