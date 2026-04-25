@@ -103,6 +103,28 @@ curl -X POST -H "Content-Type: application/json" -d "{}" https://pdfcraftai.com/
 
 `/api/health` reads `BUILD_COMMIT_SHA` baked in at build time by `next.config.mjs` (a pre-config `execSync("git rev-parse")` block). Falls back to `null` if `git` isn't available at build time. After deploy, you may see *multiple* commit SHAs round-robining for ~5–10 min as Hostinger's worker pool recycles old workers — wait for steady-state OR run G1 fix A to force-respawn all workers at once.
 
+### G6 — Duplicate build under same UUID with `ERROR: package.json file not found`
+
+**Symptom:** The Hostinger Deploys UI shows "Build failed" with the message `ERROR: package.json file not found`, but the live site is healthy and `/api/health` reports the latest commit. Investigation shows two build logs with the **same UUID** in `~/domains/pdfcraftai.com/public_html/.builds/logs/<uuid>/`:
+
+```
+2026-04-25_14-22-23_deploy.log   ← SUCCESS (the real deploy)
+2026-04-25_14-43-23_deploy.log   ← "ERROR: package.json file not found" (retry)
+```
+
+**Root cause:** Hostinger's deploy system fired a duplicate build attempt — likely a webhook double-fire or a build-queue race. The second container tried to run `next build` against an empty workdir before the GitHub-App pull populated it, so package.json was missing.
+
+**Why it's harmless:** The first build under that UUID already succeeded and is what's serving users. The second's failure didn't roll anything back; it just left a noisy log entry.
+
+**Diagnosis sequence:**
+1. Check `/api/health` — if commit matches your latest push, the real deploy succeeded.
+2. SSH and `ls ~/domains/pdfcraftai.com/public_html/.builds/logs/<uuid>/` — count `*_deploy.log` files. Two with same UUID = G6.
+3. Read both — the earlier one should be a clean `next build` success.
+
+**Fix:** None required. The "Build failed" UI message is misleading in this case. Optionally push a tiny no-op commit to trigger a fresh single-build cycle and watch it complete cleanly.
+
+**Confused with G2 (jammed auto-pull)?** G2 = no build attempt happened at all (live commit stale). G6 = two attempts happened, the second one transient-failed but the first succeeded (live commit fresh).
+
 ## Integration status (verified 2026-04-20)
 
 | Integration | Status | Evidence |
