@@ -90,6 +90,10 @@ const NAV: NavItem[] = [
   { section: "Ops", href: "/admin/prompts", label: "Prompts" },
   { section: "Platform", href: "/admin/deploy", label: "Deploy" },
   { section: "Platform", href: "/admin/logs", label: "Webhook logs" },
+  // Task #91 — on-demand reconciliation runner with live forward/reverse
+  // sweep stats per provider. Wraps runReconciliation() behind admin
+  // auth so operators can trigger sweeps without the cron secret.
+  { section: "Platform", href: "/admin/reconcile", label: "Reconcile" },
   // Phase D / Task #25 — Compliance coverage map (DPDP / GDPR /
   // subprocessors / Grievance Officer). Platform because it's a
   // cross-cutting attestation surface, not tied to any one feature.
