@@ -73,7 +73,18 @@ export type SeoPageSlug =
   | "medical-bill-analyzer"
   | "prescription-parser"
   | "upsc-paper-analyzer"
-  | "ssc-banking-exam-analyzer";
+  | "ssc-banking-exam-analyzer"
+  // Task #83 — 10 more SEO landings for Tier 3 wedges.
+  | "bank-statement-parser"
+  | "blood-report-analyzer"
+  | "rental-agreement-analyzer"
+  | "ats-resume-optimizer"
+  | "resume-parser"
+  | "property-document-checker"
+  | "rera-document-analyzer"
+  | "salary-slip-analyzer"
+  | "itr-form16-analyzer"
+  | "research-paper-summarizer";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -1430,6 +1441,200 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Will the strategy notes mention specific books?", a: "Yes — Quantum CAT (quant), Arun Sharma (verbal), Indian Economy by Ramesh Singh (banking awareness), Newspapers + PIB for current affairs. Standard, widely-recommended sources, not invented." },
     ],
     related: ["ai-ssc-banking", "ai-tnpsc", "ai-upsc", "ai-paper-pattern"],
+  },
+
+  // ---------------------------------------------------------------
+  // Task #83 — 10 more SEO landings for Tier 3 wedges.
+  // ---------------------------------------------------------------
+
+  "bank-statement-parser": {
+    tool: "ai-bank-statement",
+    h1: "Bank Statement Parser — Indian banks, categorised + Excel export",
+    sub: "Drop a SBI / HDFC / ICICI / Axis / Kotak (or any Indian bank) statement. We parse every transaction into a clean table with category tags. 30 credits per statement.",
+    canonical: "/bank-statement-parser",
+    howTo: [
+      { t: "Drop the statement PDF", d: "Password-protected? Use our free Unlock PDF tool first. Most major Indian banks supported." },
+      { t: "We parse + categorise", d: "Date / description / amount / balance + category tag (salary / UPI / EMI / bills / shopping / etc.)." },
+      { t: "Download as CSV / Excel", d: "Or run AI Expense Report on it for a category × month matrix." },
+    ],
+    faq: [
+      { q: "Which banks are supported?", a: "All major Indian banks — SBI (saral / regular), HDFC, ICICI (savings + IBANK4U), Axis (priority + regular), Kotak, IDFC First, Yes, IndusInd, RBL, AU Small Finance, Federal, plus the public sector banks. International banks operating in India (Citi-legacy, HSBC, StanC) also work." },
+      { q: "Will it work for password-protected statements?", a: "Use our free Unlock PDF tool first (you provide the password) — the unlocked output goes through this parser." },
+      { q: "Are categories editable?", a: "The output is JSON + a rendered table. Download as CSV and re-categorise in Excel / Google Sheets if our heuristic categories aren't right for your use." },
+      { q: "Multi-month statements OK?", a: "Yes — common Indian bank statements span 3, 6, or 12 months. We handle them in one pass. For multi-bank statements (concatenated), use the Multi-Bank Merger tool." },
+    ],
+    related: ["ai-bank-statement", "ai-multi-bank", "ai-expense-report", "ai-credit-card"],
+  },
+
+  "blood-report-analyzer": {
+    tool: "ai-blood-test",
+    h1: "Blood Report Analyzer — lab values, flags, reference ranges",
+    sub: "Drop a blood test / lab report. We extract every value, flag out-of-range results, and group by panel (CBC / Lipid / LFT / KFT / Thyroid / Glucose). 15 credits.",
+    canonical: "/blood-report-analyzer",
+    howTo: [
+      { t: "Drop the lab report PDF", d: "SRL, Dr Lal PathLabs, Thyrocare, Metropolis, Apollo Diagnostics, hospital-side labs — all supported." },
+      { t: "We extract every test", d: "Test name / value / unit / reference range / flag (normal / low / high / critical / unknown). Grouped by panel." },
+      { t: "Compare across reports", d: "Run multiple reports through to track trends over time. (Trend visualisation is on the roadmap.)" },
+    ],
+    faq: [
+      { q: "Is this medical advice?", a: "No. Strictly data extraction. We surface what the lab reported and which values are flagged out-of-range per the reference range printed on the report. Discuss interpretation with your doctor — reference ranges vary by lab, age, sex, and clinical context." },
+      { q: "Does it understand Indian lab conventions?", a: "Yes. Indian labs sometimes use different units (mg/dL vs mmol/L for glucose) and cutoffs (HbA1c diabetes threshold of 6.5% per ICMR). We extract both the value and the unit verbatim — no conversion guesswork." },
+      { q: "What about handwritten reports?", a: "Modern Indian labs print reports digitally. For old handwritten reports, accuracy depends on legibility. Use AI OCR + manual review for those." },
+      { q: "Can I export the data?", a: "Yes — JSON output is downloadable. Tracking trends across reports? Coming soon as a Pro tier feature with a dashboard." },
+    ],
+    related: ["ai-blood-test", "ai-medical-bill", "ai-prescription", "ai-discharge"],
+  },
+
+  "rental-agreement-analyzer": {
+    tool: "ai-rental",
+    h1: "Rental Agreement Analyzer — flag risky clauses, missing protections",
+    sub: "Drop a rental / lease agreement. We surface risk flags (lock-in, deposit return, unilateral rent hike, escape clauses), missing standard protections, and state-specific concerns. 15 credits.",
+    canonical: "/rental-agreement-analyzer",
+    howTo: [
+      { t: "Drop the agreement", d: "Pre-signing or already signed — both useful. Residential or commercial." },
+      { t: "We audit clause-by-clause", d: "Risk flags by severity, state-specific concerns (Karnataka stamp duty, Maharashtra Rent Control Act, etc.)." },
+      { t: "Get redlines + missing clauses", d: "What you should push back on (security deposit > 2 months rent in many states is now capped) + what's missing (mandatory maintenance, utilities split)." },
+    ],
+    faq: [
+      { q: "Does it know state-specific rental laws?", a: "Reasonably. Karnataka Rent Act 1999, Maharashtra Rent Control Act 1999, Delhi Rent Control Act 1958, Tamil Nadu Regulation of Rights and Responsibilities of Landlords and Tenants Act 2017. State-specific calculation of registration / stamp duty surfaced." },
+      { q: "Is the security deposit cap legally enforceable?", a: "The Model Tenancy Act 2021 caps residential at 2 months and commercial at 6 months, but enforcement is state-by-state. We flag deposits above these caps as red flags worth negotiating, not as illegal — verify with a local lawyer for binding interpretation." },
+      { q: "Does it flag broker biases?", a: "Standard clauses that favour the landlord disproportionately are surfaced. Common ones: tenant pays for ALL repairs (unfair), no notice for visits (unfair), security deposit forfeit on breakage (unfair without itemised damage)." },
+      { q: "Will it work for commercial rentals?", a: "Yes — same parser, but we recommend specific commercial review for large lease commitments because escalation clauses, exclusivity / non-compete on the premises, and CAM (Common Area Maintenance) charges are commercial-specific." },
+    ],
+    related: ["ai-rental", "ai-property", "ai-sale-deed", "ai-employment"],
+  },
+
+  "ats-resume-optimizer": {
+    tool: "ai-ats-resume",
+    h1: "ATS Resume Optimizer — beat the keyword filter, get to the recruiter",
+    sub: "Drop your resume. We audit it against ATS (Applicant Tracking System) parsing — keyword density, section headers, formatting traps — and rewrite for maximum pass-through. 10 credits.",
+    canonical: "/ats-resume-optimizer",
+    howTo: [
+      { t: "Drop your resume PDF", d: "Most-used Indian formats: simple two-column, modern with sidebar, or executive single-column." },
+      { t: "We audit ATS-readiness", d: "Keyword density, section headers (some ATS choke on 'Career Highlights' vs 'Work Experience'), date formats, multi-column traps." },
+      { t: "Get a rewrite + checklist", d: "Suggested keyword additions tied to your experience, fixes for ATS-hostile elements, and a final pass-through-likelihood score." },
+    ],
+    faq: [
+      { q: "Does it actually beat real ATS systems?", a: "It mimics what major ATS tools (Workday, Greenhouse, Lever, iCIMS, Naukri's filter) typically check. We can't guarantee it bypasses every system — corporate ATS configs vary — but the audit aligns with public ATS best practices and surfaces the obvious failures." },
+      { q: "Will it tell me what keywords to add?", a: "Yes — keywords tied to YOUR existing experience, not generic stuffing. We don't suggest adding things you didn't do; we surface words you used implicitly that ATS filters look for explicitly." },
+      { q: "Two-column vs one-column?", a: "We flag two-column resumes that some older ATS read in column-major order, scrambling the content. Most modern ATS handle both, but if you're applying through a Fortune 500 careers portal that may use legacy parser, single-column is safer." },
+      { q: "Is the rewritten version different from the JD-match tool?", a: "Yes. JD-match scores against a specific job description. ATS Optimizer is generic ATS readiness. Use both — first ATS, then tune for the specific JD." },
+    ],
+    related: ["ai-ats-resume", "ai-jd-match", "ai-cover-letter", "ai-resume-parse"],
+  },
+
+  "resume-parser": {
+    tool: "ai-resume-parse",
+    h1: "Resume Parser — bulk PDF resumes to CSV / JSON for recruiters",
+    sub: "Drop a stack of resume PDFs. We extract candidate name + contact + experience + skills + education into a structured CSV / JSON. 5 credits per resume.",
+    canonical: "/resume-parser",
+    howTo: [
+      { t: "Drop a resume", d: "PDF of a candidate's CV — formats vary; we handle most." },
+      { t: "We extract structured fields", d: "Personal (name, email, phone, location), Experience (company / role / dates / bullets), Education (institute / degree / years), Skills (categorised)." },
+      { t: "Download CSV / JSON", d: "Importable into your ATS, Google Sheet, or downstream pipeline." },
+    ],
+    faq: [
+      { q: "Bulk processing?", a: "Single resume per call right now. Bulk-upload (multiple files at once or a zip) is on the roadmap." },
+      { q: "Indian phone numbers / emails recognised?", a: "Yes. +91, 10-digit Indian mobile patterns, and common Indian email domains (gmail, yahoo, rediffmail, edu institutional addresses) all detected." },
+      { q: "Will it skip dates with weird formats?", a: "Common Indian resume date formats (Mar 2019, 03/2019, Mar'19, 2019-Present) are normalised to ISO. If a date is ambiguous, we surface it as a string rather than guessing." },
+      { q: "Privacy of candidate data?", a: "By default, uploads delete in 60 minutes. For recruiter use cases, we recommend the Pro tier with longer history + an audit log of who accessed what." },
+    ],
+    related: ["ai-resume-parse", "ai-ats-resume", "ai-jd-match", "ai-cover-letter"],
+  },
+
+  "property-document-checker": {
+    tool: "ai-property",
+    h1: "Property Document Checker — sale deed / khata / EC red flag audit",
+    sub: "Drop an Indian property document (sale deed, khata, parent document, EC). We surface chain-of-title issues, encumbrances, and missing standard documents you should still pull. 30 credits.",
+    canonical: "/property-document-checker",
+    howTo: [
+      { t: "Drop the document", d: "Sale Deed, Khata Certificate, Parent Document, EC, or any combination concatenated." },
+      { t: "We audit", d: "Document type identification, chain of title narrative, risk flags by severity, missing standard documents." },
+      { t: "Get a verification checklist", d: "What else to pull from the SRO, banks, and authorities before purchasing." },
+    ],
+    faq: [
+      { q: "What's the most common red flag?", a: "Broken chain of title — current sale deed references a parent document that's not produced. Banks won't sanction loans on a property with broken chain. We flag it as high-severity." },
+      { q: "Does it know state-specific document names?", a: "Reasonably. Karnataka khata, Tamil Nadu patta + chitta, Maharashtra 7/12 extract, Andhra revenue records, Delhi DDA documents — common ones recognised." },
+      { q: "Will it tell me whether to buy?", a: "No. It surfaces issues you should investigate — final 'buy or not' is your + your lawyer's call. We're an audit aid, not a recommendation engine." },
+      { q: "Is OC / CC checked?", a: "If the document references Occupancy / Completion Certificates, we surface their dates. Whether OC is still valid (some states have time-bound validity) needs verification with the local municipality." },
+    ],
+    related: ["ai-property", "ai-sale-deed", "ai-rera", "ai-ec"],
+  },
+
+  "rera-document-analyzer": {
+    tool: "ai-rera",
+    h1: "RERA Document Analyzer — buyer protections + risk flags",
+    sub: "Drop a RERA registration certificate, annexure, or builder-buyer agreement. We audit project details, approvals, risk flags, and verify buyer protections under RERA Act 2016. 25 credits.",
+    canonical: "/rera-document-analyzer",
+    howTo: [
+      { t: "Drop the RERA doc", d: "Registration certificate, project annexure, agreement for sale, or builder-buyer agreement." },
+      { t: "We audit", d: "Project details, approvals (CC / OC / EC), risk flags (registration revoked, area on super-built-up vs RERA-mandated carpet, hidden charges)." },
+      { t: "Verification checklist", d: "Cross-check on state RERA portal, OC verification, RERA complaints search, encumbrance check." },
+    ],
+    faq: [
+      { q: "How do I verify RERA registration on the state portal?", a: "Each state has its own RERA portal — Maharashtra (MahaRERA), Karnataka (RERA Karnataka), Tamil Nadu (TNRERA), etc. Search by registration number from the certificate. We surface the registration number prominently so you can do this lookup." },
+      { q: "What's 'area on super-built-up' and why does it matter?", a: "RERA Act 2016 mandates pricing must be based on carpet area (the actual usable space). Builders often quote and price on super-built-up area (which includes common areas and corridors), making the per-sqft price look lower. We flag any agreement that prices on super-built-up." },
+      { q: "Are RERA penalties enforceable?", a: "Yes — state RERA authorities have ordered builders to pay buyer compensation for delays, missing OCs, etc. Whether you can recover depends on your specific case + the state's enforcement track record. Surfaced in our risk flags but you'll need a lawyer for a real legal opinion." },
+      { q: "Does it work for plot purchase (not apartment)?", a: "Yes if the project is RERA-registered. Some states require RERA registration for plot developments above a threshold size." },
+    ],
+    related: ["ai-rera", "ai-builder-agreement", "ai-sale-deed", "ai-property"],
+  },
+
+  "salary-slip-analyzer": {
+    tool: "ai-salary-slip",
+    h1: "Salary Slip Analyzer — Indian payslip parsed into structured JSON",
+    sub: "Drop your monthly salary slip / pay slip. We parse it into structured JSON: earnings, deductions, YTD, with original component names preserved for accurate YoY comparison. 10 credits.",
+    canonical: "/salary-slip-analyzer",
+    howTo: [
+      { t: "Drop the slip PDF", d: "Standard Indian salary slip from any employer — IT, finance, manufacturing, government, PSU." },
+      { t: "We parse + structure", d: "Employer / employee / period / earnings (Basic, HRA, Special, LTA…) / deductions (EPF, PT, TDS…) / totals / YTD." },
+      { t: "Compare across slips", d: "Run multiple slips for YoY comparison or to track raise/promotion structure." },
+    ],
+    faq: [
+      { q: "Why preserve original names instead of normalising?", a: "Different employers use idiosyncratic component names — 'Special Allowance' in one company is 'Performance Pay' in another. If we normalised everything to 'Allowance', you'd lose the granularity needed for accurate YoY comparison. We keep names verbatim." },
+      { q: "Are PAN / UAN masked?", a: "Yes. PII is masked in output (PAN as 'XXXXX1234X', UAN truncated to last 4 digits). Original PDF is deleted within 60 minutes by default." },
+      { q: "Will it work for hourly / contract slips?", a: "Yes — same parser. Hourly slips have different earnings structure (no Basic/HRA/Special split), but the JSON shape adapts." },
+      { q: "Does it compute taxable income?", a: "We extract what the slip shows. 'Taxable income for this slip' is sometimes shown; 'taxable income for the year' usually requires the FY-end Form 16 (use ITR Analyzer for that)." },
+    ],
+    related: ["ai-salary-slip", "ai-itr-form16", "ai-bank-statement", "ai-expense-report"],
+  },
+
+  "itr-form16-analyzer": {
+    tool: "ai-itr-form16",
+    h1: "ITR / Form 16 Analyzer — Indian tax return audit + suggestions",
+    sub: "Drop your Form 16, ITR-V, or annual tax statement. We extract income, deductions, tax computation, and surface under-utilised deductions or TDS mismatches. 20 credits.",
+    canonical: "/itr-form16-analyzer",
+    howTo: [
+      { t: "Drop the document", d: "Form 16 (Part A + B), ITR-V (acknowledgement), or any AY annual tax computation document." },
+      { t: "We extract + analyse", d: "Income summary, deductions claimed (80C, 80D, HRA, etc.), tax computation, observations (under-utilised deductions, regime mismatch, TDS gap)." },
+      { t: "Get suggested actions", d: "Concrete next steps — verify TDS in Form 26AS, file rectification under Section 154 if mismatch, reconsider regime choice for next FY." },
+    ],
+    faq: [
+      { q: "Is this tax advice?", a: "No. Audit + suggestion aid only. For final filing decisions, particularly anything involving capital gains, foreign income, or business income, consult a CA. We surface things to consider, not prescribe." },
+      { q: "Will it know New vs Old regime trade-offs?", a: "Yes — we surface whether your deduction utilisation suggests Old regime would have been better (or vice-versa). The optimal regime depends on your specific deduction usage, which the document reveals." },
+      { q: "What about Form 26AS / AIS reconciliation?", a: "We suggest verifying Form 26AS / AIS as a next-step action — actual cross-reconciliation requires both documents. AIS-26AS reconciliation tool is on the roadmap." },
+      { q: "Can it handle the full ITR-7 / business returns?", a: "Designed for salaried-individual ITRs (ITR-1, ITR-2). Business returns (ITR-3, ITR-5, ITR-6, ITR-7) have richer schedules — we extract what we can but recommend a CA review for those." },
+    ],
+    related: ["ai-itr-form16", "ai-salary-slip", "ai-bank-statement", "ai-mutual-fund"],
+  },
+
+  "research-paper-summarizer": {
+    tool: "ai-research-paper",
+    h1: "Research Paper Summarizer — citation, methods, results, BibTeX",
+    sub: "Drop an academic research paper. We extract citation (APA + BibTeX), research question, methods, results (with magnitudes preserved verbatim), and limitations. 15 credits.",
+    canonical: "/research-paper-summarizer",
+    howTo: [
+      { t: "Drop the paper PDF", d: "Pre-print or published. Single-column or two-column. STM, social science, humanities — all supported." },
+      { t: "We summarise the structure", d: "Citation + BibTeX + research question + methods + key results + limitations + how-to-cite examples + related-reading from the paper's own bibliography." },
+      { t: "Use in your own work", d: "Paste BibTeX into your reference manager. Use the cite-this examples (with appropriate adaptation) in your own writing." },
+    ],
+    faq: [
+      { q: "Does it preserve numerical magnitudes correctly?", a: "Yes — explicitly. We quote effect sizes, p-values, sample sizes verbatim rather than paraphrasing them. Misreporting numbers is the #1 risk in AI-generated paper summaries; we prioritise accuracy here." },
+      { q: "Will it identify paper limitations the authors didn't acknowledge?", a: "Yes — there's a separate 'implied limitations' section. Common ones: small N for the conclusion drawn, lack of placebo control, single-site / single-population sample, observational design used to argue causation. Surface what the paper's methods choices imply, not just what's in the limitations paragraph." },
+      { q: "Are related-reading recommendations external or from the paper?", a: "From the paper's own bibliography. We pick 3-5 references that look most central to the paper's argument so you can read the lineage. Not external recommendation engine." },
+      { q: "Will it work for non-English papers?", a: "Best for English. For Indian-language academic papers (uncommon but exist), use AI Translate first, then summarise the translated version." },
+    ],
+    related: ["ai-research-paper", "ai-citations", "ai-summarize", "ai-tldr"],
   },
 };
 
