@@ -1320,7 +1320,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "What about handwritten reports?", a: "Modern Indian labs print reports digitally. For old handwritten reports, accuracy depends on legibility. Use AI OCR + manual review for those." },
       { q: "Can I export the data?", a: "Yes — JSON output is downloadable. Tracking trends across reports? Coming soon as a Pro tier feature with a dashboard." },
     ],
-    related: ["ai-blood-test", "ai-medical-bill", "ai-prescription", "ai-discharge"],
+    related: ["ai-blood-test", "ai-blood-test", "ai-blood-test", "ai-discharge"],
   },
 
   "ats-resume-optimizer": {
@@ -1378,7 +1378,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Will it work for hourly / contract slips?", a: "Yes — same parser. Hourly slips have different earnings structure (no Basic/HRA/Special split), but the JSON shape adapts." },
       { q: "Does it compute taxable income?", a: "We extract what the slip shows. 'Taxable income for this slip' is sometimes shown; 'taxable income for the year' usually requires the FY-end Form 16 (use ITR Analyzer for that)." },
     ],
-    related: ["ai-salary-slip", "ai-itr-form16", "ai-bank-statement", "ai-expense-report"],
+    related: ["ai-salary-slip", "ai-salary-slip", "ai-table", "ai-table"],
   },
 
 
@@ -1519,7 +1519,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "What about warning signs to watch for?", a: "Surfaced prominently — when to rush back to the hospital, when to call the doctor, when something is normal vs an emergency. Critical for post-surgery / post-cardiac / post-stroke discharges." },
       { q: "Will it explain insurance / payment items?", a: "Discharge summaries are clinical, not financial. For the bill itself use Medical Bill Analyzer — it parses the itemised charges and surfaces IRDAI-reimbursable items." },
     ],
-    related: ["ai-discharge", "ai-medical-bill", "ai-prescription", "ai-blood-test"],
+    related: ["ai-discharge", "ai-blood-test", "ai-blood-test", "ai-blood-test"],
   },
 
   "loan-application-bundler": {
@@ -1538,7 +1538,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Will it spot bounced EMIs / salary credit gaps in the bank statement?", a: "Yes — those are the eligibility-affecting flags. Bounced EMIs in the last 12 months are a major red flag for any new sanction." },
       { q: "Privacy?", a: "Sensitive financials are uploaded — 60-minute deletion default. For DSAs / brokers handling multiple clients, Pro tier offers per-client folders + audit logs." },
     ],
-    related: ["ai-loan-bundle", "ai-bank-statement", "ai-itr-form16", "ai-salary-slip"],
+    related: ["ai-loan-bundle", "ai-table", "ai-salary-slip", "ai-salary-slip"],
   },
 
   "pdf-to-flashcards": {
@@ -1599,7 +1599,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Does it know LLP-specific concerns?", a: "Yes. LLPs have different liability + profit-share + RoC compliance requirements vs traditional partnerships. We flag LLP-specific issues separately when the deed is an LLP agreement." },
       { q: "Is this legal advice?", a: "No — audit aid. For high-stakes partnerships (large capital, multi-partner, succession concerns), engage a lawyer." },
     ],
-    related: ["ai-partnership-deed", "ai-employment", "ai-nda", "ai-balance-sheet"],
+    related: ["ai-partnership-deed", "ai-employment", "ai-nda", "ai-table"],
   },
 
   "insurance-policy-analyzer": {
@@ -1618,7 +1618,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Will it tell me whether to renew or port?", a: "We surface the data — sum insured used to date, NCB earned, cumulative bonus, renewability guarantee. The renewal vs port decision is yours, but you'll have the inputs." },
       { q: "Is this insurance advice?", a: "No — parsing aid. For decisions on switching insurers, engage an IRDAI-licensed insurance advisor." },
     ],
-    related: ["ai-insurance", "ai-medical-bill", "ai-discharge", "ai-blood-test"],
+    related: ["ai-insurance", "ai-blood-test", "ai-discharge", "ai-blood-test"],
   },
 
 
@@ -1700,7 +1700,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Are numbers preserved exactly?", a: "Yes — explicitly. We don't reformat or round numbers; we copy them character-by-character from the source. Critical for financial / scientific data where precision matters." },
       { q: "What about complex nested tables?", a: "Tables with multi-row headers (e.g. quarterly data with 'Q1' / 'Q2' / 'Q3' / 'Q4' under a 'FY24' grouping) are handled. Truly nested sub-tables (a table inside a cell) are surfaced separately." },
     ],
-    related: ["ai-table", "pdf-to-excel", "ai-balance-sheet", "ai-bank-statement"],
+    related: ["ai-table", "pdf-to-excel", "ai-table", "ai-table"],
   },
 
   "rewrite-pdf-tone": {
@@ -1797,7 +1797,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Per-chart pricing?", a: "5 credits per chart found in the PDF. A 10-chart report is 50 credits. We list every chart in the summary so you can audit the count." },
       { q: "Export?", a: "Markdown tables (copy-paste ready). For Excel-friendly export, CSV is on the roadmap. Right now copy from the markdown table into a spreadsheet works fine." },
     ],
-    related: ["ai-chart-to-table", "ai-table", "ai-balance-sheet", "ai-research-paper"],
+    related: ["ai-chart-to-table", "ai-table", "ai-table", "ai-research-paper"],
   },
 
   "stamp-pdf": {

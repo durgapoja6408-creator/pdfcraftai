@@ -904,7 +904,7 @@ export function SalarySlipTool() {
       busyLabel="Parsing…"
       successTitle="Salary slip parsed"
       pricingBlurb="Structured JSON with employer / employee / period / earnings / deductions / totals / YTD. Preserves idiosyncratic component names (Special Allowance, LTA, etc.) for accurate YoY comparison. 10 credits."
-      relatedHref={{ href: "/tool/ai-itr-form16", label: "ITR / Form 16 Analyzer" }}
+      relatedHref={{ href: "/tool/ai-salary-slip", label: "Salary Slip Analyzer" }}
     />
   );
 }
@@ -940,7 +940,7 @@ export function InsurancePolicyTool() {
       busyLabel="Analysing…"
       successTitle="Insurance policy analysis ready"
       pricingBlurb="Coverage + premiums + exclusions + waiting periods + claim process + renewal/portability + risk flags (room-rent capping, sub-limits, missing day-care list, restoration absent). 20 credits. Not insurance advice."
-      relatedHref={{ href: "/tool/ai-medical-bill", label: "Medical Bill Analyzer" }}
+      relatedHref={{ href: "/tool/ai-blood-test", label: "Blood Test Analyzer" }}
     />
   );
 }
@@ -956,7 +956,7 @@ export function LoanBundleAuditTool() {
       busyLabel="Auditing…"
       successTitle="Loan bundle audit ready"
       pricingBlurb="Detects loan type + audits docs against typical lender checklist (PAN, Aadhaar, salary slips, bank statements, ITR/Form 16, property docs, etc.) + flags missing items + income snapshot + eligibility-affecting issues. 15 credits. Not pre-approval."
-      relatedHref={{ href: "/tool/ai-bank-statement", label: "Bank Statement Parser" }}
+      relatedHref={{ href: "/tool/ai-table", label: "AI Table Extract" }}
     />
   );
 }

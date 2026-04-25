@@ -138,14 +138,9 @@ const NEW_TOOLS = [
     component: "ExtractAttachmentsTool",
     group: "Convert",
   },
-  // C: Tier 3 §3.1/§3.7 — GST Invoice Generator. Pure pdf-lib
-  // generation from a form. CGST+SGST / IGST / no-tax modes.
-  // Demand-gen hook for Indian freelancers and small business.
-  {
-    id: "invoice-generator",
-    component: "InvoiceGeneratorTool",
-    group: "Convert",
-  },
+  // (REMOVED: invoice-generator was an India-flavored tool. The
+  // Sprint B reversal in Task #100 / commit 741372f removed it
+  // along with 17 other India-specific wedges.)
   // Full Edit PDF v1 — the last §1.5 P0 remaining. Canvas render
   // + pdfjs getTextContent() to enumerate text runs → click
   // overlay → cover-with-white-rect + redraw via pdf-lib. Standard
@@ -278,7 +273,7 @@ for (const tool of NEW_TOOLS) {
   );
   // Generator tools (produce a PDF from a form, no file intake) are
   // exempt from the ToolDropzone check — they have nothing to drop.
-  const INTAKE_EXEMPT = new Set(["invoice-generator", "markdown-to-pdf", "text-to-pdf"]);
+  const INTAKE_EXEMPT = new Set(["markdown-to-pdf", "text-to-pdf"]);
   if (!INTAKE_EXEMPT.has(tool.id)) {
     assert(
       `E.${tool.id} component uses <ToolDropzone> for file intake`,

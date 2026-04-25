@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { I } from "@/components/icons/Icons";
-import { TOOLS } from "@/lib/tools";
+import { TOOLS, TOOL_STATS } from "@/lib/tools";
 import { CATEGORIES, CATEGORY_SLUGS } from "@/lib/categories";
 
 export const metadata: Metadata = {
   title: "PDF tool categories — pdfcraft ai",
   description:
-    "Browse pdfcraft ai's tools by category: Organize, Convert, Edit, Optimize, Security, and AI. 95 tools across 6 categories.",
+    "Browse pdfcraft ai's tools by category: Organize, Convert, Edit, Optimize, Security, and AI.",
   alternates: { canonical: "/categories" },
 };
 
@@ -30,7 +30,7 @@ export default function CategoriesIndexPage() {
             Browse PDF tools by category
           </h1>
           <p className="muted" style={{ fontSize: 19, lineHeight: 1.55 }}>
-            95 tools across 6 categories. Pick the category that matches the job.
+            {TOOL_STATS.total} tools across {CATEGORY_SLUGS.length} categories. Pick the category that matches the job.
           </p>
         </div>
       </section>

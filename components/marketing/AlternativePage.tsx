@@ -128,7 +128,7 @@ export function AlternativePage({ data }: { data: CompetitorData }) {
             style={{ gap: 24, color: "var(--fg-subtle)", fontSize: 13, flexWrap: "wrap" }}
           >
             <span className="row" style={{ gap: 6 }}>
-              <I.Check size={14} /> 95 tools, 50+ AI
+              <I.Check size={14} /> {TOOL_STATS.total} tools, {TOOL_STATS.ai}+ AI
             </span>
             <span className="row" style={{ gap: 6 }}>
               <I.Check size={14} /> No daily caps
