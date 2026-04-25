@@ -52,7 +52,15 @@ export type SeoPageSlug =
   | "pdf-to-blog-post"
   | "pdf-readability-score"
   | "extract-entities-from-pdf"
-  | "pdf-to-social-thread";
+  | "pdf-to-social-thread"
+  // Task #68 — SEO landings for Tier 2 §2.2 (translate) + Tier 3 §3.6
+  // HR + §3.3 Education wedges shipped in Tasks #67 / #61.
+  | "hindi-pdf-translator"
+  | "tamil-pdf-translator"
+  | "cover-letter-generator"
+  | "resume-job-match"
+  | "tnpsc-answer-key-analyzer"
+  | "jee-neet-paper-analyzer";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -1063,6 +1071,135 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "How long is each post?", a: "~240 chars — under X's historical cap and well under LinkedIn's limit. If you need a different length, reformat from the Markdown output." },
     ],
     related: ["ai-social-thread", "ai-blog", "ai-summarize", "ai-tldr"],
+  },
+
+  // ---------------------------------------------------------------
+  // Task #68 — SEO landings.
+  //
+  //   §2.2 translate: Hindi + Tamil carry enormous India search
+  //   volume. Both land on /tool/ai-translate with preset target
+  //   language via query-param (handled client-side by the runner).
+  //
+  //   §3.6 HR wedges (cover letter + JD match) — global search
+  //   volume, especially ATS-heavy queries.
+  //
+  //   §3.3 Education wedges (TNPSC + JEE/NEET) — niche but
+  //   extremely high-intent; TNPSC aspirants are a well-defined
+  //   persona already searching for analyser tools.
+  // ---------------------------------------------------------------
+
+  "hindi-pdf-translator": {
+    tool: "ai-translate",
+    h1: "Hindi PDF Translator — English to Hindi & Hindi to English",
+    sub: "Translate PDFs between Hindi and English while keeping layout, tables, and images in place. 1 credit per page.",
+    canonical: "/hindi-pdf-translator",
+    howTo: [
+      { t: "Drop your PDF", d: "Hindi (Devanagari) or English source — we detect automatically. Up to 100 MB." },
+      { t: "Pick direction", d: "English → Hindi, or Hindi → English. Bilingual side-by-side output also available." },
+      { t: "Download", d: "Translated PDF with original layout preserved. Ready to share or print." },
+    ],
+    faq: [
+      { q: "Does it handle Hindi Unicode correctly?", a: "Yes. We embed a Devanagari-capable font so conjuncts, matras, and nuqtas render correctly — no question-mark glyphs or broken ligatures." },
+      { q: "What about mixed Hindi-English documents?", a: "Common in Indian documents (government forms, university syllabi). We keep English terms untranslated when they're technical (names, acronyms, company names) and only translate the Hindi body." },
+      { q: "Accuracy vs Google Translate?", a: "We use Gemini Flash 2.5 — comparable on everyday prose, better on legal / tax / medical registers because we prompt the model to match the source document's tone." },
+      { q: "Does it work for government forms (PAN, Aadhaar, TNPSC papers)?", a: "Yes — scanned forms go through AI OCR first, then translation. Output is a searchable PDF you can fill or share." },
+    ],
+    related: ["ai-translate", "ai-ocr", "tamil-pdf-translator", "ai-summarize"],
+  },
+
+  "tamil-pdf-translator": {
+    tool: "ai-translate",
+    h1: "Tamil PDF Translator — English to Tamil & Tamil to English",
+    sub: "Translate PDFs between Tamil and English with layout preserved. Built for TN government forms, judgements, and study material. 1 credit per page.",
+    canonical: "/tamil-pdf-translator",
+    howTo: [
+      { t: "Drop your PDF", d: "Tamil or English source. Auto-detected. Up to 100 MB per file." },
+      { t: "Pick direction", d: "English → Tamil, or Tamil → English. Side-by-side bilingual output also available." },
+      { t: "Download", d: "Translated PDF keeps its original layout, tables, and pagination." },
+    ],
+    faq: [
+      { q: "Does it render Tamil correctly?", a: "Yes — Noto Sans Tamil is embedded, so ligatures (க்ஷ, ஶ்ரீ), grantha consonants, and combining vowels render accurately. No question marks, no broken glyphs." },
+      { q: "Handles Tamil Nadu government forms?", a: "Yes — TANGEDCO bills, pattas, EC certificates, rental agreements, and TNPSC papers are in our regular test set. Scanned forms go through OCR first, then translation." },
+      { q: "Will legal Tamil be translated correctly?", a: "Court judgments, rental agreements, and sale deeds use a specialised register (neethimandram, vaadhi, pratividhi). Gemini Flash 2.5 handles this well; we prompt the model to preserve the formal register." },
+      { q: "What about Tamil-English code-mixed text?", a: "Common in emails and WhatsApp exports. We keep English as-is when it reads naturally to a Tamil speaker and translate only the Tamil body." },
+    ],
+    related: ["ai-translate", "ai-ocr", "hindi-pdf-translator", "ai-tnpsc"],
+  },
+
+  "cover-letter-generator": {
+    tool: "ai-cover-letter",
+    h1: "AI Cover Letter Generator — tailored to the job description",
+    sub: "Drop your resume, paste the JD, get a 300-word tailored cover letter with customisation notes. 5 credits.",
+    canonical: "/cover-letter-generator",
+    howTo: [
+      { t: "Upload your resume", d: "PDF only. We parse the structure automatically." },
+      { t: "Paste the JD (optional)", d: "Paste the full job description for a tailored letter, or leave blank for a strong generic version." },
+      { t: "Download or copy", d: "300-350 words, 3-paragraph letter + customisation-notes section showing which resume lines mapped to which JD requirements." },
+    ],
+    faq: [
+      { q: "What makes this different from ChatGPT?", a: "We use the actual resume PDF (not a paste), extract real achievements with numbers, and surface a 3-bullet 'which line mapped to which requirement' section so you can swap in alternatives." },
+      { q: "Will it sound like AI?", a: "Not if you let it do its job. We suppress AI-speak clichés ('self-motivated team player', 'hit the ground running') with explicit negative examples in the prompt. The letter reads like a human wrote it." },
+      { q: "How long is the letter?", a: "Capped at 350 words — the sweet spot for reading time without feeling empty. Three paragraphs: hook, two achievements, close with call to action." },
+      { q: "Can I generate multiple versions?", a: "Yes — run it again with a different JD. Each run costs 5 credits. The customisation-notes section tells you which lines to swap for different roles." },
+    ],
+    related: ["ai-cover-letter", "ai-jd-match", "ai-ats-resume", "ai-resume-parse"],
+  },
+
+  "resume-job-match": {
+    tool: "ai-jd-match",
+    h1: "Resume ↔ Job Description Matcher — fit score + gap analysis",
+    sub: "Score your resume 0–100 against any JD, with per-requirement alignment table and missing-keyword ATS audit. 5 credits.",
+    canonical: "/resume-job-match",
+    howTo: [
+      { t: "Upload resume PDF", d: "Your latest resume. We parse structure, skills, and achievements." },
+      { t: "Paste the JD", d: "Full job description — role, responsibilities, requirements, qualifications." },
+      { t: "Get the report", d: "Fit score 0–100, requirement-by-requirement alignment table, strengths, gaps, missing ATS keywords, and 3 concrete next steps." },
+    ],
+    faq: [
+      { q: "How is the fit score calculated?", a: "Weighted match across: explicit JD requirements (50%), inferred skills (25%), seniority/title alignment (15%), domain keywords (10%). The score is a ballpark, not a guarantee — use the per-requirement table for actionable detail." },
+      { q: "Does it catch missing keywords?", a: "Yes — we extract JD-critical terms (tools, certifications, acronyms) and flag which ones are absent from the resume. Those are the ones most likely to block you at the ATS filter stage." },
+      { q: "What's a 'good' score?", a: "80+ usually means you're a strong fit. 65–80: worth applying with a tailored cover letter. Below 65: consider the gap list — some gaps close easily (add a line), others need real experience." },
+      { q: "Is my resume stored?", a: "No — by default we delete uploads after your session. Upgrade to Pro for 30-day history if you want to track multiple JDs." },
+    ],
+    related: ["ai-jd-match", "ai-cover-letter", "ai-ats-resume", "ai-resume-parse"],
+  },
+
+  "tnpsc-answer-key-analyzer": {
+    tool: "ai-tnpsc",
+    h1: "TNPSC Answer Key Analyzer — question-wise breakdown, strategy notes",
+    sub: "Upload any TNPSC question paper or answer key. Get per-question subject tags, difficulty estimates, topic frequency, and TN-specific strategy notes. 15 credits.",
+    canonical: "/tnpsc-answer-key-analyzer",
+    howTo: [
+      { t: "Drop the paper", d: "TNPSC Group 1 / Group 2 / Group 4 / VAO / DEO — question paper or official answer key. Tamil or English medium." },
+      { t: "We analyse", d: "Per-question table: subject tag (History / Geography / Polity / Economy / Science / Aptitude / Tamil Literature / Current Affairs), correct answer, difficulty." },
+      { t: "Get your strategy", d: "Subject-wise distribution, topic frequency, and a section-by-section plan on which to cram vs skip — specific to the TNPSC scheme." },
+    ],
+    faq: [
+      { q: "Does it handle Tamil-medium papers?", a: "Yes. The model reads Tamil natively — no translation step. Output is in English for easier cross-referencing with study material, but question text is quoted in Tamil when that's the source language." },
+      { q: "What exams are supported?", a: "All TNPSC exams: Group 1, Group 2 (main + prelims), Group 4, Village Administrative Officer (VAO), District Employment Officer, Combined Engineering, and the smaller technical-subject papers." },
+      { q: "Is the difficulty estimate reliable?", a: "It's heuristic — based on the question structure and your TNPSC scheme knowledge. Use it as a rough sort for revision priority, not a literal prediction." },
+      { q: "What about previous-year question banks?", a: "Run multiple papers through and the Topic Frequency section will aggregate — you'll see which chapters recur across years." },
+    ],
+    related: ["ai-tnpsc", "ai-jee-neet", "ai-syllabus", "ai-study-notes"],
+  },
+
+  "jee-neet-paper-analyzer": {
+    tool: "ai-jee-neet",
+    h1: "JEE / NEET Previous Year Paper Analyzer — chapter frequency + revision plan",
+    sub: "Upload a JEE Main / JEE Advanced / NEET-UG paper. Per-question table, chapter frequency per subject, high-yield topics, and 12-week revision plan. 20 credits.",
+    canonical: "/jee-neet-paper-analyzer",
+    howTo: [
+      { t: "Drop the paper", d: "JEE Main, JEE Advanced, or NEET-UG — any year, any shift. Question paper or answer key both work." },
+      { t: "Per-question analysis", d: "Subject (Physics / Chemistry / Math for JEE; Physics / Chemistry / Biology for NEET), chapter, sub-topic, difficulty, expected marks — in a table you can sort." },
+      { t: "Study plan", d: "Chapter-frequency tables sorted high→low. 12-week revision plan weighted by frequency × difficulty. Score-maximisation strategy specific to each exam's marking scheme." },
+    ],
+    faq: [
+      { q: "Which exams are supported?", a: "JEE Main (all shifts since 2019), JEE Advanced (2013+), NEET-UG (post-2013 combined format). Older papers work too, though our chapter taxonomy is anchored to the current NCERT syllabus." },
+      { q: "How accurate is the chapter mapping?", a: "Very accurate for Physics and Chemistry where chapter boundaries are clean. Biology/Math occasionally sit across two chapters (e.g. Coordination Chemistry + Transition Elements) — we list both." },
+      { q: "Can I combine multiple years?", a: "Yes — merge PDFs first (use our free Merge PDF tool), then drop the combined paper. The chapter frequency will aggregate across years, which is exactly what you want for priority ranking." },
+      { q: "Is the revision plan one-size-fits-all?", a: "It's a 12-week runway at default study pace. For shorter runways, scale the Hours column proportionally. The priority order (chapter rank) stays the same." },
+    ],
+    related: ["ai-jee-neet", "ai-tnpsc", "ai-syllabus", "ai-flashcards"],
   },
 };
 
