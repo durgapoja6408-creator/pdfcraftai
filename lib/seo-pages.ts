@@ -62,7 +62,18 @@ export type SeoPageSlug =
   | "tnpsc-answer-key-analyzer"
   | "jee-neet-paper-analyzer"
   // Task #69 — Tier 2 §2.3 P0.
-  | "make-pdf-searchable";
+  | "make-pdf-searchable"
+  // Task #82 — 10 SEO landings for high-traffic Tier 3 wedges.
+  | "electricity-bill-analyzer"
+  | "telecom-bill-analyzer"
+  | "mutual-fund-statement-parser"
+  | "credit-card-statement-analyzer"
+  | "nda-analyzer"
+  | "employment-contract-review"
+  | "medical-bill-analyzer"
+  | "prescription-parser"
+  | "upsc-paper-analyzer"
+  | "ssc-banking-exam-analyzer";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -1222,6 +1233,203 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Is this faster than Acrobat OCR?", a: "Comparable. Acrobat does word-bbox positioning which gives perfect copy/paste alignment but takes ~5-10 seconds per page. Our pass is ~2-3s per page and gives perfect search." },
     ],
     related: ["ai-searchable-pdf", "ai-ocr", "ai-translate", "split-pdf"],
+  },
+
+  // ---------------------------------------------------------------
+  // Task #82 — SEO landings for the 10 highest-traffic Tier 3
+  // wedges shipped in #75-#81. Every page auto-inherits JSON-LD
+  // HowTo + FAQPage + SoftwareApplication from SeoLandingPage,
+  // making them eligible for Google rich results.
+  // ---------------------------------------------------------------
+
+  "electricity-bill-analyzer": {
+    tool: "ai-electricity-bill",
+    h1: "Electricity Bill Analyzer — slab-by-slab breakdown for Indian DISCOMs",
+    sub: "Drop your TANGEDCO / BESCOM / TSSPDCL / MSEDCL / BSES / Tata Power bill. We split it slab-by-slab, flag slab-jump warnings, and surface state-specific saving recommendations. 5 credits.",
+    canonical: "/electricity-bill-analyzer",
+    howTo: [
+      { t: "Drop your bill PDF", d: "Any Indian state DISCOM. We auto-detect the operator from the layout and tariff structure." },
+      { t: "We analyse the slabs", d: "Telescopic-tariff aware — slab N spillovers raise the rate on ALL units in lower slabs." },
+      { t: "Get saving recommendations", d: "Specific to your DISCOM area: shift X units to avoid slab jump, switch to TOD tariff if eligible, etc." },
+    ],
+    faq: [
+      { q: "Which states / DISCOMs are supported?", a: "All major ones: Tamil Nadu (TANGEDCO), Karnataka (BESCOM), Telangana (TSSPDCL), Andhra (APSPDCL), Maharashtra (MSEDCL), Delhi (BSES Rajdhani / Yamuna / Tata Power-DDL), Gujarat (Torrent / DGVCL / UGVCL / MGVCL / PGVCL), West Bengal (CESC / WBSEDCL), and so on. Layout differs across states but the parser auto-adapts." },
+      { q: "What's a 'slab jump' warning?", a: "Most Indian DISCOMs use telescopic tariffs — if you cross 200 units, the rate jumps for ALL units (not just the ones above 200). We flag bills near a slab boundary so you can shift consumption pre-month-end." },
+      { q: "Does it explain the fuel surcharge / FPPCA?", a: "Yes. The Fuel & Power Purchase Cost Adjustment is a state-regulator-approved pass-through that shows up as a separate line. We surface what it is and how it varied vs your previous bill." },
+      { q: "Is the saving advice actually useful?", a: "Yes — concrete, like 'you used 218 units; if you'd kept it at 200 you'd have saved ₹X.YY because every unit billed at the higher slab rate'. Not generic 'use less electricity' advice." },
+    ],
+    related: ["ai-electricity-bill", "ai-telecom-bill", "ai-bank-statement", "ai-expense-report"],
+  },
+
+  "telecom-bill-analyzer": {
+    tool: "ai-telecom-bill",
+    h1: "Telecom Bill Analyzer — Airtel / Jio / Vi postpaid + fibre",
+    sub: "Drop your Indian postpaid mobile or fibre bill. We compare plan vs usage, flag overages, detect duplicate-OTT subscriptions, and recommend a better-fit plan. 5 credits.",
+    canonical: "/telecom-bill-analyzer",
+    howTo: [
+      { t: "Drop your bill PDF", d: "Airtel postpaid / fibre, Jio postpaid / fibre, Vi postpaid, BSNL postpaid. Auto-detected." },
+      { t: "We compare plan vs usage", d: "Voice mins / data GB / SMS / international roaming with overage flagged separately." },
+      { t: "Get plan-fit advice", d: "If you're consistently under-utilising the plan or repeatedly hitting overage, we suggest specific cheaper or better-fit plans on the same operator." },
+    ],
+    faq: [
+      { q: "Does it catch duplicate OTT subscriptions?", a: "Yes — if your plan bundles Disney+ Hotstar or Netflix Basic AND you're paying separately on the OTT app, we flag it. This is one of the most common money-leaks for Indian postpaid users." },
+      { q: "What about international roaming activations?", a: "Surfaced as a risk flag. Many users get stung by mid-cycle add-ons that auto-activate during travel. We list the charge + days active + the post-cycle baseline difference." },
+      { q: "Will it work for prepaid recharges?", a: "Not yet — prepaid receipts don't have the same plan-vs-usage data. Postpaid + fibre only for now. Roadmap: prepaid recharge-history analysis." },
+      { q: "Are plan recommendations operator-locked?", a: "Yes — we only recommend plans on your current operator. Switching operators (port-out) is a different decision involving network coverage, contract penalties, and CAF processing." },
+    ],
+    related: ["ai-telecom-bill", "ai-electricity-bill", "ai-credit-card", "ai-bank-statement"],
+  },
+
+  "mutual-fund-statement-parser": {
+    tool: "ai-mutual-fund",
+    h1: "CAMS / KFin Mutual Fund Statement Parser — holdings, SIPs, returns",
+    sub: "Drop a consolidated mutual fund statement (CAMS, KFin, AMC-specific). We extract holdings, asset allocation, active SIPs, and top/bottom performers. 15 credits.",
+    canonical: "/mutual-fund-statement-parser",
+    howTo: [
+      { t: "Email yourself a CAS", d: "Request a Consolidated Account Statement from CAMS or KFin (free) — it covers all your folios in one PDF." },
+      { t: "Drop the PDF here", d: "We parse holdings + transactions + SIPs into structured JSON, then render readable tables + an asset-allocation breakdown." },
+      { t: "Compare performers", d: "Top 3 by XIRR, bottom 3 (held >12 months and underperforming), tax-lot summary for capital gains." },
+    ],
+    faq: [
+      { q: "Which formats are supported?", a: "CAMS Mailback (the standard CAS most investors get), KFin (Karvy) statements, and direct AMC statements (HDFC AMC, ICICI Pru, SBI MF, Axis MF, Nippon, etc.). Layouts vary but the parser is format-aware." },
+      { q: "Does it compute XIRR correctly?", a: "Yes when transaction dates are present in the source. If only year-end NAV snapshots are given (some AMC formats), we report holding-period return instead and flag the limitation." },
+      { q: "Is the Top / Bottom Performers list trustworthy?", a: "Reasonable directional ranking. Holdings <12 months are excluded from the underperformers list — short-term volatility isn't a fair benchmark for an SIP held 6 months." },
+      { q: "Can I see ELSS lock-in info?", a: "Yes — when the source statement marks tax-saving folios. Lock-in start / end dates, units locked, and units free are surfaced." },
+    ],
+    related: ["ai-mutual-fund", "ai-demat", "ai-itr-form16", "ai-bank-statement"],
+  },
+
+  "credit-card-statement-analyzer": {
+    tool: "ai-credit-card",
+    h1: "Credit Card Statement Analyzer — spend, fees, recurring charges",
+    sub: "Drop a credit card statement (Indian or international issuer). We categorise spend, list top merchants, detect recurring subscriptions, and break down fees + interest. 15 credits.",
+    canonical: "/credit-card-statement-analyzer",
+    howTo: [
+      { t: "Drop your statement", d: "HDFC, ICICI, SBI Card, Axis, Kotak, Amex, Citi (legacy), international issuers — all supported." },
+      { t: "We categorise spend", d: "Food / Travel / Shopping / Bills / EMI / Cash etc. Indian merchants recognised by name." },
+      { t: "Get the recurring-charges list", d: "Subscriptions you might've forgotten — Netflix, gym, software-as-a-service. Cancel the ones you don't use." },
+    ],
+    faq: [
+      { q: "Does it catch foreign-transaction fees?", a: "Yes. Forex markup (typically 1.5-3.5% on Indian cards) is surfaced as a separate line in the Fees & Interest section so you can decide if a forex card would save money on your travel pattern." },
+      { q: "What about reward points?", a: "Surfaced when visible — earned this cycle, redeemed, balance. Helpful for users tracking whether they're hitting milestone bonuses or letting points expire." },
+      { q: "Is my data stored?", a: "By default, uploads are deleted within 60 minutes of processing. Pro tier offers 30-day history if you want to track spending trends across multiple statements." },
+      { q: "Will it work for corporate cards?", a: "Yes — same parser. Corporate cards have a slightly different fee structure (typically lower forex markup, different category mix), so the observations adapt." },
+    ],
+    related: ["ai-credit-card", "ai-bank-statement", "ai-expense-report", "ai-mutual-fund"],
+  },
+
+  "nda-analyzer": {
+    tool: "ai-nda",
+    h1: "NDA Analyzer — flag risky clauses, missing carveouts, negotiation points",
+    sub: "Drop a Non-Disclosure Agreement. We surface risk flags by severity, missing standard carveouts (residual knowledge, publicly-known info), embedded non-competes, and IP-assignment-in-NDA traps. 15 credits.",
+    canonical: "/nda-analyzer",
+    howTo: [
+      { t: "Drop the NDA", d: "Unilateral, mutual, multilateral, founder-to-investor, employee, vendor — any flavour." },
+      { t: "We audit clause-by-clause", d: "Risk-flagged with severity (high/medium/low) and the verbatim quote so you can read it in context." },
+      { t: "Get redlines to push back", d: "3-5 specific negotiation points with suggested replacement language a non-lawyer can confidently propose." },
+    ],
+    faq: [
+      { q: "What's the most common red flag in Indian NDAs?", a: "Embedded non-competes. Indian NDAs often slip in 12-24 month non-compete clauses with extremely broad scope. Section 27 of the Indian Contract Act makes most post-employment non-competes unenforceable, but having them in the document still chills you. We flag them every time." },
+      { q: "Does it catch IP assignment hidden in NDAs?", a: "Yes. An NDA shouldn't contain IP assignment language (that belongs in an employment / consultancy agreement). We surface it as high-severity if found — it's a common trap, especially in founder-investor NDAs." },
+      { q: "Is this legal advice?", a: "No. It's an audit aid. We highlight what to discuss with counsel. For high-stakes NDAs (acquisition discussions, large vendor relationships, IP-licensing) you should still review with a lawyer." },
+      { q: "Can I redline directly in the output?", a: "The negotiation-points section gives you suggested replacement language you can paste back into the NDA. Tracked-change redlining inside the original document is on the roadmap (would need pdf-lib annotation work)." },
+    ],
+    related: ["ai-nda", "ai-employment", "ai-rental", "ai-partnership-deed"],
+  },
+
+  "employment-contract-review": {
+    tool: "ai-employment",
+    h1: "Employment Contract Review — comp, termination, non-compete, IP traps",
+    sub: "Drop your appointment / employment contract before you sign. We flag training-bond clauses, broad non-solicits, IP assignment that captures pre-employment work, and missing severance protections. 20 credits.",
+    canonical: "/employment-contract-review",
+    howTo: [
+      { t: "Drop the offer letter", d: "Standard appointment letter, executive contract, consulting agreement, or 'fixed-term' employment doc — all supported." },
+      { t: "We audit comp + termination + risk", d: "Compensation table, term length, both-sides notice periods, severance entitlement, plus risk flags." },
+      { t: "Get redlines", d: "3-5 specific points a candidate could reasonably push back on with suggested replacement language." },
+    ],
+    faq: [
+      { q: "What red flags should every Indian candidate look for?", a: "Training bonds (especially common in IT services), unilateral transfer rights anywhere in India, broad non-solicits beyond direct customers, IP assignment that doesn't carve out pre-employment work, and one-sided exclusive jurisdiction in a distant city. We flag all of these." },
+      { q: "Does it explain Indian-specific clauses like 'garden leave'?", a: "Yes. Garden leave at full pay is fine; garden leave at reduced pay or unpaid is a red flag because it caps your ability to start a new role. We separate the two cases." },
+      { q: "Is this legal advice?", a: "No — audit aid. For senior roles (VP+) or India-specific issues like ESOP vesting acceleration on termination, consult an employment lawyer." },
+      { q: "Will it work for offer letters from US / UK / Singapore companies?", a: "Yes — our prompt is Indian-employment-aware but international offers parse cleanly. Comp + non-compete + IP analysis is reasonably universal." },
+    ],
+    related: ["ai-employment", "ai-cover-letter", "ai-jd-match", "ai-nda"],
+  },
+
+  "medical-bill-analyzer": {
+    tool: "ai-medical-bill",
+    h1: "Medical Bill Analyzer — itemised charges + IRDAI insurance claim prep",
+    sub: "Drop a hospital bill or medical claim document. We itemise charges by IRDAI category, surface cashless approval status, separate reimbursable vs excluded items, and prep your insurance claim. 20 credits.",
+    canonical: "/medical-bill-analyzer",
+    howTo: [
+      { t: "Drop the bill PDF", d: "Hospital bill, IP discharge bill, OP consultation receipt, pharmacy bill, diagnostic centre bill — all parsed." },
+      { t: "We itemise + flag", d: "Charges grouped by Room/ICU, Doctor's Fees, Investigations, Medicines, Procedures, Implants. Cashless / pre-auth status surfaced." },
+      { t: "Reimbursable vs excluded", d: "IRDAI standard exclusions (registration, food, attendant fees, telephone) separated from likely-claimable items." },
+    ],
+    faq: [
+      { q: "Will my insurance actually pay what's marked 'reimbursable'?", a: "Not guaranteed — IRDAI rules + your specific policy wording control. We mark items typically covered, but each insurer has policy-specific exclusions. The output is a checklist aid, not a reimbursement guarantee." },
+      { q: "Does it know IRDAI exclusions?", a: "Yes — registration fees, food/attendant charges, diapers/sanitary items, telephone, MRD admin charges, etc. are flagged as typically non-reimbursable so you don't include them in the claim form." },
+      { q: "What about pre / post-hospitalisation?", a: "If your bill is for a hospitalisation, we list items potentially claimable in the 30-day pre-hospitalisation and 60-day post-hospitalisation windows (standard IRDAI structure). Saves you from missing legitimate claim line items." },
+      { q: "Will it work for handwritten itemised bills?", a: "Mostly. Smaller hospitals still use handwritten bills. AI OCR reads them but accuracy depends on legibility. For large claims, double-check the typed totals against the original." },
+    ],
+    related: ["ai-medical-bill", "ai-prescription", "ai-insurance", "ai-blood-test"],
+  },
+
+  "prescription-parser": {
+    tool: "ai-prescription",
+    h1: "Prescription Parser — handwritten + printed Indian prescriptions",
+    sub: "Drop a prescription (printed or handwritten). We parse drug name, strength, dosage, frequency, duration, route into structured JSON. Indian conventions (BD/TDS/HS/SOS, 1-0-1) understood. 10 credits.",
+    canonical: "/prescription-parser",
+    howTo: [
+      { t: "Drop the prescription", d: "Photo or scan of a printed slip, or a handwritten Rx. Good lighting + a flat surface improve accuracy." },
+      { t: "We parse drug-by-drug", d: "Each medication: name, strength, dosage, frequency, duration, route, with a confidence flag." },
+      { t: "Verify low-confidence lines", d: "We never guess drug names — illegible lines come back as null with confidence='low' so you can verify with the prescriber." },
+    ],
+    faq: [
+      { q: "How accurate is handwritten parsing?", a: "Very good for clearly-written prescriptions. For genuinely scribbled handwriting (the doctor stereotype is real) we err on the side of caution — better to flag a line as 'low confidence, verify with prescriber' than to guess a wrong drug name. Wrong drug = patient safety risk." },
+      { q: "Does it understand Indian prescribing shorthand?", a: "Yes — BD (twice daily), TDS (thrice daily), QID (four times), HS (at bedtime), SOS (as needed), STAT (immediately), 1-0-1 (morning-noon-night), AC (before meals), PC (after meals). Pre-encoded." },
+      { q: "Will it suggest alternative drugs or dosages?", a: "No. Strictly parsing — no clinical recommendation. We extract what the prescriber wrote, period." },
+      { q: "Can I export the parsed list to a pharmacy app?", a: "JSON output is structured for downstream integration. Not currently exported to specific apps but the format is standard enough that any pharmacy / pillbox app can consume it." },
+    ],
+    related: ["ai-prescription", "ai-medical-bill", "ai-blood-test", "ai-discharge"],
+  },
+
+  "upsc-paper-analyzer": {
+    tool: "ai-upsc",
+    h1: "UPSC Paper Analyzer — Prelims, Mains, Optional, Essay",
+    sub: "Drop a UPSC question paper or answer key. We tag every question by subject + sub-topic + difficulty, compute the static-vs-current ratio, and surface high-yield topics. 20 credits.",
+    canonical: "/upsc-paper-analyzer",
+    howTo: [
+      { t: "Drop the paper", d: "UPSC Civil Services Prelims (GS / CSAT), Mains (GS-I/II/III/IV / Essay / Optional), or any year's release." },
+      { t: "We tag every question", d: "Subject (History / Polity / Economy / Geography / Environment / Science & Tech / IR / Internal Security / Ethics / Tamil Lit if relevant), sub-topic, difficulty." },
+      { t: "Get strategy notes", d: "Static-vs-current ratio, recurring high-yield areas, and Mains-specific advice (word-length-required, answer structure templates)." },
+    ],
+    faq: [
+      { q: "Does it know UPSC's specific scheme?", a: "Yes. Prelims uses 1/3 negative marking — flagged in the analysis. Mains is subjective; word-length-required (150 / 250 words per UPSC's official mandate) is computed and surfaced. Optional papers handled separately from GS." },
+      { q: "Are the source references real?", a: "We anchor study suggestions to standard UPSC sources — NCERT, Laxmikanth (Indian Polity), Spectrum (Modern History), Shankar IAS (Environment), Indian Economy by Ramesh Singh, etc. These are widely-recommended references, not invented." },
+      { q: "Can I run multiple years through it?", a: "Yes — concatenate them into one PDF first (use our free Merge PDF tool), then run through the Multi-Year Paper Pattern tool for trend analysis. Single-paper analyser is for granular per-question breakdown of one year." },
+      { q: "Does it cover state PSC papers?", a: "TNPSC has a dedicated tool. For other state PSCs (UPPSC, MPPSC, BPSC, RPSC, etc.), this UPSC tool gives reasonable coverage but state-specific scheme nuances may be missed. State-specific tools on the roadmap." },
+    ],
+    related: ["ai-upsc", "ai-tnpsc", "ai-paper-pattern", "ai-syllabus"],
+  },
+
+  "ssc-banking-exam-analyzer": {
+    tool: "ai-ssc-banking",
+    h1: "SSC / Banking Exam Paper Analyzer — IBPS, SBI, RBI, NABARD, SSC CGL",
+    sub: "Drop an SSC or Banking exam paper. We break it down by section (Quant / Reasoning / English / GK / Banking Awareness), surface topic frequency, and give sectional-cutoff strategy. 15 credits.",
+    canonical: "/ssc-banking-exam-analyzer",
+    howTo: [
+      { t: "Drop the paper", d: "SSC CGL / CHSL / CPO / MTS / JE / Selection Posts, IBPS PO / Clerk / SO, SBI PO/Clerk, RBI Grade B, NABARD Grade A/B." },
+      { t: "We tag by section", d: "Per-question table: Section, Sub-topic, Difficulty, Time-Per-Question estimate, plus section-level distribution." },
+      { t: "Get cutoff strategy", d: "Section-attempt order, accuracy thresholds for sectional cutoff vs final cutoff, when to skip a difficult set." },
+    ],
+    faq: [
+      { q: "Does it know the difference between IBPS and SBI cutoffs?", a: "Yes. SBI typically has higher cutoffs (more competitive) and a different question style — more reasoning-heavy, less pure quant. IBPS is more uniformly distributed. Our strategy notes are exam-specific." },
+      { q: "What about Banking Awareness questions?", a: "Tagged separately and surfaced as a high-priority study list — these recur across IBPS PO, SBI PO, RBI Grade B and constitute the easiest 5-10 marks if prepped well." },
+      { q: "Is the difficulty estimate reliable?", a: "Heuristic but useful for sort. Use it as a relative ranking within the paper, not as an absolute scale across years. The Multi-Year Paper Pattern tool gives proper trend analysis if you concat 5+ years." },
+      { q: "Will the strategy notes mention specific books?", a: "Yes — Quantum CAT (quant), Arun Sharma (verbal), Indian Economy by Ramesh Singh (banking awareness), Newspapers + PIB for current affairs. Standard, widely-recommended sources, not invented." },
+    ],
+    related: ["ai-ssc-banking", "ai-tnpsc", "ai-upsc", "ai-paper-pattern"],
   },
 };
 
