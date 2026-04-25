@@ -71,6 +71,52 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
     publisher: { "@type": "Organization", name: "pdfcraft ai", url: SITE },
   };
 
+  // SEO Ship #2 (2026-04-25): BreadcrumbList JSON-LD.
+  // Path: Home → All tools → {category} → {this page}.
+  // Google uses this to render the breadcrumb under the SERP entry
+  // instead of the raw URL — higher CTR for the same rank.
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: SITE },
+      { "@type": "ListItem", position: 2, name: "All tools", item: `${SITE}/tools` },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: `${tool.group} tools`,
+        item: `${SITE}/tools#${tool.group.toLowerCase()}`,
+      },
+      { "@type": "ListItem", position: 4, name: tool.name, item: pageUrl },
+    ],
+  };
+
+  // SEO Ship #1 (2026-04-25): Article JSON-LD — only when the page
+  // carries a longform body. Article schema gives Google a clearer
+  // signal that this isn't a thin product page; it's editorial content
+  // worth ranking for the head term.
+  const articleLd = data.longform
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: data.h1,
+        description: data.longform.intro || data.sub,
+        author: { "@type": "Organization", name: "pdfcraft ai", url: SITE },
+        publisher: {
+          "@type": "Organization",
+          name: "pdfcraft ai",
+          url: SITE,
+          logo: { "@type": "ImageObject", url: `${SITE}/icon.svg` },
+        },
+        mainEntityOfPage: { "@type": "WebPage", "@id": pageUrl },
+        // We don't yet track real published / modified dates per page,
+        // so we anchor the article to the SEO Ship #1 date — a real
+        // milestone, not an inflated freshness signal.
+        datePublished: "2026-04-25",
+        dateModified: "2026-04-25",
+      }
+    : null;
+
   return (
     <main>
       <script
@@ -85,6 +131,16 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(appLd) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      />
+      {articleLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd) }}
+        />
+      )}
       {/* ===== Hero ===== */}
       <section style={{ paddingTop: 80, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, opacity: 0.3 }} className="grid-bg" />
@@ -277,6 +333,104 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
           </div>
         </div>
       </section>
+
+      {/* ===== Longform article (SEO Ship #1) =====
+          Renders a 1,000+ word editorial body when data.longform is
+          provided. Pure prose styling — no card chrome — so the page
+          feels like a real article, which is exactly the signal Google
+          weighs for head-term rankings. ============================ */}
+      {data.longform && (
+        <section style={{ padding: "80px 0", background: "var(--bg)" }}>
+          <article
+            className="container-x prose-seo"
+            style={{ padding: "0 28px", maxWidth: 760 }}
+          >
+            <div className="eyebrow" style={{ marginBottom: 8 }}>
+              THE FULL GUIDE
+            </div>
+            <h2
+              style={{
+                fontSize: 32,
+                letterSpacing: "-0.02em",
+                lineHeight: 1.2,
+                marginBottom: 16,
+              }}
+            >
+              {data.longform.title || `Everything you need to know about ${tool.name.toLowerCase()}`}
+            </h2>
+            {data.longform.intro && (
+              <p
+                className="muted"
+                style={{ fontSize: 18, lineHeight: 1.6, marginBottom: 32 }}
+              >
+                {data.longform.intro}
+              </p>
+            )}
+            {data.longform.sections.map((sec, i) => (
+              <div key={i} style={{ marginBottom: 32 }}>
+                <h3
+                  style={{
+                    fontSize: 22,
+                    letterSpacing: "-0.01em",
+                    marginTop: 24,
+                    marginBottom: 12,
+                  }}
+                >
+                  {sec.h}
+                </h3>
+                {sec.p.map((para, j) => (
+                  <p
+                    key={j}
+                    style={{
+                      fontSize: 16,
+                      lineHeight: 1.7,
+                      marginBottom: 14,
+                      color: "var(--fg)",
+                    }}
+                  >
+                    {para}
+                  </p>
+                ))}
+                {sec.list && (
+                  sec.list.ordered ? (
+                    <ol
+                      style={{
+                        fontSize: 16,
+                        lineHeight: 1.7,
+                        paddingLeft: 24,
+                        marginBottom: 14,
+                      }}
+                    >
+                      {sec.list.items.map((it, k) => (
+                        <li key={k} style={{ marginBottom: 8 }}>
+                          {it.b && <strong>{it.b} </strong>}
+                          {it.t}
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <ul
+                      style={{
+                        fontSize: 16,
+                        lineHeight: 1.7,
+                        paddingLeft: 24,
+                        marginBottom: 14,
+                      }}
+                    >
+                      {sec.list.items.map((it, k) => (
+                        <li key={k} style={{ marginBottom: 8 }}>
+                          {it.b && <strong>{it.b} </strong>}
+                          {it.t}
+                        </li>
+                      ))}
+                    </ul>
+                  )
+                )}
+              </div>
+            ))}
+          </article>
+        </section>
+      )}
 
       {/* ===== FAQ ===== */}
       <section style={{ padding: "80px 0", background: "var(--bg-1)" }}>

@@ -1,4 +1,9 @@
 // SEO landing page data. Ported from prototype seo-pages.jsx SEO_PAGES.
+//
+// SEO Ship #1 (2026-04-25): we now also attach optional longform bodies
+// to a hand-picked set of head-term landings. Those bodies live in
+// ./seo-longform.ts and get merged into SEO_PAGES at the bottom of this
+// file. Keeping them in a separate file keeps this catalog readable.
 
 export type SeoPageSlug =
   | "merge-pdf"
@@ -108,6 +113,28 @@ export type SeoPageData = {
   howTo: Array<{ t: string; d: string }>;
   faq: Array<{ q: string; a: string }>;
   related: string[]; // tool ids
+  // SEO Ship #1 (2026-04-25): optional 1,000+ word editorial body that
+  // gives Google enough on-page content to rank for the head term. We
+  // emit it as a real <article> with H2/H3 sub-heads + paragraphs + the
+  // schema.org Article JSON-LD wrapper. When omitted, the page renders
+  // exactly as before — only the top-20 head-term pages get this body.
+  longform?: SeoLongform;
+};
+
+export type SeoLongform = {
+  /** Section 1 H2 title (defaults to "What this tool does"). */
+  title?: string;
+  /** 1–3 sentence intro shown directly under the title. */
+  intro?: string;
+  /** Editorial sections rendered as <h3> + paragraphs (+ optional list). */
+  sections: Array<{
+    h: string;
+    p: string[];
+    list?: {
+      ordered?: boolean;
+      items: Array<{ b?: string; t: string }>;
+    };
+  }>;
 };
 
 export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
@@ -1900,5 +1927,22 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
 
 
 };
+
+// Merge optional longform editorial bodies onto the matching landings.
+// We use a side-effect-on-init approach (rather than rebuilding the
+// record immutably) because SEO_PAGES has 95 entries and lookups are
+// hot-path on every landing render. Doing this once at module load is
+// cheap and keeps the consumer code (SeoLandingPage) unchanged — it
+// just reads the optional `longform` field if present.
+//
+// Lazy-imported to avoid a circular type import: seo-longform.ts
+// imports SeoLongform/SeoPageSlug from here.
+import { LONGFORM_BODIES } from "./seo-longform";
+for (const slug of Object.keys(LONGFORM_BODIES) as SeoPageSlug[]) {
+  const body = LONGFORM_BODIES[slug];
+  if (body && SEO_PAGES[slug]) {
+    SEO_PAGES[slug].longform = body;
+  }
+}
 
 export const SEO_SLUGS = Object.keys(SEO_PAGES) as SeoPageSlug[];
