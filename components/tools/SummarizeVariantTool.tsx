@@ -10,7 +10,7 @@
 // one of the six VALID_DEPTHS. The route already handles persistence,
 // credits, idempotency, truncation, moderation — we don't touch it.
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { classifyAiError } from "@/lib/ai/degradation";
@@ -85,7 +85,7 @@ export function SummarizeVariantTool(props: {
   runLabel: string;
   busyLabel: string;
   successTitle: string;
-  pricingBlurb: string;
+  pricingBlurb: ReactNode;
   relatedHref?: { href: string; label: string };
   /**
    * Task #67 — optional query field. When present, the tool renders
@@ -736,7 +736,7 @@ export function AtsResumeTool() {
       runLabel="Audit resume"
       busyLabel="Auditing…"
       successTitle="ATS audit ready"
-      pricingBlurb="ATS score + critical fixes + keyword gaps + format issues + suggested summary. 10 credits per resume. Tier 3 §3.6 HR & Recruitment."
+      pricingBlurb="ATS score + critical fixes + keyword gaps + format issues + suggested summary. 10 credits per resume. "
       relatedHref={{ href: "/tool/ai-resume-parse", label: "Resume Parser (export to CSV)" }}
     />
   );
@@ -770,7 +770,7 @@ export function SyllabusStudyPlanTool() {
       runLabel="Build study plan"
       busyLabel="Planning…"
       successTitle="Study plan ready"
-      pricingBlurb="Tier 3 §3.3 Education: Topic map + 12-week schedule with practice checkpoints + final-revision strategy. Tuned for TNPSC / UPSC / JEE / NEET / NCERT / university syllabi. 20 credits."
+      pricingBlurb="Topic map + 12-week schedule with practice checkpoints + final-revision strategy. Tuned for TNPSC / UPSC / JEE / NEET / NCERT / university syllabi. 20 credits."
       relatedHref={{ href: "/tool/ai-study-notes", label: "PDF to Study Notes (per-doc deep notes)" }}
     />
   );
@@ -787,7 +787,7 @@ export function DischargeSummaryTool() {
       runLabel="Simplify summary"
       busyLabel="Rewriting…"
       successTitle="Plain-language discharge summary ready"
-      pricingBlurb="Tier 3 §3.4 Healthcare: Patient + family-friendly version with diagnoses / medications / follow-ups / warning signs in everyday language. 10 credits. Not medical advice."
+      pricingBlurb="Patient + family-friendly version with diagnoses / medications / follow-ups / warning signs in everyday language. 10 credits. Not medical advice."
       relatedHref={{ href: "/tool/ai-blood-test", label: "Blood Test Report Parser" }}
     />
   );
@@ -806,7 +806,7 @@ export function CoverLetterTool() {
       runLabel="Draft cover letter"
       busyLabel="Writing…"
       successTitle="Cover letter ready"
-      pricingBlurb="Tier 3 §3.6 HR: 300–350 word tailored cover letter with 3-bullet customisation notes so you can swap in alternatives. 5 credits. Paste the JD for a tailored letter; leave blank for a generic-but-strong version."
+      pricingBlurb="300–350 word tailored cover letter with 3-bullet customisation notes so you can swap in alternatives. 5 credits. Paste the JD for a tailored letter; leave blank for a generic-but-strong version."
       queryField={{
         label: "Job description",
         placeholder:
@@ -831,7 +831,7 @@ export function JdMatchTool() {
       runLabel="Run fit analysis"
       busyLabel="Scoring…"
       successTitle="Fit analysis ready"
-      pricingBlurb="Tier 3 §3.6 HR: Fit score 0–100 + per-requirement alignment table + strengths + gaps + missing-keywords (ATS blockers) + concrete next steps. 5 credits per resume."
+      pricingBlurb="Fit score 0–100 + per-requirement alignment table + strengths + gaps + missing-keywords (ATS blockers) + concrete next steps. 5 credits per resume."
       queryField={{
         label: "Job description",
         placeholder:
@@ -863,7 +863,7 @@ export function NdaAnalyzerTool() {
       runLabel="Audit NDA"
       busyLabel="Analysing…"
       successTitle="NDA audit ready"
-      pricingBlurb="Tier 3 §3.2 Legal: Parties + type + risk flags (severity-rated) + negotiation points + missing standard clauses. Common red flags surfaced — embedded non-competes, indefinite terms, IP assignment in NDAs. 15 credits. Not legal advice."
+      pricingBlurb="Parties + type + risk flags (severity-rated) + negotiation points + missing standard clauses. Common red flags surfaced — embedded non-competes, indefinite terms, IP assignment in NDAs. 15 credits. Not legal advice."
       relatedHref={{ href: "/tool/ai-employment", label: "Employment Contract Review" }}
     />
   );
@@ -880,7 +880,7 @@ export function EmploymentContractTool() {
       runLabel="Review contract"
       busyLabel="Analysing…"
       successTitle="Contract review ready"
-      pricingBlurb="Tier 3 §3.2 Legal: Compensation + term + termination + risk flags (non-compete, IP assignment, training bond) + missing protections + negotiation points. 20 credits. Not legal advice."
+      pricingBlurb="Compensation + term + termination + risk flags (non-compete, IP assignment, training bond) + missing protections + negotiation points. 20 credits. Not legal advice."
       relatedHref={{ href: "/tool/ai-nda", label: "NDA Analyzer" }}
     />
   );
@@ -903,7 +903,7 @@ export function SalarySlipTool() {
       runLabel="Parse slip"
       busyLabel="Parsing…"
       successTitle="Salary slip parsed"
-      pricingBlurb="Tier 3 §3.1 Finance: structured JSON with employer / employee / period / earnings / deductions / totals / YTD. Preserves idiosyncratic component names (Special Allowance, LTA, etc.) for accurate YoY comparison. 10 credits."
+      pricingBlurb="Structured JSON with employer / employee / period / earnings / deductions / totals / YTD. Preserves idiosyncratic component names (Special Allowance, LTA, etc.) for accurate YoY comparison. 10 credits."
       relatedHref={{ href: "/tool/ai-itr-form16", label: "ITR / Form 16 Analyzer" }}
     />
   );
@@ -922,7 +922,7 @@ export function ResearchPaperTool() {
       runLabel="Summarise paper"
       busyLabel="Summarising…"
       successTitle="Research paper summary ready"
-      pricingBlurb="Tier 3 §3.3 Education: APA citation + BibTeX + research question + methods + key results (with magnitudes preserved) + limitations (acknowledged + implied) + cite-this examples + related reading. 15 credits."
+      pricingBlurb="APA citation + BibTeX + research question + methods + key results (with magnitudes preserved) + limitations (acknowledged + implied) + cite-this examples + related reading. 15 credits."
       relatedHref={{ href: "/tool/ai-citations", label: "Extract Citations" }}
     />
   );
@@ -939,7 +939,7 @@ export function InsurancePolicyTool() {
       runLabel="Analyse policy"
       busyLabel="Analysing…"
       successTitle="Insurance policy analysis ready"
-      pricingBlurb="Tier 3 §3.10 Insurance: coverage + premiums + exclusions + waiting periods + claim process + renewal/portability + risk flags (room-rent capping, sub-limits, missing day-care list, restoration absent). 20 credits. Not insurance advice."
+      pricingBlurb="Coverage + premiums + exclusions + waiting periods + claim process + renewal/portability + risk flags (room-rent capping, sub-limits, missing day-care list, restoration absent). 20 credits. Not insurance advice."
       relatedHref={{ href: "/tool/ai-medical-bill", label: "Medical Bill Analyzer" }}
     />
   );
@@ -955,7 +955,7 @@ export function LoanBundleAuditTool() {
       runLabel="Audit bundle"
       busyLabel="Auditing…"
       successTitle="Loan bundle audit ready"
-      pricingBlurb="Tier 3 §3.1 Finance: detects loan type + audits docs against typical lender checklist (PAN, Aadhaar, salary slips, bank statements, ITR/Form 16, property docs, etc.) + flags missing items + income snapshot + eligibility-affecting issues. 15 credits. Not pre-approval."
+      pricingBlurb="Detects loan type + audits docs against typical lender checklist (PAN, Aadhaar, salary slips, bank statements, ITR/Form 16, property docs, etc.) + flags missing items + income snapshot + eligibility-affecting issues. 15 credits. Not pre-approval."
       relatedHref={{ href: "/tool/ai-bank-statement", label: "Bank Statement Parser" }}
     />
   );
@@ -975,7 +975,7 @@ export function PartnershipDeedTool() {
       runLabel="Analyse deed"
       busyLabel="Analysing…"
       successTitle="Partnership deed analysis ready"
-      pricingBlurb="Tier 3 §3.2 Legal: partners table + capital + profit/loss share + decision-making + admission/retirement rules + risk flags + missing standard clauses (arbitration, IP/goodwill, succession). 20 credits."
+      pricingBlurb="Partners table + capital + profit/loss share + decision-making + admission/retirement rules + risk flags + missing standard clauses (arbitration, IP/goodwill, succession). 20 credits."
       relatedHref={{ href: "/tool/ai-employment", label: "Employment Contract Review" }}
     />
   );
@@ -1002,7 +1002,7 @@ export function ImproveWritingTool() {
       runLabel="Improve writing"
       busyLabel="Editing…"
       successTitle="Improved writing ready"
-      pricingBlurb="Tier 2 §2.6: rewrites for clarity + concision (~20-30% shorter) without changing facts, register, or claims. Edit-summary surfaces the kinds of changes made (passive→active, redundant qualifiers cut, etc.). 5 credits."
+      pricingBlurb="Rewrites for clarity + concision (~20-30% shorter) without changing facts, register, or claims. Edit-summary surfaces the kinds of changes made (passive→active, redundant qualifiers cut, etc.). 5 credits."
       relatedHref={{ href: "/tool/ai-paraphrase", label: "Paraphrase" }}
     />
   );
@@ -1018,7 +1018,7 @@ export function ParaphraseTool() {
       runLabel="Paraphrase"
       busyLabel="Rewording…"
       successTitle="Paraphrased version ready"
-      pricingBlurb="Tier 2 §2.6: re-words preserving every claim + number + conclusion. Same length as input. Technical terms preserved when no plainer synonym would be accurate. NOT a substitute for citation. 5 credits."
+      pricingBlurb="Re-words preserving every claim + number + conclusion. Same length as input. Technical terms preserved when no plainer synonym would be accurate. NOT a substitute for citation. 5 credits."
       relatedHref={{ href: "/tool/ai-improve-writing", label: "Improve Writing" }}
     />
   );
@@ -1034,7 +1034,7 @@ export function AiDetectorTool() {
       runLabel="Detect AI"
       busyLabel="Analysing…"
       successTitle="AI detection ready"
-      pricingBlurb="Tier 2 §2.5: heuristic AI-content detector — surfaces well-documented LLM stylistic fingerprints (formulaic openers, hedging overuse, em-dash patterns, register-too-polished, three-item rhetoric, transitional clichés). 10 credits. Honest caveat: heuristic only, not a courtroom-grade classifier. False positives + negatives possible."
+      pricingBlurb="Heuristic AI-content detector — surfaces well-documented LLM stylistic fingerprints (formulaic openers, hedging overuse, em-dash patterns, register-too-polished, three-item rhetoric, transitional clichés). 10 credits. Honest caveat: heuristic only, not a courtroom-grade classifier. False positives + negatives possible."
       relatedHref={{ href: "/tool/ai-improve-writing", label: "Improve Writing" }}
     />
   );
@@ -1050,7 +1050,7 @@ export function ChartToTableTool() {
       runLabel="Extract chart data"
       busyLabel="Reading charts…"
       successTitle="Chart data extracted"
-      pricingBlurb="Tier 2 §2.8 Visual: reads charts visually (bar / line / pie / scatter / stacked), extracts data points faithfully with axis labels and units. For values it can't read precisely, returns a range with confidence note. 5 credits."
+      pricingBlurb="Reads charts visually (bar / line / pie / scatter / stacked), extracts data points faithfully with axis labels and units. For values it can't read precisely, returns a range with confidence note. 5 credits."
       relatedHref={{ href: "/tool/ai-table", label: "AI Table Extract" }}
     />
   );
