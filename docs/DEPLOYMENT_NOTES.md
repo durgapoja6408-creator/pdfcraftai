@@ -40,15 +40,68 @@ After editing env vars, click **Save and redeploy**.
 - **Branding URLs filled:** App home, Privacy, Terms — all pointing at `https://pdfcraftai.com/...`
 - **Support email:** `rajasekarjavaee@gmail.com` (swap to `support@pdfcraftai.com` once that mailbox is confirmed deliverable)
 
-## Known operational issue — 503 after deployment
+## Hostinger operational gotchas (Task #20 family)
 
-**Symptom:** Occasionally after clicking *Save and redeploy* in Hostinger, the site returns HTTP 503.
+Hostinger's stack is Cloudflare → LiteSpeed (LSAPI) → Node.js (Next.js). Each layer has its own quirks. The rules below are battle-tested from real deploy incidents — pin them as durable knowledge, not session-specific noise.
 
-**Fix:** In Hostinger hPanel:
-1. Go to **Resource usage** (left nav / app dashboard)
-2. Find the running Node process(es)
-3. Click **Stop running process**
-4. The app auto-restarts fresh and the 503 clears
+### G1 — 503 after deploy (occasional)
+
+**Symptom:** After clicking *Save and redeploy* OR after the GitHub App auto-pulls, the site returns HTTP 503 for 1–10 minutes.
+
+**Fixes (in order of preference):**
+
+A. **SSH respawn (fastest, no clicks):**
+```bash
+ssh -i .claude/id_ed25519_cowork -p 65002 -o IdentitiesOnly=yes u692382124@212.85.28.206 \
+  'nohup bash -c "sleep 1 && pkill -9 -u u692382124 -f next-server" >/dev/null 2>&1 &'
+```
+The `nohup ... &` detach pattern is critical — if you kill `next-server` synchronously you also kill the worker hosting your SSH session, so the kill itself fails halfway through. Adding `sleep 1 &&` lets SSH disconnect first.
+
+B. **hPanel:** Resource Usage → Stop running process → app auto-restarts → 503 clears.
+
+C. **Push a no-op commit** to nudge the GitHub-App webhook (last resort if A and B don't work; useful when the auto-pull itself is jammed, see G2).
+
+### G2 — GitHub App auto-pull jams
+
+**Symptom:** You push to `main`, but `/api/health` keeps reporting the previous commit for >5 min after push. SSH check confirms `~/domains/pdfcraftai.com/nodejs/.next` mtime hasn't moved.
+
+**Diagnosis sequence:**
+1. Confirm the commit landed on GitHub (`git log origin/main --oneline -3`).
+2. SSH and `stat ~/domains/pdfcraftai.com/nodejs/.next` — old mtime confirms no pull happened.
+3. Hostinger Deploys page may show the commit as queued/stuck.
+
+**Fix:** Push an empty commit (`git commit --allow-empty -m "chore: nudge"`) to re-trigger the webhook. This typically pulls within 2–3 min. If still stuck, hPanel manual deploy.
+
+### G3 — Static OG image only — `next/og` fails at build
+
+**Symptom:** Build fails at Hostinger with errors like:
+```
+Failed to load dynamic font for ✓. Status: 400
+ERROR: Failed to build the application on /opengraph-image/route
+```
+
+**Root cause:** `next/og`'s `ImageResponse` triggers a Google Fonts fetch from the build sandbox. Hostinger's build network rejects that fetch with HTTP 400 — even when the OG content has no real fonts (gradient-text-clip rendering still triggers the lookup).
+
+**Rule:** Ship a static `public/og.png` instead. Pre-render once with Pillow / sharp / similar. No runtime/build-time font dependency, same image on every cold start. See commit `28a629c` for the canonical pattern.
+
+### G4 — LSAPI rejects POSTs with `Content-Type` but no body
+
+**Symptom:** A POST request to your route handler returns `400` with `content-length: 0` (empty body). Node-side logs are silent — the request never reached your handler. Cloudflare passes through cleanly (`cf-ray` is set, `cf-cache-status: DYNAMIC`).
+
+**Reproduction:**
+```bash
+# FAILS with 400, empty body — LSAPI rejects:
+curl -X POST -H "Content-Type: application/json" https://pdfcraftai.com/api/admin/reconcile
+
+# WORKS — LSAPI accepts:
+curl -X POST -H "Content-Type: application/json" -d "{}" https://pdfcraftai.com/api/admin/reconcile
+```
+
+**Rule:** Any browser `fetch()` that sets `Content-Type: application/json` MUST also send a `body` (at minimum `body: "{}"`). Pin this as a comment in the call site so future hands know why. Discovered 2026-04-25 while shipping Task #91.
+
+### G5 — `/api/health` commit-SHA reporting
+
+`/api/health` reads `BUILD_COMMIT_SHA` baked in at build time by `next.config.mjs` (a pre-config `execSync("git rev-parse")` block). Falls back to `null` if `git` isn't available at build time. After deploy, you may see *multiple* commit SHAs round-robining for ~5–10 min as Hostinger's worker pool recycles old workers — wait for steady-state OR run G1 fix A to force-respawn all workers at once.
 
 ## Integration status (verified 2026-04-20)
 
