@@ -58,6 +58,7 @@ export const TOOLS: readonly Tool[] = [
   { id: "strip-links", name: "Strip Hyperlinks", desc: "Remove every URL link and internal goto annotation. Preserves text + other annotations.", icon: "Shield", free: true, group: "Security" },
   { id: "booklet-pdf", name: "Booklet Imposition", desc: "Saddle-stitch page shuffle for fold-and-staple booklets. Distinct from N-up.", icon: "Pages", free: true, group: "Organize" },
   { id: "free-draw-pdf", name: "Draw on PDF", desc: "Sketch, mark up, and annotate any page with a free-draw pen. 5 colors, adjustable width.", icon: "Pen", free: true, group: "Edit" },
+  { id: "add-links", name: "Add Hyperlinks", desc: "Drag a region, paste a URL, get a clickable link annotation. Inverse of Strip Hyperlinks.", icon: "Pen", free: true, group: "Edit" },
   { id: "page-numbers", name: "Page Numbers & Watermark", desc: "Add headers, footers, and watermarks.", icon: "Pages", free: true, group: "Edit" },
   { id: "protect", name: "Unlock / Protect PDF", desc: "Add or remove passwords and permissions.", icon: "Lock", free: true, group: "Security" },
 

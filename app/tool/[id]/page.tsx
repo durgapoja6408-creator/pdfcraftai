@@ -136,6 +136,7 @@ import { GrayscalePdfTool } from "@/components/tools/GrayscalePdfTool";
 import { StripLinksTool } from "@/components/tools/StripLinksTool";
 import { BookletPdfTool } from "@/components/tools/BookletPdfTool";
 import { FreeDrawTool } from "@/components/tools/FreeDrawTool";
+import { AddLinksTool } from "@/components/tools/AddLinksTool";
 
 type Params = { params: { id: string } };
 
@@ -197,6 +198,8 @@ const LIVE_TOOL_IDS = new Set<string>([
   "booklet-pdf",
   // Task #95 — canvas-overlay free-draw annotation
   "free-draw-pdf",
+  // Task #96 — add hyperlinks (inverse of strip-links)
+  "add-links",
   "ai-summarize",
   "ai-tldr",
   "ai-key-points",
@@ -511,6 +514,8 @@ function ToolRunner({ id }: { id: string }) {
       return <BookletPdfTool />;
     case "free-draw-pdf":
       return <FreeDrawTool />;
+    case "add-links":
+      return <AddLinksTool />;
     case "ai-summarize":
       return <SummarizePdfTool />;
     case "ai-tldr":

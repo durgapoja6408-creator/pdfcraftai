@@ -123,7 +123,8 @@ export type SeoPageSlug =
   | "grayscale-pdf"
   | "strip-links"
   | "booklet-pdf"
-  | "free-draw-pdf";
+  | "free-draw-pdf"
+  | "add-links";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -2377,6 +2378,26 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Can I draw with a stylus or finger on tablet?", a: "Yes. The tool uses Pointer Events, which handle mouse, touch, and pen input uniformly. Pressure sensitivity isn't honored in v1 (stroke width is fixed per stroke); proper pressure-aware ink is on the paid roadmap." },
     ],
     related: ["highlight-pdf", "add-text-box", "sign-pdf-free", "redact-free"],
+  },
+
+  "add-links": {
+    tool: "add-links",
+    h1: "Add hyperlinks to PDF — make any region clickable",
+    sub: "Drag a rectangle on a PDF page, paste a URL, get a real /Link annotation. Multi-page, additive (preserves existing annotations), pure browser.",
+    canonical: "/add-links",
+    howTo: [
+      { t: "Drop the PDF", d: "Up to 50 MB. We render every page so you can click-and-drag link regions visually." },
+      { t: "Drag to define a region", d: "Click and drag a rectangle anywhere — over text, over an image, anywhere you want clickable. The dashed amber outline shows the pending region until you confirm with a URL." },
+      { t: "Type the URL", d: "https://, http://, mailto:, and tel: are all supported. Press Enter to commit, Esc to cancel. Multi-page support — navigate with Prev/Next and add more regions." },
+      { t: "Apply", d: "Each region becomes a /Link annotation pointing at your URL. Existing annotations on the page are preserved (additive, not replace)." },
+    ],
+    faq: [
+      { q: "Will this overlay change how the page looks?", a: "Visually: no. The /Link annotation has /Border [0 0 0] which means no rectangle is drawn. The link area is clickable but invisible — exactly like the hyperlinks already in your PDF. If you want to make the clickable area visually obvious, run Highlight PDF over the same region first." },
+      { q: "What URL formats work?", a: "https:// and http:// for web links; mailto:you@example.com for email; tel:+15551234567 for phone numbers (mobile viewers can tap to dial). Internal goto-page links aren't supported in this tool — that's a different annotation kind. Use Bookmarks Editor (paid roadmap) for internal navigation." },
+      { q: "Why does this need low-level pdf-lib code?", a: "pdf-lib has high-level helpers for drawing rectangles, text, images, SVG paths — anything that goes into a page's content stream. Annotations are different: they're sibling objects that the viewer overlays for interactivity. pdf-lib doesn't expose a high-level addLink(); we construct the /Annot dict manually with the right /Subtype, /Rect, /Border, and /A action subtree, then register it and append the indirect ref to the page's /Annots array. Doable, just not one-liner doable." },
+      { q: "Inverse?", a: "Strip Hyperlinks. Run Add Hyperlinks → Strip Hyperlinks and you're back where you started. Both tools agree on the same /Link annotation shape." },
+    ],
+    related: ["strip-links", "highlight-pdf", "add-text-box", "edit-pdf"],
   },
 };
 
