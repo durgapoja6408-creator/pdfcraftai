@@ -239,6 +239,12 @@ export const OP_OUTPUT_CAP_TABLE: CapTable = {
     "demat": 4000, // CAS JSON — can hold dozens of holdings + corporate actions.
     "insurance": 2800, // Coverage + exclusions + comparison + risk flags.
     "loan-bundle": 2400, // Documents found + missing + income snapshot + next steps.
+    // Task #79 — Tier 3 §3.1 + §3.2 + §3.3 wedges.
+    "expense-report": 2400, // Category × month matrix + observations.
+    "court-order": 2400, // Citation + parties + ratio + reasoning + implications.
+    "partnership-deed": 2400, // Partners table + capital + risk flags + missing clauses.
+    "ssc-banking": 3200, // Per-Q table for paper of 100-200 questions.
+    "ncert": 2200, // Chapter summary + likely Qs + revision checklist.
   },
 
   // Compare produces a side-by-side diff narrative. 4000 is

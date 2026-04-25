@@ -70,7 +70,13 @@ type Depth =
   | "research-paper"
   | "demat"
   | "insurance"
-  | "loan-bundle";
+  | "loan-bundle"
+  // Task #79 Tier 3 wedges.
+  | "expense-report"
+  | "court-order"
+  | "partnership-deed"
+  | "ssc-banking"
+  | "ncert";
 
 type Result = {
   fileId?: string;
@@ -1150,6 +1156,88 @@ export function LoanBundleAuditTool() {
       successTitle="Loan bundle audit ready"
       pricingBlurb="Tier 3 §3.1 Finance: detects loan type + audits docs against typical lender checklist (PAN, Aadhaar, salary slips, bank statements, ITR/Form 16, property docs, etc.) + flags missing items + income snapshot + eligibility-affecting issues. 15 credits. Not pre-approval."
       relatedHref={{ href: "/tool/ai-bank-statement", label: "Bank Statement Parser" }}
+    />
+  );
+}
+
+// Task #79 — five more Tier 3 wedges.
+
+export function ExpenseReportTool() {
+  return (
+    <SummarizeVariantTool
+      depth="expense-report"
+      toolId="ai-expense-report"
+      callbackUrl="/tool/ai-expense-report"
+      prompt="Drop a bank statement to build a categorised expense report"
+      runLabel="Build report"
+      busyLabel="Categorising…"
+      successTitle="Expense report ready"
+      pricingBlurb="Tier 3 §3.1 Finance: bank-statement → category × month matrix (rent / groceries / fuel / EMI / SIPs / etc.) + top spend areas + recurring charges + saving rate. Indian categories. 15 credits."
+      relatedHref={{ href: "/tool/ai-bank-statement", label: "Bank Statement Parser" }}
+    />
+  );
+}
+
+export function CourtOrderTool() {
+  return (
+    <SummarizeVariantTool
+      depth="court-order"
+      toolId="ai-court-order"
+      callbackUrl="/tool/ai-court-order"
+      prompt="Drop an Indian court order / judgment"
+      runLabel="Summarise judgment"
+      busyLabel="Reading…"
+      successTitle="Judgment summary ready"
+      pricingBlurb="Tier 3 §3.2 Legal: citation + parties + issues framed + held / operative + ratio decidendi + reasoning + cited authorities + practical implications. 20 credits. Research aid, not legal advice."
+      relatedHref={{ href: "/tool/ai-nda", label: "NDA Analyzer" }}
+    />
+  );
+}
+
+export function PartnershipDeedTool() {
+  return (
+    <SummarizeVariantTool
+      depth="partnership-deed"
+      toolId="ai-partnership-deed"
+      callbackUrl="/tool/ai-partnership-deed"
+      prompt="Drop a partnership / LLP deed"
+      runLabel="Analyse deed"
+      busyLabel="Analysing…"
+      successTitle="Partnership deed analysis ready"
+      pricingBlurb="Tier 3 §3.2 Legal: partners table + capital + profit/loss share + decision-making + admission/retirement rules + risk flags + missing standard clauses (arbitration, IP/goodwill, succession). 20 credits."
+      relatedHref={{ href: "/tool/ai-employment", label: "Employment Contract Review" }}
+    />
+  );
+}
+
+export function SscBankingExamTool() {
+  return (
+    <SummarizeVariantTool
+      depth="ssc-banking"
+      toolId="ai-ssc-banking"
+      callbackUrl="/tool/ai-ssc-banking"
+      prompt="Drop an SSC (CGL/CHSL/CPO) or Banking (IBPS / SBI / RBI / NABARD) paper"
+      runLabel="Analyse paper"
+      busyLabel="Analysing…"
+      successTitle="Paper analysis ready"
+      pricingBlurb="Tier 3 §3.3 Education: per-Q table (Quant / Reasoning / English / GK / Banking Awareness) + section distribution + topic frequency + section-attempt strategy + sectional cutoff vs final-cutoff trade-offs. 15 credits."
+      relatedHref={{ href: "/tool/ai-tnpsc", label: "TNPSC Analyzer" }}
+    />
+  );
+}
+
+export function NcertChapterTool() {
+  return (
+    <SummarizeVariantTool
+      depth="ncert"
+      toolId="ai-ncert"
+      callbackUrl="/tool/ai-ncert"
+      prompt="Drop an NCERT textbook chapter"
+      runLabel="Summarise chapter"
+      busyLabel="Summarising…"
+      successTitle="Chapter summary ready"
+      pricingBlurb="Tier 3 §3.3 Education: in-one-sentence idea + key concepts + diagrams list + worked-through examples + likely CBSE / state-board exam questions (1/3/5-mark mix) + connections + common mistakes + revision checklist. 10 credits."
+      relatedHref={{ href: "/tool/ai-syllabus", label: "Syllabus Study Plan" }}
     />
   );
 }

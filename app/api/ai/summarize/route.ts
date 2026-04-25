@@ -130,6 +130,12 @@ const VALID_DEPTHS: readonly SummarizeDepth[] = [
   "demat",
   "insurance",
   "loan-bundle",
+  // Task #79 — five more Tier 3 wedges (§3.1 + §3.2 + §3.3):
+  "expense-report",
+  "court-order",
+  "partnership-deed",
+  "ssc-banking",
+  "ncert",
 ];
 
 export async function POST(req: Request): Promise<Response> {

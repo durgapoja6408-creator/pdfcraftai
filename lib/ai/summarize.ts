@@ -204,7 +204,23 @@ export type SummarizeDepth =
   | "research-paper"
   | "demat"
   | "insurance"
-  | "loan-bundle";
+  | "loan-bundle"
+  // Task #79 — five more Tier 3 wedges:
+  //   expense-report  §3.1 P1 — bank-statement → expense report
+  //   with category × month matrix (15c)
+  //   court-order     §3.2 P2 — Indian court judgment / order
+  //   summary with parties + ratio + reasoning + remedy (20c)
+  //   partnership-deed §3.2 P2 — partnership deed analyzer with
+  //   roles + capital + profit-share + risk flags (20c)
+  //   ssc-banking     §3.3 P1 — SSC CGL / Banking PO/Clerk exam
+  //   paper analyzer (15c)
+  //   ncert           §3.3 P1 — NCERT chapter summarizer with
+  //   class-wise vocab (10c)
+  | "expense-report"
+  | "court-order"
+  | "partnership-deed"
+  | "ssc-banking"
+  | "ncert";
 
 export interface SummarizeInput {
   /** Extracted PDF text, pages joined with `\f`. */
@@ -1403,6 +1419,134 @@ function buildSystemPrompt(opts: {
           "this is a parsing aid — banks and lawyers may still " +
           "need original EC for diligence."
         );
+      case "expense-report":
+        // §3.1 Expense Report Builder from a bank statement.
+        return (
+          "Build a structured expense report from this bank " +
+          "statement. Use Indian categories. Output: `## Statement " +
+          "Identified` (bank, account masked, period). `## " +
+          "Category × Month Matrix` (Markdown table — rows = " +
+          "categories, columns = months in the period, cells = " +
+          "spend). Categories: Salary (negative = inflow), Rent, " +
+          "Groceries / Food, Fuel, Utilities, Mobile / Internet, " +
+          "EMI / Loans, Insurance, Investments / SIPs, Travel, " +
+          "Shopping, Entertainment / Subscriptions, Healthcare, " +
+          "Education, Cash / ATM, UPI Transfers, Refunds / " +
+          "Reversals, Bank Charges, Other. `## Top Spend Areas` " +
+          "(top 5 categories by total with %). `## Recurring " +
+          "Charges Detected` (subscriptions / EMI with frequency " +
+          "+ amount + counter party). `## Income Snapshot` " +
+          "(monthly avg net income — credits minus refunds). `## " +
+          "Saving Rate` (income - expense, % of income). `## " +
+          "Observations` (3-5 actionable bullets — high-fee " +
+          "alerts, unusual spikes, subscriptions to review, dining-" +
+          "out share, etc.). End with note this is a parsing aid; " +
+          "category choice is heuristic and the user can override."
+        );
+      case "court-order":
+        // §3.2 Indian Court Order / Judgment Summarizer.
+        return (
+          "Summarise this Indian court order / judgment. Output: " +
+          "`## Citation` (court, bench, judge(s), date, case " +
+          "number / writ petition / civil appeal / SLP, citation " +
+          "string if available). `## Parties` (Petitioner(s), " +
+          "Respondent(s), Intervenor(s) if any — PII-masked when " +
+          "the case isn't a published precedent). `## Issue(s) " +
+          "Framed` (the legal questions the court considered, " +
+          "verbatim quotes preferred). `## Held / Operative Part` " +
+          "(the operative directions of the court — what was " +
+          "ordered, granted, denied, remanded). `## Ratio " +
+          "Decidendi` (the principle of law on which the decision " +
+          "rests — paraphrased + quoted from the para that lays " +
+          "it down). `## Reasoning` (chain of reasoning the court " +
+          "follows; cite paragraph numbers where possible). `## " +
+          "Cited Authorities` (other judgments / statutes / " +
+          "constitutional articles relied on). `## Costs / Time " +
+          "Limits` (any costs awarded, compliance timelines, " +
+          "next-of-action). `## Practical Implications` (3-4 " +
+          "bullets — what this means for similarly-placed " +
+          "litigants / lawyers / authorities). End with note this " +
+          "is a research aid, not legal advice — read the full " +
+          "judgment for citation."
+        );
+      case "partnership-deed":
+        // §3.2 Indian Partnership Deed Analyzer.
+        return (
+          "Analyse this Indian partnership / LLP deed. Output: " +
+          "`## Deed Identified` (firm name, type — partnership " +
+          "vs LLP, registration status / RoC number, date of " +
+          "execution, place, jurisdiction). `## Partners` (table: " +
+          "Name, Role (managing / working / sleeping / nominee), " +
+          "Capital Contribution, Profit Share %, Loss Share %, " +
+          "Salary / Drawings entitled, Authority limits). `## " +
+          "Business / Object Clause` (paragraph). `## Capital & " +
+          "Drawings` (initial contribution, top-up rules, " +
+          "interest on capital, drawings limits). `## Profit / " +
+          "Loss Sharing` (formula + special allocations). `## " +
+          "Decision-Making` (resolutions requiring unanimity vs " +
+          "majority, day-to-day management authority). `## " +
+          "Admission / Retirement / Death` (rules for new " +
+          "partners, exit, death, expulsion, dissolution " +
+          "triggers). `## Risk Flags` (severity-rated table: " +
+          "vague decision-making, no exit clause, profit share " +
+          "≠ capital share without justification, no goodwill " +
+          "valuation, indefinite lock-in, missing dispute " +
+          "resolution / arbitration seat, missing books-of-" +
+          "account audit clause). `## Missing Standard Clauses` " +
+          "(arbitration, non-compete on retirement, IP/goodwill " +
+          "ownership, succession on death). End with note this " +
+          "is an audit aid, not legal advice."
+        );
+      case "ssc-banking":
+        // §3.3 SSC CGL / Banking PO/Clerk Exam Paper Analyzer.
+        return (
+          "Analyse this Indian competitive exam paper — SSC " +
+          "(CGL/CHSL/CPO/MTS/JE/Selection Posts) or Banking " +
+          "(IBPS PO / Clerk / SO, SBI PO/Clerk, RBI Grade B, " +
+          "NABARD). Output: `## Paper Identified` (exam, " +
+          "tier/phase, year, sections, marking scheme — most " +
+          "have negative marking). `## Section-Wise Question " +
+          "Analysis` (Markdown table: #, Section (Quant " +
+          "Aptitude / Reasoning / English / GK / Current Affairs " +
+          "/ Computer / Banking Awareness / etc.), Sub-topic, " +
+          "Difficulty (Easy/Medium/Hard), Time-Per-Question " +
+          "estimate). `## Section Distribution` (questions, " +
+          "marks, time allotted per section). `## Topic " +
+          "Frequency` (recurring high-yield areas — " +
+          "Profit/Loss/SI/CI for Quant; Puzzles/Seating " +
+          "Arrangement for Reasoning; Cloze/RC for English; " +
+          "RBI / SEBI / banking awareness items). `## Strategy " +
+          "Notes` (5-7 bullets: section attempt order, time " +
+          "management, accuracy thresholds for sectional cutoff " +
+          "vs final, when to skip a difficult set, mock-test " +
+          "frequency). Use exam-specific vocabulary (Quantum " +
+          "CAT, Arun Sharma, Indian Economy by Ramesh Singh as " +
+          "study refs)."
+        );
+      case "ncert":
+        // §3.3 NCERT Textbook chapter summarizer (school).
+        return (
+          "Summarise this NCERT textbook chapter for an Indian " +
+          "school student. Output: `## Chapter Identified` (" +
+          "subject, class, chapter number + title). `## In One " +
+          "Sentence` (the central idea, in plain language). `## " +
+          "Key Concepts` (bullet list — every important term, " +
+          "definition, or formula a student needs to memorise). " +
+          "`## Important Diagrams / Figures` (list, with what " +
+          "each shows — useful since CBSE/state-board questions " +
+          "often ask 'with the help of a diagram, explain...'). " +
+          "`## Worked-Through Examples` (any problem the chapter " +
+          "solves — rewritten clearly with the steps). `## " +
+          "Likely Exam Questions` (5-8 questions in the style " +
+          "of CBSE / state-board paper writers, mixing 1-mark / " +
+          "3-mark / 5-mark, marked accordingly). `## Connections " +
+          "to Other Chapters` (1-2 sentences on prerequisites + " +
+          "what this chapter sets up). `## Common Mistakes` " +
+          "(3-4 errors students make on this chapter — " +
+          "actual misconceptions, not generic 'read carefully' " +
+          "advice). End with a 5-bullet `## Quick Revision` " +
+          "checklist."
+        );
       case "upsc":
         // §3.3 UPSC Prelims/Mains Analyzer.
         return (
@@ -1769,6 +1913,16 @@ function buildUserPrompt(opts: {
         return "Analyse this insurance policy";
       case "loan-bundle":
         return "Audit this loan-application bundle";
+      case "expense-report":
+        return "Build an expense report from this bank statement";
+      case "court-order":
+        return "Summarise this court order";
+      case "partnership-deed":
+        return "Analyse this partnership deed";
+      case "ssc-banking":
+        return "Analyse this SSC/Banking exam paper";
+      case "ncert":
+        return "Summarise this NCERT chapter";
       case "standard":
       case "detailed":
       default:

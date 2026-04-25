@@ -101,6 +101,12 @@ import {
   DematStatementTool,
   InsurancePolicyTool,
   LoanBundleAuditTool,
+  // Task #79 — Tier 3 §3.1, §3.2, §3.3 wedges.
+  ExpenseReportTool,
+  CourtOrderTool,
+  PartnershipDeedTool,
+  SscBankingExamTool,
+  NcertChapterTool,
 } from "@/components/tools/SummarizeVariantTool";
 import { ResumeParserTool } from "@/components/tools/ResumeParserTool";
 import { BankStatementTool } from "@/components/tools/BankStatementTool";
@@ -225,6 +231,12 @@ const LIVE_TOOL_IDS = new Set<string>([
   "ai-demat",
   "ai-insurance",
   "ai-loan-bundle",
+  // Task #79 — Tier 3 §3.1, §3.2, §3.3 wedges.
+  "ai-expense-report",
+  "ai-court-order",
+  "ai-partnership-deed",
+  "ai-ssc-banking",
+  "ai-ncert",
   "ai-translate",
   "ai-compare",
   "ai-ocr",
@@ -565,6 +577,17 @@ function ToolRunner({ id }: { id: string }) {
       return <InsurancePolicyTool />;
     case "ai-loan-bundle":
       return <LoanBundleAuditTool />;
+    // Task #79 — Tier 3 §3.1, §3.2, §3.3 wedges.
+    case "ai-expense-report":
+      return <ExpenseReportTool />;
+    case "ai-court-order":
+      return <CourtOrderTool />;
+    case "ai-partnership-deed":
+      return <PartnershipDeedTool />;
+    case "ai-ssc-banking":
+      return <SscBankingExamTool />;
+    case "ai-ncert":
+      return <NcertChapterTool />;
     case "ai-translate":
       return <TranslatePdfTool />;
     case "ai-compare":
