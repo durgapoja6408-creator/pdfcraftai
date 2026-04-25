@@ -211,6 +211,10 @@ export const OP_OUTPUT_CAP_TABLE: CapTable = {
     "gst-invoice": 2000, // 5 sections incl. line items table.
     "rental": 2200, // 5 sections, prose-heavy with quoted clauses.
     "syllabus": 2200, // Topic map + 12-week table + revision strategy.
+    // Task #65:
+    "property": 2200, // 6 sections + chain-of-title bullets.
+    "discharge": 2000, // 7 sections, plain-language rewrite.
+    "itr-form16": 2000, // 5 sections incl. tax computation table.
   },
 
   // Compare produces a side-by-side diff narrative. 4000 is

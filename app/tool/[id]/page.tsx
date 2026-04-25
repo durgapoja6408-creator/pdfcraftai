@@ -74,6 +74,9 @@ import {
   GstInvoiceTool,
   RentalAgreementTool,
   SyllabusStudyPlanTool,
+  PropertyDocTool,
+  DischargeSummaryTool,
+  ItrAnalyzerTool,
 } from "@/components/tools/SummarizeVariantTool";
 import { ResumeParserTool } from "@/components/tools/ResumeParserTool";
 import { BankStatementTool } from "@/components/tools/BankStatementTool";
@@ -168,6 +171,9 @@ const LIVE_TOOL_IDS = new Set<string>([
   "ai-gst-invoice",
   "ai-rental",
   "ai-syllabus",
+  "ai-property",
+  "ai-discharge",
+  "ai-itr-form16",
   "ai-translate",
   "ai-compare",
   "ai-ocr",
@@ -455,6 +461,12 @@ function ToolRunner({ id }: { id: string }) {
       return <RentalAgreementTool />;
     case "ai-syllabus":
       return <SyllabusStudyPlanTool />;
+    case "ai-property":
+      return <PropertyDocTool />;
+    case "ai-discharge":
+      return <DischargeSummaryTool />;
+    case "ai-itr-form16":
+      return <ItrAnalyzerTool />;
     case "ai-translate":
       return <TranslatePdfTool />;
     case "ai-compare":

@@ -43,7 +43,10 @@ type Depth =
   | "action-items"
   | "gst-invoice"
   | "rental"
-  | "syllabus";
+  | "syllabus"
+  | "property"
+  | "discharge"
+  | "itr-form16";
 
 type Result = {
   fileId?: string;
@@ -664,6 +667,54 @@ export function SyllabusStudyPlanTool() {
       successTitle="Study plan ready"
       pricingBlurb="Tier 3 §3.3 Education: Topic map + 12-week schedule with practice checkpoints + final-revision strategy. Tuned for TNPSC / UPSC / JEE / NEET / NCERT / university syllabi. 20 credits."
       relatedHref={{ href: "/tool/ai-study-notes", label: "PDF to Study Notes (per-doc deep notes)" }}
+    />
+  );
+}
+
+export function PropertyDocTool() {
+  return (
+    <SummarizeVariantTool
+      depth="property"
+      toolId="ai-property"
+      callbackUrl="/tool/ai-property"
+      prompt="Drop a property document (sale deed / khata / EC) to check for red flags"
+      runLabel="Check property doc"
+      busyLabel="Analysing…"
+      successTitle="Property doc analysis ready"
+      pricingBlurb="Tier 3 §3.5 Real Estate: Document type / property details / chain of title / encumbrances / red flags / missing standard documents. 30 credits. Not legal advice."
+      relatedHref={{ href: "/tool/ai-rental", label: "Rental Agreement Analyzer" }}
+    />
+  );
+}
+
+export function DischargeSummaryTool() {
+  return (
+    <SummarizeVariantTool
+      depth="discharge"
+      toolId="ai-discharge"
+      callbackUrl="/tool/ai-discharge"
+      prompt="Drop a hospital discharge summary to rewrite in plain language"
+      runLabel="Simplify summary"
+      busyLabel="Rewriting…"
+      successTitle="Plain-language discharge summary ready"
+      pricingBlurb="Tier 3 §3.4 Healthcare: Patient + family-friendly version with diagnoses / medications / follow-ups / warning signs in everyday language. 10 credits. Not medical advice."
+      relatedHref={{ href: "/tool/ai-blood-test", label: "Blood Test Report Parser" }}
+    />
+  );
+}
+
+export function ItrAnalyzerTool() {
+  return (
+    <SummarizeVariantTool
+      depth="itr-form16"
+      toolId="ai-itr-form16"
+      callbackUrl="/tool/ai-itr-form16"
+      prompt="Drop a Form 16 / ITR / annual tax statement to analyse"
+      runLabel="Analyse tax document"
+      busyLabel="Analysing…"
+      successTitle="Tax analysis ready"
+      pricingBlurb="Tier 3 §3.1 Finance: Income summary + deductions claimed + tax computation + observations + suggested actions. 20 credits. Not tax advice — consult a CA."
+      relatedHref={{ href: "/tool/ai-bank-statement", label: "Bank Statement Parser" }}
     />
   );
 }

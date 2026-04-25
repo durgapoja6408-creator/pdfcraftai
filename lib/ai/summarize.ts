@@ -131,7 +131,14 @@ export type SummarizeDepth =
   //   syllabus    §3.3 — syllabus → week-by-week study plan (20c)
   | "gst-invoice"
   | "rental"
-  | "syllabus";
+  | "syllabus"
+  // Task #65 — three more Tier 3 wedges:
+  //   property §3.5 P1 — title/khata/EC/parent (30c)
+  //   discharge §3.4 P1 — patient-friendly discharge summary (10c)
+  //   itr-form16 §3.1 P1 — Indian tax doc analyzer (20c)
+  | "property"
+  | "discharge"
+  | "itr-form16";
 
 export interface SummarizeInput {
   /** Extracted PDF text, pages joined with `\f`. */
@@ -871,6 +878,79 @@ function buildSystemPrompt(opts: {
           "Nadu specifics if state is identifiable). End with a " +
           "one-line disclaimer that this is not legal advice."
         );
+      case "property":
+        // §3.5 Property Document Checker. Title deed / khata /
+        // Encumbrance Certificate / parent document analysis for
+        // Indian residential / commercial property purchases.
+        return (
+          "Analyse this Indian property document for completeness " +
+          "and red flags. Produce: `## Document Type` (one line — " +
+          "Sale Deed / Khata / Encumbrance Certificate / Parent " +
+          "Document / Allotment Letter / Lease Deed / etc.; if " +
+          "unclear, say so). `## Property Details` (table: Address, " +
+          "Survey/Plot No, Built-up area, Type, Title Holder, " +
+          "Acquisition Date). `## Chain of Title` (bullets " +
+          "tracing ownership history if visible — flag any gaps " +
+          "or unrelated transfers). `## Encumbrances & Charges` " +
+          "(list any mortgages, liens, court orders mentioned). " +
+          "`## Red Flags` (bullets — missing seller signatures, " +
+          "stamp-duty inconsistencies, encumbrance not cleared, " +
+          "incomplete survey numbers, illegible registration " +
+          "stamps, etc.). `## Missing Documents` (list standard " +
+          "docs a buyer would also ask for that aren't in this " +
+          "PDF — Khata Extract, Tax-paid Receipts, Approved " +
+          "Plan, Occupancy Certificate, NOC, Power of Attorney, " +
+          "etc.). End with a one-line disclaimer that property " +
+          "verification requires a qualified lawyer / advocate."
+        );
+      case "discharge":
+        // §3.4 Discharge Summary Simplifier. Patient + family-
+        // friendly version of a hospital discharge summary.
+        return (
+          "Rewrite this hospital discharge summary in plain " +
+          "language for the patient and their family. Produce: " +
+          "`## Why You Were Admitted` (1–2 sentences). " +
+          "`## What Happened During Your Stay` (one paragraph in " +
+          "everyday language — no Latin/medical jargon unless " +
+          "you immediately gloss it). `## Diagnoses` (bulleted " +
+          "list with each named condition followed by a one-" +
+          "sentence plain-language explanation in brackets). " +
+          "`## Medications to Take Home` (table: Medicine | " +
+          "What it's for | Dose | Duration). `## Follow-ups` " +
+          "(table: Date | Specialist | Reason). `## Warning " +
+          "Signs to Watch For` (bullets — call the hospital " +
+          "if these symptoms appear). `## Lifestyle Notes` " +
+          "(diet, exercise, activity restrictions in plain " +
+          "language). DO NOT add medical advice the source " +
+          "doesn't carry; if the source is silent, leave that " +
+          "section blank or say \"discuss with your doctor.\" " +
+          "End with a clear note that this is a plain-language " +
+          "rewrite of an existing summary, not a new diagnosis " +
+          "or recommendation."
+        );
+      case "itr-form16":
+        // §3.1 ITR / Form 16 Analyzer. Salaried Indian tax-
+        // filing document review.
+        return (
+          "Analyse this Indian tax document (Form 16, ITR-V, ITR " +
+          "Acknowledgment, or annual tax statement). Produce: " +
+          "`## Document Identified` (which form, AY/FY covered, " +
+          "PAN-masked, employer name if visible). `## Income " +
+          "Summary` (table: Salary, House Property, Capital " +
+          "Gains, Other Sources, Total — with values from the " +
+          "document; blank if section absent). `## Deductions " +
+          "Claimed` (80C, 80D, HRA, Standard Deduction, others — " +
+          "with amounts). `## Tax Computation` (table: Gross " +
+          "Total Income, Total Deductions, Taxable Income, " +
+          "Tax + Cess, TDS, Refund/Payable). `## Observations` " +
+          "(3–5 bullets — under-utilised deductions, mismatched " +
+          "TDS vs computed tax, incorrect regime selection " +
+          "indicators, etc.). `## Suggested Actions` (concrete " +
+          "items — e.g. \"verify TDS in Form 26AS\", \"file " +
+          "rectification under Section 154 if mismatch\"). End " +
+          "with a one-line note that this is an analysis, not " +
+          "tax advice — consult a CA before acting."
+        );
       case "syllabus":
         // §3.3 Syllabus → Study Plan. Indian student / aspirant
         // workflow. Generates week-by-week schedule with practice
@@ -1026,6 +1106,12 @@ function buildUserPrompt(opts: {
         return "Analyse this rental agreement";
       case "syllabus":
         return "Build a study plan from this syllabus";
+      case "property":
+        return "Analyse this property document";
+      case "discharge":
+        return "Simplify this discharge summary";
+      case "itr-form16":
+        return "Analyse this tax document";
       case "standard":
       case "detailed":
       default:

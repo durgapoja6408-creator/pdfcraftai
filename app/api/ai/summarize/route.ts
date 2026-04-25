@@ -102,6 +102,10 @@ const VALID_DEPTHS: readonly SummarizeDepth[] = [
   "gst-invoice",
   "rental",
   "syllabus",
+  // Task #65:
+  "property",
+  "discharge",
+  "itr-form16",
 ];
 
 export async function POST(req: Request): Promise<Response> {
