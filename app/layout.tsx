@@ -41,6 +41,19 @@ export const metadata: Metadata = {
     },
     description:
       "Every PDF tool you need. Plus the ones you didn't know existed.",
+    // Default share image — picked up by every page's <meta og:image>
+    // unless that page overrides openGraph.images. Generated at edge
+    // by app/opengraph-image.tsx (Next 14 file convention).
+    // Twitter, LinkedIn, Slack, WhatsApp, Facebook, iMessage, Discord
+    // all read this. Resolves through metadataBase to an absolute URL.
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "pdfcraft ai — Every PDF tool you need. Plus the ones you didn't know existed.",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -49,6 +62,12 @@ export const metadata: Metadata = {
       template: "%s · pdfcraft ai",
     },
     description: "Every PDF tool you need. Plus the ones you didn't know existed.",
+    images: [
+      {
+        url: "/opengraph-image",
+        alt: "pdfcraft ai — Every PDF tool you need.",
+      },
+    ],
   },
   icons: {
     icon: "/favicon.ico",
