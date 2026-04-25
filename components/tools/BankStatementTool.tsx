@@ -8,6 +8,7 @@
 // rows; the UI renders those as "—".
 
 import { useState, useCallback } from "react";
+import { useTrackToolView } from "./useToolTracking";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { classifyAiError } from "@/lib/ai/degradation";
@@ -135,6 +136,7 @@ function statementCsv(s: Statement): string {
 export function BankStatementTool() {
   const router = useRouter();
   const { status } = useSession();
+  const trackTool = useTrackToolView("ai-bank-statement");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -148,7 +150,8 @@ export function BankStatementTool() {
     setStmt(null);
     setMeta(null);
     setFile(f);
-  }, []);
+    trackTool.upload(f);
+  }, [trackTool]);
 
   const reset = () => {
     setFile(null);
@@ -161,6 +164,7 @@ export function BankStatementTool() {
     if (!file) return;
     const fresh = await getSession();
     if (!fresh?.user) {
+      trackTool.signupRedirect("/tool/ai-bank-statement");
       router.push("/login?callbackUrl=/tool/ai-bank-statement");
       return;
     }
@@ -172,6 +176,7 @@ export function BankStatementTool() {
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
         : `ik-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
 
     try {
       const form = new FormData();
@@ -180,26 +185,34 @@ export function BankStatementTool() {
       form.append("idempotencyKey", idempotencyKey);
       const res = await fetch("/api/ai/summarize", { method: "POST", body: form });
       const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      const processingMs = Math.round(
+        (typeof performance !== "undefined" ? performance.now() : Date.now()) - t0,
+      );
 
       if (res.ok || res.status === 207) {
         const parsed = extractJsonObject(String(body.markdown ?? ""));
         const obj = parsed ? asStatement(parsed) : null;
         if (!obj || obj.transactions.length === 0) {
           setError("Couldn't parse this as a bank statement. Ensure the PDF has transaction rows (not an image-only scan).");
+          trackTool.error({ errorCode: "parse_failed", depth: "bank-statement" });
           return;
         }
         setStmt(obj);
+        const credit = Number(body.creditCost ?? 0);
         setMeta({
-          creditCost: Number(body.creditCost ?? 0),
+          creditCost: credit,
           newBalance: typeof body.newBalance === "number" ? body.newBalance : undefined,
         });
+        trackTool.success({ creditCost: credit, depth: "bank-statement", processingMs });
         return;
       }
       const classified = classifyAiError(res.status, body);
       setError("userMessage" in classified ? classified.userMessage : "Something went wrong. Try again.");
+      trackTool.error({ errorCode: `http_${res.status}`, depth: "bank-statement" });
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Request failed.");
+      trackTool.error({ errorCode: "network_error", depth: "bank-statement" });
     } finally {
       setBusy(false);
     }

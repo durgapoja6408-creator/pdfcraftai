@@ -10,6 +10,7 @@ import {
   sha256HexOfBytes,
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
+import { useTrackToolView } from "./useToolTracking";
 
 type Item = {
   id: string;
@@ -20,6 +21,7 @@ let _idCounter = 0;
 const nextId = () => `m${Date.now()}-${++_idCounter}`;
 
 export function MergePdfTool() {
+  useTrackToolView("merge", "Organize");
   const [items, setItems] = useState<Item[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

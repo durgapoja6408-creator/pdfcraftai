@@ -19,6 +19,7 @@ import {
   sha256HexOfBytes,
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
+import { useTrackToolView } from "./useToolTracking";
 
 type Flag = "normal" | "low" | "high" | "critical" | "unknown";
 
@@ -134,6 +135,7 @@ const FLAG_COLOR: Record<Flag, string> = {
 };
 
 export function BloodTestTool() {
+  useTrackToolView("ai-blood-test", "AI");
   const router = useRouter();
   const { status } = useSession();
   const [file, setFile] = useState<File | null>(null);

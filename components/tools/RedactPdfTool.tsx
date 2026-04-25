@@ -34,6 +34,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
 import { classifyAiError } from "@/lib/ai/degradation";
+import { useTrackToolView } from "./useToolTracking";
 
 type PiiCategory =
   | "EMAIL"
@@ -93,6 +94,7 @@ const SIGN_IN_HREF =
   "/login?callbackUrl=" + encodeURIComponent("/tool/ai-redact");
 
 export function RedactPdfTool() {
+  useTrackToolView("ai-redact", "AI");
   const router = useRouter();
   // Anonymous-user gate — swap Run for Sign-in so the PDF isn't uploaded
   // before the server bounces a 401. See SummarizePdfTool for rationale.

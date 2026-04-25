@@ -25,6 +25,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
 import { classifyAiError } from "@/lib/ai/degradation";
+import { useTrackToolView } from "./useToolTracking";
 
 type CompareResult = {
   fileId?: string;
@@ -48,6 +49,7 @@ const SIGN_IN_HREF =
   "/login?callbackUrl=" + encodeURIComponent("/tool/ai-compare");
 
 export function ComparePdfTool() {
+  useTrackToolView("ai-compare", "AI");
   const router = useRouter();
   // Anonymous-user gate: swap the Run button for a Sign-in CTA so the
   // PDFs (two of them! up to 25 MB each) never get uploaded. See

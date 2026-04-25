@@ -11,8 +11,10 @@ import {
   deriveOutputName,
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
+import { useTrackToolView } from "./useToolTracking";
 
 export function CompressPdfTool() {
+  useTrackToolView("compress", "Optimize");
   const [file, setFile] = useState<File | null>(null);
   const [stripMetadata, setStripMetadata] = useState(true);
   const [busy, setBusy] = useState(false);

@@ -25,6 +25,7 @@ import {
   sha256HexOfBytes,
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
+import { useTrackToolView } from "./useToolTracking";
 
 type Experience = {
   title: string;
@@ -162,6 +163,7 @@ function resumeToCsv(r: Resume): string {
 }
 
 export function ResumeParserTool() {
+  useTrackToolView("ai-resume-parse", "AI");
   const router = useRouter();
   const { status } = useSession();
   const [file, setFile] = useState<File | null>(null);

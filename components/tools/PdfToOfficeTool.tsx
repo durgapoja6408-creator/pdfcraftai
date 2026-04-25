@@ -24,6 +24,7 @@ import Link from "next/link";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
+import { useTrackToolView } from "./useToolTracking";
 
 type Format = "docx" | "txt";
 
@@ -56,6 +57,7 @@ type Result = {
 };
 
 export function PdfToOfficeTool() {
+  useTrackToolView("pdf-to-office", "Convert");
   const [file, setFile] = useState<File | null>(null);
   const [format, setFormat] = useState<Format>("docx");
   const [busy, setBusy] = useState(false);

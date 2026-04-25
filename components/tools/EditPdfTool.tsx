@@ -57,6 +57,7 @@ import {
   sha256HexOfBytes,
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
+import { useTrackToolView } from "./useToolTracking";
 
 const RENDER_SCALE = 1.5;
 
@@ -136,6 +137,7 @@ function mapToStandardFont(pdfjsFontName: string): {
 }
 
 export function EditPdfTool() {
+  useTrackToolView("edit-pdf", "Edit");
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
   const [canvasSize, setCanvasSize] = useState<{ w: number; h: number } | null>(null);

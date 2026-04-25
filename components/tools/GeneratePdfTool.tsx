@@ -26,6 +26,7 @@ import { useSession, getSession } from "next-auth/react";
 import { I } from "@/components/icons/Icons";
 import { renderMarkdown } from "@/lib/markdown-mini";
 import { classifyAiError } from "@/lib/ai/degradation";
+import { useTrackToolView } from "./useToolTracking";
 
 // Keep in sync with VALID_DOC_TYPES / VALID_LENGTHS / VALID_TONES in the
 // route handler.
@@ -86,6 +87,7 @@ const SIGN_IN_HREF =
   "/login?callbackUrl=" + encodeURIComponent("/tool/ai-generate");
 
 export function GeneratePdfTool() {
+  useTrackToolView("ai-generate", "AI");
   const router = useRouter();
   // Anonymous-user gate — see SummarizePdfTool for the full rationale.
   const { status: sessionStatus } = useSession();

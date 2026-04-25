@@ -27,6 +27,7 @@ import {
   sha256HexOfBytes,
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
+import { useTrackToolView } from "./useToolTracking";
 
 type Loaded = {
   file: File;
@@ -45,6 +46,7 @@ type Margins = {
 const ZERO_MARGINS: Margins = { top: 0, right: 0, bottom: 0, left: 0 };
 
 export function CropPdfTool() {
+  useTrackToolView("crop-pdf", "Edit");
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [margins, setMargins] = useState<Margins>(ZERO_MARGINS);
   const [busy, setBusy] = useState(false);

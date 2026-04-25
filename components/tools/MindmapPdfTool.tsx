@@ -26,6 +26,7 @@ import {
   sha256HexOfBytes,
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
+import { useTrackToolView } from "./useToolTracking";
 
 type TreeNode = {
   label: string;
@@ -151,6 +152,7 @@ function TreeList({ nodes, depth = 0 }: { nodes: TreeNode[]; depth?: number }) {
 }
 
 export function MindmapPdfTool() {
+  useTrackToolView("ai-mindmap", "AI");
   const router = useRouter();
   const { status } = useSession();
   const [file, setFile] = useState<File | null>(null);

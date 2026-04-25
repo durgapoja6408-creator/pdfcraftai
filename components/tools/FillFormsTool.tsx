@@ -38,6 +38,7 @@ import {
   sha256HexOfBytes,
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
+import { useTrackToolView } from "./useToolTracking";
 
 type FieldDescriptor =
   | { kind: "text"; name: string; initial: string; multiline: boolean }
@@ -56,6 +57,7 @@ type Loaded = {
 type Values = Record<string, string | boolean | string[]>;
 
 export function FillFormsTool() {
+  useTrackToolView("fill-forms", "Edit");
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [values, setValues] = useState<Values>({});
   const [flatten, setFlatten] = useState(false);

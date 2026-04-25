@@ -43,6 +43,7 @@ import {
   deriveOutputName,
 } from "@/lib/client/pdf-utils";
 import { classifyAiError } from "@/lib/ai/degradation";
+import { useTrackToolView } from "./useToolTracking";
 
 // Server constants duplicated; see OcrPdfTool for rationale.
 const CLIENT_MAX_OCR_PAGES = 50;
@@ -180,6 +181,7 @@ function overlayInvisibleText(
 }
 
 export function SearchablePdfTool() {
+  useTrackToolView("ai-searchable-pdf", "AI");
   const router = useRouter();
   const { status: sessionStatus } = useSession();
   const isAnonymous = sessionStatus === "unauthenticated";

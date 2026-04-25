@@ -24,6 +24,7 @@ import {
   sha256HexOfBytes,
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
+import { useTrackToolView } from "./useToolTracking";
 
 type Loaded = {
   file: File;
@@ -33,6 +34,7 @@ type Loaded = {
 };
 
 export function FlattenPdfTool() {
+  useTrackToolView("flatten-pdf", "Optimize");
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

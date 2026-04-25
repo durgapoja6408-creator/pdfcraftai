@@ -42,6 +42,7 @@ import {
   sha256HexOfBytes,
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
+import { useTrackToolView } from "./useToolTracking";
 
 type BeforeSnapshot = {
   title: string | null;
@@ -56,6 +57,7 @@ type BeforeSnapshot = {
 };
 
 export function RemoveMetadataTool() {
+  useTrackToolView("remove-metadata", "Security");
   const [loaded, setLoaded] = useState<{ file: File; snapshot: BeforeSnapshot } | null>(
     null
   );

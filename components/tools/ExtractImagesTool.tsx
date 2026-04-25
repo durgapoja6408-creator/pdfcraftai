@@ -20,6 +20,7 @@ import { PDFDocument } from "pdf-lib";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
+import { useTrackToolView } from "./useToolTracking";
 
 type ExtractedImage = {
   id: string;
@@ -37,6 +38,7 @@ type Loaded = {
 };
 
 export function ExtractImagesTool() {
+  useTrackToolView("extract-images", "Convert");
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

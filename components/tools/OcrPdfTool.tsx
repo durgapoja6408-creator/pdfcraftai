@@ -42,6 +42,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
 import { classifyAiError } from "@/lib/ai/degradation";
+import { useTrackToolView } from "./useToolTracking";
 
 // Keep in sync with server-side `MAX_OCR_PAGES` in lib/ai/ocr.ts.
 // We can't import the server module (it's "server-only"), so the
@@ -69,6 +70,7 @@ const SIGN_IN_HREF =
   "/login?callbackUrl=" + encodeURIComponent("/tool/ai-ocr");
 
 export function OcrPdfTool() {
+  useTrackToolView("ai-ocr", "AI");
   const router = useRouter();
   // Anonymous-user gate: swap the Run button for a Sign-in CTA so the
   // PDF never gets uploaded. See SummarizePdfTool for the full rationale.

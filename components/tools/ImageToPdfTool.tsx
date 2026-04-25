@@ -10,6 +10,7 @@ import {
   sha256HexOfBytes,
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
+import { useTrackToolView } from "./useToolTracking";
 
 /**
  * ImageToPdfTool — in-browser image → PDF runner, no upload.
@@ -48,6 +49,7 @@ const LETTER_PT = { w: 612, h: 792 } as const;
 const A4_PT = { w: 595.28, h: 841.89 } as const;
 
 export function ImageToPdfTool() {
+  useTrackToolView("to-pdf", "Convert");
   const [items, setItems] = useState<Item[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -30,6 +30,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { classifyAiError } from "@/lib/ai/degradation";
 import { renderMarkdown } from "@/lib/markdown-mini";
+import { useTrackToolView } from "./useToolTracking";
 
 // Keep in sync with VALID_MODES in /api/ai/rewrite/route.ts.
 type Mode = "simplify" | "formal" | "casual" | "concise" | "expand";
@@ -86,6 +87,7 @@ const SIGN_IN_HREF =
   "/login?callbackUrl=" + encodeURIComponent("/tool/ai-rewrite");
 
 export function RewritePdfTool() {
+  useTrackToolView("ai-rewrite", "AI");
   const router = useRouter();
   // Anonymous-user gate — swap Run for Sign-in so the PDF isn't uploaded
   // before the server bounces a 401. See SummarizePdfTool for rationale.

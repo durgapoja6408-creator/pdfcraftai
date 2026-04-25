@@ -23,6 +23,7 @@ import { useSession, getSession } from "next-auth/react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
+import { useTrackToolView } from "./useToolTracking";
 
 type Passage = {
   passage: string;
@@ -64,6 +65,7 @@ function asPassages(arr: unknown[]): Passage[] {
 }
 
 export function SemanticSearchPdfTool() {
+  useTrackToolView("ai-semantic-search", "AI");
   const router = useRouter();
   const { status } = useSession();
   const [file, setFile] = useState<File | null>(null);

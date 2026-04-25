@@ -31,6 +31,7 @@ import {
   sha256HexOfBytes,
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
+import { useTrackToolView } from "./useToolTracking";
 
 type Loaded = {
   file: File;
@@ -39,6 +40,7 @@ type Loaded = {
 };
 
 export function ExtractPagesTool() {
+  useTrackToolView("extract-pages", "Organize");
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [spec, setSpec] = useState("");
   const [busy, setBusy] = useState(false);

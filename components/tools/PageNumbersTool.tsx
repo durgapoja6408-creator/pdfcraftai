@@ -11,6 +11,7 @@ import {
   deriveOutputName,
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
+import { useTrackToolView } from "./useToolTracking";
 
 type Mode = "numbers" | "watermark";
 type Position =
@@ -33,6 +34,7 @@ const POSITIONS: Array<{ id: Position; label: string }> = [
 ];
 
 export function PageNumbersTool() {
+  useTrackToolView("page-numbers", "Edit");
   const [file, setFile] = useState<File | null>(null);
   const [pageCount, setPageCount] = useState<number | null>(null);
   const [mode, setMode] = useState<Mode>("numbers");

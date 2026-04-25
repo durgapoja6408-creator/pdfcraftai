@@ -37,6 +37,7 @@ import {
   sha256HexOfBytes,
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
+import { useTrackToolView } from "./useToolTracking";
 
 type PaperSize = {
   id: string;
@@ -65,6 +66,7 @@ type Loaded = {
 };
 
 export function ResizePdfTool() {
+  useTrackToolView("resize-pdf", "Edit");
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [targetId, setTargetId] = useState<string>("a4");
   const [fit, setFit] = useState<FitMode>("scale");

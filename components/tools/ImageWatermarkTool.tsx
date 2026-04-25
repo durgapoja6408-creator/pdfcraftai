@@ -39,6 +39,7 @@ import {
   sha256HexOfBytes,
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
+import { useTrackToolView } from "./useToolTracking";
 
 type Position =
   | "top-left"
@@ -68,6 +69,7 @@ type LoadedImage = {
 };
 
 export function ImageWatermarkTool() {
+  useTrackToolView("image-watermark", "Edit");
   const [pdf, setPdf] = useState<Loaded | null>(null);
   const [img, setImg] = useState<LoadedImage | null>(null);
 

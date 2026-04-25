@@ -35,6 +35,7 @@ import {
   deriveOutputName,
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
+import { useTrackToolView } from "./useToolTracking";
 
 type Mode = "protect" | "unlock";
 
@@ -67,6 +68,7 @@ function loadCantoo(): Promise<CantooModule> {
 }
 
 export function ProtectPdfTool() {
+  useTrackToolView("protect", "Security");
   const [file, setFile] = useState<File | null>(null);
   const [mode, setMode] = useState<Mode>("protect");
   const [password, setPassword] = useState("");
