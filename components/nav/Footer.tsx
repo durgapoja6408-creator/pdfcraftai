@@ -30,6 +30,7 @@ const COLS: Col[] = [
       ["About", "/about"],
       ["Blog", "/blog"],
       ["Help", "/help"],
+      ["Alternatives", "/alternatives"],
       ["Careers", "/careers"],
       ["Contact", "/contact"],
       ["Status", "/status"],

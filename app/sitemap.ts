@@ -4,6 +4,7 @@ import { BLOG_POSTS } from "@/lib/blog-posts";
 import { SEO_SLUGS } from "@/lib/seo-pages";
 import { LEGAL_SLUGS } from "@/lib/legal-docs";
 import { ALL_HELP_ARTICLES } from "@/lib/help-topics";
+import { COMPETITOR_SLUGS } from "@/lib/alternatives";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://pdfcraftai.com";
@@ -60,6 +61,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.5,
   }));
 
+  // SEO Ship #3 (2026-04-25): comparison ("alternative to X") pages.
+  // Priority 0.85 because these are decision-stage pages with the
+  // highest conversion intent — higher than head-term landings.
+  const alternativeIndexRoute: MetadataRoute.Sitemap = [
+    {
+      url: `${SITE_URL}/alternatives`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+  ];
+  const alternativeRoutes: MetadataRoute.Sitemap = COMPETITOR_SLUGS.map((s) => ({
+    url: `${SITE_URL}/alternatives/${s}`,
+    lastModified: now,
+    changeFrequency: "monthly",
+    priority: 0.85,
+  }));
+
   return [
     ...staticRoutes,
     ...toolRoutes,
@@ -67,5 +86,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...blogRoutes,
     ...legalRoutes,
     ...helpRoutes,
+    ...alternativeIndexRoute,
+    ...alternativeRoutes,
   ];
 }
