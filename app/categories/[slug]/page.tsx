@@ -110,7 +110,7 @@ export default function CategoryPage({ params }: Props) {
       <section style={{ padding: "20px 0 60px" }}>
         <div className="container-x" style={{ padding: "0 28px", maxWidth: 1080 }}>
           <h2 style={{ fontSize: 24, marginBottom: 16 }}>
-            All {tools.length} {cat.group.toLowerCase()} tools
+            All {tools.length} {displayCategory(cat.group)} tools
           </h2>
           <div
             style={{
@@ -171,11 +171,18 @@ export default function CategoryPage({ params }: Props) {
               marginBottom: 16,
             }}
           >
-            When to reach for {cat.group.toLowerCase()} tools
+            When to reach for {displayCategory(cat.group)} tools
           </h2>
           <p style={{ fontSize: 16, lineHeight: 1.7 }}>{cat.body}</p>
         </div>
       </section>
     </main>
   );
+}
+
+// "AI" stays uppercase. Other category names lowercase nicely
+// ("Organize" → "organize"). Keeps headings readable.
+function displayCategory(group: string): string {
+  if (group === "AI") return "AI";
+  return group.toLowerCase();
 }

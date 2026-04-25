@@ -110,7 +110,7 @@ export function AlternativePage({ data }: { data: CompetitorData }) {
             {data.name} alternative · honest comparison
           </div>
           <h1 style={{ fontSize: 56, letterSpacing: "-0.03em", lineHeight: 1.05, marginBottom: 20 }}>
-            Looking for a {data.name} alternative?
+            Looking for {indefiniteArticle(data.name)} {data.name} alternative?
           </h1>
           <p className="muted" style={{ fontSize: 19, lineHeight: 1.55, marginBottom: 28 }}>
             {data.oneLine} Here is an honest side-by-side comparison so you can decide whether to switch, stay, or use both.
@@ -469,6 +469,18 @@ export function AlternativePage({ data }: { data: CompetitorData }) {
       </section>
     </main>
   );
+}
+
+// "a iLovePDF" reads wrong — pronounced "eye-Love-PDF", starts with a
+// vowel sound. We can't rely on first-letter alone (Adobe = vowel, PDF24
+// = consonant 'pee', etc.) so this is a per-name lookup.
+function indefiniteArticle(name: string): "a" | "an" {
+  // Names that pronounce starting with a vowel sound take "an".
+  const VOWEL_SOUND = new Set([
+    "iLovePDF",     // "eye-Love-PDF"
+    "Adobe Acrobat", // "Adobe" starts with vowel
+  ]);
+  return VOWEL_SOUND.has(name) ? "an" : "a";
 }
 
 function CellValue({ value }: { value: string | boolean }) {
