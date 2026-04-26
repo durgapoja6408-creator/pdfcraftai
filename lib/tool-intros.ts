@@ -211,4 +211,75 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
     text: "What you'll get: word, character, and sentence count for any PDF. Useful for translation cost estimates and academic submission limits.",
     related: { id: "page-count", label: "Page & Word Count" },
   },
+
+  // --------- AI tools with dedicated runners (no SummarizeVariantTool) ---------
+  // These tools each ship their own component (SummarizePdfTool,
+  // TranslatePdfTool, etc.) instead of using SummarizeVariantTool, so
+  // they don't carry a `pricingBlurb` prop. Adding entries here gives
+  // the runner page a panel to render via ToolIntroPanel — same UX as
+  // the variant-template AI tools.
+  "ai-summarize": {
+    text: "What you'll get: an executive summary plus per-section bullets, each cited to a source page. Best for reports, papers, and long memos. 3 credits per PDF.",
+    related: { id: "ai-tldr", label: "AI · TL;DR Generator" },
+  },
+  "ai-tldr": {
+    text: "What you'll get: a single-paragraph executive summary — fast, cheap, and precise. The cheapest way to triage a long PDF. 2 credits per PDF.",
+    related: { id: "ai-summarize", label: "AI · Summarize PDF" },
+  },
+  "ai-translate": {
+    text: "What you'll get: a fully translated PDF with layout preserved — paragraphs, headings, tables, and lists kept intact. 30+ languages. 5 credits per PDF.",
+    related: { id: "ai-ocr", label: "AI · PDF OCR" },
+  },
+  "ai-compare": {
+    text: "What you'll get: a side-by-side diff of two PDFs with added / removed / changed text highlighted, plus a plain-language summary of what changed. 6 credits per pair.",
+    related: { id: "ai-redact", label: "AI · Redact PDF" },
+  },
+  "ai-ocr": {
+    text: "What you'll get: a searchable, copyable PDF — scanned pages run through OCR with the original layout preserved as an invisible text layer behind the image. 4 credits per PDF.",
+    related: { id: "ai-searchable-pdf", label: "AI · Make Searchable" },
+  },
+  "ai-rewrite": {
+    text: "What you'll get: your PDF's text rewritten in the tone you pick (formal / casual / clearer / shorter / academic). Layout preserved. 5 credits per PDF.",
+    related: { id: "ai-summarize", label: "AI · Summarize PDF" },
+  },
+  "ai-table": {
+    text: "What you'll get: every table in your PDF extracted as structured CSV / Excel — column headers detected, merged cells normalized, footnote refs stripped. 5 credits per PDF.",
+    related: { id: "pdf-to-office", label: "PDF to Excel (free)" },
+  },
+  "ai-redact": {
+    text: "What you'll get: your PDF with names, emails, phone numbers, addresses, IDs, and other PII detected and blacked out. Custom regex patterns supported. 5 credits per PDF.",
+    related: { id: "redact-free", label: "Free Redact (manual)" },
+  },
+  "ai-generate": {
+    text: "What you'll get: a brand-new PDF generated from your prompt — pitch decks, contracts, reports, briefs. Cite sources to ground the output. 10 credits per PDF.",
+    related: { id: "ai-summarize", label: "AI · Summarize PDF" },
+  },
+  "ai-sign": {
+    text: "What you'll get: an AI-placed signature on the right page in the right field — uploaded signature image fitted, signing date stamped, audit trail logged. 3 credits per signature.",
+    related: { id: "sign-pdf-free", label: "Free Sign PDF (manual)" },
+  },
+  "ai-mindmap": {
+    text: "What you'll get: an interactive mind map of your PDF's main ideas — central topic, branches per section, leaf nodes for key points. Exportable as PNG / SVG / Markdown. 6 credits per PDF.",
+    related: { id: "ai-study-notes", label: "AI · Study Notes" },
+  },
+  "ai-blood-test": {
+    text: "What you'll get: structured tables of your blood-test results with reference ranges, out-of-range flags, and plain-language explanations of what each marker means. 5 credits per report.",
+    related: { id: "ai-summarize", label: "AI · Summarize PDF" },
+  },
+  "ai-resume-parse": {
+    text: "What you'll get: structured JSON of your resume — name, contact, work history, education, skills, certifications. Ready to push into your ATS. 4 credits per resume.",
+    related: { id: "ai-ats-resume", label: "AI · ATS Resume Optimizer" },
+  },
+  "ai-searchable-pdf": {
+    text: "What you'll get: a scanned PDF made fully searchable and copyable — OCR text layer added behind the original page images, no visual changes. 4 credits per PDF.",
+    related: { id: "ai-ocr", label: "AI · PDF OCR" },
+  },
+  "ai-semantic-search": {
+    text: "What you'll get: search-by-meaning across one or many PDFs — finds concepts even when keywords don't match. Each hit cited to the source page. 5 credits per index build.",
+    related: { id: "ai-chat", label: "AI · Chat with PDF" },
+  },
+  "ai-chat": {
+    text: "What you'll get: an interactive chat over your PDF — ask anything in plain English, get answers grounded in the document with page citations. ~5 credits per question.",
+    related: { id: "ai-summarize", label: "AI · Summarize PDF" },
+  },
 };

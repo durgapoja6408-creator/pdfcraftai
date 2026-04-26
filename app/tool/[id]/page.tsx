@@ -353,8 +353,16 @@ export default function ToolRunnerPage({ params }: Params) {
               cross-tool linking, and gives Google more on-page content
               so /tool/[id] pages don't read as "thin" to quality raters.
               Pulls from lib/tool-intros.ts; absent entry = nothing
-              renders (graceful for tools without an intro yet). */}
-          {tool.free && TOOL_INTROS[tool.id] && (
+              renders (graceful for tools without an intro yet).
+              Bundle D: dropped the `tool.free` gate so AI tools that
+              ship dedicated runners (SummarizePdfTool, TranslatePdfTool,
+              ComparePdfTool, OcrPdfTool, MindmapPdfTool, BloodTestTool,
+              ResumeParserTool, SemanticSearchPdfTool, SearchablePdfTool,
+              SignPdfFreeTool — 16 in total) also get the panel. The 36
+              AI tools that already render `pricingBlurb` inside their
+              SummarizeVariantTool component are omitted from TOOL_INTROS
+              to avoid duplicate panels — graceful degradation built in. */}
+          {TOOL_INTROS[tool.id] && (
             <ToolIntroPanel id={tool.id} />
           )}
 
