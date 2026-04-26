@@ -21,6 +21,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/blog`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: `${SITE_URL}/help`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE_URL}/api`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    // Bundle G4 (2026-04-26): coverage gap fix. These pages are linked
+    // from the global Footer + render via MarketingChrome (so they
+    // share nav, ads, JSON-LD, etc.) but were absent from the sitemap.
+    // Result: Googlebot could only find them via internal-link crawl —
+    // never as first-class sitemap entries with a recommended priority.
+    // Adding them so Search Console treats them as indexable surfaces.
+    { url: `${SITE_URL}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${SITE_URL}/agent`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/macros`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/bulk`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/changelog`, lastModified: now, changeFrequency: "weekly", priority: 0.5 },
+    { url: `${SITE_URL}/contact`, lastModified: now, changeFrequency: "yearly", priority: 0.4 },
+    { url: `${SITE_URL}/careers`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${SITE_URL}/status`, lastModified: now, changeFrequency: "weekly", priority: 0.3 },
+    // Legal pages — low priority but indexable per Google's
+    // E-E-A-T expectation that consumer-facing sites publish them.
+    { url: `${SITE_URL}/cookies`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${SITE_URL}/gdpr`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
     // Launch-waitlist permalink (Task #3 sub-item 4b). Utility page: the
     // page itself sets `robots: { index: false }`, but we still list it
     // here so the path is a first-class sitemap entry for crawlers that
