@@ -434,15 +434,14 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
         </section>
       )}
 
-      {/* ===== AdSlot — only on landings WITH longform content
-          (the head-term pages with substantial body). Renders between
-          the Why-pdfcraft / longform sections and the social-proof
-          Reviews section. House promo today, AdSense when active. =====*/}
-      {data.longform && (
-        <div className="container-x" style={{ padding: "0 28px", maxWidth: 760 }}>
-          <AdSlot slot="seo-landing-mid" context={tool.id} />
-        </div>
-      )}
+      {/* ===== AdSlot — renders on EVERY SEO landing (Bundle E
+          dropped the data.longform gate so the ~70 SEO landings without
+          longform content also get the slot). Renders between the
+          Why-pdfcraft / longform sections and the social-proof Reviews
+          section. House promo today, AdSense when active. =====*/}
+      <div className="container-x" style={{ padding: "0 28px", maxWidth: 760 }}>
+        <AdSlot slot="seo-landing-mid" context={tool.id} />
+      </div>
 
       {/* ===== Reviews (SEO Ship #7) ===== */}
       <ReviewSection topic={tool.id} />

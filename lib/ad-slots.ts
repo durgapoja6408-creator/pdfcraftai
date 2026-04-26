@@ -149,6 +149,69 @@ export const AD_SLOTS: Record<
       href: "/tool/ai-chat",
     },
   },
+
+  // Bundle E (2026-04-26): /tools catalog page (high-traffic SEO
+  // landing for users browsing the full tool grid).
+  "tools-catalog": {
+    default: {
+      eyebrow: "Save your favourite chains",
+      headline: "Turn 3-step workflows into 1-click Macros",
+      body: "Combine any tools — merge → compress → translate — and re-run them on a folder of PDFs.",
+      cta: "Learn about Macros",
+      href: "/macros",
+    },
+  },
+
+  // Bundle E (2026-04-26): bottom of every /tool/[id] runner page,
+  // between reassurance row and Related Tools section. Context = tool id
+  // so we can promote a complementary tool ("you're using merge → try
+  // split", "you're using compress → try AI summarize").
+  "tool-runner-end": {
+    default: {
+      eyebrow: "Try this next",
+      headline: "Chat with any PDF — 5 questions free",
+      body: "Upload a PDF, ask questions in plain English. Every answer cites the page it came from.",
+      cta: "Try Chat with PDF",
+      href: "/tool/ai-chat",
+    },
+    byContext: {
+      merge: {
+        eyebrow: "Used Merge? Try Split",
+        headline: "Pull out specific page ranges as separate files",
+        body: "Inverse of merge — useful for sending just chapter 4, or splitting bank-statement PDFs by month.",
+        cta: "Open Split PDF",
+        href: "/tool/split",
+      },
+      split: {
+        eyebrow: "Used Split? Try Merge",
+        headline: "Combine the pieces back into one document",
+        body: "Drag, drop, reorder. Bookmarks and hyperlinks reconciled to the new page numbers.",
+        cta: "Open Merge PDFs",
+        href: "/tool/merge",
+      },
+      compress: {
+        eyebrow: "Already compressed? Summarize next",
+        headline: "Get the gist without reading the whole thing",
+        body: "AI Summarize gives an executive summary plus per-section bullets, each cited by page.",
+        cta: "Try AI Summarize",
+        href: "/tool/ai-summarize",
+      },
+      "pdf-to-office": {
+        eyebrow: "Going beyond conversion",
+        headline: "Extract just the tables as Excel",
+        body: "AI Table reads tables visually and gives you a clean .xlsx — no manual cleanup.",
+        cta: "Try AI Table",
+        href: "/tool/ai-table",
+      },
+      "ai-summarize": {
+        eyebrow: "Going deeper",
+        headline: "Ask follow-up questions instead",
+        body: "Chat with PDF gives you the same retrieval pipeline — keep digging until you have what you need.",
+        cta: "Open Chat with PDF",
+        href: "/tool/ai-chat",
+      },
+    },
+  },
 };
 
 /**

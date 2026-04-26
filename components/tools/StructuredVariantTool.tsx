@@ -326,12 +326,9 @@ export function StructuredVariantTool(props: {
         </div>
       )}
 
-      <div
-        className="card"
-        style={{ padding: 14, fontSize: 13, lineHeight: 1.5, background: "var(--bg-2)" }}
-      >
-        {props.pricingBlurb}
-      </div>
+      {/* Bundle E (2026-04-26): pricingBlurb panel removed — see
+          SummarizeVariantTool.tsx for the full rationale. The text now
+          renders once at the top of the runner page via TOOL_INTROS. */}
 
       {error && <p role="alert" style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>{error}</p>}
 

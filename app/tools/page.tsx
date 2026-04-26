@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { I } from "@/components/icons/Icons";
 import { ToolFilter } from "@/components/marketing/ToolFilter";
+import { AdSlot } from "@/components/marketing/AdSlot";
 import { TOOL_STATS } from "@/lib/tools";
 
 const META_DESC_SHORT = `Every PDF tool you need. ${TOOL_STATS.free} free forever, ${TOOL_STATS.ai} AI-powered.`;
@@ -76,6 +77,15 @@ export default function ToolsPage() {
           </Link>
 
           <ToolFilter />
+
+          {/* Bundle E (2026-04-26): house promo (or AdSense, when active)
+              after the tool grid. /tools is one of the highest-traffic
+              SEO landing pages on the site — adding a slot here gives
+              first-time visitors who scroll the full grid one curated
+              suggestion before they bounce. */}
+          <div style={{ marginTop: 40 }}>
+            <AdSlot slot="tools-catalog" />
+          </div>
         </div>
       </section>
 

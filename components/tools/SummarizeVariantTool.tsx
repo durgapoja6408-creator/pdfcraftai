@@ -337,22 +337,14 @@ export function SummarizeVariantTool(props: {
         </div>
       )}
 
-      <div
-        className="card"
-        style={{ padding: 14, fontSize: 13, lineHeight: 1.5, background: "var(--bg-2)" }}
-      >
-        {props.pricingBlurb}
-        {props.relatedHref && (
-          <>
-            {" "}
-            Also consider{" "}
-            <Link href={props.relatedHref.href} style={{ color: "var(--accent)" }}>
-              {props.relatedHref.label}
-            </Link>
-            .
-          </>
-        )}
-      </div>
+      {/* Bundle E (2026-04-26): pricingBlurb panel removed from inside the
+          runner. Now rendered ONCE at the top of /tool/[id]/page.tsx via
+          ToolIntroPanel + TOOL_INTROS, so all 95 tools (free + AI) show
+          the same descriptive panel in the same place. The pricingBlurb
+          + relatedHref props are kept on the type signature so
+          existing call sites still type-check, but the panel is no
+          longer rendered here — the variant-template AI tools'
+          pricingBlurb texts have been migrated into TOOL_INTROS. */}
 
       {error && (
         <p role="alert" style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>

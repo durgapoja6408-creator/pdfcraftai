@@ -55,7 +55,14 @@ export type AdSlotName =
   | "article-end"
   | "alternative-end"
   | "use-case-end"
-  | "seo-landing-mid";
+  | "seo-landing-mid"
+  // Bundle E (2026-04-26): expanded coverage to high-traffic page types
+  // that lacked an ad slot.
+  // tools-catalog → /tools index page (95-card grid; high SEO traffic).
+  // tool-runner-end → /tool/[id] runner pages, between reassurance row
+  // and Related Tools section. Non-intrusive, away from primary action.
+  | "tools-catalog"
+  | "tool-runner-end";
 
 export function adsenseSlotId(slot: AdSlotName): string | null {
   const envName = {
@@ -63,6 +70,8 @@ export function adsenseSlotId(slot: AdSlotName): string | null {
     "alternative-end": "GOOGLE_ADSENSE_SLOT_ALTERNATIVE_END",
     "use-case-end": "GOOGLE_ADSENSE_SLOT_USE_CASE_END",
     "seo-landing-mid": "GOOGLE_ADSENSE_SLOT_SEO_LANDING_MID",
+    "tools-catalog": "GOOGLE_ADSENSE_SLOT_TOOLS_CATALOG",
+    "tool-runner-end": "GOOGLE_ADSENSE_SLOT_TOOL_RUNNER_END",
   }[slot];
   return process.env[envName]?.trim() || null;
 }

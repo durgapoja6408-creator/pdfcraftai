@@ -5,6 +5,7 @@ import { I } from "@/components/icons/Icons";
 import { TOOLS, toolById } from "@/lib/tools";
 import { TOOL_INTROS } from "@/lib/tool-intros";
 import { findSeoForTool } from "@/lib/seo-pages";
+import { AdSlot } from "@/components/marketing/AdSlot";
 import { MergePdfTool } from "@/components/tools/MergePdfTool";
 import { SplitPdfTool } from "@/components/tools/SplitPdfTool";
 import { RotatePdfTool } from "@/components/tools/RotatePdfTool";
@@ -339,31 +340,34 @@ export default function ToolRunnerPage({ params }: Params) {
             </div>
           </div>
 
+          {/* Bundle E (2026-04-26): single, standardized "what you'll get"
+              panel placement. Renders at the TOP of the action area —
+              between the page heading and the dropzone — so users read
+              the description BEFORE uploading or clicking the action
+              button (an expectation-setter, not a postscript).
+              Bundle B placed this BELOW the runner. Bundle E moves it
+              ABOVE the dropzone for two reasons:
+                1. UX: users absorb "what they're about to do" before
+                   committing the action.
+                2. Consistency: variant-template AI tools had their own
+                   pricingBlurb panel rendered ABOVE the action button
+                   inside the runner — putting ToolIntroPanel here
+                   matches that visual position now that pricingBlurb
+                   has been removed (see SummarizeVariantTool.tsx).
+              All 95 tools now render the panel from the same source
+              (TOOL_INTROS) in the same DOM position. */}
+          {TOOL_INTROS[tool.id] && (
+            <div style={{ marginTop: 24 }}>
+              <ToolIntroPanel id={tool.id} />
+            </div>
+          )}
+
           {isLive ? (
-            <div style={{ marginTop: 32 }}>
+            <div style={{ marginTop: 24 }}>
               <ToolRunner id={tool.id} />
             </div>
           ) : (
             <ComingSoonRunner phaseLabel={tool.free ? "PHASE 3" : "PHASE 5"} />
-          )}
-
-          {/* Descriptive intro panel — fixes the inconsistency where AI
-              tools had a `pricingBlurb` panel and free tools had nothing.
-              Standardizes the on-page UX across all tools, adds inline
-              cross-tool linking, and gives Google more on-page content
-              so /tool/[id] pages don't read as "thin" to quality raters.
-              Pulls from lib/tool-intros.ts; absent entry = nothing
-              renders (graceful for tools without an intro yet).
-              Bundle D: dropped the `tool.free` gate so AI tools that
-              ship dedicated runners (SummarizePdfTool, TranslatePdfTool,
-              ComparePdfTool, OcrPdfTool, MindmapPdfTool, BloodTestTool,
-              ResumeParserTool, SemanticSearchPdfTool, SearchablePdfTool,
-              SignPdfFreeTool — 16 in total) also get the panel. The 36
-              AI tools that already render `pricingBlurb` inside their
-              SummarizeVariantTool component are omitted from TOOL_INTROS
-              to avoid duplicate panels — graceful degradation built in. */}
-          {TOOL_INTROS[tool.id] && (
-            <ToolIntroPanel id={tool.id} />
           )}
 
           {/* Reassurance row */}
@@ -410,6 +414,17 @@ export default function ToolRunnerPage({ params }: Params) {
                 body="Credits never expire. Cancel anytime."
               />
             )}
+          </div>
+
+          {/* Bundle E (2026-04-26): house promo (or AdSense, when active)
+              between the reassurance cards and Related Tools section.
+              Non-intrusive — well below the primary action. Context is
+              the tool id so we surface a complementary tool ("used
+              merge → try split", "used compress → try AI summarize").
+              Falls back to the slot's default promo for tools without
+              a context-specific entry in lib/ad-slots.ts. */}
+          <div style={{ marginTop: 32 }}>
+            <AdSlot slot="tool-runner-end" context={tool.id} />
           </div>
 
           {/* Related tools — same-group siblings. Improves on-page
