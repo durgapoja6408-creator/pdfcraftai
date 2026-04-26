@@ -573,7 +573,8 @@ export function SignPdfTool() {
             disabled={busy || !canSubmit}
             onClick={run}
           >
-            {busy ? "Filling…" : "Fill & sign — 10 credits"}
+            {/* Bundle G5: lib/tools.ts canonical "~10 credits per doc" — preserve ~. */}
+            {busy ? "Filling…" : "Fill & sign — ~10 credits"}
           </button>
         )}
       </div>

@@ -270,7 +270,9 @@ export function TableExtractTool() {
             disabled={busy || !file}
             onClick={run}
           >
-            {busy ? "Extracting…" : "Extract tables — 3 credits"}
+            {/* Bundle G5: lib/tools.ts canonical "~3 credits per table" — table-billed,
+                so formatActionCost() preserves the unit since table count varies per upload. */}
+            {busy ? "Extracting…" : "Extract tables — ~3 credits / table"}
           </button>
         )}
       </div>

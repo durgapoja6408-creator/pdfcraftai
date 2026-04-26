@@ -364,7 +364,9 @@ export function RewritePdfTool() {
             disabled={busy || !file}
             onClick={run}
           >
-            {busy ? "Rewriting…" : "Rewrite — 3 credits"}
+            {/* Bundle G5: lib/tools.ts canonical "~3 credits per page" — page-billed,
+                so formatActionCost() preserves the unit so users know it scales. */}
+            {busy ? "Rewriting…" : "Rewrite — ~3 credits / page"}
           </button>
         )}
       </div>

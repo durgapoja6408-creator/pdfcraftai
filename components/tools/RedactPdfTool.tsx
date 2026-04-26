@@ -332,7 +332,10 @@ export function RedactPdfTool() {
             disabled={busy || !file}
             onClick={run}
           >
-            {busy ? "Redacting…" : "Redact PDF — 5 credits"}
+            {/* Bundle G5 (2026-04-26): was "5 credits" — wrong number AND wrong unit.
+                lib/tools.ts canonical: "~2 credits per page". formatActionCost() output
+                for per-page billing keeps the unit (page count varies per upload). */}
+            {busy ? "Redacting…" : "Redact PDF — ~2 credits / page"}
           </button>
         )}
       </div>

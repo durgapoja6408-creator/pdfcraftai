@@ -398,7 +398,9 @@ export function GeneratePdfTool() {
             disabled={busy || prompt.trim().length === 0}
             onClick={run}
           >
-            {busy ? "Generating…" : "Generate PDF — 20 credits"}
+            {/* Bundle G5: lib/tools.ts canonical "~20 credits per doc" — preserve the
+                ~ marker so users know this is an estimate, not exact. */}
+            {busy ? "Generating…" : "Generate PDF — ~20 credits"}
           </button>
         )}
       </div>

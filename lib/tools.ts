@@ -151,3 +151,51 @@ export const TOOL_STATS = {
   free: TOOLS.filter((t) => t.free).length,
   ai: TOOLS.filter((t) => !t.free).length,
 } as const;
+
+/**
+ * Bundle G5 (2026-04-26) — single source of truth for cost display on
+ * action buttons. Pre-G5, every AI tool component hardcoded its own
+ * button label like `"Summarize — 3 credits"` as a literal string,
+ * which meant the heading chip (which derives from `tool.cost` —
+ * "AI · 3 credits per doc") and the button could drift independently.
+ * The user-visible bug: chip said "3 CREDITS PER DOC", button said
+ * "3 credits", and credit cost may actually vary for some tools
+ * (per-page, per-question, per-table billing) but the hardcoded
+ * button gave no honest signal of variability.
+ *
+ * This helper returns the canonical short cost string for a button:
+ *   - free tool                 → null  (caller should render no cost)
+ *   - fixed per-call AI         → "3 credits"
+ *   - variable per-doc          → "~3 credits" (preserves the ~ marker
+ *                                 so buttons honestly signal estimate)
+ *   - per-unit billed (page/Q)  → "~2 credits / page" (preserves unit)
+ *
+ * Usage:
+ *   <button>{busy ? "Summarizing…" : `Summarize — ${formatActionCost(tool)}`}</button>
+ *
+ * Why drop "per doc" for fixed-per-doc tools: the action verb
+ * implies one document already (you click "Summarize" once per
+ * upload). Keeping "per X" only when X varies (page, question,
+ * table) is the honest middle ground — short for the common case,
+ * informative when it matters.
+ */
+export function formatActionCost(tool: Tool): string | null {
+  if (tool.free || !tool.cost) return null;
+  // tool.cost example shapes:
+  //   "3 credits per doc"         → "3 credits"      (drop "per doc")
+  //   "~5 credits per Q"          → "~5 credits"     (drop "per Q" — Q == 1 question per click)
+  //   "~2 credits per page"       → "~2 credits / page"  (preserve)
+  //   "~3 credits per table"      → "~3 credits / table" (preserve)
+  //   "15 credits per diff"       → "15 credits"     (one click = one diff)
+  //   "10 credits per resume"     → "10 credits"
+  const COLLAPSE_UNITS = new Set([
+    "doc", "summary", "diff", "letter", "slip",
+    "paper", "policy", "bundle", "deed", "contract",
+    "NDA", "syllabus", "resume", "report", "Q",
+  ]);
+  const m = tool.cost.match(/^(~?\d+\s+credits?)\s+per\s+(\w+)$/);
+  if (!m) return tool.cost; // fallback: show as-is
+  const [, prefix, unit] = m;
+  if (COLLAPSE_UNITS.has(unit)) return prefix;
+  return `${prefix} / ${unit}`;
+}
