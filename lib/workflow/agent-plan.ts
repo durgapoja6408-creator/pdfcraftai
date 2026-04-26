@@ -123,42 +123,93 @@ export interface AgentExample {
   tag: string;
 }
 
+// H7.5: examples rewritten to match what Agent mode CAN ACTUALLY DO
+// today (text-input → markdown deliverable). The pre-H7.5 examples
+// promised PDF attachments, file-storage discovery ("docs in my
+// downloads"), email delivery, password-protected sharing — none of
+// which the executor can do until file-storage + integrations infra
+// land. Old examples were aspirational and led to silent failures
+// (the planner picked stub-only ops, run completed with no
+// downloadable output).
+//
+// Each example below uses pasted text as the source and produces a
+// markdown deliverable (.md) the user can download. The "Coming soon"
+// ones live in AGENT_COMING_SOON_EXAMPLES — rendered as preview
+// chips, NOT clickable, so users see the roadmap without hitting
+// dead-end runs.
 export const AGENT_EXAMPLES: AgentExample[] = [
+  {
+    icon: "Summary",
+    title: "TL;DR a meeting note",
+    prompt: 'TL;DR this meeting note in one paragraph: "Today we agreed to ship the v2 auth migration by end of Q3, with Priya owning the rollout plan and a hard cutover on Sept 15. Open risks: SSO regressions in the staging environment and unclear ownership of the legacy session table. Next sync: Tuesday 9am."',
+    tag: "Productivity",
+  },
+  {
+    icon: "Summary",
+    title: "Multi-section summary",
+    prompt: 'Summarize this in two paragraphs with key takeaways: "Q3 revenue grew 23% to $4.2B, driven by enterprise expansion in EMEA and APAC. Operating margin expanded 180 bps to 31.4%. Free cash flow conversion was 92%. Net retention is 119%, gross retention 96%. The board approved a $500M share buyback. Top three product launches contributed 14% of new ARR."',
+    tag: "Executive",
+  },
+  {
+    icon: "Translate",
+    title: "Translate to Spanish",
+    prompt: 'Translate this to Spanish: "Welcome to our quarterly all-hands. Today we will cover product wins, customer feedback, and our roadmap for the next 90 days. Please hold questions until the end."',
+    tag: "Localization",
+  },
+  {
+    icon: "Edit",
+    title: "Make text clearer",
+    prompt: 'Rewrite this in a clearer tone: "Per our previous correspondence dated the 14th instant, kindly be advised that the aforementioned deliverables have been duly executed in accordance with the stipulations enumerated in the master services agreement."',
+    tag: "Writing",
+  },
+  {
+    icon: "Edit",
+    title: "Shorten an email",
+    prompt: 'Rewrite this shorter: "Dear team, I wanted to take a moment to thank everyone for their hard work this past quarter. We have made significant progress across all of our key initiatives, and I am incredibly proud of what we have accomplished together. As we look ahead to the next quarter, I want to share some thoughts on where we should focus our efforts."',
+    tag: "Writing",
+  },
+  {
+    icon: "Generate",
+    title: "Draft a one-pager",
+    prompt: "Write a one-page launch brief for a new AI feature called Smart Redact: positioning, target user, three competitive differentiators, and a 30-day rollout plan. Keep it under 400 words.",
+    tag: "Marketing",
+  },
+];
+
+/**
+ * Roadmap examples — rendered as a separate "Coming soon" preview row
+ * so users see what's planned without being able to launch a run that
+ * would silently fall back to stubs. Each entry maps to a deferred
+ * capability:
+ *
+ *   • Receipt expense-report → ai-ocr + ai-table (need file_id)
+ *   • Redact contract        → ai-redact (needs PDF bytes)
+ *   • Multi-doc compare      → ai-compare (needs two file_ids)
+ *   • Email a draft          → external integration not yet built
+ */
+export const AGENT_COMING_SOON_EXAMPLES: ReadonlyArray<{
+  icon: keyof typeof I;
+  title: string;
+  blurb: string;
+  tag: string;
+}> = [
   {
     icon: "Receipt",
     title: "Expense report from receipts",
-    prompt: "Take the 12 receipts in my downloads, OCR them, categorize by vendor, and produce a monthly expense report PDF with totals.",
+    blurb: "OCR a folder of receipts, categorize by vendor, produce a monthly PDF — needs file uploads.",
     tag: "Finance",
   },
   {
     icon: "Shield",
     title: "Redact & share a contract",
-    prompt: "Redact all PII and salary figures from this offer letter, then share a password-protected version with HR.",
+    blurb: "Auto-redact PII, password-protect, share with a teammate — needs file uploads + sharing.",
     tag: "Legal",
   },
   {
-    icon: "Summary",
-    title: "Investor update from Q3 data",
-    prompt: "Read the Q3 financials, the board memo, and our product roadmap. Write a 2-page investor update with the key wins and ask.",
-    tag: "Executive",
-  },
-  {
-    icon: "Translate",
-    title: "Multi-language handbook",
-    prompt: "Translate the employee handbook into Spanish, French, and Japanese. Keep formatting. Email a draft to Priya.",
-    tag: "HR",
-  },
-  {
-    icon: "Book",
-    title: "Study guide from textbook",
-    prompt: "From this textbook chapter, make a 10-page study guide: key terms, summary, practice questions with answer key.",
-    tag: "Student",
-  },
-  {
-    icon: "File",
-    title: "Due-diligence brief",
-    prompt: "Review all 14 docs in the data room. Flag unusual clauses, missing items, and draft a 1-page red-flag brief.",
-    tag: "Finance",
+    icon: "Compare",
+    title: "Compare two documents",
+    blurb: "Diff two PDFs and surface clause-level changes — needs file uploads.",
+    tag: "Legal",
   },
 ];
 

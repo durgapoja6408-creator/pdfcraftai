@@ -19,6 +19,7 @@ import { I } from "@/components/icons/Icons";
 import {
   buildPlan,
   AGENT_EXAMPLES,
+  AGENT_COMING_SOON_EXAMPLES,
   planToGraph,
   type AgentPlan,
   type PlanStep,
@@ -760,6 +761,80 @@ export default function AgentInteractive() {
       {/* Idle */}
       {stage === "idle" && (
         <>
+          {/*
+            H7.5: 3-step "how it works" strip. Was missing before, so a
+            first-time user landed on the prompt box with no context.
+            Three icons + one line each — no hero illustrations, no
+            modal. Lives between the title block and the textarea.
+          */}
+          <div
+            className="card"
+            style={{
+              padding: 14,
+              marginBottom: 20,
+              background: "var(--bg-1)",
+              borderColor: "var(--border-soft, var(--border))",
+            }}
+          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: 14,
+              }}
+            >
+              {[
+                {
+                  Ic: I.Sparkle,
+                  step: "1",
+                  title: "Describe the outcome",
+                  blurb: "Paste text and ask for a summary, translation, rewrite, or short draft.",
+                },
+                {
+                  Ic: I.Flow,
+                  step: "2",
+                  title: "Review the plan",
+                  blurb: "Agent picks tools and shows the cost. Nothing runs without your approval.",
+                },
+                {
+                  Ic: I.Download,
+                  step: "3",
+                  title: "Download the result",
+                  blurb: "Output is saved as a markdown file you can keep or paste into other tools.",
+                },
+              ].map((s) => {
+                const Ic = s.Ic;
+                return (
+                  <div key={s.step} className="row" style={{ gap: 10, alignItems: "flex-start" }}>
+                    <div
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: 6,
+                        background: "var(--accent-soft)",
+                        color: "var(--accent)",
+                        display: "grid",
+                        placeItems: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Ic size={13} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500 }}>
+                        <span className="mono subtle" style={{ marginRight: 6 }}>{s.step}.</span>
+                        {s.title}
+                      </div>
+                      <div className="muted" style={{ fontSize: 12, lineHeight: 1.5, marginTop: 2 }}>
+                        {s.blurb}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="card" style={{ padding: 20, borderColor: "var(--border-strong)" }}>
             <div className="row" style={{ gap: 8, marginBottom: 16 }}>
               <I.Sparkle size={14} style={{ color: "var(--accent)" }} />
@@ -768,7 +843,12 @@ export default function AgentInteractive() {
             <textarea
               className="textarea"
               rows={4}
-              placeholder="e.g. Merge these 3 contracts, redact salaries, summarize the changes, and email a draft to Priya."
+              // H7.5: placeholder updated to match what the agent
+              // can actually produce today (text-input → markdown).
+              // Was suggesting "merge 3 contracts → email a draft"
+              // which the executor can't do, leading to silently
+              // stubbed runs.
+              placeholder='e.g. Summarize this in two paragraphs: "Q3 revenue grew 23% to $4.2B…"'
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => {
@@ -785,9 +865,18 @@ export default function AgentInteractive() {
             />
             <div className="row" style={{ justifyContent: "space-between", marginTop: 16 }}>
               <div className="row" style={{ gap: 8 }}>
-                <button type="button" className="btn btn-sm btn-ghost" disabled>
-                  <I.Paperclip size={12} /> Attach files
-                </button>
+                {/*
+                  H7.5: removed the dead "Attach files" disabled button.
+                  PDF attachments need file-storage infra (deferred);
+                  a permanently-greyed-out button just confused users.
+                  Replaced with a small inline note that tells them
+                  what to do INSTEAD (paste text). When file uploads
+                  ship, this becomes a real button again.
+                */}
+                <span className="mono subtle" style={{ fontSize: 11 }}>
+                  Paste text in the prompt · file uploads coming soon
+                </span>
+                <span className="mono subtle" style={{ fontSize: 11 }}>·</span>
                 <span className="mono subtle" style={{ fontSize: 11 }}>⌘⏎ to run</span>
               </div>
               <button
@@ -804,7 +893,15 @@ export default function AgentInteractive() {
           <div style={{ marginTop: 40 }}>
             <div className="row" style={{ justifyContent: "space-between", marginBottom: 16 }}>
               <div className="eyebrow">TRY AN EXAMPLE</div>
-              <span className="mono subtle" style={{ fontSize: 11 }}>CLICK TO PREFILL</span>
+              {/*
+                H7.5: softened the "CLICK TO PREFILL" all-caps mono
+                label. The example cards already have hover styling +
+                cursor:pointer; the label is still helpful to first-
+                timers but doesn't need to shout.
+              */}
+              <span className="muted" style={{ fontSize: 12 }}>
+                Click any card to fill the prompt
+              </span>
             </div>
             <div
               style={{
@@ -846,6 +943,77 @@ export default function AgentInteractive() {
               })}
             </div>
           </div>
+
+          {/*
+            H7.5: roadmap row. Shows aspirational use-cases (folder
+            ingest, redact-and-share, doc-to-doc compare) as non-
+            clickable preview chips so users see what's coming
+            without being able to launch a run that would fall
+            through to a stub.
+          */}
+          {AGENT_COMING_SOON_EXAMPLES.length > 0 && (
+            <div style={{ marginTop: 36 }}>
+              <div className="row" style={{ justifyContent: "space-between", marginBottom: 16 }}>
+                <div className="eyebrow">COMING SOON</div>
+                <span className="muted" style={{ fontSize: 12 }}>
+                  Needs file uploads or external integrations
+                </span>
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                  gap: 10,
+                }}
+              >
+                {AGENT_COMING_SOON_EXAMPLES.map((ex) => {
+                  const Ic = (I as Record<string, React.FC<{ size?: number }>>)[ex.icon] ?? I.Sparkle;
+                  return (
+                    <div
+                      key={ex.title}
+                      className="card"
+                      style={{
+                        padding: 16,
+                        background: "var(--bg-1)",
+                        opacity: 0.7,
+                        cursor: "not-allowed",
+                      }}
+                      title="Not available yet — needs file upload support"
+                    >
+                      <div className="row" style={{ justifyContent: "space-between", marginBottom: 12 }}>
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 8,
+                            background: "var(--bg-2)",
+                            color: "var(--fg-muted)",
+                            display: "grid",
+                            placeItems: "center",
+                          }}
+                        >
+                          <Ic size={15} />
+                        </div>
+                        <span className="chip" style={{ fontSize: 10 }}>{ex.tag}</span>
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>
+                        {ex.title}{" "}
+                        <span
+                          className="mono subtle"
+                          style={{ fontSize: 10, marginLeft: 4 }}
+                        >
+                          SOON
+                        </span>
+                      </div>
+                      <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                        {ex.blurb}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <AgentCapabilities />
         </>
