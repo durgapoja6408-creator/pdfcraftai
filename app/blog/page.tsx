@@ -7,7 +7,13 @@ export const metadata: Metadata = {
   title: "Blog",
   description:
     "Field notes from the PDF factory. Product updates, guides, engineering deep-dives, and security thinking from the pdfcraft ai team.",
-  alternates: { canonical: "/blog" },
+  alternates: {
+    canonical: "/blog",
+    // Bundle C — RSS auto-discovery. Feed readers (Feedly,
+    // NetNewsWire, Reeder) sniff this `<link rel="alternate">` and
+    // surface a "subscribe" hint in the URL bar.
+    types: { "application/rss+xml": "/blog/rss.xml" },
+  },
   openGraph: { title: "Blog", description: "Field notes from the PDF factory.", url: "/blog", type: "website" },
   twitter: { card: "summary_large_image", title: "Blog", description: "Field notes from the PDF factory." },
 };

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { I } from "@/components/icons/Icons";
 import { TOOLS, toolById } from "@/lib/tools";
 import { TOOL_INTROS } from "@/lib/tool-intros";
+import { findSeoForTool } from "@/lib/seo-pages";
 import { MergePdfTool } from "@/components/tools/MergePdfTool";
 import { SplitPdfTool } from "@/components/tools/SplitPdfTool";
 import { RotatePdfTool } from "@/components/tools/RotatePdfTool";
@@ -274,8 +275,34 @@ export default function ToolRunnerPage({ params }: Params) {
   const isLive = LIVE_TOOL_IDS.has(tool.id);
   const isServerSideFree = SERVER_SIDE_FREE_TOOLS.has(tool.id);
 
+  // Bundle C / Task #122 — emit FAQPage JSON-LD on the runner page when
+  // an SEO landing exists for this tool. Until now FAQ schema only
+  // shipped on the SEO landings (e.g. /merge-pdf), but `/tool/merge`
+  // is what users land on from the in-app navigation and what some
+  // SERPs deep-link directly. Emitting FAQ schema on both surfaces
+  // doubles our chances of an FAQ rich result without any duplicate
+  // content concerns — Google de-dupes by canonical URL.
+  const seoLanding = findSeoForTool(tool.id);
+  const faqLd = seoLanding
+    ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: seoLanding.faq.map((f) => ({
+          "@type": "Question",
+          name: f.q,
+          acceptedAnswer: { "@type": "Answer", text: f.a },
+        })),
+      }
+    : null;
+
   return (
     <main>
+      {faqLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
+        />
+      )}
       <section style={{ paddingTop: 60 }}>
         <div className="container-x" style={{ padding: "0 28px", maxWidth: 960 }}>
           <Link href="/tools" className="row subtle" style={{ gap: 6, marginBottom: 24, fontSize: 13 }}>

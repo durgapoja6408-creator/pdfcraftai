@@ -6,6 +6,7 @@ import { GeistMono } from "geist/font/mono";
 import { MarketingChrome } from "@/components/nav/MarketingChrome";
 import { SessionProviderWrapper } from "@/components/providers/SessionProviderWrapper";
 import { CookieConsent } from "@/components/compliance/CookieConsent";
+import { WebVitalsReporter } from "@/components/analytics/WebVitalsReporter";
 import {
   CONSENT_COOKIE_NAME,
   analyticsAllowed,
@@ -275,6 +276,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 })(window, document, "clarity", "script", "${CLARITY_PROJECT_ID}");
               `}
             </Script>
+            {/*
+              Bundle C — Web Vitals real-user monitoring. Pushes LCP /
+              INP / CLS / FCP / TTFB measurements through dataLayer so
+              GA4 can stream them to Looker Studio. Only mounts when
+              analytics consent has been granted (same gate as GA4
+              itself). See components/analytics/WebVitalsReporter.tsx
+              for the full rationale.
+            */}
+            <WebVitalsReporter />
           </>
         ) : null}
       </body>

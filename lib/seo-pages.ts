@@ -1967,3 +1967,26 @@ for (const slug of Object.keys(LONGFORM_BODIES) as SeoPageSlug[]) {
 }
 
 export const SEO_SLUGS = Object.keys(SEO_PAGES) as SeoPageSlug[];
+
+/**
+ * Bundle C / Task #122 — find an SEO landing whose `tool` matches.
+ *
+ * Use case: the `/tool/[id]` runner page wants to emit FAQ JSON-LD
+ * but doesn't carry its own FAQ list — the canonical authored set
+ * lives on the SEO landing for that tool. Multiple landings can map
+ * to the same tool (e.g. `to-pdf` is used by `jpg-to-pdf`,
+ * `png-to-pdf`, `excel-to-pdf` etc.); when that happens we return
+ * the first match. The runner page's FAQ schema is a secondary
+ * surface — Google de-duplicates by canonical URL anyway, so picking
+ * any one works.
+ *
+ * Returns `null` if no landing references this tool — caller skips
+ * the schema emit.
+ */
+export function findSeoForTool(toolId: string): SeoPageData | null {
+  for (const slug of SEO_SLUGS) {
+    const page = SEO_PAGES[slug];
+    if (page.tool === toolId) return page;
+  }
+  return null;
+}

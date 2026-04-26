@@ -592,3 +592,94 @@ h4 {
   outline: 2px solid var(--fg);
   outline-offset: 2px;
 }
+
+/* ==========================================================================
+ * Mobile responsive breakpoints
+ * --------------------------------------------------------------------------
+ *
+ * Added 2026-04-26 in Bundle C of the SEO/AdSense polish ship. The
+ * codebase historically relied on CSS Grid `auto-fit, minmax(N, 1fr)`
+ * for natural responsive layouts, plus two component-level
+ * `@media (min-width: 880px)` rules in TopNav + AuthShell. That worked
+ * for the simple case but left the SeoLandingPage hero and the
+ * AlternativePage feature-matrix tables overflowing on real mobile.
+ *
+ * These rules add explicit breakpoints at the standard mobile widths:
+ *   - 480px: small phones (older iPhone SE, narrow Android)
+ *   - 768px: tablets in portrait
+ *   - 1024px: tablets in landscape, small laptops
+ *
+ * Approach: target the specific 2-column / fixed-width layouts that
+ * don't auto-collapse, leaving the auto-fit grids alone (they already
+ * collapse correctly at narrow widths).
+ * ======================================================================= */
+
+/* ===== Below 480px (small phones) ===== */
+@media (max-width: 480px) {
+  /* Container padding tightens on narrow screens */
+  .container-x {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Hero H1 — was 56px on /merge-pdf, would overflow at 380px viewport */
+  main h1 {
+    font-size: 36px !important;
+    line-height: 1.1 !important;
+  }
+
+  /* H2 sectional headlines */
+  main h2 {
+    font-size: 26px !important;
+  }
+
+  /* SEO landing hero: drop the right-side drop card and stack vertically */
+  .seo-hero-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 24px !important;
+  }
+
+  /* Feature-matrix tables (alternative pages) — let them scroll
+     horizontally rather than overflowing the viewport */
+  .container-x table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  /* Buttons — let them wrap full-width on tiny screens */
+  .btn-lg {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ===== Below 768px (tablets in portrait + phones) ===== */
+@media (max-width: 768px) {
+  /* Hero H1 in between the two breakpoints */
+  main h1 {
+    font-size: 44px;
+    line-height: 1.1;
+  }
+
+  /* Stack the SeoLandingPage hero earlier so the drop-card doesn't
+     squeeze the headline at iPad-portrait widths */
+  .seo-hero-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+
+  /* Footer column count — drop from 5 to 2 columns at tablet width */
+  footer .container-x {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 24px !important;
+  }
+}
+
+/* ===== Below 1024px (small laptops) ===== */
+@media (max-width: 1024px) {
+  /* Footer 5-column → 4-column on small laptops */
+  footer .container-x {
+    grid-template-columns: 2fr 1fr 1fr 1fr !important;
+  }
+}
