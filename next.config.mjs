@@ -270,6 +270,14 @@ const nextConfig = {
       // GSC + any inbound links transfer their authority to the new URLs.
       { source: "/tool/ai-plagiarism", destination: "/tool/ai-detector", permanent: true },
       { source: "/pdf-plagiarism-check", destination: "/ai-content-detector", permanent: true },
+      // 2026-04-26 — /categories/* deletion. Shipped as SEO Ship #8 then
+      // reverted: the 6 category landings duplicated /tools functionality
+      // and were too thin (400-600 words) to earn their own link equity.
+      // Permanent 308 to /tools so any cached links / GSC entries
+      // transfer their authority to the tools index page. Catch-all
+      // `:slug*` covers both `/categories` and `/categories/<anything>`.
+      { source: "/categories", destination: "/tools", permanent: true },
+      { source: "/categories/:slug*", destination: "/tools", permanent: true },
     ];
   },
 };

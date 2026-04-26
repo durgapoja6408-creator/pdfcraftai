@@ -6,7 +6,6 @@ import { LEGAL_SLUGS } from "@/lib/legal-docs";
 import { ALL_HELP_ARTICLES } from "@/lib/help-topics";
 import { COMPETITOR_SLUGS } from "@/lib/alternatives";
 import { USE_CASE_SLUGS } from "@/lib/use-cases";
-import { CATEGORY_SLUGS } from "@/lib/categories";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://pdfcraftai.com";
@@ -118,21 +117,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.85,
   }));
 
-  // SEO Ship #8: category landings.
-  const categoryIndexRoute: MetadataRoute.Sitemap = [
-    {
-      url: `${SITE_URL}/categories`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
-  ];
-  const categoryRoutes: MetadataRoute.Sitemap = CATEGORY_SLUGS.map((s) => ({
-    url: `${SITE_URL}/categories/${s}`,
-    lastModified: now,
-    changeFrequency: "monthly",
-    priority: 0.8,
-  }));
+  // (Removed: /categories/* landings shipped in #8 then deleted on
+  // 2026-04-26 — they were redundant with /tools and too thin to
+  // earn link equity. Both /categories and /categories/:slug now
+  // 308-redirect to /tools via next.config.mjs.)
 
   return [
     ...staticRoutes,
@@ -145,7 +133,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...alternativeRoutes,
     ...useCaseIndexRoute,
     ...useCaseRoutes,
-    ...categoryIndexRoute,
-    ...categoryRoutes,
   ];
 }
