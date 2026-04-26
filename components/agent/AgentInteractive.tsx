@@ -14,6 +14,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { I } from "@/components/icons/Icons";
 import {
   buildPlan,
@@ -284,6 +285,11 @@ export default function AgentInteractive() {
   const [credits, setCredits] = React.useState<number>(1000);
   const tickTimers = React.useRef<ReturnType<typeof setTimeout>[]>([]);
 
+  // Bundle H7: session-aware. "authenticated" → real backend by default;
+  // "unauthenticated" / "loading" → demo. Tracked here so submitPrompt /
+  // runPlan / saveMacroFromPlan can branch on it.
+  const { status: sessionStatus } = useSession();
+
   // Hydrate credits from localStorage on mount
   React.useEffect(() => {
     setCredits(getDemoCredits());
@@ -306,13 +312,22 @@ export default function AgentInteractive() {
     setStage("planning");
     setLog([`> ${p}`, "→ parsing intent...", "→ selecting tools...", "→ drafting plan..."]);
 
-    // Bundle H3 (2026-04-26): real-backend opt-in via ?backend=real query
-    // param. Falls back to the deterministic mock when:
-    //   - flag absent (default)
-    //   - the API call errors (signed-out, network failure, etc.)
-    // Once H4 ships UX polish + cost confirmation we'll flip the default
-    // to "real" and gate the demo behind an explicit ?backend=demo flag.
-    const useRealBackend = searchParams.get("backend") === "real";
+    // Bundle H7 (2026-04-26): auth-aware backend selection.
+    //
+    // Selection matrix:
+    //   - anon users      → demo (deterministic buildPlan + setTimeout)
+    //   - signed-in users → real backend (LLM planner + DB-persisted run)
+    //   - ?backend=demo   → force demo even when signed in (for screenshots)
+    //   - ?backend=real   → force real even when anon (will 401 then fall
+    //                        back to demo with an error log)
+    //
+    // Was Bundle H3: opt-in flag for everyone. That left signed-in users
+    // staring at a deterministic mock unless they manually edited the URL,
+    // which defeats the purpose of having a real backend.
+    const sessionAuthed = sessionStatus === "authenticated";
+    const forceDemo = searchParams.get("backend") === "demo";
+    const forceReal = searchParams.get("backend") === "real";
+    const useRealBackend = forceReal || (sessionAuthed && !forceDemo);
 
     if (useRealBackend) {
       // Real LLM-driven planner. The backend AgentPlan shape differs from
@@ -409,6 +424,38 @@ export default function AgentInteractive() {
       (plan.steps.find((s) => ["Scan", "Shield", "Summary", "Translate", "Generate"].includes(s.tool as string))
         ?.tool as keyof typeof I) || "Flow";
     const graph = planToGraph(plan);
+
+    // Bundle H7: signed-in users → real DB-backed macro via the H4
+    // server action. Anon users → localStorage demo (unchanged).
+    // Server-side persistence runs fire-and-forget — the UI doesn't
+    // wait on the action's Promise (the existing demo-mode return is
+    // synchronous; threading async through every save call site would
+    // be invasive). The fire-and-forget pattern is OK because:
+    //   - the H4 action is idempotent on (userId, toolId, name) via
+    //     the existing user_macros unique index
+    //   - failure logs to console for /admin debug, doesn't crash UI
+    //   - duplicate-name errors surface gracefully (saved one wins)
+    const isSignedIn = sessionStatus === "authenticated";
+    const backendPlan = (window as unknown as { __agentBackendPlan?: BackendAgentPlan })
+      .__agentBackendPlan;
+    if (isSignedIn && backendPlan) {
+      // Lazy import the server action to avoid pulling Drizzle into the
+      // anon code path's bundle.
+      void import("@/lib/agent/macro-bridge").then(({ saveAgentMacroAction }) =>
+        saveAgentMacroAction({
+          name: macroName || "Untitled macro",
+          plan: backendPlan,
+        }).then((r) => {
+          if (!r.ok) {
+            console.warn(`[agent] DB macro save failed: ${r.error}`);
+          }
+        }),
+      );
+    }
+
+    // Always also write the localStorage demo macro so the
+    // /macros visualisation works for both anon + signed-in users
+    // (the /macros page reads from localStorage today).
     const macro = addUserMacro({
       name: macroName || "Untitled macro",
       desc: prompt.slice(0, 140),
@@ -433,6 +480,83 @@ export default function AgentInteractive() {
     setActiveStep(0);
     setLog((l) => [...l, "", "> run plan", "→ starting execution..."]);
 
+    // Bundle H7: signed-in users with a backend plan in scope go to the
+    // real executor via /api/agent/run, polling /api/agent/runs/:id for
+    // step progress. Anon users (or signed-in users on demo plans) keep
+    // the existing fake setTimeout loop.
+    const isSignedIn = sessionStatus === "authenticated";
+    const backendPlan = (window as unknown as { __agentBackendPlan?: BackendAgentPlan })
+      .__agentBackendPlan;
+
+    if (isSignedIn && backendPlan) {
+      void (async () => {
+        try {
+          const { runId } = await startRunRemote({ plan: backendPlan });
+          setLog((l) => [...l, `→ run started (id ${runId.slice(0, 8)})`]);
+          const final = await pollUntilTerminal(runId, {
+            intervalMs: 1000,
+            maxMs: 60_000,
+            onUpdate: (snap) => {
+              const lastSucceeded = snap.steps
+                .filter((s) => s.status === "succeeded")
+                .pop();
+              if (lastSucceeded) {
+                setActiveStep(lastSucceeded.idx - 1);
+              }
+            },
+          });
+          // Render terminal status to the log.
+          for (const s of final.steps) {
+            if (s.status === "succeeded") {
+              setLog((l) => [...l, `  ✓ step ${s.idx}: ${s.tool}`]);
+            } else if (s.status === "failed") {
+              setLog((l) => [
+                ...l,
+                `  × step ${s.idx} failed: ${s.errorMessage ?? "unknown error"}`,
+              ]);
+            } else if (s.status === "awaiting_approval") {
+              setLog((l) => [
+                ...l,
+                `  ⊘ step ${s.idx} awaiting approval (UI for inline approval lands in H8)`,
+              ]);
+            }
+          }
+          if (final.status === "completed") {
+            setLog((l) => [
+              ...l,
+              "✓ run complete",
+              `→ cost: ${(final.totalCostMicros ?? 0) / 40_000} credits`,
+            ]);
+            if (saveEnabled) {
+              const name = saveMacroFromPlan();
+              setSavedMacroName(name);
+            }
+            setStage("done");
+          } else {
+            setLog((l) => [...l, `→ run ended with status: ${final.status}`]);
+            setStage("done");
+          }
+          setActiveStep(-1);
+        } catch (err) {
+          setLog((l) => [
+            ...l,
+            `× executor error: ${(err as Error).message}`,
+            "→ falling back to demo run",
+          ]);
+          // Fall through to the demo path below
+          runDemoLoop();
+        }
+      })();
+      return;
+    }
+
+    // Demo path — unchanged.
+    runDemoLoop();
+  };
+
+  /** Fake setTimeout-based step loop for the anon/demo path. */
+  function runDemoLoop() {
+    if (!plan) return;
     let i = 0;
     const tick = () => {
       if (!plan) return;
@@ -461,7 +585,7 @@ export default function AgentInteractive() {
       tickTimers.current.push(t1);
     };
     tick();
-  };
+  }
 
   const reset = () => {
     tickTimers.current.forEach((t) => clearTimeout(t));
