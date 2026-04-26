@@ -59,7 +59,15 @@ Rules:
 6. Be conservative on cost. If the plan would exceed 50 credits, prefer a
    cheaper alternative (ai-tldr instead of ai-summarize, fewer pages).`;
 
-const PLANNER_MODEL = process.env.AGENT_PLANNER_MODEL ?? "claude-3-5-sonnet-20241022";
+// H7 fix: default model was "claude-3-5-sonnet-20241022" which 502'd on
+// our live Anthropic account (model retired / not allow-listed). Match
+// the registry's defaultModel (lib/ai/registry.ts) which is verified
+// working in production. Override via AGENT_PLANNER_MODEL env if/when
+// we want to upgrade to Sonnet/Opus 4.x for richer tool-use planning.
+const PLANNER_MODEL =
+  process.env.AGENT_PLANNER_MODEL ??
+  process.env.ANTHROPIC_MODEL ??
+  "claude-haiku-4-5-20251001";
 const PLANNER_MAX_TOKENS = 4096;
 
 let _client: Anthropic | null = null;
