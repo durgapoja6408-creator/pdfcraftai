@@ -62,7 +62,7 @@ const SUPPORT_EMAIL = "support@pdfcraftai.com";
 export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = {
   privacy: {
     title: "Privacy Policy",
-    updated: "April 22, 2026",
+    updated: "April 26, 2026",
     intro:
       "We designed pdfcraft ai to do the least possible with your data. This policy tells you exactly what that means — and how we handle personal data under the GDPR (EU/UK), the DPDP Act 2023 (India), and comparable regimes elsewhere.",
     sections: [
@@ -80,7 +80,11 @@ export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = {
       },
       {
         h: "Cookies & analytics",
-        p: `We use a first-party cookie for session auth and a first-party cookie to remember your consent choice. Product analytics (Google Analytics 4 and Microsoft Clarity) are CONSENT-GATED: they only load if you click "Accept all" on the banner. Essential cookies (sign-in, CSRF, consent memory) always load because the service cannot function without them. We do not run advertising cookies, we do not participate in ad networks, and we do not sell personal data. See the /cookies page for the full inventory and a one-click withdrawal button.`,
+        p: `We use a first-party cookie for session auth and a first-party cookie to remember your consent choice. Product analytics (Google Analytics 4 and Microsoft Clarity) are CONSENT-GATED: they only load if you click "Accept all" on the banner. Essential cookies (sign-in, CSRF, consent memory) always load because the service cannot function without them. We do not sell personal data. See the /cookies page for the full inventory and a one-click withdrawal button.`,
+      },
+      {
+        h: "Advertising (Google AdSense)",
+        p: `When advertising is active on this site we use Google AdSense, a third-party advertising network operated by Google LLC. Google may use the DoubleClick DART cookie to serve ads based on your visit to this site and other sites on the internet. You can opt out of personalized advertising at any time by visiting Google Ads Settings (https://www.google.com/settings/ads), Google's advertising principles (https://policies.google.com/technologies/ads), or aboutads.info (US) / youronlinechoices.eu (EU). Advertising cookies are CONSENT-GATED via the same banner as analytics — if you reject "Accept all", no advertising cookies are set. We do not share personally identifiable information with advertisers. Ad-supported content is clearly labelled "Sponsored" or "Ad" per Google's program policies.`,
       },
       {
         h: "Payments and merchant of record",

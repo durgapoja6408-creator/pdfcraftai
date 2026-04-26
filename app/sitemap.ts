@@ -6,6 +6,7 @@ import { LEGAL_SLUGS } from "@/lib/legal-docs";
 import { ALL_HELP_ARTICLES } from "@/lib/help-topics";
 import { COMPETITOR_SLUGS } from "@/lib/alternatives";
 import { USE_CASE_SLUGS } from "@/lib/use-cases";
+import { AUTHOR_SLUGS } from "@/lib/authors";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://pdfcraftai.com";
@@ -122,6 +123,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // earn link equity. Both /categories and /categories/:slug now
   // 308-redirect to /tools via next.config.mjs.)
 
+  // SEO Ship Bundle A (2026-04-26): author bio pages for E-E-A-T.
+  // Priority 0.5 — they're not high-traffic targets but they back up
+  // the bylines on every post / longform page with a real Person.
+  const authorRoutes: MetadataRoute.Sitemap = AUTHOR_SLUGS.map((s) => ({
+    url: `${SITE_URL}/about/authors/${s}`,
+    lastModified: now,
+    changeFrequency: "yearly",
+    priority: 0.5,
+  }));
+
   return [
     ...staticRoutes,
     ...toolRoutes,
@@ -133,5 +144,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...alternativeRoutes,
     ...useCaseIndexRoute,
     ...useCaseRoutes,
+    ...authorRoutes,
   ];
 }

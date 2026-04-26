@@ -117,18 +117,34 @@ export const CONSENT_COOKIE_NAME = "pdfcraft_consent";
 export const CONSENT_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
 /**
- * The three valid consent levels.
+ * The four valid consent levels.
  *
  * Exported as a union type + runtime array so the test harness can
- * exhaustively verify the parser — a fourth value snuck into the
- * union without a parser branch would slip past tsc otherwise.
+ * exhaustively verify the parser — a value snuck into the union
+ * without a parser branch would slip past tsc otherwise.
+ *
+ * Levels and what they enable:
+ *   - "none":          no choice yet — no analytics, no ads
+ *   - "essential":     explicit reject — no analytics, no ads
+ *   - "all":           accept analytics — GA4 + Clarity load, no ads
+ *   - "all_with_ads":  accept analytics + advertising — GA4 + Clarity
+ *                      AND advertising network cookies (e.g. Google
+ *                      AdSense / DoubleClick DART). Reserved for when
+ *                      we activate AdSense; today this level is set
+ *                      only after the banner exposes a third button
+ *                      ("Accept analytics + ads").
+ *
+ * Backward compat: existing "all" cookies remain valid and continue
+ * to enable analytics. They do NOT enable ads — that requires the
+ * user to make a fresh choice for the new "all_with_ads" level.
  */
-export type ConsentLevel = "none" | "essential" | "all";
+export type ConsentLevel = "none" | "essential" | "all" | "all_with_ads";
 
 export const CONSENT_LEVELS: readonly ConsentLevel[] = [
   "none",
   "essential",
   "all",
+  "all_with_ads",
 ] as const;
 
 /**
@@ -142,6 +158,7 @@ export const CONSENT_LEVELS: readonly ConsentLevel[] = [
 export function parseConsent(raw: string | null | undefined): ConsentLevel {
   if (!raw) return "none";
   const trimmed = raw.trim().toLowerCase();
+  if (trimmed === "all_with_ads") return "all_with_ads";
   if (trimmed === "all") return "all";
   if (trimmed === "essential") return "essential";
   return "none";
@@ -151,11 +168,26 @@ export function parseConsent(raw: string | null | undefined): ConsentLevel {
  * Whether analytics scripts (GA4, Clarity) may be loaded given the
  * current consent level.
  *
- * Only `"all"` allows analytics. `"essential"` (explicit reject) and
- * `"none"` (not yet interacted) both block.
+ * `"all"` and `"all_with_ads"` both allow analytics. `"essential"`
+ * (explicit reject) and `"none"` (not yet interacted) both block.
  */
 export function analyticsAllowed(level: ConsentLevel): boolean {
-  return level === "all";
+  return level === "all" || level === "all_with_ads";
+}
+
+/**
+ * Whether advertising-network cookies (Google AdSense / DoubleClick
+ * DART) may be set given the current consent level.
+ *
+ * Only `"all_with_ads"` allows ads. `"all"` (analytics-only consent),
+ * `"essential"`, and `"none"` all block.
+ *
+ * The AdSlot component reads this via the server layout's resolved
+ * level — if false, it renders a house promo (our own tools); if
+ * true, it renders the Google AdSense <ins> tag.
+ */
+export function adsAllowed(level: ConsentLevel): boolean {
+  return level === "all_with_ads";
 }
 
 /**
