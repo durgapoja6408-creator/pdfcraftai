@@ -580,6 +580,26 @@ export default function AgentInteractive() {
             setStage("done");
           }
           setActiveStep(-1);
+
+          // H7.4: explicit balance refresh after run terminates. The
+          // [sessionStatus, stage] useEffect higher up *should* fire
+          // on stage→"done", but the fetch races the run's
+          // spendCredits commit and sometimes returns the pre-spend
+          // value. Doing it here, after we already know the run
+          // committed, guarantees a fresh read.
+          if (sessionStatus === "authenticated") {
+            try {
+              const r = await fetch("/api/account/balance", {
+                cache: "no-store",
+              });
+              if (r.ok) {
+                const d = (await r.json()) as { balance?: number };
+                if (typeof d.balance === "number") setCredits(d.balance);
+              }
+            } catch {
+              // Silently ignore — the next page load will pick it up.
+            }
+          }
         } catch (err) {
           setLog((l) => [
             ...l,
