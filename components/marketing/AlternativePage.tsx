@@ -15,6 +15,7 @@
 import Link from "next/link";
 import { I } from "@/components/icons/Icons";
 import { FaqItem } from "@/components/marketing/FaqItem";
+import { AdSlot } from "@/components/marketing/AdSlot";
 import { toolById, TOOL_STATS } from "@/lib/tools";
 import type { CompetitorData } from "@/lib/alternatives";
 
@@ -447,6 +448,11 @@ export function AlternativePage({ data }: { data: CompetitorData }) {
               <FaqItem key={i} q={item.q} a={item.a} defaultOpen={i === 0} />
             ))}
           </div>
+
+          {/* AdSlot — house promo today (e.g. "50+ AI tools iLovePDF
+              doesn't have"), Google AdSense once approved. Context =
+              competitor slug for a tailored promo per competitor. */}
+          <AdSlot slot="alternative-end" context={data.slug} />
         </div>
       </section>
 

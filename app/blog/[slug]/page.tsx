@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { I } from "@/components/icons/Icons";
 import { BLOG_POSTS, postBySlug } from "@/lib/blog-posts";
+import { AdSlot } from "@/components/marketing/AdSlot";
 
 export const dynamicParams = false;
 
@@ -249,6 +250,11 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
               </Link>
             </div>
           )}
+
+          {/* AdSlot — house promo today, Google AdSense once approved.
+              Context = post slug so we can show topic-relevant promos
+              (e.g. on the redaction post, promote AI Redact). */}
+          <AdSlot slot="article-end" context={post.slug} />
 
           {/* Byline */}
           <div

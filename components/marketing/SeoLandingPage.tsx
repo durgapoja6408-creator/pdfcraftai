@@ -2,6 +2,7 @@ import Link from "next/link";
 import { I } from "@/components/icons/Icons";
 import { FaqItem } from "@/components/marketing/FaqItem";
 import { ReviewSection } from "@/components/marketing/ReviewSection";
+import { AdSlot } from "@/components/marketing/AdSlot";
 import { toolById, TOOL_STATS } from "@/lib/tools";
 import type { SeoPageData } from "@/lib/seo-pages";
 
@@ -431,6 +432,16 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
             ))}
           </article>
         </section>
+      )}
+
+      {/* ===== AdSlot — only on landings WITH longform content
+          (the head-term pages with substantial body). Renders between
+          the Why-pdfcraft / longform sections and the social-proof
+          Reviews section. House promo today, AdSense when active. =====*/}
+      {data.longform && (
+        <div className="container-x" style={{ padding: "0 28px", maxWidth: 760 }}>
+          <AdSlot slot="seo-landing-mid" context={tool.id} />
+        </div>
       )}
 
       {/* ===== Reviews (SEO Ship #7) ===== */}

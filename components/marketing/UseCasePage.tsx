@@ -5,6 +5,7 @@
 import Link from "next/link";
 import { I } from "@/components/icons/Icons";
 import { FaqItem } from "@/components/marketing/FaqItem";
+import { AdSlot } from "@/components/marketing/AdSlot";
 import { toolById } from "@/lib/tools";
 import type { UseCaseData } from "@/lib/use-cases";
 import { USE_CASES } from "@/lib/use-cases";
@@ -278,6 +279,10 @@ export function UseCasePage({ data }: { data: UseCaseData }) {
               <FaqItem key={i} q={item.q} a={item.a} defaultOpen={i === 0} />
             ))}
           </div>
+
+          {/* AdSlot — house promo today, Google AdSense once approved.
+              Default promo is "save the workflow as a Macro". */}
+          <AdSlot slot="use-case-end" context={data.slug} />
         </div>
       </section>
 

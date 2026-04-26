@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { I } from "@/components/icons/Icons";
 import { TOOLS, toolById } from "@/lib/tools";
+import { TOOL_INTROS } from "@/lib/tool-intros";
 import { MergePdfTool } from "@/components/tools/MergePdfTool";
 import { SplitPdfTool } from "@/components/tools/SplitPdfTool";
 import { RotatePdfTool } from "@/components/tools/RotatePdfTool";
@@ -319,6 +320,17 @@ export default function ToolRunnerPage({ params }: Params) {
             <ComingSoonRunner phaseLabel={tool.free ? "PHASE 3" : "PHASE 5"} />
           )}
 
+          {/* Descriptive intro panel — fixes the inconsistency where AI
+              tools had a `pricingBlurb` panel and free tools had nothing.
+              Standardizes the on-page UX across all tools, adds inline
+              cross-tool linking, and gives Google more on-page content
+              so /tool/[id] pages don't read as "thin" to quality raters.
+              Pulls from lib/tool-intros.ts; absent entry = nothing
+              renders (graceful for tools without an intro yet). */}
+          {tool.free && TOOL_INTROS[tool.id] && (
+            <ToolIntroPanel id={tool.id} />
+          )}
+
           {/* Reassurance row */}
           <div
             style={{
@@ -374,6 +386,45 @@ export default function ToolRunnerPage({ params }: Params) {
 
       <div style={{ padding: "80px 0" }} />
     </main>
+  );
+}
+
+function ToolIntroPanel({ id }: { id: string }) {
+  const intro = TOOL_INTROS[id];
+  if (!intro) return null;
+  const relatedTool = intro.related ? toolById(intro.related.id) : null;
+  return (
+    <section
+      className="card"
+      style={{
+        marginTop: 24,
+        padding: "20px 24px",
+        background: "var(--bg-1)",
+        border: "1px solid var(--border)",
+        borderRadius: 10,
+      }}
+    >
+      <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: "var(--fg)" }}>
+        {intro.text}
+        {relatedTool && intro.related && (
+          <>
+            {" For another use, try "}
+            <Link
+              href={`/tool/${intro.related.id}`}
+              style={{
+                color: "var(--accent)",
+                textDecoration: "underline",
+                textDecorationStyle: "dotted",
+                textUnderlineOffset: 3,
+              }}
+            >
+              {intro.related.label}
+            </Link>
+            .
+          </>
+        )}
+      </p>
+    </section>
   );
 }
 
