@@ -23,6 +23,13 @@ import {
   type PlanStep,
 } from "@/lib/workflow/agent-plan";
 import {
+  generatePlanRemote,
+  startRunRemote,
+  pollUntilTerminal,
+  type RunSnapshot,
+} from "@/lib/agent/client";
+import type { AgentPlan as BackendAgentPlan } from "@/lib/agent/types";
+import {
   getDemoCredits,
   spendDemoCredits,
   addDemoHistory,
@@ -298,6 +305,51 @@ export default function AgentInteractive() {
     setPrompt(p);
     setStage("planning");
     setLog([`> ${p}`, "→ parsing intent...", "→ selecting tools...", "→ drafting plan..."]);
+
+    // Bundle H3 (2026-04-26): real-backend opt-in via ?backend=real query
+    // param. Falls back to the deterministic mock when:
+    //   - flag absent (default)
+    //   - the API call errors (signed-out, network failure, etc.)
+    // Once H4 ships UX polish + cost confirmation we'll flip the default
+    // to "real" and gate the demo behind an explicit ?backend=demo flag.
+    const useRealBackend = searchParams.get("backend") === "real";
+
+    if (useRealBackend) {
+      // Real LLM-driven planner. The backend AgentPlan shape differs from
+      // the demo's; we adapt it for the existing UI by mapping each
+      // backend step to a PlanStep with a best-effort tool-icon mapping.
+      generatePlanRemote({ prompt: p })
+        .then((backendPlan) => {
+          const adapted = adaptBackendPlanForDemoUi(backendPlan);
+          setPlan(adapted);
+          if (!macroName) {
+            const short = p.replace(/[.!?]$/, "").split(/[,.]/)[0]!.slice(0, 48);
+            setMacroName(short.charAt(0).toUpperCase() + short.slice(1));
+          }
+          // Stash the full backend plan on the window so the run handler
+          // can post it back to /api/agent/run unchanged. (Stateful but
+          // scoped — cleaner than threading it through React state for
+          // an opt-in flag path.)
+          (window as unknown as { __agentBackendPlan?: BackendAgentPlan }).__agentBackendPlan =
+            backendPlan;
+          setStage("reviewing");
+        })
+        .catch((err: Error) => {
+          // Surface the error in the log + fall back to the demo plan
+          // so the user isn't stuck staring at "drafting plan..." forever.
+          setLog((l) => [
+            ...l,
+            `× planner error: ${err.message}`,
+            "→ falling back to demo plan",
+          ]);
+          const built = buildPlan(p);
+          setPlan(built);
+          setStage("reviewing");
+        });
+      return;
+    }
+
+    // Demo path — unchanged.
     const t = setTimeout(() => {
       const built = buildPlan(p);
       setPlan(built);
@@ -309,6 +361,47 @@ export default function AgentInteractive() {
     }, 1400);
     tickTimers.current.push(t);
   };
+
+  /**
+   * Bridge between the production AgentPlan (lib/agent/types.ts) and the
+   * demo AgentPlan (lib/workflow/agent-plan.ts) used by the existing UI.
+   * Maps each backend step to a PlanStep with a best-effort icon name.
+   * This keeps H3 as a thin wiring change — no UI rewrite required.
+   */
+  function adaptBackendPlanForDemoUi(bp: BackendAgentPlan): AgentPlan {
+    const ICON_MAP: Record<string, keyof typeof I> = {
+      "sys.fs.list": "Search",
+      "sys.ask.user": "Help",
+      "sys.notify.user": "Check",
+      merge: "Merge",
+      split: "Split",
+      compress: "Compress",
+      "extract-pages": "Pages",
+      "delete-pages": "Pages",
+      "ai-summarize": "Summary",
+      "ai-tldr": "Summary",
+      "ai-ocr": "Scan",
+      "ai-translate": "Translate",
+      "ai-redact": "Shield",
+      "ai-table": "Pages",
+      "ai-entities": "Search",
+      "ai-action-items": "Check",
+      "ai-generate": "Generate",
+      "ai-rewrite": "Edit",
+      "ai-compare": "Compare",
+    };
+    return {
+      steps: bp.steps.map((s) => ({
+        tool: ICON_MAP[s.tool] ?? "Flow",
+        name: s.label,
+        desc: s.description,
+        cost: s.estCredits > 0 ? s.estCredits : undefined,
+      })),
+      credits: bp.totalEstCredits,
+      output: { name: `Result.${bp.output.type}`, type: bp.output.type },
+      fileCount: 0,
+    };
+  }
 
   const saveMacroFromPlan = (): string | null => {
     if (!plan) return null;

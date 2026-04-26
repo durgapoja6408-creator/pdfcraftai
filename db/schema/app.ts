@@ -1301,3 +1301,101 @@ export const promoRedemptions = mysqlTable(
     createdIdx: index("promo_redemptions_created_idx").on(t.createdAt),
   })
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Agent runs (Phase 1-2 of the production Agent mode rebuild, 2026-04-26).
+//
+// History: an earlier `agent_runs` + `agent_run_steps` pair existed and was
+// dropped in db/migrations/0002_drop_agent_runs.sql when /app/studio was
+// retired. This re-adds them with a refined schema for the LLM-planned
+// agent at /agent (different surface, different lifecycle).
+//
+// Lifecycle:
+//   /api/agent/plan  → returns AgentPlan, NO row written
+//   /api/agent/run   → INSERT agent_runs (status='queued') + N agent_run_steps
+//                       (status='pending'); kicks off executor in same request
+//   executor         → walks steps, updates status as it goes; persists
+//                       output_ref (file id or JSON blob) per step
+//
+// Why two tables instead of one with a JSON `steps` column:
+//   - Per-step status updates need to be cheap (UPDATE one row, not rewrite
+//     a JSON blob each time)
+//   - Per-step indexes (run_id, status) for the polling/SSE endpoint
+//   - Easier admin debugging (one row = one tool call)
+// ─────────────────────────────────────────────────────────────────────────────
+export const agentRuns = mysqlTable(
+  "agent_runs",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    userId: varchar("user_id", { length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // The user's original prompt — verbatim, for audit + macro replay.
+    prompt: text("prompt").notNull(),
+    // The full plan as returned by the planner. Frozen at creation —
+    // never updated. If the user re-plans, that creates a new agent_runs
+    // row. Per-step updates live in agent_run_steps.
+    planJson: json("plan_json").notNull(),
+    // queued | running | awaiting_approval | completed | failed | cancelled
+    // Mirrored from lib/agent/types.ts RunStatus. Stored as a string so
+    // the union can grow without a migration.
+    status: varchar("status", { length: 32 }).notNull().default("queued"),
+    // Sum of step costMicros once execution finishes. NULL while running.
+    totalCostMicros: bigint("total_cost_micros", { mode: "number" }),
+    // Estimated total at plan time (planner's totalEstCredits × 40k micros).
+    estCostMicros: bigint("est_cost_micros", { mode: "number" }).notNull(),
+    // Final output file's ID (in the existing `files` table). NULL until
+    // the last non-system step succeeds.
+    outputFileId: varchar("output_file_id", { length: 36 }),
+    // Last error encountered, if any (from the failed step).
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
+    completedAt: timestamp("completed_at", { fsp: 3 }),
+  },
+  (t) => ({
+    // "Show me my recent runs" — drives /app/agent/history.
+    userCreatedIdx: index("agent_runs_user_created_idx").on(
+      t.userId,
+      t.createdAt,
+    ),
+    // Admin: find stuck runs (queued/running for too long).
+    statusIdx: index("agent_runs_status_idx").on(t.status),
+  }),
+);
+
+export const agentRunSteps = mysqlTable(
+  "agent_run_steps",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    runId: varchar("run_id", { length: 36 })
+      .notNull()
+      .references(() => agentRuns.id, { onDelete: "cascade" }),
+    // 1-indexed position in the plan.
+    idx: int("idx").notNull(),
+    // Tool name from lib/agent/tool-registry.ts (e.g. "ai-summarize").
+    tool: varchar("tool", { length: 64 }).notNull(),
+    // Params actually sent to the tool. Frozen at execution time.
+    paramsJson: json("params_json").notNull(),
+    // pending | awaiting_approval | running | succeeded | failed | skipped
+    // Mirrored from lib/agent/types.ts StepStatus.
+    status: varchar("status", { length: 32 }).notNull().default("pending"),
+    // Output reference. For ai-route + wasm-node steps producing a file:
+    // the files.id of the output. For data-producing tools (ai-entities,
+    // ai-table → CSV inline): a JSON-stringified blob of the result.
+    // Type discriminated by `outputType`.
+    outputRef: text("output_ref"),
+    outputType: varchar("output_type", { length: 16 }),
+    // Actual cost for this step in micros. NULL until step succeeds.
+    costMicros: bigint("cost_micros", { mode: "number" }),
+    // If status='failed', the error message (one-line, user-safe).
+    errorMessage: text("error_message"),
+    startedAt: timestamp("started_at", { fsp: 3 }),
+    completedAt: timestamp("completed_at", { fsp: 3 }),
+  },
+  (t) => ({
+    // "All steps of this run, in order" — primary executor + UI query.
+    runIdxIdx: uniqueIndex("agent_run_steps_run_idx_idx").on(t.runId, t.idx),
+    // Admin: find stuck steps.
+    statusIdx: index("agent_run_steps_status_idx").on(t.status),
+  }),
+);
