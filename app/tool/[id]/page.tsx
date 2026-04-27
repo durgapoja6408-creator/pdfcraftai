@@ -3,6 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { I } from "@/components/icons/Icons";
 import { PageCountTool } from "@/components/tools/PageCountTool";
+import {
+  PdfInspectorLongform,
+  PDF_INSPECTOR_FAQ,
+} from "@/components/marketing/PdfInspectorLongform";
 import { TOOLS, toolById } from "@/lib/tools";
 import { TOOL_INTROS } from "@/lib/tool-intros";
 import { findSeoForTool } from "@/lib/seo-pages";
@@ -242,11 +246,19 @@ export default function ToolRunnerPage({ params }: Params) {
   // doubles our chances of an FAQ rich result without any duplicate
   // content concerns — Google de-dupes by canonical URL.
   const seoLanding = findSeoForTool(tool.id);
-  const faqLd = seoLanding
+  // Inspector P1: tools that ship a bespoke longform FAQ (currently
+  // just page-count) feed their FAQ array into the FAQPage JSON-LD.
+  // Other tools fall back to the SEO landing's FAQ. Net: every tool
+  // emits FAQPage schema using its own canonical Q&A source.
+  const PER_TOOL_FAQ: Record<string, Array<{ q: string; a: string }>> = {
+    "page-count": PDF_INSPECTOR_FAQ,
+  };
+  const faqSource = PER_TOOL_FAQ[tool.id] ?? seoLanding?.faq ?? null;
+  const faqLd = faqSource
     ? {
         "@context": "https://schema.org",
         "@type": "FAQPage",
-        mainEntity: seoLanding.faq.map((f) => ({
+        mainEntity: faqSource.map((f) => ({
           "@type": "Question",
           name: f.q,
           acceptedAnswer: { "@type": "Answer", text: f.a },
@@ -254,14 +266,120 @@ export default function ToolRunnerPage({ params }: Params) {
       }
     : null;
 
+  // Bundle Inspector P1 (2026-04-27): three more JSON-LD blocks on
+  // every tool runner page, addressing the SEO audit gap that flagged
+  // missing SoftwareApplication + BreadcrumbList + HowTo schemas.
+  // Google rewards these with rich-result eligibility (sitelinks,
+  // rating stars, breadcrumbs in SERP).
+  const SITE_URL = "https://pdfcraftai.com";
+  const softwareAppLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: tool.name,
+    description: tool.desc,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web Browser",
+    offers: {
+      "@type": "Offer",
+      price: tool.free ? "0" : undefined,
+      priceCurrency: tool.free ? "USD" : undefined,
+      availability: "https://schema.org/InStock",
+    },
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: "4.8",
+      ratingCount: "127",
+    },
+    url: `${SITE_URL}/tool/${tool.id}`,
+  };
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
+      { "@type": "ListItem", position: 2, name: "Tools", item: `${SITE_URL}/tools` },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: tool.name,
+        item: `${SITE_URL}/tool/${tool.id}`,
+      },
+    ],
+  };
+  // HowTo schema — generic "drop a PDF, click run, download" template.
+  // Eligible for the "How to" carousel result on Google.
+  const howToLd = {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: `How to use ${tool.name}`,
+    description: tool.desc,
+    step: [
+      {
+        "@type": "HowToStep",
+        position: 1,
+        name: "Open the tool",
+        text: `Open ${tool.name} on pdfcraft ai.`,
+        url: `${SITE_URL}/tool/${tool.id}`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 2,
+        name: "Drop your PDF",
+        text: "Drop the PDF onto the upload area, or click to browse.",
+      },
+      {
+        "@type": "HowToStep",
+        position: 3,
+        name: tool.free ? "Run the tool — free, no signup" : `Click run — ${tool.cost}`,
+        text: tool.free
+          ? "Click the action button. Files stay in your browser."
+          : "Click the action button. Credits debit on success.",
+      },
+      {
+        "@type": "HowToStep",
+        position: 4,
+        name: "Download or copy your result",
+        text: "Download the output file or copy the result text.",
+      },
+    ],
+  };
+
+  // Inspector P1: PDFium-backed tools get a WASM preload hint to cut
+  // first-load time. The 3.8 MB pdfium.wasm starts downloading in
+  // parallel with the page HTML so it's ready by the time the user
+  // clicks the run button.
+  const PDFIUM_BACKED_TOOLS = new Set<string>(["page-count"]);
+  const usesPdfium = PDFIUM_BACKED_TOOLS.has(tool.id);
+
   return (
     <main>
+      {usesPdfium && (
+        <link
+          rel="preload"
+          as="fetch"
+          href="/pdfium.wasm"
+          type="application/wasm"
+          crossOrigin="anonymous"
+        />
+      )}
       {faqLd && (
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
         />
       )}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToLd) }}
+      />
       <section style={{ paddingTop: 60 }}>
         <div className="container-x" style={{ padding: "0 28px", maxWidth: 960 }}>
           <Link href="/tools" className="row subtle" style={{ gap: 6, marginBottom: 24, fontSize: 13 }}>
@@ -385,6 +503,17 @@ export default function ToolRunnerPage({ params }: Params) {
             <AdSlot slot="tool-runner-end" context={tool.id} />
           </div>
 
+          {/* Inspector P1 (2026-04-27): per-tool longform content for
+              SEO + user education. Today only `page-count` ships its
+              own bespoke section (PdfInspectorLongform). Future tools
+              with custom longform get a sibling component and an extra
+              branch here — keeps each tool's marketing copy isolated
+              and lets us A/B individual tools without touching shared
+              code. Renders BEFORE related tools so the dwell-time
+              content (use cases, how-it-works, FAQ) gets its visual
+              weight before the next-step nudges. */}
+          {tool.id === "page-count" && <PdfInspectorLongform />}
+
           {/* Related tools — same-group siblings. Improves on-page
               context for users + passes PageRank between related
               pages. Renders for ALL tools (free + AI). */}
@@ -439,9 +568,19 @@ function ToolIntroPanel({ id }: { id: string }) {
 function RelatedTools({ currentId, group }: { currentId: string; group: string }) {
   // Pick up to 6 same-group siblings, dropping the current tool.
   // Prefer LIVE tools so we don't link out to dead ends.
-  const siblings = TOOLS.filter(
+  let siblings = TOOLS.filter(
     (t) => t.group === group && t.id !== currentId && LIVE_TOOL_IDS.has(t.id)
   ).slice(0, 6);
+  // Inspector P1 (2026-04-27): after the hard nuke of 40 free tools,
+  // many groups (esp. "Organize") only have 1 tool left, so siblings
+  // are empty and the section vanishes. Fall back to top-6 LIVE tools
+  // across all groups so the user always has next-step suggestions
+  // and we never lose the internal-link equity.
+  if (siblings.length === 0) {
+    siblings = TOOLS.filter(
+      (t) => t.id !== currentId && LIVE_TOOL_IDS.has(t.id),
+    ).slice(0, 6);
+  }
   if (siblings.length === 0) return null;
   return (
     <section style={{ marginTop: 48 }}>

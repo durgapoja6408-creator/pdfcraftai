@@ -38,30 +38,47 @@ export interface DocumentInspection {
 }
 
 /**
- * Friendly name for a page size. PDF standard sizes are well-known.
- * Returns the closest-match common name or "Custom" if no match.
+ * Friendly name for a page size + orientation.
+ *
+ * P1 fix: previous version returned just the format name ("A4") which
+ * was misleading for landscape PDFs — a 11.7 × 8.3 page was labelled
+ * "A4" with no indication that the dimensions were swapped. Now
+ * returns "A4 (landscape)" / "A4 (portrait)" / "Custom" so the
+ * label matches the visible inches.
  *
  * Tolerance: ±2pt on each axis to handle rounding in producers.
  */
 export function describePageSize(d: PageDimension): string {
   const tolerance = 2;
-  const matches = (w: number, h: number) =>
-    Math.abs(d.width - w) <= tolerance && Math.abs(d.height - h) <= tolerance;
-  // Standard sizes in points (width × height portrait orientation)
+  // Standard sizes in points (width × height PORTRAIT canonical form).
   const sizes: Array<[string, number, number]> = [
-    ["Letter", 612, 792], // US Letter 8.5 × 11 in
-    ["Legal", 612, 1008], // US Legal 8.5 × 14 in
-    ["Tabloid", 792, 1224], // Tabloid 11 × 17 in
-    ["A4", 595, 842], // A4 8.27 × 11.69 in
-    ["A3", 842, 1191], // A3 11.69 × 16.54 in
-    ["A5", 420, 595], // A5 5.83 × 8.27 in
-    ["B5", 499, 709], // B5 6.93 × 9.84 in
-    ["Executive", 522, 756], // Executive 7.25 × 10.5 in
+    ["Letter", 612, 792],
+    ["Legal", 612, 1008],
+    ["Tabloid", 792, 1224],
+    ["A4", 595, 842],
+    ["A3", 842, 1191],
+    ["A5", 420, 595],
+    ["B5", 499, 709],
+    ["Executive", 522, 756],
   ];
-  for (const [name, w, h] of sizes) {
-    if (matches(w, h) || matches(h, w)) return name;
+  const orientation =
+    d.width > d.height
+      ? "landscape"
+      : d.height > d.width
+        ? "portrait"
+        : "square";
+  for (const [name, portraitW, portraitH] of sizes) {
+    // Match either portrait dimensions OR landscape (swapped).
+    if (
+      (Math.abs(d.width - portraitW) <= tolerance &&
+        Math.abs(d.height - portraitH) <= tolerance) ||
+      (Math.abs(d.width - portraitH) <= tolerance &&
+        Math.abs(d.height - portraitW) <= tolerance)
+    ) {
+      return orientation === "square" ? name : `${name} (${orientation})`;
+    }
   }
-  return "Custom";
+  return `Custom (${orientation})`;
 }
 
 /** Convert PDF points to inches (1 inch = 72 pt). */
