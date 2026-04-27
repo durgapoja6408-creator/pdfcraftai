@@ -1365,4 +1365,361 @@ export const TOOL_LONGFORMS: Record<string, ToolLongformData> = {
       linkLabel: "Try PDF Inspector",
     },
   },
+
+  // ----- Wave 9: pdf-lib writable tools (2026-04-27) ---------------
+  // First wave to ship a writable engine. Each longform leans into
+  // the "client-side, no upload, no watermark" angle — that's the
+  // single biggest differentiator vs iLovePDF / Smallpdf for these
+  // four head-term tools.
+  merge: {
+    useCasesTitle: "Why people merge PDFs",
+    useCasesIntro:
+      "Merging is the most-searched PDF tool on the web. Whether you're consolidating a sign-off package, building a single deliverable from multiple drafts, or stitching scanned pages back together, the workflow is the same — and we run it in your browser.",
+    useCases: [
+      {
+        icon: "Receipt",
+        title: "Expense reports",
+        text: "Combine receipts, invoices, and a coversheet into one PDF for finance. Order matters — drag to reorder so the coversheet stays on top.",
+      },
+      {
+        icon: "File",
+        title: "Multi-author drafts",
+        text: "When each contributor sends their section as a separate PDF, merge them into a single deliverable without rewriting layout in Word.",
+      },
+      {
+        icon: "Scan",
+        title: "Scanned documents",
+        text: "Phone scanners often save each page as its own PDF. Merge them back into one document so it can be filed, signed, or emailed as a unit.",
+      },
+      {
+        icon: "Book",
+        title: "Lecture notes & study packs",
+        text: "Combine lecture handouts, slide exports, and reading PDFs into one revision file. Keeps the term&rsquo;s material in one place.",
+      },
+      {
+        icon: "Shield",
+        title: "Audit packages",
+        text: "Compliance reviews often want every supporting document in one bundle. Merge ledger statements + invoices + reconciliations into a single auditor PDF.",
+      },
+      {
+        icon: "Edit",
+        title: "Sign-off packets",
+        text: "Sales contracts, statements of work, NDAs — merge into one signing flow so the recipient gets a single attachment instead of five.",
+      },
+    ],
+    howWorksTitle: "How Merge PDFs works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your PDFs",
+        text: "Up to 100 MB each, no count limit. Files stay in your browser — pdf-lib runs as JavaScript, no upload.",
+      },
+      {
+        step: "2",
+        title: "Reorder if needed",
+        text: "Drag list items to set the final order. Order = output sequence; first listed becomes page 1.",
+      },
+      {
+        step: "3",
+        title: "Click Merge & download",
+        text: "We copy every page from each input into a fresh PDF, save with object streams (smaller output), and trigger the download.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Is anything uploaded?",
+        a: "No. pdf-lib is a pure-JavaScript library that runs entirely in your browser. There&rsquo;s no upload, no server processing, and no copy of your file on our infrastructure. You can verify in DevTools → Network tab — there&rsquo;s no outbound request when you click Merge.",
+      },
+      {
+        q: "Will the output be watermarked?",
+        a: "No. Merge is free, no signup, no watermark. The output is a clean PDF ready to share. We make money on AI tools (chat, summarize, translate, etc.); the free utility tools are loss leaders to bring you here.",
+      },
+      {
+        q: "What about bookmarks, links, and form fields?",
+        a: "Page content is preserved exactly. Internal bookmarks and cross-page hyperlinks are NOT remapped to the new page positions — pdf-lib v1.17 doesn&rsquo;t support that. If your inputs have heavy bookmark structures, expect them to point to the wrong pages in the merged output. Most users aren&rsquo;t affected; flag it if you are.",
+      },
+      {
+        q: "Is there a limit on file count or size?",
+        a: "100 MB per input. No hard limit on count, but the browser tab will get sluggish past about 200 MB total. For massive merges, split the work: merge 5 inputs into one, then merge that with the next 5, and so on.",
+      },
+      {
+        q: "Will encrypted PDFs work?",
+        a: "Owner-restriction-only PDFs (no-print, no-copy, but no password to open) work fine. PDFs that require a password to open will fail — unlock them first with our Unlock PDF tool, or with Adobe Acrobat / the source app, then merge.",
+      },
+      {
+        q: "Why does the output file feel bigger than the inputs combined?",
+        a: "Each input PDF has its own embedded fonts, images, and metadata. When merging, those resources can&rsquo;t always be deduplicated across inputs (pdf-lib doesn&rsquo;t fingerprint resources across documents). The output is correct — it&rsquo;s just less optimized than a single document authored from scratch. For aggressive shrinking, run a server-side compressor afterwards.",
+      },
+    ],
+    cta: {
+      title: "Want to split PDFs instead?",
+      text: "Split PDF turns one big PDF into multiple smaller files — by every page, custom ranges, or fixed chunks. Same in-browser pdf-lib engine.",
+      linkHref: "/tool/split",
+      linkLabel: "Try Split PDF",
+    },
+  },
+
+  split: {
+    useCasesTitle: "Why people split PDFs",
+    useCasesIntro:
+      "A single PDF often holds many logical units — chapters, expense receipts, contracts in a packet. Splitting lets you isolate each unit so it can be filed, shared, or signed independently. Common in document management, legal, and education workflows.",
+    useCases: [
+      {
+        icon: "Pages",
+        title: "Per-chapter exports",
+        text: "Textbooks and reports come as one fat PDF. Split by every page or custom range so each chapter exists as its own file for distribution to students or reviewers.",
+      },
+      {
+        icon: "Receipt",
+        title: "Receipt extraction",
+        text: "Bank statements often combine months of receipts. Split into per-page PDFs so each transaction can be filed independently with the matching expense.",
+      },
+      {
+        icon: "Shield",
+        title: "Compliance archiving",
+        text: "Audit packages need each individual document filed separately. Split a master bundle into the constituent files for retention indexing.",
+      },
+      {
+        icon: "Edit",
+        title: "Selective sharing",
+        text: "Send only pages 4–7 to a reviewer rather than the whole 80-page contract. Use a custom range to extract exactly that slice.",
+      },
+      {
+        icon: "Book",
+        title: "Journal article extraction",
+        text: "Conference proceedings come as one giant PDF. Split by page range to extract individual papers for citation and archival.",
+      },
+      {
+        icon: "Scan",
+        title: "Scanned multi-doc batches",
+        text: "Office scanners often save 50 documents as one PDF. Split them back into per-document files using the scanner&rsquo;s known page count per doc.",
+      },
+    ],
+    howWorksTitle: "How Split PDF works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your PDF",
+        text: "Up to 100 MB. pdf-lib parses the document tree in your browser — nothing uploads.",
+      },
+      {
+        step: "2",
+        title: "Pick a split mode",
+        text: "Every page (each becomes its own PDF), Fixed-size chunks (e.g. 5 pages per output), or Custom ranges (1-3, 5, 8-10 → three outputs).",
+      },
+      {
+        step: "3",
+        title: "Download outputs",
+        text: "Single-output downloads directly. Multi-output bundles into a .zip with deterministic filenames so you can find each piece.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Is anything uploaded?",
+        a: "No. The split happens entirely in your browser via pdf-lib. Even the .zip bundling for multi-output is built locally with JSZip. Verifiable in DevTools → Network — no upload request, no server round-trip.",
+      },
+      {
+        q: "What&rsquo;s the difference between Every page, Chunks, and Ranges?",
+        a: "Every page = one PDF per page. Chunks = group pages into fixed-size outputs (e.g. chunk size 3 turns a 12-page PDF into four 3-page PDFs). Ranges = you specify the splits explicitly. Comma-separated, hyphenated. So &lsquo;1-3, 5, 8-12&rsquo; produces three outputs: pages 1-3, just page 5, and pages 8-12.",
+      },
+      {
+        q: "Will bookmarks point to the right pages in each split output?",
+        a: "Bookmarks that target pages within an individual split chunk WILL work. Bookmarks that targeted pages across the original document but now span multiple outputs are dropped. This is a pdf-lib v1.17 limitation; for production-quality bookmark surgery you need server-side qpdf, which we&rsquo;re evaluating.",
+      },
+      {
+        q: "Is there a hard limit on input size or output count?",
+        a: "100 MB input. Output count is bounded by your machine&rsquo;s memory — splitting a 1000-page PDF into 1000 single-page PDFs uses real RAM. Most laptops handle a few hundred outputs cleanly; for thousands, split iteratively (custom ranges in batches).",
+      },
+      {
+        q: "Does the output preserve forms, signatures, and annotations?",
+        a: "Page-level content yes. Document-level forms (where the AcroForm dictionary spans pages) are partially preserved — fields on a split page work, fields that crossed pages may not. Signatures invalidate after any split (that&rsquo;s the cryptographic guarantee — re-sign the resulting outputs if needed).",
+      },
+      {
+        q: "Will the outputs be smaller than the input?",
+        a: "Roughly proportional. If your input is 10 MB across 100 pages, a single-page output runs about 100 KB plus shared resources (fonts, images repeated across pages). Splitting doesn&rsquo;t compress — for that, run our compressor server-side after splitting.",
+      },
+    ],
+    cta: {
+      title: "Want to merge PDFs instead?",
+      text: "Merge PDFs combines multiple inputs into one. Same in-browser pdf-lib engine, no upload, no watermark.",
+      linkHref: "/tool/merge",
+      linkLabel: "Try Merge PDFs",
+    },
+  },
+
+  rotate: {
+    useCasesTitle: "Why people rotate PDF pages",
+    useCasesIntro:
+      "Rotation is one of the cheapest fixes in document workflows. A scanner picks up a page upside down, a phone snap lands sideways, an export comes through 90° off — rotating fixes all of it without re-scanning or re-exporting.",
+    useCases: [
+      {
+        icon: "Scan",
+        title: "Sideways scans",
+        text: "Office scanners frequently rotate landscape-fed pages. Fix every affected page in one pass with a custom range.",
+      },
+      {
+        icon: "Image",
+        title: "Phone-camera PDFs",
+        text: "Mobile scan apps save in whatever orientation the phone was held. Rotate to upright for archival.",
+      },
+      {
+        icon: "Book",
+        title: "Mixed-orientation reports",
+        text: "Engineering reports interleave portrait analysis pages with landscape data tables. Rotate the data tables 90° so they read on screen without head-tilting.",
+      },
+      {
+        icon: "Shield",
+        title: "Compliance review prep",
+        text: "Auditors expect documents in a uniform orientation. Rotate pages to match before submitting the review package.",
+      },
+      {
+        icon: "Edit",
+        title: "Print-prep correction",
+        text: "Pages laid out in landscape but exported as portrait need rotating before press — saves a re-export and a billable hour.",
+      },
+      {
+        icon: "Pages",
+        title: "Page-by-page cleanup",
+        text: "When a 200-page document has 4 misaligned pages, type the page numbers (e.g. &lsquo;7, 23, 88, 154&rsquo;) and fix only those.",
+      },
+    ],
+    howWorksTitle: "How Rotate PDF works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your PDF",
+        text: "Up to 100 MB. pdf-lib parses page tree locally — no upload.",
+      },
+      {
+        step: "2",
+        title: "Pick angle and pages",
+        text: "90° / 180° / 270° clockwise. Specify pages as &lsquo;all&rsquo;, individual numbers (&lsquo;1, 5, 12&rsquo;), or ranges (&lsquo;7-12&rsquo;).",
+      },
+      {
+        step: "3",
+        title: "Download",
+        text: "We adjust the /Rotate entry on each affected page and re-save. Lossless — the underlying content stream is untouched. Runs in milliseconds even on huge files.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Is rotation lossless?",
+        a: "Yes. We modify the page&rsquo;s /Rotate entry — the actual content stream (text, images, vector paths) stays exactly as it was. Quality is identical to the input. This is much better than re-exporting through a print driver, which can re-encode images and fonts.",
+      },
+      {
+        q: "What about double-rotation? If I rotate 90° twice?",
+        a: "We add to the existing rotation rather than overwriting. So if a page is already rotated 90° and you rotate again by 90°, the result is 180°. This matches user intent — rotate is a relative action, not an absolute reset.",
+      },
+      {
+        q: "How do I rotate counter-clockwise (left)?",
+        a: "Use 270°. PDF rotation is always clockwise in the spec, so 270° clockwise lands at the same place as 90° counter-clockwise.",
+      },
+      {
+        q: "Can I rotate by arbitrary angles like 45°?",
+        a: "No — the PDF spec only supports 90° increments via /Rotate. Arbitrary angles require modifying the content stream itself (re-rendering each page through a transform matrix), which loses fidelity. For arbitrary rotation use a tool like Adobe Acrobat or a screenshot-edit-reinsert workflow.",
+      },
+      {
+        q: "Is anything uploaded?",
+        a: "No. pdf-lib runs in JavaScript in your browser. The PDF never leaves your device. Verifiable in DevTools.",
+      },
+      {
+        q: "Will printing pick up the rotation?",
+        a: "Yes. /Rotate is a first-class PDF spec entry — print drivers, viewers, and OCR engines all honor it. Acrobat, Apple Preview, Chrome, Firefox, and every printer we&rsquo;ve tested respect it correctly.",
+      },
+    ],
+    cta: {
+      title: "Need to inspect a PDF first?",
+      text: "PDF Inspector tells you which pages are landscape vs portrait, with a mixed-orientation warning. Run it before rotating to know exactly which pages need fixing.",
+      linkHref: "/tool/pdf-inspector",
+      linkLabel: "Try PDF Inspector",
+    },
+  },
+
+  unlock: {
+    useCasesTitle: "Why people unlock PDFs",
+    useCasesIntro:
+      "PDFs come with two distinct flavors of restriction. Owner-only PDFs let you read freely but block printing, copying, or editing. User-password PDFs require a password just to open. We unlock the first cleanly; the second needs the password (we&rsquo;re honest about that).",
+    useCases: [
+      {
+        icon: "Receipt",
+        title: "Bank statements & bills",
+        text: "Many statements are issued as &lsquo;secured&rsquo; PDFs that block copy-paste of account numbers. Unlock to copy the relevant rows into a spreadsheet for tracking.",
+      },
+      {
+        icon: "Shield",
+        title: "Vendor proposals",
+        text: "Sales decks and proposals are often locked against editing. Unlock to comment, annotate, or counter-offer without printing-and-rescanning.",
+      },
+      {
+        icon: "Edit",
+        title: "Form filling",
+        text: "Some PDFs are locked specifically to prevent form filling. Unlock to fill the form, then re-share as a normal PDF.",
+      },
+      {
+        icon: "Book",
+        title: "Academic e-books",
+        text: "Textbooks downloaded from the library may be locked against printing or extracting study notes. Unlock for personal-use highlight extraction.",
+      },
+      {
+        icon: "Pages",
+        title: "Print-prep",
+        text: "Print shops can&rsquo;t process locked PDFs — many require an unlocked copy. Unlock before sending to press.",
+      },
+      {
+        icon: "Convert",
+        title: "Pipeline integration",
+        text: "Locked PDFs break OCR, search-index, and translation pipelines. Unlock as the first step so downstream tools can read the content.",
+      },
+    ],
+    howWorksTitle: "How Unlock PDF works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your PDF",
+        text: "Up to 100 MB. pdf-lib loads with ignoreEncryption — works for owner-restriction PDFs.",
+      },
+      {
+        step: "2",
+        title: "We copy the pages",
+        text: "Every page is copied into a fresh, unencrypted PDFDocument. The new document never had an encryption dictionary, so the output is guaranteed unlocked.",
+      },
+      {
+        step: "3",
+        title: "Download",
+        text: "Plain PDF, no restrictions. Print, copy, edit, fill — full control. If your PDF needed a user password, we surface a friendly error pointing to Adobe.",
+      },
+    ],
+    faqs: [
+      {
+        q: "What&rsquo;s the difference between owner-restriction and user-password PDFs?",
+        a: "Owner-restriction = the PDF opens without a password but blocks specific actions (print, copy, edit). The content streams aren&rsquo;t actually encrypted with a strong key — the lock is essentially advisory. We can strip these. User-password = the PDF won&rsquo;t open without a password, and the content streams ARE encrypted with a key derived from that password. We can&rsquo;t crack those, and we&rsquo;re honest about it.",
+      },
+      {
+        q: "Is this legal?",
+        a: "Removing owner restrictions on a document YOU own (statements, your-own-work proposals, files you legitimately have rights to) is generally fine in most jurisdictions. Removing restrictions to circumvent copyright on commercial e-books or distribute restricted content is NOT — and we won&rsquo;t help with that. Use this responsibly on your own materials.",
+      },
+      {
+        q: "Why do you reject password-protected PDFs?",
+        a: "Two reasons. (1) Cracking passwords is computationally hard and we&rsquo;d be misleading you to suggest a free in-browser tool can do it reliably. (2) The strongest PDF encryption (AES-256, common since Acrobat 9) is genuinely secure with a strong password. If you forgot the password, our pdf-lib pipeline can&rsquo;t help — Adobe Acrobat with their commercial cracking tools, or asking the original sender, are your real options.",
+      },
+      {
+        q: "Will the output preserve forms, signatures, annotations?",
+        a: "Page content yes. Form data carries through if the form fields&rsquo; values aren&rsquo;t themselves encrypted (most aren&rsquo;t). Signatures invalidate — that&rsquo;s the cryptographic guarantee, signatures bind to a specific document state, and removing the encryption changes that state. If you need a signed-AND-unlocked PDF, ask the original signer to produce one.",
+      },
+      {
+        q: "Is anything uploaded?",
+        a: "No. pdf-lib runs locally. Especially important for unlock — the file might be a sensitive statement or contract, and we&rsquo;d never upload it to a server. Verifiable in DevTools → Network.",
+      },
+      {
+        q: "Output file size — bigger or smaller than input?",
+        a: "Roughly the same, often slightly smaller. We re-save with object streams (modern compact format), so depending on the input&rsquo;s era and the source app, output can be 5-15% smaller. Content is identical.",
+      },
+    ],
+    cta: {
+      title: "Want to inspect a PDF&rsquo;s lock state first?",
+      text: "PDF Inspector tells you whether a PDF is encrypted, what restrictions are set, and the metadata at a glance. Run it before unlocking so you know what you&rsquo;re working with.",
+      linkHref: "/tool/pdf-inspector",
+      linkLabel: "Try PDF Inspector",
+    },
+  },
 };

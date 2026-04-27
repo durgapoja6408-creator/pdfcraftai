@@ -84,6 +84,17 @@ export const TOOLS: readonly Tool[] = [
   { id: "pdf-a-check", name: "PDF/A Compliance Check", desc: "Heuristic check whether a PDF meets PDF/A archive standards. Flags unembedded fonts, encryption, JavaScript, missing metadata.", icon: "Shield", free: true, cost: "free", group: "Organize" },
   { id: "pdf-x-check", name: "PDF/X Compliance Check", desc: "Heuristic check whether a PDF meets PDF/X print-production standards. Flags unembedded fonts, missing output intent, no trim box.", icon: "Edit", free: true, cost: "free", group: "Organize" },
 
+  // Build 2 Wave 9 (2026-04-27): 4 pdf-lib-backed writable tools.
+  // First Wave to use a writable engine (pdf-lib v1.17) instead of
+  // PDFium's read-only API. All four run client-side, no upload, no
+  // watermark. Ship docs/PDF_LIB_NOTES.md alongside this commit
+  // explaining what pdf-lib can/can't do (no encrypt — needs server-
+  // side qpdf — no compress, no edit text).
+  { id: "merge", name: "Merge PDFs", desc: "Combine multiple PDFs into one in the order you choose. Drag to reorder, runs in your browser via pdf-lib.", icon: "Merge", free: true, cost: "free", group: "Organize" },
+  { id: "split", name: "Split PDF", desc: "Split a PDF into per-page files, custom ranges, or fixed-size chunks. Single output downloads directly, multiples zip.", icon: "Split", free: true, cost: "free", group: "Organize" },
+  { id: "rotate", name: "Rotate PDF", desc: "Rotate selected pages by 90°/180°/270°. Lossless via pdf-lib's /Rotate adjustment — runs in milliseconds.", icon: "Rotate", free: true, cost: "free", group: "Edit" },
+  { id: "unlock", name: "Unlock PDF", desc: "Remove owner restrictions (no-print, no-copy, no-edit) from a PDF. For files that don't require a password to open.", icon: "Unlock", free: true, cost: "free", group: "Security" },
+
   // ----- AI -----
   { id: "ai-chat", name: "Chat with PDF", desc: "Ask questions. Get answers cited to pages.", icon: "Chat", free: false, cost: "1 credit per question", group: "AI" },
   { id: "ai-summarize", name: "Summarize PDF", desc: "Executive summary + section bullets.", icon: "Summary", free: false, cost: "3 credits per doc", group: "AI" },

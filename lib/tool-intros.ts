@@ -36,26 +36,26 @@ export type ToolIntro = {
 };
 
 export const TOOL_INTROS: Record<string, ToolIntro> = {
-  // --------- Top head-term free tools ---------
+  // --------- Top head-term free tools (Wave 9 pdf-lib writable) ---------
+  // 2026-04-27 Wave 9: merge / split / rotate / unlock now point to
+  // each other (or to PDFium siblings that exist in lib/tools.ts).
+  // Earlier placeholders pointed to IDs that were nuked — those
+  // would render as dead cross-promo links.
   merge: {
-    text: "What you'll get: a single PDF that combines all your input files in the order you set, with bookmarks and hyperlinks reconciled to the new page numbers. No watermarks. Up to 50 files per merge.",
+    text: "What you'll get: a single combined PDF in the exact order you set, runs entirely in your browser via pdf-lib.",
     related: { id: "split", label: "Split PDF" },
   },
   split: {
-    text: "What you'll get: each page (or page range) of your PDF as a separate file, packaged in a zip. Bookmarks pointing into each output range are preserved.",
+    text: "What you'll get: a multi-page PDF split into per-page files, custom ranges, or fixed-size chunks — single output downloads directly, multiples zip.",
     related: { id: "merge", label: "Merge PDFs" },
   },
-  compress: {
-    text: "What you'll get: a smaller PDF with text staying vector-sharp and images re-encoded at the level you pick (Light / Balanced / Strong). Or set a target file size and we iterate.",
-    related: { id: "ai-summarize", label: "AI · Summarize PDF" },
-  },
   rotate: {
-    text: "What you'll get: your PDF with selected pages rotated 90°/180°/270°, plus optional drag-to-reorder thumbnails for full page rearrangement.",
-    related: { id: "sort-pages", label: "Sort Pages" },
+    text: "What you'll get: a PDF with the pages you choose rotated 90°/180°/270° — lossless, runs in milliseconds via pdf-lib's /Rotate adjustment.",
+    related: { id: "pdf-inspector", label: "PDF Inspector" },
   },
-  protect: {
-    text: "What you'll get: a password-protected PDF (AES-256), or an unlocked copy if you provide the existing password. Set view-only or full-edit permissions independently.",
-    related: { id: "redact-free", label: "Redact PDF" },
+  unlock: {
+    text: "What you'll get: a copy of your PDF without owner restrictions (no-print, no-copy, no-edit) — for files that don't require a password to open.",
+    related: { id: "pdf-inspector", label: "PDF Inspector" },
   },
 
   // --------- Common utility free tools ---------

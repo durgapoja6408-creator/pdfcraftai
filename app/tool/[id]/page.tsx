@@ -27,6 +27,11 @@ import {
   AccessibilityCheckerTool,
   PdfJsDetectorTool,
 } from "@/components/tools/PdfChecklistTool";
+// Build 2 Wave 9 (2026-04-27): pdf-lib-backed writable tools.
+import { PdfMergeTool } from "@/components/tools/PdfMergeTool";
+import { PdfSplitTool } from "@/components/tools/PdfSplitTool";
+import { PdfRotateTool } from "@/components/tools/PdfRotateTool";
+import { PdfUnlockTool } from "@/components/tools/PdfUnlockTool";
 import {
   PdfInspectorLongform,
   PDF_INSPECTOR_FAQ,
@@ -117,9 +122,15 @@ type Params = { params: { id: string } };
 // Adding a tool here: register the id, then append a case to the
 // ToolRunner switch below.
 const LIVE_TOOL_IDS = new Set<string>([
+  // Build 2 Wave 9 (2026-04-27): pdf-lib-backed writable tools.
+  // merge / split / rotate were registered pre-nuke and stayed in
+  // LIVE_TOOL_IDS as orphaned ids (no entry in lib/tools.ts, no
+  // dispatch case → routes 404'd). Wave 9 lights them up properly
+  // with real ops + runners + tools.ts entries. `unlock` is new.
   "merge",
   "split",
   "rotate",
+  "unlock",
   "compress",
   "page-numbers",
   "to-pdf",
@@ -908,6 +919,15 @@ function ToolRunner({ id }: { id: string }) {
       return <PdfACheckTool />;
     case "pdf-x-check":
       return <PdfXCheckTool />;
+    // Build 2 Wave 9 — pdf-lib-backed writable tools.
+    case "merge":
+      return <PdfMergeTool />;
+    case "split":
+      return <PdfSplitTool />;
+    case "rotate":
+      return <PdfRotateTool />;
+    case "unlock":
+      return <PdfUnlockTool />;
     default:
       return null;
   }
