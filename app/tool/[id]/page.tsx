@@ -436,6 +436,10 @@ export default function ToolRunnerPage({ params }: Params) {
     // thumbnails via the PDFium rasterizer for the click-to-rotate
     // grid, before handing off to pdf-lib for the actual save.
     "rotate",
+    // Visual Split UX — Split tool also renders per-page thumbnails
+    // for the click-to-mark-split-points grid (Visual mode default;
+    // Advanced text-mode still available as a toggle).
+    "split",
   ]);
   const usesPdfium = PDFIUM_BACKED_TOOLS.has(tool.id);
 

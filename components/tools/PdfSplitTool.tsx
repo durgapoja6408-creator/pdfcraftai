@@ -3,17 +3,38 @@
 // components/tools/PdfSplitTool.tsx
 //
 // Build 2 Wave 9 (2026-04-27): split a PDF into multiple PDFs.
-// Three modes — every / range / size. Single-output downloads
-// directly; multi-output bundles into a .zip via JSZip.
+// 2026-04-27 (visual split UX): rebuilt around a thumbnail grid with
+// click-to-mark split points — same pattern as the rotate tool. Text
+// expression survives as an "Advanced" toggle for power users / huge
+// PDFs where rendering thumbnails is too slow.
 //
-// JSZip is dynamically imported on demand to keep the route bundle small.
+// Visual mode:
+//   1. Drop PDF → PDFium renders every page as a thumbnail.
+//   2. Each thumbnail (except the last) has a right-edge "split here"
+//      affordance. Click toggles a split AFTER that page.
+//   3. Toolbar: "Split every page", "Split in half", "Clear splits".
+//   4. Live segment preview: "3 outputs · pages 1-3, 4-7, 8-10".
+//   5. Apply button calls splitPdf(mode: "range", ranges: built from
+//      the split-point set).
+//
+// Advanced mode:
+//   The original three modes (every / size / range) remain. Some users
+//   know exactly what they want and don't need thumbnails — and huge
+//   PDFs (>200 pages) render slowly enough that text-mode is faster.
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import type { SplitMode, SplitOutput } from "@/lib/pdf/ops/split";
+
+interface PageThumb {
+  pageNumber: number;
+  thumbnailUrl: string;
+  width: number;
+  height: number;
+}
 
 interface SplitResultState {
   outputs: SplitOutput[];
@@ -21,18 +42,41 @@ interface SplitResultState {
   sourcePageCount: number;
 }
 
+type Stage = "idle" | "rendering-thumbnails" | "ready" | "applying";
+type UIMode = "visual" | "advanced";
+
 export function PdfSplitTool() {
   const tracker = useTrackToolView("split", "Organize");
   const [file, setFile] = useState<File | null>(null);
-  const [mode, setMode] = useState<SplitMode>("every");
-  const [ranges, setRanges] = useState<string>("1-5, 6-10");
-  const [chunkSize, setChunkSize] = useState<number>(2);
-  const [busy, setBusy] = useState(false);
+  const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
+  const [thumbnails, setThumbnails] = useState<PageThumb[]>([]);
+  const [stage, setStage] = useState<Stage>("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SplitResultState | null>(null);
+  const [progress, setProgress] = useState<{ done: number; total: number }>({
+    done: 0,
+    total: 0,
+  });
+
+  // UI state
+  const [uiMode, setUiMode] = useState<UIMode>("visual");
+  // Visual-mode state: set of 0-based indices AFTER which to split.
+  // `splits.has(2)` means "split after page 3 (index 2)" → segments
+  // [0..2] and [3..end].
+  const [splits, setSplits] = useState<Set<number>>(new Set());
+
+  // Advanced-mode state (mirrors the previous text-input flow).
+  const [advMode, setAdvMode] = useState<SplitMode>("every");
+  const [advRanges, setAdvRanges] = useState<string>("1-5, 6-10");
+  const [advChunkSize, setAdvChunkSize] = useState<number>(2);
+
+  // Revoke object URLs on unmount/reset to avoid blob-URL leaks.
+  useEffect(() => {
+    return () => thumbnails.forEach((t) => URL.revokeObjectURL(t.thumbnailUrl));
+  }, [thumbnails]);
 
   const onFiles = useCallback(
-    (files: File[]) => {
+    async (files: File[]) => {
       setError(null);
       setResult(null);
       const f = files[0];
@@ -45,37 +89,119 @@ export function PdfSplitTool() {
         setError("File over 100 MB — try a smaller one.");
         return;
       }
+
       setFile(f);
       tracker.upload(f);
+      setStage("rendering-thumbnails");
+
+      try {
+        const bytes = new Uint8Array(await f.arrayBuffer());
+        setPdfBytes(bytes);
+
+        const { rasterizePdf } = await import("@/lib/pdf/ops/rasterize");
+        const rendered = await rasterizePdf(bytes, {
+          format: "jpeg",
+          scale: 0.5,
+          quality: 0.7,
+          onProgress: (done, total) => setProgress({ done, total }),
+        });
+
+        const thumbs: PageThumb[] = rendered.map((r) => {
+          const blob = new Blob([r.bytes], { type: "image/jpeg" });
+          return {
+            pageNumber: r.pageNumber,
+            thumbnailUrl: URL.createObjectURL(blob),
+            width: r.width,
+            height: r.height,
+          };
+        });
+        setThumbnails(thumbs);
+        setSplits(new Set());
+        setStage("ready");
+      } catch (err) {
+        console.error("split thumbnail render failed", err);
+        const msg =
+          err instanceof Error ? err.message : "Could not parse the PDF.";
+        setError(msg);
+        setStage("idle");
+        tracker.error({ errorCode: "thumbnail_failed" });
+      }
     },
     [tracker],
   );
 
   const reset = () => {
+    thumbnails.forEach((t) => URL.revokeObjectURL(t.thumbnailUrl));
+    setThumbnails([]);
     setFile(null);
+    setPdfBytes(null);
     setError(null);
     setResult(null);
-    setBusy(false);
+    setStage("idle");
+    setSplits(new Set());
+    setProgress({ done: 0, total: 0 });
   };
 
-  const run = async () => {
-    if (!file) return;
+  const toggleSplit = (idxAfter: number) => {
+    setSplits((prev) => {
+      const next = new Set(prev);
+      if (next.has(idxAfter)) next.delete(idxAfter);
+      else next.add(idxAfter);
+      return next;
+    });
+  };
+
+  const splitEveryPage = () => {
+    const all = new Set<number>();
+    for (let i = 0; i < thumbnails.length - 1; i++) all.add(i);
+    setSplits(all);
+  };
+
+  const splitInHalf = () => {
+    if (thumbnails.length < 2) return;
+    const mid = Math.floor(thumbnails.length / 2) - 1;
+    setSplits(new Set([mid]));
+  };
+
+  const clearSplits = () => setSplits(new Set());
+
+  // Translate the splits set into a list of [start, end] 1-based
+  // segment ranges. With pageCount=10 and splits={2,5}: segments are
+  // [1-3], [4-6], [7-10]. Both ends inclusive.
+  const segments = computeSegments(thumbnails.length, splits);
+
+  const apply = async () => {
+    if (!pdfBytes || !file) return;
+
+    let opts: { mode: SplitMode; ranges?: string; chunkSize?: number };
+    if (uiMode === "visual") {
+      if (segments.length < 2) {
+        setError("Mark at least one split point to create multiple PDFs.");
+        return;
+      }
+      // Build a comma-separated range list for the existing op.
+      const rangeStr = segments.map((s) => `${s.start}-${s.end}`).join(", ");
+      opts = { mode: "range", ranges: rangeStr };
+    } else {
+      opts = {
+        mode: advMode,
+        ranges: advMode === "range" ? advRanges : undefined,
+        chunkSize: advMode === "size" ? advChunkSize : undefined,
+      };
+    }
+
     setError(null);
-    setBusy(true);
+    setStage("applying");
     const t0 = performance.now();
     try {
-      const bytes = new Uint8Array(await file.arrayBuffer());
       const { splitPdf } = await import("@/lib/pdf/ops/split");
-      const r = await splitPdf(bytes, {
-        mode,
-        ranges: mode === "range" ? ranges : undefined,
-        chunkSize: mode === "size" ? chunkSize : undefined,
-      });
+      const r = await splitPdf(pdfBytes, opts);
       setResult({
         outputs: r.outputs,
         sourceFileName: file.name,
         sourcePageCount: r.sourcePageCount,
       });
+      setStage("ready");
       tracker.success({
         creditCost: 0,
         pageCount: r.sourcePageCount,
@@ -85,9 +211,8 @@ export function PdfSplitTool() {
       console.error("split failed", err);
       const msg = err instanceof Error ? err.message : "Could not split the PDF.";
       setError(msg);
+      setStage("ready");
       tracker.error({ errorCode: "split_failed" });
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -111,9 +236,7 @@ export function PdfSplitTool() {
     try {
       const JSZipMod = (await import("jszip")).default;
       const zip = new JSZipMod();
-      for (const out of result.outputs) {
-        zip.file(prefixed(out.name), out.bytes);
-      }
+      for (const out of result.outputs) zip.file(prefixed(out.name), out.bytes);
       const blob = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(blob);
       try {
@@ -142,6 +265,8 @@ export function PdfSplitTool() {
 
   const truncate = (s: string, max = 38) =>
     s.length <= max ? s : `${s.slice(0, max - 1)}…`;
+
+  const busy = stage === "rendering-thumbnails" || stage === "applying";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -172,6 +297,7 @@ export function PdfSplitTool() {
               </div>
               <div className="subtle" style={{ fontSize: 12 }}>
                 {humanSize(file.size)}
+                {thumbnails.length > 0 ? ` · ${thumbnails.length} pages` : ""}
               </div>
             </div>
             <button
@@ -187,95 +313,13 @@ export function PdfSplitTool() {
         </div>
       )}
 
-      {file && !result && (
-        <div
-          className="card"
-          style={{ padding: 16, display: "flex", flexDirection: "column", gap: 14 }}
-        >
-          <div style={{ fontSize: 13, fontWeight: 500 }}>How to split</div>
-          <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
-            <legend className="visually-hidden" style={{ position: "absolute", left: -10000 }}>
-              Split mode
-            </legend>
-            <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-              {(
-                [
-                  { v: "every", label: "Every page → its own PDF" },
-                  { v: "size", label: "Fixed-size chunks" },
-                  { v: "range", label: "Custom ranges" },
-                ] as Array<{ v: SplitMode; label: string }>
-              ).map((opt) => (
-                <label
-                  key={opt.v}
-                  className={`btn btn-sm ${mode === opt.v ? "btn-primary" : "btn-outline"}`}
-                  style={{ cursor: "pointer" }}
-                >
-                  <input
-                    type="radio"
-                    name="split-mode"
-                    value={opt.v}
-                    checked={mode === opt.v}
-                    onChange={() => setMode(opt.v)}
-                    style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
-                  />
-                  {opt.label}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
-          {mode === "size" && (
-            <label
-              style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13 }}
-            >
-              <span>Pages per output</span>
-              <input
-                type="number"
-                min={1}
-                max={500}
-                value={chunkSize}
-                onChange={(e) => setChunkSize(Math.max(1, Number(e.target.value) || 1))}
-                style={{
-                  width: 80,
-                  padding: "6px 10px",
-                  border: "1px solid var(--border)",
-                  borderRadius: 6,
-                  background: "var(--bg-1)",
-                  color: "var(--fg)",
-                }}
-              />
-            </label>
-          )}
-
-          {mode === "range" && (
-            <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13 }}>
-              <span>Page ranges (one output per range)</span>
-              <input
-                type="text"
-                value={ranges}
-                onChange={(e) => setRanges(e.target.value)}
-                placeholder="e.g. 1-5, 6, 7-10"
-                style={{
-                  padding: "8px 12px",
-                  border: "1px solid var(--border)",
-                  borderRadius: 6,
-                  fontFamily: "var(--mono, monospace)",
-                  background: "var(--bg-1)",
-                  color: "var(--fg)",
-                }}
-              />
-            </label>
-          )}
-        </div>
-      )}
-
       {error && (
         <p role="alert" style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>
           {error}
         </p>
       )}
 
-      {busy && (
+      {stage === "rendering-thumbnails" && (
         <div
           className="card"
           style={{ padding: 16, background: "var(--bg-1)", display: "flex", gap: 12 }}
@@ -286,8 +330,339 @@ export function PdfSplitTool() {
           <span className="pulse-soft" style={{ color: "var(--accent)" }}>
             <I.Sparkle size={16} />
           </span>
-          <div style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>Splitting PDF…</div>
+          <div style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>
+            Rendering page previews
+            {progress.total > 0 ? ` · ${progress.done} / ${progress.total}` : "…"}
+          </div>
         </div>
+      )}
+
+      {stage === "applying" && (
+        <div
+          className="card"
+          style={{ padding: 16, background: "var(--bg-1)", display: "flex", gap: 12 }}
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <span className="pulse-soft" style={{ color: "var(--accent)" }}>
+            <I.Sparkle size={16} />
+          </span>
+          <div style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>
+            Splitting PDF…
+          </div>
+        </div>
+      )}
+
+      {stage === "ready" && thumbnails.length > 0 && !result && (
+        <>
+          {/* UI mode toggle */}
+          <div className="row" style={{ gap: 8, alignItems: "center" }}>
+            <span className="subtle" style={{ fontSize: 12 }}>Mode:</span>
+            <div className="row" style={{ gap: 4 }}>
+              <button
+                type="button"
+                className={`btn btn-sm ${uiMode === "visual" ? "btn-primary" : "btn-outline"}`}
+                onClick={() => setUiMode("visual")}
+              >
+                Visual
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${uiMode === "advanced" ? "btn-primary" : "btn-outline"}`}
+                onClick={() => setUiMode("advanced")}
+              >
+                Advanced
+              </button>
+            </div>
+          </div>
+
+          {uiMode === "visual" ? (
+            <>
+              {/* Visual toolbar */}
+              <div
+                className="card"
+                style={{
+                  padding: "12px 16px",
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <div className="subtle" style={{ fontSize: 13 }}>
+                  {splits.size === 0
+                    ? "Click a page&rsquo;s right edge to split after it. Live preview shows segments."
+                    : `${segments.length} output${segments.length === 1 ? "" : "s"} · ${splits.size} split point${splits.size === 1 ? "" : "s"}`}
+                </div>
+                <div className="row" style={{ gap: 6 }}>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline"
+                    onClick={splitEveryPage}
+                  >
+                    Split every page
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline"
+                    onClick={splitInHalf}
+                    disabled={thumbnails.length < 2}
+                  >
+                    Split in half
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-ghost"
+                    onClick={clearSplits}
+                    disabled={splits.size === 0}
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              {/* Segment preview chip strip */}
+              {segments.length > 0 && (
+                <div
+                  className="card"
+                  style={{
+                    padding: "10px 14px",
+                    background: "var(--bg-1)",
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 6,
+                    alignItems: "center",
+                    fontSize: 12,
+                  }}
+                  aria-label="Output segment preview"
+                >
+                  <span className="subtle">Outputs:</span>
+                  {segments.map((seg, i) => (
+                    <span
+                      key={i}
+                      style={{
+                        padding: "3px 10px",
+                        borderRadius: 999,
+                        background: "var(--accent-soft)",
+                        color: "var(--accent)",
+                        fontWeight: 500,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {seg.start === seg.end
+                        ? `Page ${seg.start}`
+                        : `Pages ${seg.start}–${seg.end}`}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Thumbnail grid */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+                  gap: 14,
+                }}
+              >
+                {thumbnails.map((p, idx) => {
+                  const isLast = idx === thumbnails.length - 1;
+                  const isSplitAfter = splits.has(idx);
+                  return (
+                    <div
+                      key={p.pageNumber}
+                      style={{
+                        position: "relative",
+                        background: "var(--bg-1)",
+                        border: "1px solid var(--border)",
+                        borderRadius: 8,
+                        padding: 8,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 6,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "100%",
+                          aspectRatio: `${p.width} / ${p.height}`,
+                          overflow: "hidden",
+                          borderRadius: 4,
+                          background: "var(--bg-2)",
+                          display: "grid",
+                          placeItems: "center",
+                        }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={p.thumbnailUrl}
+                          alt={`Page ${p.pageNumber} preview`}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "contain",
+                          }}
+                        />
+                      </div>
+                      <div
+                        className="row"
+                        style={{
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          fontSize: 11,
+                        }}
+                      >
+                        <span
+                          className="subtle"
+                          style={{ fontVariantNumeric: "tabular-nums" }}
+                        >
+                          Page {p.pageNumber}
+                        </span>
+                        {!isLast && (
+                          <button
+                            type="button"
+                            onClick={() => toggleSplit(idx)}
+                            aria-label={
+                              isSplitAfter
+                                ? `Remove split after page ${p.pageNumber}`
+                                : `Add split after page ${p.pageNumber}`
+                            }
+                            aria-pressed={isSplitAfter}
+                            style={{
+                              cursor: "pointer",
+                              border: "none",
+                              padding: "2px 8px",
+                              borderRadius: 4,
+                              fontSize: 10,
+                              fontWeight: 500,
+                              background: isSplitAfter
+                                ? "var(--accent)"
+                                : "var(--bg-2)",
+                              color: isSplitAfter
+                                ? "var(--bg-0, #fff)"
+                                : "var(--fg-muted)",
+                              font: "inherit",
+                            }}
+                          >
+                            {isSplitAfter ? "Split ↓" : "Split here"}
+                          </button>
+                        )}
+                      </div>
+                      {/* Right-edge accent bar when this page ends a segment */}
+                      {isSplitAfter && (
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            position: "absolute",
+                            top: 4,
+                            bottom: 4,
+                            right: -8,
+                            width: 3,
+                            borderRadius: 2,
+                            background: "var(--accent)",
+                          }}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <div
+              className="card"
+              style={{ padding: 16, display: "flex", flexDirection: "column", gap: 14 }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 500 }}>How to split</div>
+              <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
+                <legend
+                  className="visually-hidden"
+                  style={{ position: "absolute", left: -10000 }}
+                >
+                  Split mode
+                </legend>
+                <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                  {(
+                    [
+                      { v: "every", label: "Every page → its own PDF" },
+                      { v: "size", label: "Fixed-size chunks" },
+                      { v: "range", label: "Custom ranges" },
+                    ] as Array<{ v: SplitMode; label: string }>
+                  ).map((opt) => (
+                    <label
+                      key={opt.v}
+                      className={`btn btn-sm ${advMode === opt.v ? "btn-primary" : "btn-outline"}`}
+                      style={{ cursor: "pointer" }}
+                    >
+                      <input
+                        type="radio"
+                        name="split-mode"
+                        value={opt.v}
+                        checked={advMode === opt.v}
+                        onChange={() => setAdvMode(opt.v)}
+                        style={{
+                          position: "absolute",
+                          opacity: 0,
+                          pointerEvents: "none",
+                        }}
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
+              {advMode === "size" && (
+                <label
+                  style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13 }}
+                >
+                  <span>Pages per output</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={500}
+                    value={advChunkSize}
+                    onChange={(e) =>
+                      setAdvChunkSize(Math.max(1, Number(e.target.value) || 1))
+                    }
+                    style={{
+                      width: 80,
+                      padding: "6px 10px",
+                      border: "1px solid var(--border)",
+                      borderRadius: 6,
+                      background: "var(--bg-1)",
+                      color: "var(--fg)",
+                    }}
+                  />
+                </label>
+              )}
+
+              {advMode === "range" && (
+                <label
+                  style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13 }}
+                >
+                  <span>Page ranges (one output per range)</span>
+                  <input
+                    type="text"
+                    value={advRanges}
+                    onChange={(e) => setAdvRanges(e.target.value)}
+                    placeholder="e.g. 1-5, 6, 7-10"
+                    style={{
+                      padding: "8px 12px",
+                      border: "1px solid var(--border)",
+                      borderRadius: 6,
+                      fontFamily: "var(--mono, monospace)",
+                      background: "var(--bg-1)",
+                      color: "var(--fg)",
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       {result && (
@@ -387,29 +762,63 @@ export function PdfSplitTool() {
           <button type="button" className="btn btn-primary" onClick={reset}>
             Split another PDF
           </button>
-        ) : (
+        ) : stage === "ready" && thumbnails.length > 0 ? (
           <>
-            {file && (
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={reset}
-                disabled={busy}
-              >
-                Reset
-              </button>
-            )}
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={reset}
+              disabled={busy}
+            >
+              Reset
+            </button>
             <button
               type="button"
               className="btn btn-primary"
-              disabled={!file || busy}
-              onClick={run}
+              disabled={
+                busy ||
+                (uiMode === "visual" && segments.length < 2) ||
+                (uiMode === "advanced" &&
+                  advMode === "range" &&
+                  !advRanges.trim())
+              }
+              onClick={apply}
             >
-              {busy ? "Splitting…" : "Split PDF"}
+              {busy
+                ? "Splitting…"
+                : uiMode === "visual"
+                  ? segments.length < 2
+                    ? "Mark a split point first"
+                    : `Split into ${segments.length} PDFs`
+                  : "Split PDF"}
             </button>
           </>
-        )}
+        ) : null}
       </div>
     </div>
   );
+}
+
+/**
+ * Translate a set of "split-after" indices into 1-based [start, end]
+ * segments. Both endpoints inclusive.
+ *
+ *   pageCount=10, splits={2, 5} →
+ *     [{ start: 1, end: 3 }, { start: 4, end: 6 }, { start: 7, end: 10 }]
+ */
+function computeSegments(
+  pageCount: number,
+  splits: Set<number>,
+): Array<{ start: number; end: number }> {
+  if (pageCount === 0) return [];
+  const sorted = [...splits].sort((a, b) => a - b);
+  const segments: Array<{ start: number; end: number }> = [];
+  let cursor = 0; // 0-based start of next segment
+  for (const splitIdx of sorted) {
+    if (splitIdx < 0 || splitIdx >= pageCount - 1) continue;
+    segments.push({ start: cursor + 1, end: splitIdx + 1 });
+    cursor = splitIdx + 1;
+  }
+  segments.push({ start: cursor + 1, end: pageCount });
+  return segments;
 }

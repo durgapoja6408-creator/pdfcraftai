@@ -46,7 +46,7 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
     related: { id: "split", label: "Split PDF" },
   },
   split: {
-    text: "What you'll get: a multi-page PDF split into per-page files, custom ranges, or fixed-size chunks — single output downloads directly, multiples zip.",
+    text: "What you'll get: a multi-page PDF split into separate files via a visual thumbnail picker — click between pages to mark split points, see a live segment preview, and download each section.",
     related: { id: "merge", label: "Merge PDFs" },
   },
   rotate: {

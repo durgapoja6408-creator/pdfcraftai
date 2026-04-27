@@ -1500,17 +1500,17 @@ export const TOOL_LONGFORMS: Record<string, ToolLongformData> = {
       {
         step: "1",
         title: "Drop your PDF",
-        text: "Up to 100 MB. pdf-lib parses the document tree in your browser — nothing uploads.",
+        text: "Up to 100 MB. PDFium renders every page as a small thumbnail in your browser — no upload, files never leave your device.",
       },
       {
         step: "2",
-        title: "Pick a split mode",
-        text: "Every page (each becomes its own PDF), Fixed-size chunks (e.g. 5 pages per output), or Custom ranges (1-3, 5, 8-10 → three outputs).",
+        title: "Mark split points",
+        text: "Click the &lsquo;Split here&rsquo; button on any page to insert a split after it. A live segment preview shows the resulting outputs (&lsquo;Pages 1-3&rsquo;, &lsquo;Pages 4-7&rsquo;, etc.). Bulk presets cover &lsquo;every page&rsquo; and &lsquo;in half&rsquo;.",
       },
       {
         step: "3",
         title: "Download outputs",
-        text: "Single-output downloads directly. Multi-output bundles into a .zip with deterministic filenames so you can find each piece.",
+        text: "Single-output downloads directly. Multi-output bundles into a .zip with deterministic filenames so you can find each piece. Power users can switch to Advanced mode to type page ranges directly.",
       },
     ],
     faqs: [
