@@ -125,6 +125,14 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
     text: "What you'll get: the bookmark / table-of-contents tree of the PDF, with page numbers next to each entry. Useful for previewing long docs (research papers, textbooks, legal exhibits) before committing to read. Copy as text or export JSON.",
     related: { id: "pdf-inspector", label: "PDF Inspector" },
   },
+  "pdf-forms": {
+    text: "What you'll get: a table of every AcroForm field in the PDF — name, type, current value, required/read-only flags. Export as CSV for spreadsheets or JSON for pipelines. Useful for auditing what data a PDF collects, verifying form completion, or extracting filled values.",
+    related: { id: "pdf-attachments", label: "PDF Attachments" },
+  },
+  "pdf-attachments": {
+    text: "What you'll get: a list of every embedded file in the PDF — filename, description, MIME type, size. Doesn't extract the file bytes, but tells you exactly what's hiding inside. Useful for compliance audits, security review, and PDF/A validation.",
+    related: { id: "pdf-forms", label: "PDF Form Inspector" },
+  },
 
   // --------- AI tools with dedicated runners (no SummarizeVariantTool) ---------
   // These tools each ship their own component (SummarizePdfTool,

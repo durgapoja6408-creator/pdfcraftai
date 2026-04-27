@@ -16,6 +16,8 @@ import {
 import { SearchPdfTool } from "@/components/tools/SearchPdfTool";
 import { ExtractImagesTool } from "@/components/tools/ExtractImagesTool";
 import { PdfOutlineTool } from "@/components/tools/PdfOutlineTool";
+import { PdfFormsTool } from "@/components/tools/PdfFormsTool";
+import { PdfAttachmentsTool } from "@/components/tools/PdfAttachmentsTool";
 import {
   PdfInspectorLongform,
   PDF_INSPECTOR_FAQ,
@@ -123,8 +125,10 @@ const LIVE_TOOL_IDS = new Set<string>([
   // Build 2 Wave 3 — search across PDF text.
   "pdf-search",
   "extract-images",
-  // Build 2 Wave 4 — byte-parser tool, no PDFium needed.
+  // Build 2 Wave 4 — byte-parser tools, no PDFium needed.
   "pdf-outline",
+  "pdf-forms",
+  "pdf-attachments",
   "page-count",
   // 2026-04-27 split — PDF Inspector is the rich sibling of Page Counter,
   // mounted at /tool/pdf-inspector with its own runner component.
@@ -852,6 +856,10 @@ function ToolRunner({ id }: { id: string }) {
     // Build 2 Wave 4 — byte-parser tool, no PDFium needed.
     case "pdf-outline":
       return <PdfOutlineTool />;
+    case "pdf-forms":
+      return <PdfFormsTool />;
+    case "pdf-attachments":
+      return <PdfAttachmentsTool />;
     default:
       return null;
   }
