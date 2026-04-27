@@ -97,7 +97,14 @@ const ANALYTICS_ORIGINS_IMG = [
 
 const CSP = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' ${RAZORPAY_ORIGINS.join(" ")} ${PADDLE_ORIGINS.join(" ")} ${ANALYTICS_ORIGINS_SCRIPT.join(" ")}`.trim(),
+  // 'wasm-unsafe-eval' (added 2026-04-27 for PDFium) lets the browser
+  // compile + instantiate WebAssembly modules. It is the narrow-scope
+  // directive explicitly designed for WASM — it does NOT enable the
+  // general `eval()` or `new Function()`, so PCI SAQ-A scope is
+  // unaffected. Without it, @hyzyla/pdfium fails on first user click
+  // with: "WebAssembly.instantiate(): violates Content Security policy".
+  // Required for: PageCountTool and every future PDFium-backed tool.
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' ${RAZORPAY_ORIGINS.join(" ")} ${PADDLE_ORIGINS.join(" ")} ${ANALYTICS_ORIGINS_SCRIPT.join(" ")}`.trim(),
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: ${ANALYTICS_ORIGINS_IMG.join(" ")}`,
   "font-src 'self' data:",
