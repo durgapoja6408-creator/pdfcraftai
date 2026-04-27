@@ -86,6 +86,20 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
     related: { id: "page-count", label: "Page Count" },
   },
 
+  // Build 2 — text-export trio.
+  "pdf-to-text": {
+    text: "What you'll get: every word of your PDF as a plain .txt file with page-break markers between pages. Reading order is preserved; layout is flattened. Ideal for translation, summarization, or pasting into any editor.",
+    related: { id: "pdf-to-markdown", label: "PDF to Markdown" },
+  },
+  "pdf-to-markdown": {
+    text: "What you'll get: a .md file with each PDF page as an H2 section, paragraphs preserved, ready to paste into Notion, Obsidian, GitHub, or any Markdown editor.",
+    related: { id: "pdf-to-html", label: "PDF to HTML" },
+  },
+  "pdf-to-html": {
+    text: "What you'll get: a portable .html file with proper <h2> / <p> structure, UTF-8 encoded, no external CSS — drop it into any web editor, CMS, or static-site generator.",
+    related: { id: "pdf-to-text", label: "PDF to Text" },
+  },
+
   // --------- AI tools with dedicated runners (no SummarizeVariantTool) ---------
   // These tools each ship their own component (SummarizePdfTool,
   // TranslatePdfTool, etc.) instead of using SummarizeVariantTool, so

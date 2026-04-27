@@ -5,6 +5,11 @@ import { I } from "@/components/icons/Icons";
 import { PageCountTool } from "@/components/tools/PageCountTool";
 import { PdfInspectorTool } from "@/components/tools/PdfInspectorTool";
 import {
+  PdfToTextTool,
+  PdfToMarkdownTool,
+  PdfToHtmlTool,
+} from "@/components/tools/PdfTextExportTool";
+import {
   PdfInspectorLongform,
   PDF_INSPECTOR_FAQ,
 } from "@/components/marketing/PdfInspectorLongform";
@@ -360,7 +365,15 @@ export default function ToolRunnerPage({ params }: Params) {
   // first-load time. The 3.8 MB pdfium.wasm starts downloading in
   // parallel with the page HTML so it's ready by the time the user
   // clicks the run button.
-  const PDFIUM_BACKED_TOOLS = new Set<string>(["page-count", "pdf-inspector"]);
+  const PDFIUM_BACKED_TOOLS = new Set<string>([
+    "page-count",
+    "pdf-inspector",
+    // Build 2: text-export trio share lib/pdf/ops/text-export.ts which
+    // calls the same PDFium engine — same WASM preload benefits.
+    "pdf-to-text",
+    "pdf-to-markdown",
+    "pdf-to-html",
+  ]);
   const usesPdfium = PDFIUM_BACKED_TOOLS.has(tool.id);
 
   return (
@@ -800,6 +813,13 @@ function ToolRunner({ id }: { id: string }) {
       return <PageCountTool />;
     case "pdf-inspector":
       return <PdfInspectorTool />;
+    // Build 2 — text-export trio.
+    case "pdf-to-text":
+      return <PdfToTextTool />;
+    case "pdf-to-markdown":
+      return <PdfToMarkdownTool />;
+    case "pdf-to-html":
+      return <PdfToHtmlTool />;
     default:
       return null;
   }

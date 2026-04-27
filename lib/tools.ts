@@ -44,6 +44,16 @@ export const TOOLS: readonly Tool[] = [
   { id: "page-count", name: "Page Count", desc: "Count pages in any PDF — fast, free, in-browser. One number, one click to copy.", icon: "Pages", free: true, cost: "free", group: "Organize" },
   { id: "pdf-inspector", name: "PDF Inspector", desc: "See everything inside a PDF — pages, dimensions, word count, reading time + mixed-size warnings. Free, in-browser.", icon: "Search", free: true, cost: "free", group: "Organize" },
 
+  // Build 2 (2026-04-27): PDFium-backed text-export trio. All three
+  // share lib/pdf/ops/text-export.ts — same single PDFium parse,
+  // three formatters. Restored from the pre-nuke catalog because
+  // PDF→Text/Markdown/HTML are read-only operations PDFium handles
+  // cleanly. Group is "Convert" so they cluster with PDF→Word /
+  // PDF→Excel / PDF→PowerPoint in the /tools index.
+  { id: "pdf-to-text", name: "PDF to Text", desc: "Extract every word from a PDF as plain .txt — preserves reading order, runs in your browser.", icon: "Convert", free: true, cost: "free", group: "Convert" },
+  { id: "pdf-to-markdown", name: "PDF to Markdown", desc: "Convert PDF text to Markdown — paste into Notion, Obsidian, GitHub, or any doc tool. Free, in-browser.", icon: "Convert", free: true, cost: "free", group: "Convert" },
+  { id: "pdf-to-html", name: "PDF to HTML", desc: "Convert PDF text to a portable HTML document with proper structure tags. Free, in-browser.", icon: "Convert", free: true, cost: "free", group: "Convert" },
+
   // ----- AI -----
   { id: "ai-chat", name: "Chat with PDF", desc: "Ask questions. Get answers cited to pages.", icon: "Chat", free: false, cost: "1 credit per question", group: "AI" },
   { id: "ai-summarize", name: "Summarize PDF", desc: "Executive summary + section bullets.", icon: "Summary", free: false, cost: "3 credits per doc", group: "AI" },
