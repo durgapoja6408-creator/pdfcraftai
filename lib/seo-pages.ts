@@ -26,6 +26,13 @@ export type SeoPageSlug =
   | "extract-pdf-pages"
   | "delete-pdf-pages"
   | "pdf-page-count"
+  // Inspector P2 (2026-04-27): brand alias for the "PDF inspector"
+  // search term. Routes to the same tool (`page-count`) but lets us
+  // rank for the higher-intent "pdf inspector" keyword and gives a
+  // clean URL that matches the visible product name. The runner stays
+  // at /tool/page-count to preserve existing SEO equity for
+  // "page count" queries — both are canonical to themselves.
+  | "pdf-inspector"
   // 2026-04-24 wave 2: Tier 1 ships for PDF → TXT, Resize Pages, and
   // Remove Metadata. All three target high-intent Google queries where
   // iLovePDF / Smallpdf rank on the first page — long-tail money.
@@ -577,6 +584,32 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Privacy?", a: "Entirely browser-side. Your PDF is never uploaded." },
     ],
     related: ["page-count", "ai-summarize", "pdf-metadata", "ai-ocr"],
+  },
+
+  // Inspector P2 (2026-04-27): brand alias landing for "PDF inspector".
+  // Distinct content from `pdf-page-count` so Google doesn't classify
+  // them as duplicates — different H1 angle, different sub-copy,
+  // different howTo step phrasing, different FAQ. Both 200, both
+  // canonical to themselves, both link to the same /tool/page-count
+  // runner. The runner URL stays put so we don't lose existing
+  // ranking equity for "page count".
+  "pdf-inspector": {
+    tool: "page-count",
+    h1: "PDF Inspector — see everything inside any PDF, in your browser",
+    sub: "Page count, page dimensions, orientation, word count, reading time, and mixed-size warnings — one drop, five answers, zero uploads.",
+    canonical: "/pdf-inspector",
+    howTo: [
+      { t: "Drop your PDF", d: "Up to 100 MB. The file is parsed by Google's PDFium engine compiled to WebAssembly — it never leaves your device." },
+      { t: "We inspect", d: "Pages, dimensions in inches, orientation, an exact or sampled word count, and a 250-wpm reading-time estimate." },
+      { t: "Copy or move on", d: "One-click copy of the page count for invoicing or timesheets, or jump straight into a related PDF tool." },
+    ],
+    faq: [
+      { q: "What does PDF Inspector show me?", a: "Page count, file size, page dimensions in inches, page-size classification (A4, Letter, Legal etc.) with orientation, word count (exact for ≤100-page PDFs, sampled for larger), reading time at 250 wpm, and a heads-up if your PDF mixes page sizes." },
+      { q: "How is it different from a basic page counter?", a: "iLovePDF and Smallpdf show you a number. We show you size, dimensions, word count, reading time, and flag mixed-orientation issues — same single PDF parse, much more useful for invoicing, print prep, and audit work." },
+      { q: "Is anything uploaded?", a: "No. PDFium runs as WebAssembly inside your browser tab. Your file never touches our servers. You can verify in the Network tab — there is no upload request." },
+      { q: "Does it work for scanned PDFs?", a: "Page count, dimensions, and the mixed-size warning all work on scans. Word count will read 0 because there's no extractable text — run AI · OCR first to make the scan searchable, then come back here." },
+    ],
+    related: ["page-count", "pdf-metadata", "ai-summarize", "ai-ocr"],
   },
 
   "pdf-to-text": {
