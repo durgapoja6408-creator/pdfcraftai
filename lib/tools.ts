@@ -54,6 +54,12 @@ export const TOOLS: readonly Tool[] = [
   { id: "pdf-to-markdown", name: "PDF to Markdown", desc: "Convert PDF text to Markdown — paste into Notion, Obsidian, GitHub, or any doc tool. Free, in-browser.", icon: "Convert", free: true, cost: "free", group: "Convert" },
   { id: "pdf-to-html", name: "PDF to HTML", desc: "Convert PDF text to a portable HTML document with proper structure tags. Free, in-browser.", icon: "Convert", free: true, cost: "free", group: "Convert" },
 
+  // Build 2 Wave 2 (2026-04-27): PDF → JPG / PNG. PDFium renders
+  // each page to RGBA pixels; we paint to canvas + toBlob() for the
+  // final image. Multi-page output zips via JSZip (dynamic import).
+  { id: "pdf-to-jpg", name: "PDF to JPG", desc: "Convert PDF pages to JPG images at 1×/2×/3× resolution. Multi-page PDFs bundle into a zip. Free, in-browser.", icon: "Image", free: true, cost: "free", group: "Convert" },
+  { id: "pdf-to-png", name: "PDF to PNG", desc: "Convert PDF pages to lossless PNG images at 1×/2×/3× resolution. Multi-page PDFs bundle into a zip. Free, in-browser.", icon: "Image", free: true, cost: "free", group: "Convert" },
+
   // ----- AI -----
   { id: "ai-chat", name: "Chat with PDF", desc: "Ask questions. Get answers cited to pages.", icon: "Chat", free: false, cost: "1 credit per question", group: "AI" },
   { id: "ai-summarize", name: "Summarize PDF", desc: "Executive summary + section bullets.", icon: "Summary", free: false, cost: "3 credits per doc", group: "AI" },

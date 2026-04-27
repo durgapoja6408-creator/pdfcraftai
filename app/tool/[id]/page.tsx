@@ -10,6 +10,10 @@ import {
   PdfToHtmlTool,
 } from "@/components/tools/PdfTextExportTool";
 import {
+  PdfToJpgTool,
+  PdfToPngTool,
+} from "@/components/tools/PdfRasterizeTool";
+import {
   PdfInspectorLongform,
   PDF_INSPECTOR_FAQ,
 } from "@/components/marketing/PdfInspectorLongform";
@@ -111,6 +115,8 @@ const LIVE_TOOL_IDS = new Set<string>([
   "extract-pages",
   "delete-pages",
   "pdf-to-jpg",
+  // Build 2 Wave 2 — PNG companion to pdf-to-jpg (added 2026-04-27).
+  "pdf-to-png",
   "extract-images",
   "page-count",
   // 2026-04-27 split — PDF Inspector is the rich sibling of Page Counter,
@@ -373,6 +379,9 @@ export default function ToolRunnerPage({ params }: Params) {
     "pdf-to-text",
     "pdf-to-markdown",
     "pdf-to-html",
+    // Build 2 Wave 2 — same PDFium engine, rasterizer codepath.
+    "pdf-to-jpg",
+    "pdf-to-png",
   ]);
   const usesPdfium = PDFIUM_BACKED_TOOLS.has(tool.id);
 
@@ -820,6 +829,11 @@ function ToolRunner({ id }: { id: string }) {
       return <PdfToMarkdownTool />;
     case "pdf-to-html":
       return <PdfToHtmlTool />;
+    // Build 2 Wave 2 — rasterization pair.
+    case "pdf-to-jpg":
+      return <PdfToJpgTool />;
+    case "pdf-to-png":
+      return <PdfToPngTool />;
     default:
       return null;
   }

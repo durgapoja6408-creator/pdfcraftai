@@ -100,6 +100,16 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
     related: { id: "pdf-to-text", label: "PDF to Text" },
   },
 
+  // Build 2 Wave 2 — rasterizers.
+  "pdf-to-jpg": {
+    text: "What you'll get: each PDF page rendered as a JPG image at the resolution you pick (1×/2×/3× — 72/144/216 DPI). Single-page PDFs download as one .jpg; multi-page PDFs bundle into a .zip.",
+    related: { id: "pdf-to-png", label: "PDF to PNG" },
+  },
+  "pdf-to-png": {
+    text: "What you'll get: each PDF page rendered as a lossless PNG at the resolution you pick (1×/2×/3×). Better than JPG for screenshots, diagrams, and anything with sharp edges. Single-page → one .png; multi-page → .zip.",
+    related: { id: "pdf-to-jpg", label: "PDF to JPG" },
+  },
+
   // --------- AI tools with dedicated runners (no SummarizeVariantTool) ---------
   // These tools each ship their own component (SummarizePdfTool,
   // TranslatePdfTool, etc.) instead of using SummarizeVariantTool, so
