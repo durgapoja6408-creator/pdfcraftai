@@ -67,30 +67,36 @@ export function PageCountLongform() {
           }}
         >
           {[
+            // Build 2 Wave 6 (2026-04-27): differentiated from PDF
+            // Inspector. Page Count is the SPEED tool — get a number,
+            // copy it, move on. Use cases emphasize quick-answer
+            // workflows where waiting for a richer inspector would
+            // be friction. PDF Inspector covers the comprehensive-
+            // analysis angle separately.
             {
               icon: "Receipt" as const,
-              title: "Billing & timesheets",
-              text: "Print shops, paralegals, and freelancers bill by the page. Page Counter gives you the exact number and a one-click copy — paste straight into your invoice.",
+              title: "Quick invoicing",
+              text: "Print shops, paralegals, and freelancers bill by the page. One drop, copy the number, paste into your invoice tool — under five seconds. No need to open Acrobat.",
             },
             {
               icon: "File" as const,
-              title: "Filing & submissions",
-              text: "Courts, academic journals, and grant applications often have hard page limits. Verify your PDF before submitting so a 51-page brief doesn't get bounced from a 50-page rule.",
+              title: "Page-limit verification",
+              text: "Hard caps from courts, journals, grant applications, employer reviews — '50 pages max' is everywhere. Drop the PDF before you submit, confirm the count fits the rule.",
+            },
+            {
+              icon: "Send" as const,
+              title: "Email handoff",
+              text: "Paste the page count in the email body so your recipient knows what they're getting before they download. 'Attached: 87-page report' beats 'Attached: report'.",
             },
             {
               icon: "Search" as const,
-              title: "Validation & QA",
-              text: "Quickly check that a generated PDF (from a payroll system, e-signature flow, or report builder) has the expected page count before forwarding. Catches truncation bugs early.",
-            },
-            {
-              icon: "Sparkle" as const,
-              title: "Document handoff",
-              text: "When passing a PDF to a colleague, paste the count into the email so they know what they're getting before they download. Saves a round-trip.",
+              title: "Generated-PDF spot-check",
+              text: "Payroll systems, CRM exports, e-signature flows produce PDFs that should match an expected count. Drop, count, confirm — catches truncation bugs in seconds.",
             },
             {
               icon: "Book" as const,
-              title: "Reading & study planning",
-              text: "Skim the count before committing to read a research paper, textbook chapter, or whitepaper. Useful for sizing up the time investment.",
+              title: "Reading-time triage",
+              text: "Got 10 minutes? A 5-page brief works. A 200-page report doesn't. Drop, see the count, decide whether to read now or save for later. Faster than scrolling to the last page.",
             },
           ].map((c) => {
             const Ic = (I as Record<string, React.FC<{ size?: number }>>)[c.icon] ?? I.Sparkle;

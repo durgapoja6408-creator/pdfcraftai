@@ -77,64 +77,70 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
   // different surfaces. Each intro cross-links to the other so users
   // can upgrade or downgrade the level of detail mid-session without
   // backtracking to /tools.
+  // Build 2 Wave 6 (2026-04-27): tightened all PDFium intros to a
+  // strict 1-sentence output description. Use cases / personas /
+  // marketing prose belong in the longform "Why people use" section
+  // — having both the intro AND the longform say similar things at
+  // length read as duplicate. Now: intro = WHAT (output), longform
+  // = WHO/WHY (personas).
   "page-count": {
-    text: "What you'll get: the exact page count for any PDF (up to 100 MB), big and copyable in one click. Same engine Chrome's PDF viewer uses, runs entirely in your browser.",
+    text: "What you'll get: the exact page count for any PDF, copyable in one click.",
     related: { id: "pdf-inspector", label: "PDF Inspector" },
   },
   "pdf-inspector": {
-    text: "What you'll get: page count, file size, page dimensions, page-size classification (A4 / Letter / Legal etc.) with orientation, word count, reading-time estimate, and a mixed-page-size warning if your PDF mixes orientations. All from one PDFium parse, in your browser.",
+    text: "What you'll get: pages, dimensions, word count, reading time, metadata, and mixed-size warnings — one parse, every stat.",
     related: { id: "page-count", label: "Page Count" },
   },
 
   // Build 2 — text-export trio.
   "pdf-to-text": {
-    text: "What you'll get: every word of your PDF as a plain .txt file with page-break markers between pages. Reading order is preserved; layout is flattened. Ideal for translation, summarization, or pasting into any editor.",
+    text: "What you'll get: a plain .txt file with every word from your PDF in reading order.",
     related: { id: "pdf-to-markdown", label: "PDF to Markdown" },
   },
   "pdf-to-markdown": {
-    text: "What you'll get: a .md file with each PDF page as an H2 section, paragraphs preserved, ready to paste into Notion, Obsidian, GitHub, or any Markdown editor.",
+    text: "What you'll get: a .md file with each page as an H2 section, paragraphs reflowed.",
     related: { id: "pdf-to-html", label: "PDF to HTML" },
   },
   "pdf-to-html": {
-    text: "What you'll get: a portable .html file with proper <h2> / <p> structure, UTF-8 encoded, no external CSS — drop it into any web editor, CMS, or static-site generator.",
+    text: "What you'll get: a portable .html file with structural <h2>/<p> tags, UTF-8, no external CSS.",
     related: { id: "pdf-to-text", label: "PDF to Text" },
   },
 
   // Build 2 Wave 2 — rasterizers.
   "pdf-to-jpg": {
-    text: "What you'll get: each PDF page rendered as a JPG image at the resolution you pick (1×/2×/3× — 72/144/216 DPI). Single-page PDFs download as one .jpg; multi-page PDFs bundle into a .zip.",
+    text: "What you'll get: each PDF page as a JPG image at 1×/2×/3× resolution. Multi-page → zip.",
     related: { id: "pdf-to-png", label: "PDF to PNG" },
   },
   "pdf-to-png": {
-    text: "What you'll get: each PDF page rendered as a lossless PNG at the resolution you pick (1×/2×/3×). Better than JPG for screenshots, diagrams, and anything with sharp edges. Single-page → one .png; multi-page → .zip.",
+    text: "What you'll get: each PDF page as a lossless PNG at 1×/2×/3× resolution. Multi-page → zip.",
     related: { id: "pdf-to-jpg", label: "PDF to JPG" },
   },
 
   // Build 2 Wave 3.
   "pdf-search": {
-    text: "What you'll get: every match of your query across every page of the PDF, with surrounding context so you can read the result without opening the source. Case-sensitive and whole-word options. Up to 200 matches per query.",
+    text: "What you'll get: every match of your query across the PDF, with surrounding context and page refs.",
     related: { id: "pdf-inspector", label: "PDF Inspector" },
   },
   "extract-images": {
-    text: "What you'll get: every embedded raster image inside the PDF as a PNG file at its original resolution. Single-image PDFs download as one .png; multi-image PDFs bundle into a .zip. Different from PDF→PNG: this extracts the source images, not the rendered page.",
+    text: "What you'll get: every embedded image as a PNG at original resolution. Multi-image → zip.",
     related: { id: "pdf-to-png", label: "PDF to PNG" },
   },
 
   // Build 2 Wave 4.
   "pdf-outline": {
-    text: "What you'll get: the bookmark / table-of-contents tree of the PDF, with page numbers next to each entry. Useful for previewing long docs (research papers, textbooks, legal exhibits) before committing to read. Copy as text or export JSON.",
+    text: "What you'll get: the bookmark tree of the PDF with page numbers per entry.",
     related: { id: "pdf-inspector", label: "PDF Inspector" },
   },
   "pdf-forms": {
-    text: "What you'll get: a table of every AcroForm field in the PDF — name, type, current value, required/read-only flags. Export as CSV for spreadsheets or JSON for pipelines. Useful for auditing what data a PDF collects, verifying form completion, or extracting filled values.",
+    text: "What you'll get: a table of every AcroForm field — name, type, value, flags. CSV / JSON export.",
     related: { id: "pdf-attachments", label: "PDF Attachments" },
   },
   "pdf-attachments": {
-    text: "What you'll get: a list of every embedded file in the PDF — filename, description, MIME type, size. Doesn't extract the file bytes, but tells you exactly what's hiding inside. Useful for compliance audits, security review, and PDF/A validation.",
+    text: "What you'll get: a list of every embedded file — filename, MIME, size, description.",
     related: { id: "pdf-forms", label: "PDF Form Inspector" },
   },
   "pdf-fonts": {
-    text: "What you'll get: every font referenced in the PDF, with embedded/not-embedded flags, subsetting status, and the pages where each font is used. Critical for print prep — non-embedded fonts get substituted at the printer, often producing wrong glyphs.",
+    text: "What you'll get: every font in the PDF, flagged embedded vs not, with the pages each appears on.",
     related: { id: "pdf-inspector", label: "PDF Inspector" },
   },
 

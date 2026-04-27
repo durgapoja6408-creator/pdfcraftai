@@ -89,35 +89,41 @@ export function PdfInspectorLongform() {
           }}
         >
           {[
-            {
-              icon: "Receipt" as const,
-              title: "Billing & timesheets",
-              text: "Print shops, paralegals, and freelancers bill by the page. PDF Inspector gives you the exact number and a one-click copy — no more counting in Acrobat then re-typing into a spreadsheet.",
-            },
+            // Build 2 Wave 6 (2026-04-27): differentiated from Page
+            // Count. PDF Inspector is the COMPREHENSIVE-ANALYSIS
+            // tool — multi-stat audit of an entire document. Use
+            // cases emphasize whole-document forensics, not single-
+            // fact lookups. Page Count handles the quick-answer
+            // workflows separately.
             {
               icon: "Shield" as const,
-              title: "Compliance & audit",
-              text: "Quickly verify that a contract submitted by a vendor has the right page count before signing or filing. Mismatched dimensions hint at inserted-after-the-fact pages — a useful tamper signal.",
-            },
-            {
-              icon: "Book" as const,
-              title: "Reading & study planning",
-              text: "Word count plus reading-time estimate (250 wpm) lets you budget how long a research paper, textbook chapter, or whitepaper will take. Useful before committing to dig in.",
-            },
-            {
-              icon: "File" as const,
-              title: "Print prep",
-              text: "Mixed page sizes break batch printing — most printers default to one paper size and silently scale the rest. We flag mixed dimensions so you can fix the source PDF before sending it to print.",
-            },
-            {
-              icon: "Sparkle" as const,
-              title: "Document handoff",
-              text: "When passing a PDF to a colleague, paste the inspector's stats into the email so they know what they're getting before they download. Saves a round-trip.",
+              title: "Pre-print quality audit",
+              text: "Before sending a PDF to print: are all pages the same size? Are the fonts embedded? Is the file size reasonable? One drop, every check at once. Catches failures BEFORE they cost reprint money.",
             },
             {
               icon: "Search" as const,
-              title: "Validation in workflows",
-              text: "Quickly check that a generated PDF (from a payroll system, e-signature flow, or report builder) has the expected page count before forwarding. Catches truncation bugs early.",
+              title: "Forensic / tamper review",
+              text: "Mismatched page sizes hint at exhibits inserted after signing. Metadata reveals authoring software and timestamps. Hybrid scan/text detection catches partial OCR. All the signals investigators look for.",
+            },
+            {
+              icon: "Eye" as const,
+              title: "Document health check",
+              text: "Is this PDF healthy? Searchable text, consistent dimensions, embedded fonts, clean metadata, modern PDF version, reasonable file size, appropriate encryption posture — six dimensions, scored at a glance.",
+            },
+            {
+              icon: "Edit" as const,
+              title: "Pre-publish QA",
+              text: "Before publishing a PDF whitepaper, brochure, or annual report: scrub PII from metadata, verify all pages match the master template, confirm fonts are embedded for archive compliance.",
+            },
+            {
+              icon: "Convert" as const,
+              title: "Ingest pipeline validation",
+              text: "Drop a PDF before feeding it into a downstream pipeline (translation, summarization, archival). Detect scans needing OCR, hybrid pages with partial text, encryption blocking access — fail fast with clear signals.",
+            },
+            {
+              icon: "Receipt" as const,
+              title: "JSON export for batch audits",
+              text: "Auditors processing 50 PDFs can drop each, download the JSON, and feed into a spreadsheet or pipeline. Schema-stable output means your tooling keeps working as we add fields.",
             },
           ].map((c) => {
             const Ic = (I as Record<string, React.FC<{ size?: number }>>)[c.icon] ?? I.Sparkle;
