@@ -9,7 +9,6 @@
 // committing to read.
 
 import { useState, useCallback } from "react";
-import Link from "next/link";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
@@ -378,50 +377,10 @@ export function PdfOutlineTool() {
         )}
       </div>
 
-      {!file && !busy && (
-        <div
-          className="card"
-          style={{
-            padding: 14,
-            background: "var(--bg-1)",
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            fontSize: 13,
-          }}
-        >
-          <span style={{ color: "var(--fg-subtle)" }}>
-            <I.Search size={16} />
-          </span>
-          <div style={{ flex: 1, color: "var(--fg-muted)" }}>
-            Want more than just bookmarks? Try{" "}
-            <Link
-              href="/tool/pdf-inspector"
-              style={{
-                color: "var(--accent)",
-                textDecoration: "underline",
-                textDecorationStyle: "dotted",
-                textUnderlineOffset: 3,
-              }}
-            >
-              PDF Inspector
-            </Link>{" "}
-            for full document stats and metadata, or{" "}
-            <Link
-              href="/tool/pdf-search"
-              style={{
-                color: "var(--accent)",
-                textDecoration: "underline",
-                textDecorationStyle: "dotted",
-                textUnderlineOffset: 3,
-              }}
-            >
-              Search in PDF
-            </Link>{" "}
-            to find specific text.
-          </div>
-        </div>
-      )}
+      {/* P12 (2026-04-27): cross-promo card removed. The ToolIntroPanel
+          above the dropzone already provides the cross-link to a related
+          tool via TOOL_INTROS, and the Related Tools row at the bottom
+          provides additional cross-links. Three surfaces was overkill. */}
     </div>
   );
 }

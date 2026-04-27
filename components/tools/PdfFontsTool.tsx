@@ -6,7 +6,6 @@
 // in a PDF, dedupe across pages, flag embedded vs not.
 
 import { useState, useCallback } from "react";
-import Link from "next/link";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
@@ -423,39 +422,7 @@ export function PdfFontsTool() {
         )}
       </div>
 
-      {!file && !busy && (
-        <div
-          className="card"
-          style={{
-            padding: 14,
-            background: "var(--bg-1)",
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            fontSize: 13,
-          }}
-        >
-          <span style={{ color: "var(--fg-subtle)" }}>
-            <I.Edit size={16} />
-          </span>
-          <div style={{ flex: 1, color: "var(--fg-muted)" }}>
-            Useful for print prep — non-embedded fonts get substituted at
-            the printer. For full document overview, try{" "}
-            <Link
-              href="/tool/pdf-inspector"
-              style={{
-                color: "var(--accent)",
-                textDecoration: "underline",
-                textDecorationStyle: "dotted",
-                textUnderlineOffset: 3,
-              }}
-            >
-              PDF Inspector
-            </Link>
-            .
-          </div>
-        </div>
-      )}
+      {/* P12: removed — duplicates ToolIntroPanel + Related Tools. */}
     </div>
   );
 }

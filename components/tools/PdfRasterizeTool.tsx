@@ -18,7 +18,6 @@
 // inflate the initial route bundle.
 
 import { useState, useCallback, useEffect } from "react";
-import Link from "next/link";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
@@ -488,53 +487,7 @@ export function PdfRasterizeTool({ toolId, format }: PdfRasterizeToolProps) {
         )}
       </div>
 
-      {/* Cross-promo to text export — shown only at idle so it doesn't
-          clutter the result. PDF → image and PDF → text are sibling
-          intents; users sometimes want one and overshoot to the other. */}
-      {!file && !busy && (
-        <div
-          className="card"
-          style={{
-            padding: 14,
-            background: "var(--bg-1)",
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            fontSize: 13,
-          }}
-        >
-          <span style={{ color: "var(--fg-subtle)" }}>
-            <I.Convert size={16} />
-          </span>
-          <div style={{ flex: 1, color: "var(--fg-muted)" }}>
-            Need text instead of images? Try{" "}
-            <Link
-              href="/tool/pdf-to-text"
-              style={{
-                color: "var(--accent)",
-                textDecoration: "underline",
-                textDecorationStyle: "dotted",
-                textUnderlineOffset: 3,
-              }}
-            >
-              PDF to Text
-            </Link>{" "}
-            for a plain-text export, or{" "}
-            <Link
-              href="/tool/pdf-inspector"
-              style={{
-                color: "var(--accent)",
-                textDecoration: "underline",
-                textDecorationStyle: "dotted",
-                textUnderlineOffset: 3,
-              }}
-            >
-              PDF Inspector
-            </Link>{" "}
-            to see what&apos;s inside first.
-          </div>
-        </div>
-      )}
+      {/* P12: removed — duplicates ToolIntroPanel + Related Tools. */}
     </div>
   );
 }
