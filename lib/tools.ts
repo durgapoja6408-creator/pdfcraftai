@@ -72,6 +72,8 @@ export const TOOLS: readonly Tool[] = [
   // Build 2 Wave 4 (continued) — Form Fields + Attachments byte parsers.
   { id: "pdf-forms", name: "PDF Form Inspector", desc: "List every AcroForm field in a PDF — name, type, value, required/read-only flags. Export as CSV or JSON. Free, in-browser.", icon: "Pen", free: true, cost: "free", group: "Organize" },
   { id: "pdf-attachments", name: "PDF Attachments Lister", desc: "List every embedded file in a PDF — filename, description, MIME type, size. Useful for compliance audits and security review. Free, in-browser.", icon: "Shield", free: true, cost: "free", group: "Organize" },
+  // Build 2 Wave 4 (final): font inventory — completes the 11-tool list.
+  { id: "pdf-fonts", name: "PDF Font Inspector", desc: "List every font in a PDF, flag embedded vs not, see which pages use each. Critical for print prep. Free, in-browser.", icon: "Edit", free: true, cost: "free", group: "Organize" },
 
   // ----- AI -----
   { id: "ai-chat", name: "Chat with PDF", desc: "Ask questions. Get answers cited to pages.", icon: "Chat", free: false, cost: "1 credit per question", group: "AI" },

@@ -18,6 +18,7 @@ import { ExtractImagesTool } from "@/components/tools/ExtractImagesTool";
 import { PdfOutlineTool } from "@/components/tools/PdfOutlineTool";
 import { PdfFormsTool } from "@/components/tools/PdfFormsTool";
 import { PdfAttachmentsTool } from "@/components/tools/PdfAttachmentsTool";
+import { PdfFontsTool } from "@/components/tools/PdfFontsTool";
 import {
   PdfInspectorLongform,
   PDF_INSPECTOR_FAQ,
@@ -129,6 +130,7 @@ const LIVE_TOOL_IDS = new Set<string>([
   "pdf-outline",
   "pdf-forms",
   "pdf-attachments",
+  "pdf-fonts",
   "page-count",
   // 2026-04-27 split — PDF Inspector is the rich sibling of Page Counter,
   // mounted at /tool/pdf-inspector with its own runner component.
@@ -860,6 +862,8 @@ function ToolRunner({ id }: { id: string }) {
       return <PdfFormsTool />;
     case "pdf-attachments":
       return <PdfAttachmentsTool />;
+    case "pdf-fonts":
+      return <PdfFontsTool />;
     default:
       return null;
   }

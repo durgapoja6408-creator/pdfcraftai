@@ -133,6 +133,10 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
     text: "What you'll get: a list of every embedded file in the PDF — filename, description, MIME type, size. Doesn't extract the file bytes, but tells you exactly what's hiding inside. Useful for compliance audits, security review, and PDF/A validation.",
     related: { id: "pdf-forms", label: "PDF Form Inspector" },
   },
+  "pdf-fonts": {
+    text: "What you'll get: every font referenced in the PDF, with embedded/not-embedded flags, subsetting status, and the pages where each font is used. Critical for print prep — non-embedded fonts get substituted at the printer, often producing wrong glyphs.",
+    related: { id: "pdf-inspector", label: "PDF Inspector" },
+  },
 
   // --------- AI tools with dedicated runners (no SummarizeVariantTool) ---------
   // These tools each ship their own component (SummarizePdfTool,
