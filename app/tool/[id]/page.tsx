@@ -19,6 +19,14 @@ import { PdfOutlineTool } from "@/components/tools/PdfOutlineTool";
 import { PdfFormsTool } from "@/components/tools/PdfFormsTool";
 import { PdfAttachmentsTool } from "@/components/tools/PdfAttachmentsTool";
 import { PdfFontsTool } from "@/components/tools/PdfFontsTool";
+import { PdfLinksTool } from "@/components/tools/PdfLinksTool";
+import { PdfAnnotationsTool as PdfAnnotationsExportTool } from "@/components/tools/PdfAnnotationsTool";
+import {
+  PdfACheckTool,
+  PdfXCheckTool,
+  AccessibilityCheckerTool,
+  PdfJsDetectorTool,
+} from "@/components/tools/PdfChecklistTool";
 import {
   PdfInspectorLongform,
   PDF_INSPECTOR_FAQ,
@@ -133,6 +141,13 @@ const LIVE_TOOL_IDS = new Set<string>([
   "pdf-forms",
   "pdf-attachments",
   "pdf-fonts",
+  // Build 2 Wave 8 — 6 byte-parser tools.
+  "pdf-links",
+  "pdf-annotations",
+  "pdf-javascript",
+  "pdf-accessibility",
+  "pdf-a-check",
+  "pdf-x-check",
   "page-count",
   // 2026-04-27 split — PDF Inspector is the rich sibling of Page Counter,
   // mounted at /tool/pdf-inspector with its own runner component.
@@ -880,6 +895,19 @@ function ToolRunner({ id }: { id: string }) {
       return <PdfAttachmentsTool />;
     case "pdf-fonts":
       return <PdfFontsTool />;
+    // Build 2 Wave 8 — 6 byte-parser tools.
+    case "pdf-links":
+      return <PdfLinksTool />;
+    case "pdf-annotations":
+      return <PdfAnnotationsExportTool />;
+    case "pdf-javascript":
+      return <PdfJsDetectorTool />;
+    case "pdf-accessibility":
+      return <AccessibilityCheckerTool />;
+    case "pdf-a-check":
+      return <PdfACheckTool />;
+    case "pdf-x-check":
+      return <PdfXCheckTool />;
     default:
       return null;
   }

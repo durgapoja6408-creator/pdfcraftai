@@ -144,6 +144,32 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
     related: { id: "pdf-inspector", label: "PDF Inspector" },
   },
 
+  // Build 2 Wave 8.
+  "pdf-links": {
+    text: "What you'll get: every hyperlink in the PDF, with page references and external/internal classification. CSV / JSON export.",
+    related: { id: "pdf-annotations", label: "PDF Annotations" },
+  },
+  "pdf-annotations": {
+    text: "What you'll get: every comment, highlight, sticky note in the PDF — author, date, color, content, page. CSV / JSON export.",
+    related: { id: "pdf-links", label: "Extract Links" },
+  },
+  "pdf-javascript": {
+    text: "What you'll get: every JavaScript handler in the PDF, with trigger, location, code preview, and severity classification.",
+    related: { id: "pdf-a-check", label: "PDF/A Check" },
+  },
+  "pdf-accessibility": {
+    text: "What you'll get: a 0–100 accessibility score plus per-check pass/fail for tagged PDF, structure tree, language, alt text.",
+    related: { id: "pdf-a-check", label: "PDF/A Check" },
+  },
+  "pdf-a-check": {
+    text: "What you'll get: a PDF/A compliance verdict — declared level, per-requirement pass/fail, and what we couldn't verify.",
+    related: { id: "pdf-x-check", label: "PDF/X Check" },
+  },
+  "pdf-x-check": {
+    text: "What you'll get: a PDF/X compliance verdict — declared version, per-requirement pass/fail, and what we couldn't verify.",
+    related: { id: "pdf-a-check", label: "PDF/A Check" },
+  },
+
   // --------- AI tools with dedicated runners (no SummarizeVariantTool) ---------
   // These tools each ship their own component (SummarizePdfTool,
   // TranslatePdfTool, etc.) instead of using SummarizeVariantTool, so

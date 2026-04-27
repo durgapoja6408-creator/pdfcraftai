@@ -75,6 +75,15 @@ export const TOOLS: readonly Tool[] = [
   // Build 2 Wave 4 (final): font inventory — completes the 11-tool list.
   { id: "pdf-fonts", name: "PDF Font Inspector", desc: "List every font in a PDF, flag embedded vs not, see which pages use each. Critical for print prep. Free, in-browser.", icon: "Edit", free: true, cost: "free", group: "Organize" },
 
+  // Build 2 Wave 8 (2026-04-27): 6 byte-parser tools — links,
+  // annotations, JS detector, accessibility, PDF/A, PDF/X.
+  { id: "pdf-links", name: "Extract Links from PDF", desc: "Find every hyperlink (internal + external) in a PDF, with the page where each appears. CSV / JSON export.", icon: "Search", free: true, cost: "free", group: "Organize" },
+  { id: "pdf-annotations", name: "PDF Annotations Export", desc: "Export every comment, highlight, sticky note from a PDF — author, date, color, content, page. Free, in-browser.", icon: "Edit", free: true, cost: "free", group: "Organize" },
+  { id: "pdf-javascript", name: "PDF JavaScript Detector", desc: "Find every JavaScript handler embedded in a PDF — security review for phishing, exfil, malware. Free, in-browser.", icon: "Shield", free: true, cost: "free", group: "Organize" },
+  { id: "pdf-accessibility", name: "PDF Accessibility Checker", desc: "Audit a PDF against WCAG / PDF/UA accessibility heuristics. Tagged status, structure tree, language, alt text. Free, in-browser.", icon: "Shield", free: true, cost: "free", group: "Organize" },
+  { id: "pdf-a-check", name: "PDF/A Compliance Check", desc: "Heuristic check whether a PDF meets PDF/A archive standards. Flags unembedded fonts, encryption, JavaScript, missing metadata.", icon: "Shield", free: true, cost: "free", group: "Organize" },
+  { id: "pdf-x-check", name: "PDF/X Compliance Check", desc: "Heuristic check whether a PDF meets PDF/X print-production standards. Flags unembedded fonts, missing output intent, no trim box.", icon: "Edit", free: true, cost: "free", group: "Organize" },
+
   // ----- AI -----
   { id: "ai-chat", name: "Chat with PDF", desc: "Ask questions. Get answers cited to pages.", icon: "Chat", free: false, cost: "1 credit per question", group: "AI" },
   { id: "ai-summarize", name: "Summarize PDF", desc: "Executive summary + section bullets.", icon: "Summary", free: false, cost: "3 credits per doc", group: "AI" },
