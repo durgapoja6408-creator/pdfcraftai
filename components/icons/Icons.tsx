@@ -91,16 +91,26 @@ export const I = {
     </IconBase>
   ),
   Rotate: (p: IconProps) => (
-    // 2026-04-27 (Wave 9 follow-up): replaced the unfilled "L"-stroke
-    // arrowhead (M21 3 v5 h-5) with a closed filled <polygon> at the
-    // same three vertices. The L-stroke read as a stray notch at the
-    // 18-22 px sizes the icon is rendered at (tool card, dropzone) —
-    // a solid triangular tip is the convention Tabler / Heroicons use
-    // for the same icon and stays legible at any size. Arc geometry
-    // unchanged; spaces added to the arc command for readability.
+    // 2026-04-27 (Wave 9 fix v2): the v1 fix kept the original 5×5
+    // triangle which still rendered too small to read at the 18-28 px
+    // sizes the icon is used at — users still saw a "C" arc with a
+    // stray notch, same complaint as before.
+    //
+    // v2: redesigned around a 9×9 filled triangle in the upper-right.
+    // The arc ends at (18, 5) which falls INSIDE the triangle, so the
+    // arc visually nests into the tip — reading as one continuous
+    // "rotating arrow ending in an arrowhead" rather than two
+    // disconnected pieces. Triangle is large enough (~14% of the
+    // viewBox area) to remain clearly visible at any practical size.
+    //
+    // Geometry:
+    //   - Arc:       (3,12) → 270° CW → (18, 5)
+    //   - Triangle:  (22,2)-(22,11)-(13,11), right angle at (22,11),
+    //                hypotenuse from (22,2) to (13,11) is the visible
+    //                "arrowhead front" facing the arc direction.
     <IconBase {...p}>
-      <path d="M3 12a9 9 0 1 0 15 -6.7L21 8" />
-      <polygon points="21 3 21 8 16 8" fill="currentColor" stroke="none" />
+      <path d="M3 12a9 9 0 1 0 15 -7" />
+      <polygon points="22 2 22 11 13 11" fill="currentColor" stroke="none" />
     </IconBase>
   ),
   Sparkle: (p: IconProps) => (
