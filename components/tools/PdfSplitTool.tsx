@@ -393,7 +393,7 @@ export function PdfSplitTool() {
               >
                 <div className="subtle" style={{ fontSize: 13 }}>
                   {splits.size === 0
-                    ? "Click a page&rsquo;s right edge to split after it. Live preview shows segments."
+                    ? "Click between two pages to split there. Each split creates one output PDF."
                     : `${segments.length} output${segments.length === 1 ? "" : "s"} · ${splits.size} split point${splits.size === 1 ? "" : "s"}`}
                 </div>
                 <div className="row" style={{ gap: 6 }}>
@@ -507,10 +507,8 @@ export function PdfSplitTool() {
                         />
                       </div>
                       <div
-                        className="row"
                         style={{
-                          justifyContent: "space-between",
-                          alignItems: "center",
+                          textAlign: "center",
                           fontSize: 11,
                         }}
                       >
@@ -520,50 +518,69 @@ export function PdfSplitTool() {
                         >
                           Page {p.pageNumber}
                         </span>
-                        {!isLast && (
-                          <button
-                            type="button"
-                            onClick={() => toggleSplit(idx)}
-                            aria-label={
-                              isSplitAfter
-                                ? `Remove split after page ${p.pageNumber}`
-                                : `Add split after page ${p.pageNumber}`
-                            }
-                            aria-pressed={isSplitAfter}
-                            style={{
-                              cursor: "pointer",
-                              border: "none",
-                              padding: "2px 8px",
-                              borderRadius: 4,
-                              fontSize: 10,
-                              fontWeight: 500,
-                              background: isSplitAfter
-                                ? "var(--accent)"
-                                : "var(--bg-2)",
-                              color: isSplitAfter
-                                ? "var(--bg-0, #fff)"
-                                : "var(--fg-muted)",
-                              font: "inherit",
-                            }}
-                          >
-                            {isSplitAfter ? "Split ↓" : "Split here"}
-                          </button>
-                        )}
                       </div>
-                      {/* Right-edge accent bar when this page ends a segment */}
-                      {isSplitAfter && (
-                        <span
-                          aria-hidden="true"
+                      {/*
+                       * Split-after click target. Lives in the GAP to the
+                       * right of this thumbnail (right: -7 with width: 14
+                       * fits perfectly inside the grid's 14 px gap).
+                       *
+                       * Why moved out of the card: when this button lived
+                       * inside the thumbnail (bottom-right, "Split here"
+                       * label), users read it as a per-page action ("select
+                       * page N for output") instead of a between-pages
+                       * action ("split AFTER page N"). Putting the bar in
+                       * the seam between cards makes the "boundary, not
+                       * page" semantic visually obvious.
+                       *
+                       * Hidden on the last thumbnail of the doc (no "next
+                       * page" exists to split before).
+                       */}
+                      {!isLast && (
+                        <button
+                          type="button"
+                          onClick={() => toggleSplit(idx)}
+                          aria-label={
+                            isSplitAfter
+                              ? `Remove split between page ${p.pageNumber} and page ${p.pageNumber + 1}`
+                              : `Split between page ${p.pageNumber} and page ${p.pageNumber + 1}`
+                          }
+                          aria-pressed={isSplitAfter}
+                          title={
+                            isSplitAfter
+                              ? "Click to remove this split"
+                              : `Split between page ${p.pageNumber} and ${p.pageNumber + 1}`
+                          }
                           style={{
                             position: "absolute",
-                            top: 4,
-                            bottom: 4,
-                            right: -8,
-                            width: 3,
-                            borderRadius: 2,
-                            background: "var(--accent)",
+                            top: 6,
+                            bottom: 6,
+                            right: -7,
+                            width: 14,
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: 0,
+                            zIndex: 2,
                           }}
-                        />
+                        >
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              display: "block",
+                              width: isSplitAfter ? 4 : 2,
+                              height: "100%",
+                              borderRadius: 2,
+                              background: isSplitAfter
+                                ? "var(--accent)"
+                                : "var(--border)",
+                              transition:
+                                "background 0.15s ease, width 0.15s ease",
+                            }}
+                          />
+                        </button>
                       )}
                     </div>
                   );
