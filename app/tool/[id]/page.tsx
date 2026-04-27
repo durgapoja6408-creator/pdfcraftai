@@ -6,10 +6,6 @@ import { TOOLS, toolById } from "@/lib/tools";
 import { TOOL_INTROS } from "@/lib/tool-intros";
 import { findSeoForTool } from "@/lib/seo-pages";
 import { AdSlot } from "@/components/marketing/AdSlot";
-import { MergePdfTool } from "@/components/tools/MergePdfTool";
-import { SplitPdfTool } from "@/components/tools/SplitPdfTool";
-import { RotatePdfTool } from "@/components/tools/RotatePdfTool";
-import { CompressPdfTool } from "@/components/tools/CompressPdfTool";
 import { SummarizePdfTool } from "@/components/tools/SummarizePdfTool";
 import { TranslatePdfTool } from "@/components/tools/TranslatePdfTool";
 import { ComparePdfTool } from "@/components/tools/ComparePdfTool";
@@ -19,38 +15,6 @@ import { TableExtractTool } from "@/components/tools/TableExtractTool";
 import { RedactPdfTool } from "@/components/tools/RedactPdfTool";
 import { GeneratePdfTool } from "@/components/tools/GeneratePdfTool";
 import { SignPdfTool } from "@/components/tools/SignPdfTool";
-import { PageNumbersTool } from "@/components/tools/PageNumbersTool";
-import { ImageToPdfTool } from "@/components/tools/ImageToPdfTool";
-import { ProtectPdfTool } from "@/components/tools/ProtectPdfTool";
-import { PdfToOfficeTool } from "@/components/tools/PdfToOfficeTool";
-import { ExtractPagesTool } from "@/components/tools/ExtractPagesTool";
-import { DeletePagesTool } from "@/components/tools/DeletePagesTool";
-import { PdfToJpgTool } from "@/components/tools/PdfToJpgTool";
-import { ExtractImagesTool } from "@/components/tools/ExtractImagesTool";
-import { PageCountTool } from "@/components/tools/PageCountTool";
-import { PdfMetadataTool } from "@/components/tools/PdfMetadataTool";
-import { FlattenPdfTool } from "@/components/tools/FlattenPdfTool";
-import { CropPdfTool } from "@/components/tools/CropPdfTool";
-import { FillFormsTool } from "@/components/tools/FillFormsTool";
-import { PdfToTextTool } from "@/components/tools/PdfToTextTool";
-import { ResizePdfTool } from "@/components/tools/ResizePdfTool";
-import { RemoveMetadataTool } from "@/components/tools/RemoveMetadataTool";
-import { ImageWatermarkTool } from "@/components/tools/ImageWatermarkTool";
-import { AddTextBoxTool } from "@/components/tools/AddTextBoxTool";
-import { HighlightPdfTool } from "@/components/tools/HighlightPdfTool";
-import { RedactFreeTool } from "@/components/tools/RedactFreeTool";
-import { ExtractAttachmentsTool } from "@/components/tools/ExtractAttachmentsTool";
-import { EditPdfTool } from "@/components/tools/EditPdfTool";
-import { SignPdfFreeTool } from "@/components/tools/SignPdfFreeTool";
-import { RepairPdfTool } from "@/components/tools/RepairPdfTool";
-import { MarkdownToPdfTool } from "@/components/tools/MarkdownToPdfTool";
-import { TextToPdfTool } from "@/components/tools/TextToPdfTool";
-import { PdfToMarkdownTool } from "@/components/tools/PdfToMarkdownTool";
-import { PdfToHtmlTool } from "@/components/tools/PdfToHtmlTool";
-import { ExtractFormDataTool } from "@/components/tools/ExtractFormDataTool";
-import { SortPagesTool } from "@/components/tools/SortPagesTool";
-import { ExtractContactsTool } from "@/components/tools/ExtractContactsTool";
-import { ExtractDatesTool } from "@/components/tools/ExtractDatesTool";
 import { TldrPdfTool } from "@/components/tools/TldrPdfTool";
 import {
   KeyPointsPdfTool,
@@ -106,13 +70,6 @@ import { MindmapPdfTool } from "@/components/tools/MindmapPdfTool";
 import { SemanticSearchPdfTool } from "@/components/tools/SemanticSearchPdfTool";
 import {
 } from "@/components/tools/SummarizeVariantTool";
-import { StampPdfTool } from "@/components/tools/StampPdfTool";
-import { NUpPdfTool } from "@/components/tools/NUpPdfTool";
-import { GrayscalePdfTool } from "@/components/tools/GrayscalePdfTool";
-import { StripLinksTool } from "@/components/tools/StripLinksTool";
-import { BookletPdfTool } from "@/components/tools/BookletPdfTool";
-import { FreeDrawTool } from "@/components/tools/FreeDrawTool";
-import { AddLinksTool } from "@/components/tools/AddLinksTool";
 
 type Params = { params: { id: string } };
 
@@ -565,92 +522,6 @@ function RelatedTools({ currentId, group }: { currentId: string; group: string }
 
 function ToolRunner({ id }: { id: string }) {
   switch (id) {
-    case "merge":
-      return <MergePdfTool />;
-    case "split":
-      return <SplitPdfTool />;
-    case "rotate":
-      return <RotatePdfTool />;
-    case "compress":
-      return <CompressPdfTool />;
-    case "page-numbers":
-      return <PageNumbersTool />;
-    case "to-pdf":
-      return <ImageToPdfTool />;
-    case "protect":
-      return <ProtectPdfTool />;
-    case "pdf-to-office":
-      return <PdfToOfficeTool />;
-    case "extract-pages":
-      return <ExtractPagesTool />;
-    case "delete-pages":
-      return <DeletePagesTool />;
-    case "pdf-to-jpg":
-      return <PdfToJpgTool />;
-    case "extract-images":
-      return <ExtractImagesTool />;
-    case "page-count":
-      return <PageCountTool />;
-    case "pdf-metadata":
-      return <PdfMetadataTool />;
-    case "flatten-pdf":
-      return <FlattenPdfTool />;
-    case "crop-pdf":
-      return <CropPdfTool />;
-    case "fill-forms":
-      return <FillFormsTool />;
-    case "pdf-to-text":
-      return <PdfToTextTool />;
-    case "resize-pdf":
-      return <ResizePdfTool />;
-    case "remove-metadata":
-      return <RemoveMetadataTool />;
-    case "image-watermark":
-      return <ImageWatermarkTool />;
-    case "add-text-box":
-      return <AddTextBoxTool />;
-    case "highlight-pdf":
-      return <HighlightPdfTool />;
-    case "redact-free":
-      return <RedactFreeTool />;
-    case "extract-attachments":
-      return <ExtractAttachmentsTool />;
-    case "edit-pdf":
-      return <EditPdfTool />;
-    case "sign-pdf-free":
-      return <SignPdfFreeTool />;
-    case "repair-pdf":
-      return <RepairPdfTool />;
-    case "markdown-to-pdf":
-      return <MarkdownToPdfTool />;
-    case "text-to-pdf":
-      return <TextToPdfTool />;
-    case "pdf-to-markdown":
-      return <PdfToMarkdownTool />;
-    case "pdf-to-html":
-      return <PdfToHtmlTool />;
-    case "extract-form-data":
-      return <ExtractFormDataTool />;
-    case "sort-pages":
-      return <SortPagesTool />;
-    case "extract-contacts":
-      return <ExtractContactsTool />;
-    case "extract-dates":
-      return <ExtractDatesTool />;
-    case "stamp-pdf":
-      return <StampPdfTool />;
-    case "n-up-pdf":
-      return <NUpPdfTool />;
-    case "grayscale-pdf":
-      return <GrayscalePdfTool />;
-    case "strip-links":
-      return <StripLinksTool />;
-    case "booklet-pdf":
-      return <BookletPdfTool />;
-    case "free-draw-pdf":
-      return <FreeDrawTool />;
-    case "add-links":
-      return <AddLinksTool />;
     // Sprint A REVERTED in Task #99 — 5 govt ID parsers removed.
     // Sprint B — Indian financial wedges (Tier 3 §3.1)
     case "ai-summarize":
