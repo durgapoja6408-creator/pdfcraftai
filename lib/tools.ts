@@ -25,7 +25,7 @@ export const TOOLS: readonly Tool[] = [
   //   using this same pattern. The other 34 nuked tools require a
   //   writable engine (pdf-lib, mupdf commercial, or server-side qpdf)
   //   and stay deleted until that engine decision lands.
-  { id: "page-count", name: "Page Counter", desc: "Count the pages in any PDF — instant, in-browser, free forever.", icon: "Pages", free: true, cost: "free", group: "Organize" },
+  { id: "page-count", name: "PDF Inspector", desc: "Count pages, page dimensions, word count + reading time — instant document inspector, in-browser.", icon: "Pages", free: true, cost: "free", group: "Organize" },
 
   // ----- AI -----
   { id: "ai-chat", name: "Chat with PDF", desc: "Ask questions. Get answers cited to pages.", icon: "Chat", free: false, cost: "1 credit per question", group: "AI" },
