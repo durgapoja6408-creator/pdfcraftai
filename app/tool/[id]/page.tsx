@@ -35,6 +35,8 @@ import { PdfUnlockTool } from "@/components/tools/PdfUnlockTool";
 // Tier 2 (2026-04-27): Extract / Delete Pages on shared PageGridTool base.
 import { PdfExtractPagesTool } from "@/components/tools/PdfExtractPagesTool";
 import { PdfDeletePagesTool } from "@/components/tools/PdfDeletePagesTool";
+// Tier 2 (continued): Sort Pages — drag-to-reorder thumbnail grid.
+import { PdfSortPagesTool } from "@/components/tools/PdfSortPagesTool";
 import {
   PdfInspectorLongform,
   PDF_INSPECTOR_FAQ,
@@ -448,6 +450,9 @@ export default function ToolRunnerPage({ params }: Params) {
     // for the per-page previews before pdf-lib does the actual op.
     "extract-pages",
     "delete-pages",
+    // Tier 2 (continued) — Sort Pages renders thumbnails for the
+    // drag-and-drop reorder UI before pdf-lib's reorderPages saves.
+    "sort-pages",
   ]);
   const usesPdfium = PDFIUM_BACKED_TOOLS.has(tool.id);
 
@@ -949,6 +954,9 @@ function ToolRunner({ id }: { id: string }) {
       return <PdfExtractPagesTool />;
     case "delete-pages":
       return <PdfDeletePagesTool />;
+    // Tier 2 — Sort Pages (drag-to-reorder thumbnail grid).
+    case "sort-pages":
+      return <PdfSortPagesTool />;
     default:
       return null;
   }

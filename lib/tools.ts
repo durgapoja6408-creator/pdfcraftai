@@ -101,6 +101,9 @@ export const TOOLS: readonly Tool[] = [
   // pre-nuke entries; this commit makes those routes actually render.
   { id: "extract-pages", name: "Extract Pages", desc: "Pick pages from a PDF via thumbnail grid and save them as a new PDF. Click to select, runs in your browser.", icon: "Pages", free: true, cost: "free", group: "Organize" },
   { id: "delete-pages", name: "Delete Pages", desc: "Remove pages from a PDF via thumbnail grid. Click pages to mark for deletion, save the trimmed file.", icon: "Trash", free: true, cost: "free", group: "Organize" },
+  // Tier 2 (continued) — Sort Pages / Organize PDF. Drag-and-drop
+  // reorder via HTML5 native DnD (same approach Merge uses for files).
+  { id: "sort-pages", name: "Sort Pages", desc: "Reorder pages in a PDF via drag-and-drop on a thumbnail grid. Reverse, restore, or rearrange — runs in your browser.", icon: "Pages", free: true, cost: "free", group: "Organize" },
 
   // ----- AI -----
   { id: "ai-chat", name: "Chat with PDF", desc: "Ask questions. Get answers cited to pages.", icon: "Chat", free: false, cost: "1 credit per question", group: "AI" },

@@ -1812,6 +1812,94 @@ export const TOOL_LONGFORMS: Record<string, ToolLongformData> = {
     },
   },
 
+  "sort-pages": {
+    useCasesTitle: "Why people reorder PDF pages",
+    useCasesIntro:
+      "PDFs come from many sources — concatenated scans, multi-author documents, reports assembled by tools that put things in the wrong order. Reordering is the cheapest way to make a document make sense without re-exporting the source.",
+    useCases: [
+      {
+        icon: "Scan",
+        title: "Scanner stacking errors",
+        text: "Document feeders sometimes produce pages in reverse order, or interleave a stack that was misfed. Drag thumbnails into the right sequence in seconds.",
+      },
+      {
+        icon: "File",
+        title: "Multi-author assembly",
+        text: "When sections come from different contributors and arrive in random order, dragging the thumbnails into chapter order is faster than re-exporting from Word.",
+      },
+      {
+        icon: "Edit",
+        title: "Cover-sheet-first",
+        text: "Print drivers sometimes append the cover sheet to the end. Drag it to the front so the printed packet reads correctly.",
+      },
+      {
+        icon: "Book",
+        title: "Reading-pack curation",
+        text: "Build a study pack by extracting pages from many sources, then reorder them into a coherent reading sequence (intro → core → review).",
+      },
+      {
+        icon: "Receipt",
+        title: "Reverse for chronology",
+        text: "Bank statements often print newest-first. One Reverse click puts them in chronological order for tax filing or expense reports.",
+      },
+      {
+        icon: "Pages",
+        title: "Section reordering",
+        text: "Move chapter 3 before chapter 2, swap appendices, promote an executive summary to the top. Drag, see the new position, save.",
+      },
+    ],
+    howWorksTitle: "How Sort Pages works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your PDF",
+        text: "Up to 100 MB. PDFium renders every page as a thumbnail. Each card shows its ORIGINAL page number plus its current position (#1, #2, …) in the new order.",
+      },
+      {
+        step: "2",
+        title: "Drag to reorder",
+        text: "HTML5 drag-and-drop. Pick up a thumbnail, drop it where you want it. Moved pages get an accent border and a &lsquo;Moved&rsquo; badge. &lsquo;Reverse&rsquo; flips the whole sequence; &lsquo;Reset&rsquo; restores the original order.",
+      },
+      {
+        step: "3",
+        title: "Save in new order",
+        text: "We copy each page&rsquo;s content stream into a fresh PDF in the requested order via pdf-lib. Lossless, runs in milliseconds.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Is anything uploaded?",
+        a: "No. PDFium and pdf-lib both run as JavaScript / WebAssembly in your browser. The PDF never touches our servers. Verifiable in DevTools → Network.",
+      },
+      {
+        q: "Are the page contents preserved exactly?",
+        a: "Yes. pdf-lib's copyPages serializes each source page's content stream — text, images, vector paths, embedded fonts, annotations — into the new document. The output is byte-identical to the input on a per-page basis; only the order changes.",
+      },
+      {
+        q: "Will bookmarks and cross-page links still work?",
+        a: "Bookmarks and links pointing to specific pages will keep pointing to the SAME source pages — but those pages are now at different positions. So a bookmark labelled &lsquo;Chapter 3&rsquo; that pointed to page 47 will, after reordering, jump to wherever the original page 47 lands. pdf-lib v1.17 doesn't relabel bookmarks. For bookmark-heavy docs, the ones tied to chapter titles still feel right; pure page-number bookmarks (&lsquo;Page 47&rsquo;) become misleading.",
+      },
+      {
+        q: "Why does drag-and-drop feel different from native macOS?",
+        a: "We use the HTML5 drag-and-drop API, which is browser-standard but has different physics from native OS drag (no spring-back, no inertia). Functional but not flashy. Touch users on phones can use the bulk &lsquo;Reverse&rsquo; button + future drag-handle in a touch-friendly redesign.",
+      },
+      {
+        q: "Can I reorder hundreds of pages efficiently?",
+        a: "Reordering huge docs by dragging individual pages is tedious for any tool. For ≤30 pages drag is fine; for more, the &lsquo;Reverse&rsquo; preset covers the common chronological-flip case. A future enhancement: drag a range with shift-click + lasso selection.",
+      },
+      {
+        q: "Will the output file be smaller or larger than the input?",
+        a: "Roughly the same size, often slightly smaller. We re-save with object streams (modern compact format), so depending on the input&rsquo;s era and source app, output can be 5-15% smaller. Content is identical.",
+      },
+    ],
+    cta: {
+      title: "Want to extract or remove pages instead?",
+      text: "Extract Pages saves a subset as a new PDF. Delete Pages removes the unwanted ones. Same in-browser engine, mirrored semantics.",
+      linkHref: "/tool/extract-pages",
+      linkLabel: "Try Extract Pages",
+    },
+  },
+
   unlock: {
     useCasesTitle: "Why people unlock PDFs",
     useCasesIntro:

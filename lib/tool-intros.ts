@@ -67,6 +67,10 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
     text: "What you'll get: a trimmed PDF with the pages you click removed — visual thumbnail grid with dimmed previews of pages marked for removal, lossless save.",
     related: { id: "extract-pages", label: "Extract Pages" },
   },
+  "sort-pages": {
+    text: "What you'll get: a PDF with pages in the order you arrange them — drag-and-drop thumbnails to reorder, with one-click Reverse and Reset bulk actions.",
+    related: { id: "extract-pages", label: "Extract Pages" },
+  },
 
   // --------- Common utility free tools ---------
   "free-draw": {

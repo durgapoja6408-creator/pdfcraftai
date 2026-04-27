@@ -55,6 +55,52 @@ export async function extractPages(
 }
 
 /**
+ * Reorder every page of a PDF into a new sequence. The newOrder array
+ * must contain each 0-based source index exactly once, with length
+ * equal to the source page count.
+ *
+ *   newOrder = [3, 0, 2, 1] on a 4-page PDF → output pages: 4, 1, 3, 2
+ *
+ * Lossless re-save: pdf-lib copies each page's content stream into
+ * the new document in the requested order. Embedded fonts, images,
+ * and annotations on each page survive. Cross-page bookmarks and
+ * links that depended on the old page order will dangle (see FAQ).
+ */
+export async function reorderPages(
+  bytes: Uint8Array,
+  newOrder: number[],
+): Promise<PageSelectionResult> {
+  const src = await loadPdf(bytes);
+  const total = src.getPageCount();
+  if (total === 0) {
+    throw new Error("This PDF has no pages.");
+  }
+  if (newOrder.length !== total) {
+    throw new Error(
+      `New order length (${newOrder.length}) doesn&rsquo;t match page count (${total}).`,
+    );
+  }
+  // Verify the new order is a permutation: every index 0..total-1
+  // appears exactly once. Anything else means a UI bug somewhere.
+  const seen = new Set<number>();
+  for (const i of newOrder) {
+    if (!Number.isInteger(i) || i < 0 || i >= total) {
+      throw new Error(`Page index ${i} is outside 0-${total - 1}.`);
+    }
+    if (seen.has(i)) {
+      throw new Error(`Page ${i + 1} appears twice in the new order.`);
+    }
+    seen.add(i);
+  }
+  if (seen.size !== total) {
+    throw new Error("New order is missing some pages.");
+  }
+  const out = await copyPagesIntoNewDoc(src, newOrder);
+  const bytesOut = await out.save({ useObjectStreams: true });
+  return { bytes: bytesOut, pageCount: out.getPageCount() };
+}
+
+/**
  * Delete (drop) a set of pages from a PDF, keeping everything else
  * in original order. Inverse of extractPages.
  *
