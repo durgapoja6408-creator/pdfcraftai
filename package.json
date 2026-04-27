@@ -13,7 +13,7 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "prebuild": "node scripts/copy-pdfjs-worker.mjs"
+    "prebuild": "node scripts/copy-pdfjs-worker.mjs && node scripts/copy-pdfium-wasm.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",

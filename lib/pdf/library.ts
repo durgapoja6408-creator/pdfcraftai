@@ -31,11 +31,15 @@ export async function getPdfiumLibrary(): Promise<PDFiumLibType> {
 
   _initPromise = (async () => {
     // Dynamic import keeps PDFium WASM out of the baseline bundle.
-    // Only pulled in when a tool actually needs it. Browser entry
-    // point handles WASM loading via the package's "browser"
-    // condition in package.json exports.
+    // Only pulled in when a tool actually needs it.
     const { PDFiumLibrary } = await import("@hyzyla/pdfium");
-    const lib = await PDFiumLibrary.init();
+    // Self-host the WASM at /pdfium.wasm (copied to /public by
+    // scripts/copy-pdfium-wasm.mjs at prebuild). The default browser
+    // entry requires us to either pass `wasmUrl` explicitly or use
+    // the CDN/base64 shortcuts. Self-hosted is production-correct:
+    // single origin, no CSP exception, browser HTTP cache holds it
+    // for 7 days after first user.
+    const lib = await PDFiumLibrary.init({ wasmUrl: "/pdfium.wasm" });
     _library = lib;
     _initPromise = null;
     return lib;
