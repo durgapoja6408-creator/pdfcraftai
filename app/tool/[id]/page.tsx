@@ -8,6 +8,10 @@ import {
   PdfInspectorLongform,
   PDF_INSPECTOR_FAQ,
 } from "@/components/marketing/PdfInspectorLongform";
+import {
+  PageCountLongform,
+  PAGE_COUNT_FAQ,
+} from "@/components/marketing/PageCountLongform";
 import { TOOLS, toolById } from "@/lib/tools";
 import { TOOL_INTROS } from "@/lib/tool-intros";
 import { findSeoForTool } from "@/lib/seo-pages";
@@ -259,6 +263,7 @@ export default function ToolRunnerPage({ params }: Params) {
   // pdf-inspector inherits the rich PDF_INSPECTOR_FAQ canonical set.
   const PER_TOOL_FAQ: Record<string, Array<{ q: string; a: string }>> = {
     "pdf-inspector": PDF_INSPECTOR_FAQ,
+    "page-count": PAGE_COUNT_FAQ,
   };
   const faqSource = PER_TOOL_FAQ[tool.id] ?? seoLanding?.faq ?? null;
   const faqLd = faqSource
@@ -520,6 +525,7 @@ export default function ToolRunnerPage({ params }: Params) {
               content (use cases, how-it-works, FAQ) gets its visual
               weight before the next-step nudges. */}
           {tool.id === "pdf-inspector" && <PdfInspectorLongform />}
+          {tool.id === "page-count" && <PageCountLongform />}
 
           {/* Related tools — same-group siblings. Improves on-page
               context for users + passes PageRank between related
