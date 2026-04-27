@@ -53,6 +53,18 @@ const FAQ: Array<{ q: string; a: string }> = [
     q: "Does this work on encrypted (password-protected) PDFs?",
     a: "We can read the page count of a PDF with permission-only encryption (no open password). If the PDF requires a password to open, you'll need to unlock it first — Unlock PDF tool returning soon.",
   },
+  {
+    q: "What metadata can you see?",
+    a: "PDFs carry an Info dictionary with up to eight fields: Title, Author, Subject, Keywords, Creator (the app that produced the source — Word, InDesign, etc.), Producer (the PDF library that wrote the file), CreationDate, and ModDate. The inspector parses whichever of these are populated. Modern producers also embed an XMP metadata stream (RDF/XML); we don't surface that yet.",
+  },
+  {
+    q: "Why is some metadata missing for my PDF?",
+    a: "Three common reasons. (1) The PDF was scrubbed — privacy-conscious workflows strip Info before sharing. (2) The PDF uses cross-reference streams (PDF 1.5+) that compress object locations in a way our byte parser can't follow. (3) The PDF is encrypted — we read the encryption flag but can't decrypt the Info dict. In all three, the inspector still shows pages, dimensions, word count, and reading time.",
+  },
+  {
+    q: "Should I remove metadata before sharing a PDF?",
+    a: "Often yes — Author, Creator, and dates can leak who made the file and when, which matters for redacted documents, anonymous submissions, or compliance workflows. The metadata you see in the inspector is the same metadata Acrobat or Preview would show. A dedicated remove-metadata tool is on the roadmap.",
+  },
 ];
 
 export function PdfInspectorLongform() {

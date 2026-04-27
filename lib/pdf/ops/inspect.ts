@@ -16,6 +16,7 @@
 "use client";
 
 import { withPdfDocument } from "../library";
+import { extractPdfMetadata, type PdfMetadata } from "./metadata";
 
 export interface PageDimension {
   /** Width in PDF points (1pt = 1/72 inch). */
@@ -45,6 +46,15 @@ export interface DocumentInspection {
    * docs with at least 1 page.
    */
   looksLikeScan: boolean;
+  /**
+   * Inspector P5 (2026-04-27): document metadata parsed from the PDF
+   * trailer + Info dictionary + header. Extracted purely from the
+   * raw byte stream (PDFium wrapper doesn't expose metadata APIs).
+   * Fields we couldn't parse — common for PDFs with cross-reference
+   * streams or encrypted Info dicts — are left as their empty
+   * defaults so the inspector still renders the rest gracefully.
+   */
+  metadata: PdfMetadata;
 }
 
 /**
@@ -208,6 +218,13 @@ export async function inspectPdf(
     const wordsPerPage = pageCount > 0 ? wordCount / pageCount : 0;
     const looksLikeScan = pageCount > 0 && wordsPerPage < 20;
 
+    // Inspector P5: byte-level metadata extraction. Runs in parallel
+    // conceptually with the PDFium parse — both touch the same bytes
+    // already in memory. Wrapped in try/catch inside extractPdfMetadata
+    // itself, so a parse failure here gracefully returns empties
+    // rather than killing the whole inspection.
+    const metadata = extractPdfMetadata(bytes);
+
     return {
       pageCount,
       firstPageDimensions,
@@ -215,6 +232,7 @@ export async function inspectPdf(
       wordCount,
       wordCountEstimated,
       looksLikeScan,
+      metadata,
     };
   });
 }

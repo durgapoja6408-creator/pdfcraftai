@@ -29,6 +29,7 @@ import {
   pointsToInches,
   type DocumentInspection,
 } from "@/lib/pdf/ops/inspect";
+import type { PdfMetadata } from "@/lib/pdf/ops/metadata";
 
 type Result = DocumentInspection & {
   fileName: string;
@@ -102,16 +103,31 @@ export function PdfInspectorTool() {
   const copySummary = async () => {
     if (!result) return;
     const dimsIn = `${pointsToInches(result.firstPageDimensions.width).toFixed(1)} × ${pointsToInches(result.firstPageDimensions.height).toFixed(1)} in`;
-    const summary = [
+    const lines = [
       `File: ${result.fileName}`,
       `Pages: ${result.pageCount}`,
       `Size: ${humanSize(result.fileSize)}`,
       `Page size: ${describePageSize(result.firstPageDimensions)} (${dimsIn})`,
       `Words: ${result.wordCount.toLocaleString()}${result.wordCountEstimated ? " (approx)" : ""}`,
       `Reading time: ${formatReadingTime(result.wordCount)} @ 250 wpm`,
-    ].join("\n");
+    ];
+    // P5: append metadata section if any field is populated. We don't
+    // dump empties — keeps the clipboard payload clean for users who
+    // paste into spreadsheets / docs.
+    const m = result.metadata;
+    const metaLines: string[] = [];
+    if (m.version) metaLines.push(`PDF version: ${m.version}`);
+    if (m.encrypted) metaLines.push(`Encrypted: yes`);
+    if (m.title) metaLines.push(`Title: ${m.title}`);
+    if (m.author) metaLines.push(`Author: ${m.author}`);
+    if (m.subject) metaLines.push(`Subject: ${m.subject}`);
+    if (m.creator) metaLines.push(`Creator: ${m.creator}`);
+    if (m.producer) metaLines.push(`Producer: ${m.producer}`);
+    if (m.creationDate) metaLines.push(`Created: ${m.creationDate}`);
+    if (m.modDate) metaLines.push(`Modified: ${m.modDate}`);
+    if (metaLines.length) lines.push("", "Metadata", ...metaLines);
     try {
-      await navigator.clipboard.writeText(summary);
+      await navigator.clipboard.writeText(lines.join("\n"));
       setCopied(true);
     } catch {
       // Clipboard write can fail on non-HTTPS or without user gesture.
@@ -295,6 +311,15 @@ export function PdfInspectorTool() {
             />
           </div>
 
+          {/* Inspector P5 metadata block. Renders only when at least
+              ONE field is populated — avoids dumping an empty section
+              for stripped PDFs or docs where the cross-ref stream
+              hides the Info dict from our byte parser. The block
+              groups: identity (Title/Author/Subject), provenance
+              (Creator/Producer/dates), and tech (PDF version,
+              encryption). */}
+          <PdfMetadataSection metadata={result.metadata} />
+
           {/* Page-size warning OR confirmation. The asymmetry of only
               showing the negative was a missed reassurance opportunity
               — when pages ARE uniform, surfacing that closes the loop
@@ -405,6 +430,154 @@ export function PdfInspectorTool() {
       </div>
     </div>
   );
+}
+
+/**
+ * Inspector P5 metadata block. Only renders if the parser pulled at
+ * least one usable field. Layout: a horizontal rule above, then a
+ * 2-column responsive grid of label/value rows, then small badge
+ * chips for the technical bits (PDF version, encrypted flag).
+ *
+ * Empty fields are omitted entirely — better UX than showing "Title:
+ * (empty)" rows for stripped or scrubbed PDFs.
+ */
+function PdfMetadataSection({ metadata }: { metadata: PdfMetadata }) {
+  // Have any meaningful field? If everything is empty + version is
+  // null + not encrypted, render nothing.
+  const hasAny =
+    !!metadata.version ||
+    metadata.encrypted ||
+    !!metadata.title ||
+    !!metadata.author ||
+    !!metadata.subject ||
+    !!metadata.keywords ||
+    !!metadata.creator ||
+    !!metadata.producer ||
+    !!metadata.creationDate ||
+    !!metadata.modDate;
+  if (!hasAny) return null;
+
+  const rows: Array<[string, string]> = [];
+  if (metadata.title) rows.push(["Title", metadata.title]);
+  if (metadata.author) rows.push(["Author", metadata.author]);
+  if (metadata.subject) rows.push(["Subject", metadata.subject]);
+  if (metadata.keywords) rows.push(["Keywords", metadata.keywords]);
+  if (metadata.creator) rows.push(["Creator", metadata.creator]);
+  if (metadata.producer) rows.push(["Producer", metadata.producer]);
+  if (metadata.creationDate) rows.push(["Created", formatIsoForDisplay(metadata.creationDate)]);
+  if (metadata.modDate) rows.push(["Modified", formatIsoForDisplay(metadata.modDate)]);
+
+  return (
+    <div
+      style={{
+        padding: "16px 24px",
+        borderTop: "1px solid var(--border)",
+      }}
+    >
+      <div
+        className="mono subtle"
+        style={{
+          fontSize: 10,
+          letterSpacing: "0.05em",
+          marginBottom: 12,
+        }}
+      >
+        METADATA
+      </div>
+
+      {/* Tech badges row (PDF version + encryption flag). These get
+          their own row above the metadata table because they're
+          single-token facts, not key/value pairs. */}
+      {(metadata.version || metadata.encrypted) && (
+        <div
+          className="row"
+          style={{ gap: 8, marginBottom: rows.length ? 14 : 0, flexWrap: "wrap" }}
+        >
+          {metadata.version && (
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 500,
+                padding: "3px 8px",
+                borderRadius: 4,
+                background: "var(--bg-2)",
+                color: "var(--fg-muted)",
+              }}
+            >
+              PDF {metadata.version}
+            </span>
+          )}
+          {metadata.encrypted && (
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 500,
+                padding: "3px 8px",
+                borderRadius: 4,
+                background: "rgba(251, 146, 60, 0.12)",
+                color: "rgb(251, 146, 60)",
+              }}
+            >
+              <I.Lock size={10} style={{ verticalAlign: "middle", marginRight: 3 }} />
+              Encrypted
+            </span>
+          )}
+        </div>
+      )}
+
+      {rows.length > 0 && (
+        <dl
+          style={{
+            display: "grid",
+            gridTemplateColumns: "120px 1fr",
+            rowGap: 8,
+            columnGap: 16,
+            margin: 0,
+            fontSize: 13,
+          }}
+        >
+          {rows.map(([k, v]) => (
+            <div key={k} style={{ display: "contents" }}>
+              <dt
+                className="subtle"
+                style={{ fontSize: 12, paddingTop: 1 }}
+              >
+                {k}
+              </dt>
+              <dd
+                style={{
+                  margin: 0,
+                  wordBreak: "break-word",
+                  overflowWrap: "anywhere",
+                }}
+                title={v}
+              >
+                {v}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </div>
+  );
+}
+
+/** Display-format an ISO 8601 date as a user-friendly string. */
+function formatIsoForDisplay(iso: string): string {
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    // E.g. "Apr 27, 2026, 09:30" — locale-aware, short form.
+    return d.toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
 }
 
 function Stat({
