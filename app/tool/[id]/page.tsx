@@ -13,6 +13,8 @@ import {
   PdfToJpgTool,
   PdfToPngTool,
 } from "@/components/tools/PdfRasterizeTool";
+import { SearchPdfTool } from "@/components/tools/SearchPdfTool";
+import { ExtractImagesTool } from "@/components/tools/ExtractImagesTool";
 import {
   PdfInspectorLongform,
   PDF_INSPECTOR_FAQ,
@@ -117,6 +119,8 @@ const LIVE_TOOL_IDS = new Set<string>([
   "pdf-to-jpg",
   // Build 2 Wave 2 — PNG companion to pdf-to-jpg (added 2026-04-27).
   "pdf-to-png",
+  // Build 2 Wave 3 — search across PDF text.
+  "pdf-search",
   "extract-images",
   "page-count",
   // 2026-04-27 split — PDF Inspector is the rich sibling of Page Counter,
@@ -382,6 +386,9 @@ export default function ToolRunnerPage({ params }: Params) {
     // Build 2 Wave 2 — same PDFium engine, rasterizer codepath.
     "pdf-to-jpg",
     "pdf-to-png",
+    // Build 2 Wave 3 — both call PDFium read-only.
+    "pdf-search",
+    "extract-images",
   ]);
   const usesPdfium = PDFIUM_BACKED_TOOLS.has(tool.id);
 
@@ -834,6 +841,11 @@ function ToolRunner({ id }: { id: string }) {
       return <PdfToJpgTool />;
     case "pdf-to-png":
       return <PdfToPngTool />;
+    // Build 2 Wave 3 — search + image extraction.
+    case "pdf-search":
+      return <SearchPdfTool />;
+    case "extract-images":
+      return <ExtractImagesTool />;
     default:
       return null;
   }

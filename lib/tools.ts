@@ -60,6 +60,11 @@ export const TOOLS: readonly Tool[] = [
   { id: "pdf-to-jpg", name: "PDF to JPG", desc: "Convert PDF pages to JPG images at 1×/2×/3× resolution. Multi-page PDFs bundle into a zip. Free, in-browser.", icon: "Image", free: true, cost: "free", group: "Convert" },
   { id: "pdf-to-png", name: "PDF to PNG", desc: "Convert PDF pages to lossless PNG images at 1×/2×/3× resolution. Multi-page PDFs bundle into a zip. Free, in-browser.", icon: "Image", free: true, cost: "free", group: "Convert" },
 
+  // Build 2 Wave 3 (2026-04-27): Search + Extract Images. Both
+  // PDFium-backed read-only ops.
+  { id: "pdf-search", name: "Search in PDF", desc: "Find any word or phrase across every page of a PDF. Case-sensitive and whole-word options, with surrounding context. Free, in-browser.", icon: "Search", free: true, cost: "free", group: "Organize" },
+  { id: "extract-images", name: "Extract Images from PDF", desc: "Pull every embedded image out of a PDF as PNG, at native resolution. Single download or zip bundle. Free, in-browser.", icon: "Image", free: true, cost: "free", group: "Convert" },
+
   // ----- AI -----
   { id: "ai-chat", name: "Chat with PDF", desc: "Ask questions. Get answers cited to pages.", icon: "Chat", free: false, cost: "1 credit per question", group: "AI" },
   { id: "ai-summarize", name: "Summarize PDF", desc: "Executive summary + section bullets.", icon: "Summary", free: false, cost: "3 credits per doc", group: "AI" },

@@ -110,6 +110,16 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
     related: { id: "pdf-to-jpg", label: "PDF to JPG" },
   },
 
+  // Build 2 Wave 3.
+  "pdf-search": {
+    text: "What you'll get: every match of your query across every page of the PDF, with surrounding context so you can read the result without opening the source. Case-sensitive and whole-word options. Up to 200 matches per query.",
+    related: { id: "pdf-inspector", label: "PDF Inspector" },
+  },
+  "extract-images": {
+    text: "What you'll get: every embedded raster image inside the PDF as a PNG file at its original resolution. Single-image PDFs download as one .png; multi-image PDFs bundle into a .zip. Different from PDF→PNG: this extracts the source images, not the rendered page.",
+    related: { id: "pdf-to-png", label: "PDF to PNG" },
+  },
+
   // --------- AI tools with dedicated runners (no SummarizeVariantTool) ---------
   // These tools each ship their own component (SummarizePdfTool,
   // TranslatePdfTool, etc.) instead of using SummarizeVariantTool, so
