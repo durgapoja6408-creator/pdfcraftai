@@ -25,7 +25,19 @@ export const TOOLS: readonly Tool[] = [
   //   using this same pattern. The other 34 nuked tools require a
   //   writable engine (pdf-lib, mupdf commercial, or server-side qpdf)
   //   and stay deleted until that engine decision lands.
-  { id: "page-count", name: "PDF Inspector", desc: "Count pages, page dimensions, word count + reading time — instant document inspector, in-browser.", icon: "Pages", free: true, cost: "free", group: "Organize" },
+  // 2026-04-27 SPLIT: Page Counter and PDF Inspector are now two
+  // separate tools sharing the same `lib/pdf/ops/inspect.ts` parse:
+  //   - Page Counter (this entry, /tool/page-count): just the count.
+  //     Single-purpose, fast-answer surface for users who searched
+  //     "page count" and want one number to copy.
+  //   - PDF Inspector (next entry, /tool/pdf-inspector): the rich
+  //     5-stat document inspector + warnings + longform.
+  // Both run the SAME PDFium parse — the split is purely about
+  // matching search intent (and fixing the URL/title mismatch where
+  // /tool/page-count visibly said "PDF Inspector"). Each tool
+  // cross-promos the other so users can upgrade or downgrade as needed.
+  { id: "page-count", name: "Page Counter", desc: "Count pages in any PDF — fast, free, in-browser. One number, one click to copy.", icon: "Pages", free: true, cost: "free", group: "Organize" },
+  { id: "pdf-inspector", name: "PDF Inspector", desc: "See everything inside a PDF — pages, dimensions, word count, reading time + mixed-size warnings. Free, in-browser.", icon: "Search", free: true, cost: "free", group: "Organize" },
 
   // ----- AI -----
   { id: "ai-chat", name: "Chat with PDF", desc: "Ask questions. Get answers cited to pages.", icon: "Chat", free: false, cost: "1 credit per question", group: "AI" },

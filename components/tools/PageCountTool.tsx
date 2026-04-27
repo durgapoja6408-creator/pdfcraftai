@@ -2,38 +2,38 @@
 
 // components/tools/PageCountTool.tsx
 //
-// Build 1 P0 upgrade (2026-04-27): turned the single-fact "Page Counter"
-// into a proper Document Inspector. Same single PDFium load, much more
-// value surfaced. Route stays `/tool/page-count` and the page-count
-// number is still the headline so SEO doesn't churn — but the result
-// card now shows page dimensions, document classification, word count,
-// reading time, plus a copy-to-clipboard.
+// 2026-04-27 (Inspector P3 — split): trimmed back to a focused
+// page-count-only surface. Users searching "page count" / "count
+// pages PDF" want ONE number to copy — they don't need a 5-stat
+// dashboard. The richer 5-stat experience now lives at the sibling
+// tool /tool/pdf-inspector (PdfInspectorTool.tsx).
 //
-// Why the renamed-but-not-renamed approach:
-//   - "page count" is a high-volume search term we already rank for
-//   - "PDF inspector" is a higher-volume search term but less specific
-//   - Solution: keep the URL/H1 keyword, expand what the result card
-//     actually delivers. Best of both — rank for "page count" but
-//     deliver a 5x richer answer.
+// Both tools share the same `inspectPdf()` parse from
+// lib/pdf/ops/inspect.ts — this one just renders the page count and
+// drops everything else. Includes a cross-promo card pointing at
+// PDF Inspector for users who want more.
+//
+// Why the split:
+//   - URL/title alignment: /tool/page-count now actually says
+//     "Page Counter", not "PDF Inspector"
+//   - Search-intent fit: page-count seekers get a fast answer; users
+//     who need more click through to the inspector
+//   - SEO surface: two tools, two pages, two ranking opportunities
 
 import { useState, useCallback, useEffect } from "react";
+import Link from "next/link";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
-import {
-  describePageSize,
-  estimateReadingTimeMinutes,
-  pointsToInches,
-  type DocumentInspection,
-} from "@/lib/pdf/ops/inspect";
 
-type Result = DocumentInspection & {
+type Result = {
+  pageCount: number;
   fileName: string;
   fileSize: number;
 };
 
-type LoadStage = "idle" | "loading-engine" | "inspecting" | "done";
+type LoadStage = "idle" | "loading-engine" | "counting" | "done";
 
 export function PageCountTool() {
   useTrackToolView("page-count", "Organize");
@@ -43,7 +43,6 @@ export function PageCountTool() {
   const [result, setResult] = useState<Result | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Auto-clear "Copied" state after 1.5s.
   useEffect(() => {
     if (!copied) return;
     const t = setTimeout(() => setCopied(false), 1500);
@@ -70,27 +69,25 @@ export function PageCountTool() {
     if (!file) return;
     setError(null);
 
-    // Stage 1: lazy-load the engine (only slow on first run)
     setStage("loading-engine");
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
+      // Reuse the full inspect op — we only need pageCount, but going
+      // through the same module keeps both tools on one PDFium parse
+      // and avoids divergent error handling.
       const { inspectPdf } = await import("@/lib/pdf/ops/inspect");
-
-      // Stage 2: actual inspection (fast even on big PDFs)
-      setStage("inspecting");
+      setStage("counting");
       const inspection = await inspectPdf(bytes);
       setResult({
-        ...inspection,
+        pageCount: inspection.pageCount,
         fileName: file.name,
         fileSize: file.size,
       });
       setStage("done");
     } catch (err) {
-      console.error("inspect failed", err);
+      console.error("page-count failed", err);
       setError(
-        err instanceof Error
-          ? err.message
-          : "Could not read the PDF. Is it valid?",
+        err instanceof Error ? err.message : "Could not read the PDF. Is it valid?",
       );
       setStage("idle");
     }
@@ -110,8 +107,8 @@ export function PageCountTool() {
       await navigator.clipboard.writeText(String(result.pageCount));
       setCopied(true);
     } catch {
-      // Some browsers block clipboard without user gesture or HTTPS;
-      // fall back to old-school selection. Skipping for brevity here.
+      // Silent fail — clipboard write needs user gesture + HTTPS,
+      // and a follow-up click usually succeeds.
     }
   };
 
@@ -125,15 +122,15 @@ export function PageCountTool() {
     return `${base.slice(0, Math.max(8, keep))}…${extension}`;
   };
 
-  const busy = stage === "loading-engine" || stage === "inspecting";
+  const busy = stage === "loading-engine" || stage === "counting";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {!file ? (
         <ToolDropzone
           onFiles={onFiles}
-          prompt="Drop a PDF to inspect"
-          hint="Up to 100 MB · processed privately in your browser via Google PDFium"
+          prompt="Drop a PDF to count pages"
+          hint="Up to 100 MB · runs privately in your browser via Google PDFium"
         />
       ) : (
         <div className="card" style={{ padding: 16 }}>
@@ -177,7 +174,6 @@ export function PageCountTool() {
         </p>
       )}
 
-      {/* Loading state with two-stage feedback */}
       {busy && (
         <div
           className="card"
@@ -199,7 +195,7 @@ export function PageCountTool() {
             <div style={{ fontSize: 13, fontWeight: 500 }}>
               {stage === "loading-engine"
                 ? "Loading PDFium engine…"
-                : "Reading the PDF…"}
+                : "Counting pages…"}
             </div>
             {stage === "loading-engine" && (
               <div className="subtle" style={{ fontSize: 11, marginTop: 2 }}>
@@ -210,111 +206,98 @@ export function PageCountTool() {
         </div>
       )}
 
-      {/* Rich result card — Document Inspector view */}
       {result && (
-        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          {/* Headline: page count + filename */}
+        <div
+          className="card"
+          style={{
+            padding: "24px 28px",
+            display: "grid",
+            gridTemplateColumns: "auto 1fr auto",
+            alignItems: "center",
+            gap: 20,
+          }}
+        >
           <div
             style={{
-              padding: "20px 24px",
-              borderBottom: "1px solid var(--border)",
-              display: "grid",
-              gridTemplateColumns: "auto 1fr auto",
-              alignItems: "center",
-              gap: 16,
+              fontSize: 56,
+              fontWeight: 600,
+              letterSpacing: "-0.02em",
+              color: "var(--accent)",
+              lineHeight: 1,
+              fontVariantNumeric: "tabular-nums",
             }}
+            aria-label={`${result.pageCount} pages`}
           >
-            <div
-              style={{
-                fontSize: 40,
-                fontWeight: 600,
-                letterSpacing: "-0.02em",
-                color: "var(--accent)",
-                lineHeight: 1,
-                fontVariantNumeric: "tabular-nums",
-              }}
-              aria-label={`${result.pageCount} pages`}
-            >
-              {result.pageCount.toLocaleString()}
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 500 }}>
-                page{result.pageCount === 1 ? "" : "s"}
-              </div>
-              <div
-                className="subtle"
-                style={{ fontSize: 12, marginTop: 2 }}
-                title={result.fileName}
-              >
-                in {truncateFilename(result.fileName, 36)}
-              </div>
-            </div>
-            <button
-              type="button"
-              className="btn btn-sm btn-outline"
-              onClick={copyCount}
-              aria-label="Copy page count to clipboard"
-              style={{ minWidth: 90 }}
-            >
-              {copied ? (
-                <>
-                  <I.Check size={12} /> Copied
-                </>
-              ) : (
-                <>
-                  <I.Copy size={12} /> Copy
-                </>
-              )}
-            </button>
+            {result.pageCount.toLocaleString()}
           </div>
-
-          {/* Stat grid */}
-          <div
-            style={{
-              padding: "16px 24px",
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-              gap: 16,
-            }}
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 500 }}>
+              page{result.pageCount === 1 ? "" : "s"}
+            </div>
+            <div
+              className="subtle"
+              style={{ fontSize: 12, marginTop: 4 }}
+              title={result.fileName}
+            >
+              in {truncateFilename(result.fileName, 36)} ·{" "}
+              {humanSize(result.fileSize)}
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={copyCount}
+            aria-label="Copy page count to clipboard"
+            style={{ minWidth: 110 }}
           >
-            <Stat
-              label="File size"
-              value={humanSize(result.fileSize)}
-            />
-            <Stat
-              label="Page size"
-              value={describePageSize(result.firstPageDimensions)}
-              hint={`${pointsToInches(result.firstPageDimensions.width).toFixed(1)} × ${pointsToInches(result.firstPageDimensions.height).toFixed(1)} in`}
-            />
-            <Stat
-              label="Word count"
-              value={`${result.wordCount.toLocaleString()}${result.wordCountEstimated ? "*" : ""}`}
-              hint={result.wordCountEstimated ? "approx (sampled)" : "exact"}
-            />
-            <Stat
-              label="Reading time"
-              value={`~${estimateReadingTimeMinutes(result.wordCount)} min`}
-              hint="at 250 wpm"
-            />
-          </div>
-
-          {/* Per-page-size warning */}
-          {!result.uniformDimensions && (
-            <div
-              style={{
-                padding: "10px 24px",
-                borderTop: "1px solid var(--border)",
-                fontSize: 12,
-                color: "var(--fg-muted)",
-                background: "var(--bg-1)",
-              }}
-            >
-              <I.Info size={12} style={{ verticalAlign: "middle", marginRight: 6 }} />
-              This PDF mixes page sizes or orientations — heads up if you&apos;re printing.
-            </div>
-          )}
+            {copied ? (
+              <>
+                <I.Check size={14} /> Copied
+              </>
+            ) : (
+              <>
+                <I.Copy size={14} /> Copy
+              </>
+            )}
+          </button>
         </div>
       )}
+
+      {/* Cross-promo to PDF Inspector — visible at all times so users
+          who realise mid-flow they want more (word count, dimensions,
+          reading time) can jump straight there. The two tools share
+          the same PDFium parse, so the upgrade path is honest. */}
+      <div
+        className="card"
+        style={{
+          padding: 14,
+          background: "var(--bg-1)",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          fontSize: 13,
+        }}
+      >
+        <span style={{ color: "var(--fg-subtle)" }}>
+          <I.Search size={16} />
+        </span>
+        <div style={{ flex: 1, color: "var(--fg-muted)" }}>
+          Want more than a count? Try{" "}
+          <Link
+            href="/tool/pdf-inspector"
+            style={{
+              color: "var(--accent)",
+              textDecoration: "underline",
+              textDecorationStyle: "dotted",
+              textUnderlineOffset: 3,
+            }}
+          >
+            PDF Inspector
+          </Link>{" "}
+          for page dimensions, word count, reading time, and mixed-size
+          warnings — same single PDFium parse.
+        </div>
+      </div>
 
       <div className="row" style={{ justifyContent: "flex-end", gap: 10 }}>
         {file && (
@@ -327,7 +310,6 @@ export function PageCountTool() {
             Reset
           </button>
         )}
-        {/* Hide "Inspect" button after we have a result — replaced by Reset */}
         {!result && (
           <button
             type="button"
@@ -335,43 +317,10 @@ export function PageCountTool() {
             disabled={!file || busy}
             onClick={run}
           >
-            {busy ? "Inspecting…" : "Inspect PDF"}
+            {busy ? "Counting…" : "Count pages"}
           </button>
         )}
       </div>
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
-  return (
-    <div>
-      <div className="mono subtle" style={{ fontSize: 10, letterSpacing: "0.05em" }}>
-        {label.toUpperCase()}
-      </div>
-      <div
-        style={{
-          fontSize: 18,
-          fontWeight: 500,
-          marginTop: 4,
-          fontVariantNumeric: "tabular-nums",
-        }}
-      >
-        {value}
-      </div>
-      {hint && (
-        <div className="subtle" style={{ fontSize: 11, marginTop: 2 }}>
-          {hint}
-        </div>
-      )}
     </div>
   );
 }

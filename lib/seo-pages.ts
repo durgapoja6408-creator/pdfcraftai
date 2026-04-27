@@ -594,7 +594,10 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
   // runner. The runner URL stays put so we don't lose existing
   // ranking equity for "page count".
   "pdf-inspector": {
-    tool: "page-count",
+    // 2026-04-27 SPLIT: PDF Inspector is now its own runner at
+    // /tool/pdf-inspector. The SEO landing's CTA now lands users on a
+    // URL that matches the visible product name.
+    tool: "pdf-inspector",
     h1: "PDF Inspector — see everything inside any PDF, in your browser",
     sub: "Page count, page dimensions, orientation, word count, reading time, and mixed-size warnings — one drop, five answers, zero uploads.",
     canonical: "/pdf-inspector",

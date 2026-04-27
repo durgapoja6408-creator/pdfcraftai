@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { I } from "@/components/icons/Icons";
 import { PageCountTool } from "@/components/tools/PageCountTool";
+import { PdfInspectorTool } from "@/components/tools/PdfInspectorTool";
 import {
   PdfInspectorLongform,
   PDF_INSPECTOR_FAQ,
@@ -103,6 +104,9 @@ const LIVE_TOOL_IDS = new Set<string>([
   "pdf-to-jpg",
   "extract-images",
   "page-count",
+  // 2026-04-27 split — PDF Inspector is the rich sibling of Page Counter,
+  // mounted at /tool/pdf-inspector with its own runner component.
+  "pdf-inspector",
   "pdf-metadata",
   "flatten-pdf",
   "crop-pdf",
@@ -250,8 +254,11 @@ export default function ToolRunnerPage({ params }: Params) {
   // just page-count) feed their FAQ array into the FAQPage JSON-LD.
   // Other tools fall back to the SEO landing's FAQ. Net: every tool
   // emits FAQPage schema using its own canonical Q&A source.
+  // 2026-04-27 split — PDF Inspector is now its own tool. Page Counter
+  // keeps a slim FAQ via the existing /pdf-page-count seoLanding;
+  // pdf-inspector inherits the rich PDF_INSPECTOR_FAQ canonical set.
   const PER_TOOL_FAQ: Record<string, Array<{ q: string; a: string }>> = {
-    "page-count": PDF_INSPECTOR_FAQ,
+    "pdf-inspector": PDF_INSPECTOR_FAQ,
   };
   const faqSource = PER_TOOL_FAQ[tool.id] ?? seoLanding?.faq ?? null;
   const faqLd = faqSource
@@ -348,7 +355,7 @@ export default function ToolRunnerPage({ params }: Params) {
   // first-load time. The 3.8 MB pdfium.wasm starts downloading in
   // parallel with the page HTML so it's ready by the time the user
   // clicks the run button.
-  const PDFIUM_BACKED_TOOLS = new Set<string>(["page-count"]);
+  const PDFIUM_BACKED_TOOLS = new Set<string>(["page-count", "pdf-inspector"]);
   const usesPdfium = PDFIUM_BACKED_TOOLS.has(tool.id);
 
   return (
@@ -512,7 +519,7 @@ export default function ToolRunnerPage({ params }: Params) {
               code. Renders BEFORE related tools so the dwell-time
               content (use cases, how-it-works, FAQ) gets its visual
               weight before the next-step nudges. */}
-          {tool.id === "page-count" && <PdfInspectorLongform />}
+          {tool.id === "pdf-inspector" && <PdfInspectorLongform />}
 
           {/* Related tools — same-group siblings. Improves on-page
               context for users + passes PageRank between related
@@ -775,8 +782,12 @@ function ToolRunner({ id }: { id: string }) {
     case "ai-sign":
       return <SignPdfTool />;
     // PDFium-powered free tools (post-nuke rebuild, Build 1).
+    // 2026-04-27 SPLIT: page-count and pdf-inspector are siblings —
+    // both call lib/pdf/ops/inspect.ts but render different subsets.
     case "page-count":
       return <PageCountTool />;
+    case "pdf-inspector":
+      return <PdfInspectorTool />;
     default:
       return null;
   }
