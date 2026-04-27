@@ -575,18 +575,24 @@ function ToolIntroPanel({ id }: { id: string }) {
 function RelatedTools({ currentId, group }: { currentId: string; group: string }) {
   // Pick up to 6 same-group siblings, dropping the current tool.
   // Prefer LIVE tools so we don't link out to dead ends.
-  let siblings = TOOLS.filter(
+  const sameGroup = TOOLS.filter(
     (t) => t.group === group && t.id !== currentId && LIVE_TOOL_IDS.has(t.id)
-  ).slice(0, 6);
-  // Inspector P1 (2026-04-27): after the hard nuke of 40 free tools,
-  // many groups (esp. "Organize") only have 1 tool left, so siblings
-  // are empty and the section vanishes. Fall back to top-6 LIVE tools
-  // across all groups so the user always has next-step suggestions
-  // and we never lose the internal-link equity.
-  if (siblings.length === 0) {
-    siblings = TOOLS.filter(
-      (t) => t.id !== currentId && LIVE_TOOL_IDS.has(t.id),
-    ).slice(0, 6);
+  );
+  // Inspector P4 (2026-04-27): the previous fallback only triggered
+  // when sameGroup was EMPTY. With Organize now holding just 2 tools
+  // (Page Count + PDF Inspector), the row showed exactly one card —
+  // technically not empty, but visually sparse. Now: take all
+  // same-group siblings AND top up from cross-group LIVE tools until
+  // we hit 6 total. Same-group tools get priority order; cross-group
+  // fillers come after, dedupe-aware.
+  const TARGET_SIBLING_COUNT = 6;
+  let siblings = sameGroup.slice(0, TARGET_SIBLING_COUNT);
+  if (siblings.length < TARGET_SIBLING_COUNT) {
+    const seen = new Set([currentId, ...siblings.map((t) => t.id)]);
+    const fillers = TOOLS.filter(
+      (t) => !seen.has(t.id) && LIVE_TOOL_IDS.has(t.id),
+    ).slice(0, TARGET_SIBLING_COUNT - siblings.length);
+    siblings = [...siblings, ...fillers];
   }
   if (siblings.length === 0) return null;
   return (

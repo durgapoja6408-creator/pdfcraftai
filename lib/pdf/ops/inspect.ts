@@ -35,6 +35,16 @@ export interface DocumentInspection {
   wordCount: number;
   /** True if the wordCount is an estimate (sampled), false if exact. */
   wordCountEstimated: boolean;
+  /**
+   * Inspector P4 heuristic (2026-04-27): dramatically low text-per-page
+   * suggests this is an image-only (scanned) PDF where extractable
+   * text is missing. The UI uses this to surface an "OCR this PDF"
+   * suggestion. False positives are possible for legitimately sparse
+   * PDFs (cover pages, image catalogs) — the warning is phrased as a
+   * hint, not an assertion. Threshold: < 20 words/page averaged on
+   * docs with at least 1 page.
+   */
+  looksLikeScan: boolean;
 }
 
 /**
@@ -94,6 +104,26 @@ export function pointsToMm(pt: number): number {
 /** Reading time in minutes (~250 words/minute average adult reading). */
 export function estimateReadingTimeMinutes(words: number): number {
   return Math.max(1, Math.round(words / 250));
+}
+
+/**
+ * Inspector P4 (2026-04-27): user-facing reading-time string with
+ * sub-1-min handling. The original `estimateReadingTimeMinutes` is
+ * kept for backward compat but its `Math.max(1, ...)` floor produced
+ * "~1 min" for documents as short as 9 words, which is misleading.
+ *
+ * Returns: "<1 min" for under ~45s, "~N min" up to 60min, "~1 h N min"
+ * beyond. 250 wpm is the standard adult silent-reading baseline.
+ */
+export function formatReadingTime(words: number): string {
+  if (words <= 0) return "—";
+  const minutesPrecise = words / 250;
+  if (minutesPrecise < 0.75) return "<1 min";
+  const totalMinutes = Math.round(minutesPrecise);
+  if (totalMinutes < 60) return `~${totalMinutes} min`;
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return m === 0 ? `~${h} h` : `~${h} h ${m} min`;
 }
 
 /**
@@ -168,12 +198,23 @@ export async function inspectPdf(
       wordCountEstimated = true;
     }
 
+    // Inspector P4: scan-detection heuristic. If a multi-page doc has
+    // dramatically little text per page, it's almost certainly an
+    // image-only PDF (a scan) where the words a real reader sees are
+    // pixels, not extractable characters. Threshold of 20 wpp is
+    // chosen empirically — typical text PDFs run 200–400 wpp; legit
+    // sparse PDFs (cover pages, posters) will trip this too, but the
+    // UI surfaces it as a hint, not an assertion.
+    const wordsPerPage = pageCount > 0 ? wordCount / pageCount : 0;
+    const looksLikeScan = pageCount > 0 && wordsPerPage < 20;
+
     return {
       pageCount,
       firstPageDimensions,
       uniformDimensions,
       wordCount,
       wordCountEstimated,
+      looksLikeScan,
     };
   });
 }

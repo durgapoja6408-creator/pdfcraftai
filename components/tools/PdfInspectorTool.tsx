@@ -18,13 +18,14 @@
 // instead of one.
 
 import { useState, useCallback, useEffect } from "react";
+import Link from "next/link";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import {
   describePageSize,
-  estimateReadingTimeMinutes,
+  formatReadingTime,
   pointsToInches,
   type DocumentInspection,
 } from "@/lib/pdf/ops/inspect";
@@ -107,7 +108,7 @@ export function PdfInspectorTool() {
       `Size: ${humanSize(result.fileSize)}`,
       `Page size: ${describePageSize(result.firstPageDimensions)} (${dimsIn})`,
       `Words: ${result.wordCount.toLocaleString()}${result.wordCountEstimated ? " (approx)" : ""}`,
-      `Reading time: ~${estimateReadingTimeMinutes(result.wordCount)} min @ 250 wpm`,
+      `Reading time: ${formatReadingTime(result.wordCount)} @ 250 wpm`,
     ].join("\n");
     try {
       await navigator.clipboard.writeText(summary);
@@ -289,12 +290,29 @@ export function PdfInspectorTool() {
             />
             <Stat
               label="Reading time"
-              value={`~${estimateReadingTimeMinutes(result.wordCount)} min`}
+              value={formatReadingTime(result.wordCount)}
               hint="at 250 wpm"
             />
           </div>
 
-          {!result.uniformDimensions && (
+          {/* Page-size warning OR confirmation. The asymmetry of only
+              showing the negative was a missed reassurance opportunity
+              — when pages ARE uniform, surfacing that closes the loop
+              for users doing print-prep. */}
+          {result.uniformDimensions ? (
+            <div
+              style={{
+                padding: "10px 24px",
+                borderTop: "1px solid var(--border)",
+                fontSize: 12,
+                color: "var(--green, #4ade80)",
+                background: "var(--bg-1)",
+              }}
+            >
+              <I.Check size={12} style={{ verticalAlign: "middle", marginRight: 6 }} />
+              All pages share the same size and orientation.
+            </div>
+          ) : (
             <div
               style={{
                 padding: "10px 24px",
@@ -308,6 +326,39 @@ export function PdfInspectorTool() {
               This PDF mixes page sizes or orientations — heads up if you&apos;re printing.
             </div>
           )}
+
+          {/* Inspector P4 scan-detection nudge: dramatically low text
+              per page → almost certainly a scanned PDF. Surface OCR
+              CTA so the user knows their next step. The check runs
+              after the warning row above so it appears as a separate,
+              more prominent block. */}
+          {result.looksLikeScan && (
+            <div
+              style={{
+                padding: "10px 24px",
+                borderTop: "1px solid var(--border)",
+                fontSize: 12,
+                color: "var(--accent)",
+                background: "var(--accent-soft)",
+              }}
+            >
+              <I.Scan size={12} style={{ verticalAlign: "middle", marginRight: 6 }} />
+              Looks like a scanned PDF — text isn&apos;t searchable. Run{" "}
+              <Link
+                href="/tool/ai-searchable-pdf"
+                style={{
+                  color: "var(--accent)",
+                  fontWeight: 500,
+                  textDecoration: "underline",
+                  textDecorationStyle: "dotted",
+                  textUnderlineOffset: 3,
+                }}
+              >
+                Make PDF Searchable
+              </Link>{" "}
+              to OCR it.
+            </div>
+          )}
         </div>
       )}
 
@@ -317,25 +368,39 @@ export function PdfInspectorTool() {
           the Related Tools row at the bottom of the runner page. */}
 
       <div className="row" style={{ justifyContent: "flex-end", gap: 10 }}>
-        {file && (
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={reset}
-            disabled={busy}
-          >
-            Reset
-          </button>
-        )}
-        {!result && (
+        {/* P4: when a result is shown, the action button changes from
+            "Reset" to "Inspect another PDF" — same handler, more
+            inviting copy. Encourages repeat use rather than feeling
+            terminal. */}
+        {result ? (
           <button
             type="button"
             className="btn btn-primary"
-            disabled={!file || busy}
-            onClick={run}
+            onClick={reset}
           >
-            {busy ? "Inspecting…" : "Inspect PDF"}
+            Inspect another PDF
           </button>
+        ) : (
+          <>
+            {file && (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={reset}
+                disabled={busy}
+              >
+                Reset
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!file || busy}
+              onClick={run}
+            >
+              {busy ? "Inspecting…" : "Inspect PDF"}
+            </button>
+          </>
         )}
       </div>
     </div>
