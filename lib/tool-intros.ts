@@ -120,6 +120,12 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
     related: { id: "pdf-to-png", label: "PDF to PNG" },
   },
 
+  // Build 2 Wave 4.
+  "pdf-outline": {
+    text: "What you'll get: the bookmark / table-of-contents tree of the PDF, with page numbers next to each entry. Useful for previewing long docs (research papers, textbooks, legal exhibits) before committing to read. Copy as text or export JSON.",
+    related: { id: "pdf-inspector", label: "PDF Inspector" },
+  },
+
   // --------- AI tools with dedicated runners (no SummarizeVariantTool) ---------
   // These tools each ship their own component (SummarizePdfTool,
   // TranslatePdfTool, etc.) instead of using SummarizeVariantTool, so

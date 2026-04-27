@@ -65,6 +65,11 @@ export const TOOLS: readonly Tool[] = [
   { id: "pdf-search", name: "Search in PDF", desc: "Find any word or phrase across every page of a PDF. Case-sensitive and whole-word options, with surrounding context. Free, in-browser.", icon: "Search", free: true, cost: "free", group: "Organize" },
   { id: "extract-images", name: "Extract Images from PDF", desc: "Pull every embedded image out of a PDF as PNG, at native resolution. Single download or zip bundle. Free, in-browser.", icon: "Image", free: true, cost: "free", group: "Convert" },
 
+  // Build 2 Wave 4 (2026-04-27): byte-parser tool — no PDFium needed.
+  // Reads the outline (bookmark) tree from the raw PDF bytes,
+  // resolves destinations to page numbers via the page tree.
+  { id: "pdf-outline", name: "PDF Outline Viewer", desc: "View the bookmark / table-of-contents tree of any PDF, with page references. Useful for previewing long docs before reading. Free, in-browser.", icon: "Pages", free: true, cost: "free", group: "Organize" },
+
   // ----- AI -----
   { id: "ai-chat", name: "Chat with PDF", desc: "Ask questions. Get answers cited to pages.", icon: "Chat", free: false, cost: "1 credit per question", group: "AI" },
   { id: "ai-summarize", name: "Summarize PDF", desc: "Executive summary + section bullets.", icon: "Summary", free: false, cost: "3 credits per doc", group: "AI" },
