@@ -13,7 +13,7 @@
 //   3. The minimum-viable input is 2 files; one file shows a friendlier
 //      "drop another to merge with" hint.
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
@@ -23,6 +23,12 @@ interface PendingFile {
   /** Stable key for React + DnD reordering. */
   key: string;
   file: File;
+  /**
+   * Object URL for a small first-page thumbnail rendered via PDFium.
+   * Null while rendering or if rendering failed (we fall back to the
+   * generic file icon in both cases — the merge itself is unaffected).
+   */
+  thumbnailUrl: string | null;
 }
 
 interface MergeResultState {
@@ -40,6 +46,46 @@ export function PdfMergeTool() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<MergeResultState | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+  // Revoke any thumbnail object URLs on unmount so we don't leak blob
+  // memory across navigation. Per-file revocation also happens in
+  // removeAt + reset for the still-mounted case.
+  useEffect(() => {
+    return () => {
+      files.forEach((f) => {
+        if (f.thumbnailUrl) URL.revokeObjectURL(f.thumbnailUrl);
+      });
+    };
+  }, [files]);
+
+  // Render a small first-page thumbnail for one input file via PDFium.
+  // We only need page 1 — the file list shows it as identification, not
+  // as content preview. Failures degrade gracefully: thumbnailUrl stays
+  // null, the runner falls back to the generic file icon, and the merge
+  // itself is unaffected.
+  const renderThumbnailFor = useCallback(async (key: string, file: File) => {
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const { rasterizePdf } = await import("@/lib/pdf/ops/rasterize");
+      const rendered = await rasterizePdf(bytes, {
+        format: "jpeg",
+        scale: 0.35,
+        quality: 0.6,
+      });
+      const firstPage = rendered[0];
+      if (!firstPage) return;
+      const blob = new Blob([firstPage.bytes], { type: "image/jpeg" });
+      const url = URL.createObjectURL(blob);
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.key === key ? { ...f, thumbnailUrl: url } : f,
+        ),
+      );
+    } catch (err) {
+      // Thumbnail render failure is non-fatal — log and keep the file.
+      console.warn("merge thumbnail render failed", err);
+    }
+  }, []);
 
   const onFiles = useCallback(
     (incoming: File[]) => {
@@ -60,20 +106,31 @@ export function PdfMergeTool() {
             .toString(36)
             .slice(2, 8)}`,
           file: f,
+          thumbnailUrl: null,
         });
       }
       if (valid.length === 0) return;
       setFiles((prev) => [...prev, ...valid]);
+      // Kick off thumbnail rendering for each new file in the
+      // background. They appear in the UI immediately (with a
+      // placeholder); the thumbnails fill in as PDFium finishes each.
+      for (const v of valid) {
+        renderThumbnailFor(v.key, v.file);
+      }
       // Track the first file as the upload event for funnel parity
       // with the single-file tools.
       const firstNew = valid[0];
       if (firstNew) tracker.upload(firstNew.file);
     },
-    [tracker],
+    [tracker, renderThumbnailFor],
   );
 
   const removeAt = (idx: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== idx));
+    setFiles((prev) => {
+      const removed = prev[idx];
+      if (removed?.thumbnailUrl) URL.revokeObjectURL(removed.thumbnailUrl);
+      return prev.filter((_, i) => i !== idx);
+    });
     setError(null);
     setResult(null);
   };
@@ -89,6 +146,9 @@ export function PdfMergeTool() {
   };
 
   const reset = () => {
+    files.forEach((f) => {
+      if (f.thumbnailUrl) URL.revokeObjectURL(f.thumbnailUrl);
+    });
     setFiles([]);
     setError(null);
     setResult(null);
@@ -209,7 +269,8 @@ export function PdfMergeTool() {
                 onDragEnd={() => setDragIndex(null)}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "auto 1fr auto auto",
+                  // position-number · thumbnail · name+size · up/down · remove
+                  gridTemplateColumns: "auto auto 1fr auto auto",
                   gap: 12,
                   alignItems: "center",
                   padding: "10px 16px",
@@ -225,6 +286,48 @@ export function PdfMergeTool() {
                 >
                   {idx + 1}.
                 </span>
+                {/*
+                 * Thumbnail of the input's first page. Rendered async
+                 * after the file is added (renderThumbnailFor); shows a
+                 * placeholder until it lands. Aspect ratio is 3:4
+                 * (portrait) — close to A4/Letter, looks right for the
+                 * vast majority of PDFs without locking us to an exact
+                 * source-page ratio.
+                 */}
+                <div
+                  aria-hidden="true"
+                  style={{
+                    width: 36,
+                    height: 48,
+                    borderRadius: 4,
+                    overflow: "hidden",
+                    background: "var(--bg-2)",
+                    border: "1px solid var(--border)",
+                    display: "grid",
+                    placeItems: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  {f.thumbnailUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={f.thumbnailUrl}
+                      alt=""
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  ) : (
+                    <span
+                      className="pulse-soft"
+                      style={{ color: "var(--fg-subtle)" }}
+                    >
+                      <I.File size={14} />
+                    </span>
+                  )}
+                </div>
                 <div style={{ minWidth: 0 }}>
                   <div
                     style={{

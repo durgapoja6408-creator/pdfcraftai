@@ -42,7 +42,7 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
   // Earlier placeholders pointed to IDs that were nuked — those
   // would render as dead cross-promo links.
   merge: {
-    text: "What you'll get: a single combined PDF in the exact order you set, runs entirely in your browser via pdf-lib.",
+    text: "What you'll get: a single combined PDF in the exact order you set — drag to reorder, with a first-page thumbnail next to each input so you can confirm what you're merging. Runs entirely in your browser via pdf-lib.",
     related: { id: "split", label: "Split PDF" },
   },
   split: {

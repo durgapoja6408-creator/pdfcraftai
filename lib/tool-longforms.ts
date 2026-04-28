@@ -1412,12 +1412,12 @@ export const TOOL_LONGFORMS: Record<string, ToolLongformData> = {
       {
         step: "1",
         title: "Drop your PDFs",
-        text: "Up to 100 MB each, no count limit. Files stay in your browser — pdf-lib runs as JavaScript, no upload.",
+        text: "Up to 100 MB each, no count limit. PDFium renders a small first-page thumbnail next to each input so you can confirm what you uploaded. Files stay in your browser — pdf-lib runs as JavaScript, no upload.",
       },
       {
         step: "2",
         title: "Reorder if needed",
-        text: "Drag list items to set the final order. Order = output sequence; first listed becomes page 1.",
+        text: "Drag list items to set the final order, or use the up/down buttons. Order = output sequence; first listed becomes page 1.",
       },
       {
         step: "3",

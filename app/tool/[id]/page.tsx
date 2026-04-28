@@ -452,6 +452,9 @@ export default function ToolRunnerPage({ params }: Params) {
     // for the click-to-mark-split-points grid (Visual mode default;
     // Advanced text-mode still available as a toggle).
     "split",
+    // Merge thumbnails — first-page preview per input PDF in the file
+    // list. PDFium first-page render per file, async after add.
+    "merge",
     // Tier 2 — Extract / Delete Pages render a thumbnail grid via
     // the shared PageGridTool. Both rely on the PDFium rasterizer
     // for the per-page previews before pdf-lib does the actual op.
