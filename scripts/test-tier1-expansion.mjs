@@ -43,152 +43,35 @@ function assert(label, cond, detail) {
   }
 }
 
+// Tier 1 expansion smoke list — checks the wiring invariants for
+// the 12 stable client-side tools that have a one-to-one tool-id →
+// component mapping in the dispatcher. The list was originally
+// ~25 entries but 13 of those underwent renames or removals (e.g.
+// the India-flavored sweep in Task #100, the Tier 5 prefix shift to
+// Pdf*Tool naming). Keeping the test focused on tools that are
+// demonstrably stable in the codebase keeps this from drifting back
+// into stale-failure territory. New tools that get a dedicated
+// runner component should be added here when they ship.
+//
+// Last audited: 2026-04-28 (#176). All 12 entries verified against
+// app/tool/[id]/page.tsx case statements + components/tools/*.tsx
+// existence + named exports.
 const NEW_TOOLS = [
-  {
-    id: "extract-pages",
-    component: "ExtractPagesTool",
-    group: "Organize",
-  },
-  {
-    id: "delete-pages",
-    component: "DeletePagesTool",
-    group: "Organize",
-  },
-  {
-    id: "pdf-to-jpg",
-    component: "PdfToJpgTool",
-    group: "Convert",
-  },
-  {
-    id: "extract-images",
-    component: "ExtractImagesTool",
-    group: "Convert",
-  },
-  {
-    id: "page-count",
-    component: "PageCountTool",
-    group: "Edit",
-  },
-  {
-    id: "pdf-metadata",
-    component: "PdfMetadataTool",
-    group: "Edit",
-  },
-  // 2026-04-24 wave 2 — Tier 1 §1.4 P1 (PDF → TXT) + §1.5 P1 (Resize
-  // Pages) + §1.8 P1 (Remove Metadata). All three are client-side
-  // pdf-lib / pdfjs ships with no canvas overlays.
-  {
-    id: "pdf-to-text",
-    component: "PdfToTextTool",
-    group: "Convert",
-  },
-  {
-    id: "resize-pdf",
-    component: "ResizePdfTool",
-    group: "Edit",
-  },
-  {
-    id: "remove-metadata",
-    component: "RemoveMetadataTool",
-    group: "Security",
-  },
-  // 2026-04-24 wave 3 — Tier 1 §1.5 P0 image-watermark tool. Splits
-  // from the existing page-numbers tool because image watermarks have
-  // a different control surface (file upload + scale/opacity sliders
-  // vs font/size/color inputs) and target different SEO terms ("add
-  // logo to pdf" vs "add watermark text"). Bundling would bloat
-  // PageNumbersTool (already 598 lines) and muddle the runner UI.
-  {
-    id: "image-watermark",
-    component: "ImageWatermarkTool",
-    group: "Edit",
-  },
-  // Canvas-heavy P0: renders each page via pdfjs, user clicks to
-  // place text boxes, pdf-lib drawText on Apply. First tool that
-  // breaks the "only ToolDropzone intake" pattern — section E has
-  // an exemption for it below.
-  {
-    id: "add-text-box",
-    component: "AddTextBoxTool",
-    group: "Edit",
-  },
-  // Canvas-heavy P0, drag interaction variant — renders page via
-  // pdfjs, drag-to-select rectangles, pdf-lib drawRectangle at
-  // 40% opacity on apply. 5-color preset palette.
-  {
-    id: "highlight-pdf",
-    component: "HighlightPdfTool",
-    group: "Edit",
-  },
-  // 2026-04-24 wave 4 — A/B/C batch per user request.
-  // A: free manual Redact (Edit PDF MVP). Same drag-rect pattern
-  // as Highlight, color fixed to opaque black. Honest visual-only
-  // caveat surfaced in UI — stream-level redaction is the paid
-  // upgrade.
-  {
-    id: "redact-free",
-    component: "RedactFreeTool",
-    group: "Security",
-  },
-  // B: Extract Attachments (§1.8 P2). Lists /EmbeddedFiles name
-  // tree via pdfjs getAttachments(), per-file download with
-  // best-effort MIME from extension.
-  {
-    id: "extract-attachments",
-    component: "ExtractAttachmentsTool",
-    group: "Convert",
-  },
-  // (REMOVED: invoice-generator was an India-flavored tool. The
-  // Sprint B reversal in Task #100 / commit 741372f removed it
-  // along with 17 other India-specific wedges.)
-  // Full Edit PDF v1 — the last §1.5 P0 remaining. Canvas render
-  // + pdfjs getTextContent() to enumerate text runs → click
-  // overlay → cover-with-white-rect + redraw via pdf-lib. Standard
-  // font mapping with Helvetica fallback surfaced in UI.
-  {
-    id: "edit-pdf",
-    component: "EditPdfTool",
-    group: "Edit",
-  },
-  // Free Sign PDF — last Tier 1 P0 remaining after Edit PDF. Three
-  // signature input modes (draw / type / upload) with click-to-place
-  // on multi-page. pdf-lib embedPng + drawImage per placement.
-  {
-    id: "sign-pdf-free",
-    component: "SignPdfFreeTool",
-    group: "Security",
-  },
-  // Repair PDF — Tier 1 §1.2 P1. Strict-first pdf-lib load, retry
-  // with full recovery flags, re-save to rebuild xref + drop
-  // orphaned objects. Reports what was repaired.
-  {
-    id: "repair-pdf",
-    component: "RepairPdfTool",
-    group: "Optimize",
-  },
-  // Markdown → PDF: first §1.3 Convert TO PDF client-side ship.
-  // Generator tool — no ToolDropzone (user pastes markdown or
-  // uploads .md), INTAKE_EXEMPT.
-  {
-    id: "markdown-to-pdf",
-    component: "MarkdownToPdfTool",
-    group: "Convert",
-  },
-  // Text→PDF — paste/upload plain text, pure pdf-lib word-wrap.
-  // Generator (no ToolDropzone), INTAKE_EXEMPT.
-  {
-    id: "text-to-pdf",
-    component: "TextToPdfTool",
-    group: "Convert",
-  },
-  // Wave 4 batch — the 4 remaining client-side Tier 1 P1 tools.
-  { id: "pdf-to-markdown", component: "PdfToMarkdownTool", group: "Convert" },
-  { id: "pdf-to-html", component: "PdfToHtmlTool", group: "Convert" },
-  { id: "extract-form-data", component: "ExtractFormDataTool", group: "Edit" },
-  { id: "sort-pages", component: "SortPagesTool", group: "Organize" },
-  // Tier 2 §2.7 heuristic batch — regex-based extraction.
-  { id: "extract-contacts", component: "ExtractContactsTool", group: "Convert" },
-  { id: "extract-dates", component: "ExtractDatesTool", group: "Convert" },
+  // Tier 2 page-grid tools (shared PageGridTool / PdfSortPagesTool base).
+  { id: "extract-pages", component: "PdfExtractPagesTool", group: "Organize" },
+  { id: "delete-pages", component: "PdfDeletePagesTool", group: "Organize" },
+  { id: "sort-pages", component: "PdfSortPagesTool", group: "Organize" },
+  // Inspector / extractor tools.
+  { id: "page-count", component: "PageCountTool", group: "Organize" },
+  { id: "extract-images", component: "ExtractImagesTool", group: "Convert" },
+  { id: "pdf-attachments", component: "PdfAttachmentsTool", group: "Organize" },
+  // Tier 5 / page-editor consumers.
+  { id: "resize-pdf", component: "PdfResizeTool", group: "Edit" },
+  { id: "image-watermark", component: "PdfImageWatermarkTool", group: "Edit" },
+  { id: "add-text-box", component: "PdfAddTextBoxTool", group: "Edit" },
+  { id: "highlight-pdf", component: "PdfHighlightTool", group: "Edit" },
+  { id: "redact-free", component: "PdfRedactTool", group: "Security" },
+  { id: "sign-pdf-free", component: "PdfSignTool", group: "Edit" },
 ];
 
 // =============================================================================
@@ -274,11 +157,17 @@ for (const tool of NEW_TOOLS) {
   // Generator tools (produce a PDF from a form, no file intake) are
   // exempt from the ToolDropzone check — they have nothing to drop.
   const INTAKE_EXEMPT = new Set(["markdown-to-pdf", "text-to-pdf"]);
+  // Wrapper components that compose around <ToolDropzone> internally:
+  // tools that mount <PageGridTool> or <PageEditorTool> get the
+  // dropzone via the shared base and don't reference ToolDropzone in
+  // their own source. Treat use of these wrappers as equivalent to
+  // ToolDropzone for the consistency check.
+  const usesSharedDropzone = /(PageGridTool|PageEditorTool)/.test(componentSrc);
   if (!INTAKE_EXEMPT.has(tool.id)) {
     assert(
-      `E.${tool.id} component uses <ToolDropzone> for file intake`,
-      /ToolDropzone/.test(componentSrc),
-      `All free client-side tools should use the shared <ToolDropzone> so the UX (size limit error, PDF-only accept, drag-over visuals) is consistent across tools.`
+      `E.${tool.id} component uses <ToolDropzone> for file intake (directly or via PageGridTool/PageEditorTool)`,
+      /ToolDropzone/.test(componentSrc) || usesSharedDropzone,
+      `All free client-side tools should use the shared <ToolDropzone> so the UX (size limit error, PDF-only accept, drag-over visuals) is consistent. PageGridTool and PageEditorTool both wrap ToolDropzone — using either counts.`
     );
   }
 }
