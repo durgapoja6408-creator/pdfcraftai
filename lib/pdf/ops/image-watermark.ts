@@ -1,9 +1,14 @@
 // lib/pdf/ops/image-watermark.ts
 //
 // Tier 5 (2026-04-28): image watermark / logo overlay. Embeds a
-// PNG or JPEG into the document and draws it on every page at a
-// configurable position. v1 is config-only (position preset +
-// opacity + scale). Drag-to-position is a future v2.
+// PNG or JPEG into the document and draws it on every page.
+//
+// v1 was config-only (position preset + opacity + scale).
+// v2 (2026-04-28): adds optional `customPositionPt` for visual
+// click-to-place — when set, overrides the `position` preset and
+// stamps at the same (x, y) on every page (in PDF points,
+// bottom-left origin). Doc-wide semantics preserved: the watermark
+// still goes on every page; only the placement coordinate changes.
 
 import { PDFDocument } from "pdf-lib";
 
@@ -33,6 +38,15 @@ export interface ImageWatermarkOptions {
   widthScale?: number;
   /** Margin from page edge in PDF points. Default 28 (~0.4 inch). */
   margin?: number;
+  /**
+   * Optional custom position in PDF points (bottom-left origin).
+   * When provided, overrides `position` preset. The watermark's
+   * BOTTOM-LEFT corner anchors at (x, y). Used by the visual
+   * click-to-place editor — the click point in pixel coords gets
+   * converted via the page's renderScale before being passed in.
+   * Output is clamped to keep the image fully on-page.
+   */
+  customPositionPt?: { x: number; y: number };
 }
 
 export interface ImageWatermarkResult {
@@ -72,13 +86,20 @@ export async function imageWatermarkPdf(
 
     let x = 0;
     let y = 0;
-    if (opts.position.endsWith("-left")) x = margin;
-    else if (opts.position.endsWith("-right")) x = pw - drawW - margin;
-    else x = (pw - drawW) / 2;
+    if (opts.customPositionPt) {
+      // Custom (x, y) anchors the BOTTOM-LEFT corner. Clamp so the
+      // image stays on-page even if the click was near an edge.
+      x = Math.max(0, Math.min(pw - drawW, opts.customPositionPt.x));
+      y = Math.max(0, Math.min(ph - drawH, opts.customPositionPt.y));
+    } else {
+      if (opts.position.endsWith("-left")) x = margin;
+      else if (opts.position.endsWith("-right")) x = pw - drawW - margin;
+      else x = (pw - drawW) / 2;
 
-    if (opts.position.startsWith("top-")) y = ph - drawH - margin;
-    else if (opts.position.startsWith("bottom-")) y = margin;
-    else y = (ph - drawH) / 2;
+      if (opts.position.startsWith("top-")) y = ph - drawH - margin;
+      else if (opts.position.startsWith("bottom-")) y = margin;
+      else y = (ph - drawH) / 2;
+    }
 
     page.drawImage(img, { x, y, width: drawW, height: drawH, opacity });
   }
