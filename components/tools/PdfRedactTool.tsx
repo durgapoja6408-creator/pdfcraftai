@@ -12,6 +12,7 @@
 // through redactPdf op once per page.
 
 import { useState, useRef } from "react";
+import { I } from "@/components/icons/Icons";
 import {
   PageEditorTool,
   type PageEditorEditorProps,
@@ -314,25 +315,78 @@ function RedactEditorOverlay({
         const top = (r.y / pageRender.pxHeight) * 100;
         const width = (r.w / pageRender.pxWidth) * 100;
         const height = (r.h / pageRender.pxHeight) * 100;
+        const isLastBeingDrawn =
+          i === state.rects.length - 1 && drawing !== null;
+        const showDelete =
+          !isLastBeingDrawn && r.w >= 8 && r.h >= 8 && !busy;
+        // Delete button needs to be readable against either dark
+        // (#000) or light (#FFF) redaction colors. We pick a chip
+        // background that contrasts with whatever the user picked.
+        const isDarkColor =
+          state.color.toLowerCase() === "#000000" ||
+          state.color.toLowerCase() === "#808080";
         return (
           <div
             key={i}
-            aria-hidden="true"
             style={{
               position: "absolute",
               left: `${left}%`,
               top: `${top}%`,
               width: `${width}%`,
               height: `${height}%`,
-              background: state.color,
-              opacity: 1,
               pointerEvents: "none",
-              border:
-                i === state.rects.length - 1 && drawing
+            }}
+          >
+            <div
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: state.color,
+                opacity: 1,
+                border: isLastBeingDrawn
                   ? "1px solid rgba(255,255,255,0.6)"
                   : "none",
-            }}
-          />
+              }}
+            />
+            {showDelete && (
+              <button
+                type="button"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setState((s) => ({
+                    ...s,
+                    rects: s.rects.filter((_, j) => j !== i),
+                  }));
+                }}
+                aria-label={`Remove redaction ${i + 1}`}
+                title="Remove redaction"
+                style={{
+                  position: "absolute",
+                  top: -8,
+                  right: -8,
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  border: isDarkColor
+                    ? "1.5px solid rgba(255,255,255,0.85)"
+                    : "1.5px solid rgba(0,0,0,0.6)",
+                  background: isDarkColor ? "#1a1a1a" : "var(--bg-1)",
+                  color: isDarkColor ? "#fff" : "var(--fg)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  pointerEvents: "auto",
+                  padding: 0,
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.35)",
+                }}
+              >
+                <I.X size={11} />
+              </button>
+            )}
+          </div>
         );
       })}
     </div>

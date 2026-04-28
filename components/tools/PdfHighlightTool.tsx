@@ -14,6 +14,7 @@
 // bytes through highlightPdf op once per page.
 
 import { useState, useRef } from "react";
+import { I } from "@/components/icons/Icons";
 import {
   PageEditorTool,
   type PageEditorEditorProps,
@@ -325,27 +326,76 @@ function HighlightEditorOverlay({
         const top = (r.y / pageRender.pxHeight) * 100;
         const width = (r.w / pageRender.pxWidth) * 100;
         const height = (r.h / pageRender.pxHeight) * 100;
+        const isLastBeingDrawn =
+          i === state.rects.length - 1 && drawing !== null;
+        // Hide the per-rect delete button on the rect currently being
+        // drawn (stray click on a 0×0 rect would delete itself before
+        // the user finishes the drag).
+        const showDelete =
+          !isLastBeingDrawn && r.w >= 8 && r.h >= 8 && !busy;
         return (
           <div
             key={i}
-            aria-hidden="true"
             style={{
               position: "absolute",
               left: `${left}%`,
               top: `${top}%`,
               width: `${width}%`,
               height: `${height}%`,
-              background: state.color,
-              opacity: state.opacity,
               pointerEvents: "none",
-              // Only show a border on the rect being drawn so committed
-              // highlights look clean.
-              border:
-                i === state.rects.length - 1 && drawing
+            }}
+          >
+            <div
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: state.color,
+                opacity: state.opacity,
+                // Only show a border on the rect being drawn so
+                // committed highlights look clean.
+                border: isLastBeingDrawn
                   ? "1px solid rgba(0,0,0,0.4)"
                   : "none",
-            }}
-          />
+              }}
+            />
+            {showDelete && (
+              <button
+                type="button"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setState((s) => ({
+                    ...s,
+                    rects: s.rects.filter((_, j) => j !== i),
+                  }));
+                }}
+                aria-label={`Remove highlight ${i + 1}`}
+                title="Remove highlight"
+                style={{
+                  position: "absolute",
+                  top: -8,
+                  right: -8,
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  border: "1.5px solid rgba(0,0,0,0.6)",
+                  background: "var(--bg-1)",
+                  color: "var(--fg)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  pointerEvents: "auto",
+                  padding: 0,
+                  // shadow so the chip floats above the highlight
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.25)",
+                }}
+              >
+                <I.X size={11} />
+              </button>
+            )}
+          </div>
         );
       })}
     </div>
