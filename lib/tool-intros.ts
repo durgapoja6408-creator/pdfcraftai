@@ -91,6 +91,22 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
     text: "What you'll get: a PDF with every page cropped to the rectangle you draw on page 1 — visual drag-to-select, lossless via /CropBox (content stays in the file, viewers just show the smaller area).",
     related: { id: "rotate", label: "Rotate PDF" },
   },
+  "stamp-pdf": {
+    text: "What you'll get: a PDF with your text stamped on every page — pick position (diagonal / center / top / bottom), opacity, color, and font size. pdf-lib drawText with rotation.",
+    related: { id: "page-numbers", label: "Add Page Numbers" },
+  },
+  "n-up-pdf": {
+    text: "What you'll get: a PDF where 2 or 4 source pages are packed onto each output sheet — saves paper, easier handouts, faster multi-page reading.",
+    related: { id: "rotate", label: "Rotate PDF" },
+  },
+  "resize-pdf": {
+    text: "What you'll get: a PDF resized to Letter, Legal, A4, A3, or A5 — content scales to fit while preserving aspect ratio. Optional landscape orientation.",
+    related: { id: "crop-pdf", label: "Crop PDF" },
+  },
+  "remove-metadata": {
+    text: "What you'll get: a clean copy of your PDF with Title, Author, Producer, Creator, dates, and XMP metadata stripped. Page content untouched — useful before sending externally.",
+    related: { id: "pdf-inspector", label: "PDF Inspector" },
+  },
 
   // --------- Common utility free tools ---------
   "free-draw": {

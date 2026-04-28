@@ -114,6 +114,12 @@ export const TOOLS: readonly Tool[] = [
   { id: "flatten-pdf", name: "Flatten PDF Forms", desc: "Bake AcroForm field values into static page content. Recipients see filled values but can&apos;t edit them. Lossless for the page content.", icon: "Edit", free: true, cost: "free", group: "Edit" },
   // Tier 4 (2026-04-28): first visual-editor tool.
   { id: "crop-pdf", name: "Crop PDF", desc: "Drag a rectangle on page 1 to define a crop area, applied uniformly to every page. Lossless via /CropBox — no content is removed, just hidden.", icon: "Edit", free: true, cost: "free", group: "Edit" },
+  // Tier 5 (2026-04-28): 4 more pdf-lib tools — text watermark, N-up,
+  // resize, remove metadata.
+  { id: "stamp-pdf", name: "Watermark PDF", desc: "Add a text watermark (DRAFT, CONFIDENTIAL, your company name) on every page — pick position, opacity, color, and font size.", icon: "Edit", free: true, cost: "free", group: "Edit" },
+  { id: "n-up-pdf", name: "N-up PDF", desc: "Pack 2 or 4 source pages onto each output sheet — paper-saving prints, handouts, multi-page reading.", icon: "Pages", free: true, cost: "free", group: "Edit" },
+  { id: "resize-pdf", name: "Resize PDF", desc: "Resize every page to Letter / Legal / A4 / A3 / A5. Content scales to fit, aspect ratio preserved.", icon: "Edit", free: true, cost: "free", group: "Edit" },
+  { id: "remove-metadata", name: "Remove PDF Metadata", desc: "Strip Title, Author, Producer, Creator, dates, and XMP metadata before sharing externally. Page content untouched.", icon: "Shield", free: true, cost: "free", group: "Security" },
 
   // ----- AI -----
   { id: "ai-chat", name: "Chat with PDF", desc: "Ask questions. Get answers cited to pages.", icon: "Chat", free: false, cost: "1 credit per question", group: "AI" },

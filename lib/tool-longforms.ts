@@ -1896,6 +1896,119 @@ export const TOOL_LONGFORMS: Record<string, ToolLongformData> = {
     cta: { title: "Want to extract links instead?", text: "Extract Links from PDF lists every hyperlink with page references and CSV/JSON export. Useful for inventorying URLs before stripping them.", linkHref: "/tool/pdf-links", linkLabel: "Try Extract Links" },
   },
 
+  "stamp-pdf": {
+    useCasesTitle: "Why people watermark PDFs",
+    useCasesIntro:
+      "A watermark turns an ordinary PDF into a labeled artifact — DRAFT, CONFIDENTIAL, your company name diagonally across the page. It signals state and ownership without touching the content underneath.",
+    useCases: [
+      { icon: "Shield", title: "Draft markings", text: "Stamp DRAFT on every page so reviewers know they&rsquo;re not looking at the final version." },
+      { icon: "Edit", title: "Confidentiality flags", text: "CONFIDENTIAL or NDA banners visually reinforce that a document shouldn&rsquo;t be circulated externally." },
+      { icon: "File", title: "Brand watermarks", text: "Company name diagonally across the page on shared decks and proposals." },
+      { icon: "Receipt", title: "Status stamps", text: "PAID, APPROVED, REJECTED on invoices and forms — visible at a glance during routing." },
+      { icon: "Book", title: "Sample / preview marking", text: "SAMPLE on chapter excerpts you share publicly so the full version stays paid." },
+      { icon: "Pages", title: "Versioning", text: "v1, v2, v3 watermarks make it obvious which print-out someone is holding when versions diverge." },
+    ],
+    howWorksTitle: "How Watermark PDF works",
+    howWorks: [
+      { step: "1", title: "Drop your PDF", text: "Up to 100 MB. Files stay in your browser." },
+      { step: "2", title: "Type text + pick options", text: "Position (diagonal / center / top / bottom), opacity (5–100%), color, font size. Live update before applying." },
+      { step: "3", title: "Apply &amp; download", text: "pdf-lib draws the text on every page with the rotation and opacity you chose. Lossless overlay — original content untouched." },
+    ],
+    faqs: [
+      { q: "Can I remove the watermark later?", a: "No — once the watermark is drawn into the page content stream, it&rsquo;s baked in. Always keep an unwatermarked master copy." },
+      { q: "Will the watermark print?", a: "Yes. Anything visible in viewers prints by default. If you want a screen-only watermark, that&rsquo;s a different (more complex) Optional-Content-Group implementation." },
+      { q: "Can I add an image watermark?", a: "Not in this tool — Image Watermark is a separate visual editor (deferred). For now, text watermarks cover the most common cases." },
+      { q: "Is anything uploaded?", a: "No. pdf-lib runs in your browser." },
+      { q: "What fonts are supported?", a: "Helvetica Bold (the standard 14 PDF font, available without embedding). Custom fonts are a future extension." },
+    ],
+    cta: { title: "Need page numbers too?", text: "Add Page Numbers stamps numbers in any of six positions. Often paired with a watermark.", linkHref: "/tool/page-numbers", linkLabel: "Try Page Numbers" },
+  },
+
+  "n-up-pdf": {
+    useCasesTitle: "Why people use N-up layouts",
+    useCasesIntro:
+      "N-up packing puts multiple source pages onto each output sheet — fewer pages to print, easier to compare side-by-side, more efficient reading on big screens.",
+    useCases: [
+      { icon: "Pages", title: "Paper-saving prints", text: "Print 2 pages per sheet instead of 1 — half the paper, 95% of the readability for body-text documents." },
+      { icon: "Book", title: "Handouts &amp; cheat sheets", text: "4-up grid of slides or reference cards so a single sheet holds an entire deck." },
+      { icon: "Compare", title: "Side-by-side reading", text: "2-up layout lets you read facing pages without flipping. Mimics open-book layout for scanned books." },
+      { icon: "Receipt", title: "Receipt batching", text: "Stack receipts 4-up per sheet for quick filing — fewer sheets to scan, faster filing." },
+      { icon: "Edit", title: "Proof previewing", text: "Compare layout proposals 4-up to spot differences. Designers and editors use this for review packages." },
+      { icon: "Convert", title: "Annotation density", text: "When marking up many pages, 4-up keeps everything visible at once — handy for review meetings." },
+    ],
+    howWorksTitle: "How N-up PDF works",
+    howWorks: [
+      { step: "1", title: "Drop your PDF", text: "Up to 100 MB. pdf-lib loads the document tree in your browser." },
+      { step: "2", title: "Pick layout", text: "2-up (vertical stack) or 4-up (2×2 grid). Output sheet size matches your source — most uniform-page docs look natural." },
+      { step: "3", title: "Apply &amp; download", text: "We embed each source page as a PDFEmbeddedPage and drawPage() it onto the new sheets at the right scale. Resources are reused across sheets so output stays compact." },
+    ],
+    faqs: [
+      { q: "Will the output be smaller than the input?", a: "Often, yes — fewer total pages plus shared resources. Not always; if your source has heavy per-page imagery, the embed overhead can offset savings." },
+      { q: "Are the source pages scaled?", a: "Yes. Each source page is scaled to fit its cell while preserving aspect ratio. Cells get a small gap (8 pt default) so they don&rsquo;t collide visually." },
+      { q: "What if pages have mixed orientations?", a: "Output sheet size matches the FIRST source page. Mixed-orientation docs may have some cells rotated awkwardly. For best results, normalize orientation first via Rotate PDF." },
+      { q: "Is anything uploaded?", a: "No. pdf-lib runs in your browser." },
+      { q: "Can I do 6-up or 8-up?", a: "Not in v1 — 2-up and 4-up cover the vast majority of use cases. Higher counts get illegible quickly anyway." },
+    ],
+    cta: { title: "Want to resize before N-up?", text: "Resize PDF normalizes page sizes first — handy when your source mixes Letter and A4.", linkHref: "/tool/resize-pdf", linkLabel: "Try Resize PDF" },
+  },
+
+  "resize-pdf": {
+    useCasesTitle: "Why people resize PDFs",
+    useCasesIntro:
+      "Standardizing page size is a frequent prep step. Submission portals expect Letter or A4. Print shops want consistent sheet sizes. International teams need to convert between US and metric paper.",
+    useCases: [
+      { icon: "Edit", title: "US ↔ metric conversion", text: "Convert Letter (US) to A4 (international) so the doc opens cleanly anywhere — or vice versa." },
+      { icon: "Pages", title: "Print-shop standardization", text: "Print shops batch jobs by sheet size. Resize all pages to one target before submitting." },
+      { icon: "File", title: "Submission portals", text: "Many gov / academic portals reject PDFs with non-standard page sizes. Resize to the required size first." },
+      { icon: "Book", title: "Cross-doc consistency", text: "When merging PDFs from multiple sources, resizing to a common size makes the merged result look uniform." },
+      { icon: "Receipt", title: "Mobile-friendly resize", text: "Down-resize a Legal PDF to A5 for tighter mobile display." },
+      { icon: "Pages", title: "Pre-archiving normalization", text: "Archives often require uniform page size. Resize before depositing into long-term storage." },
+    ],
+    howWorksTitle: "How Resize PDF works",
+    howWorks: [
+      { step: "1", title: "Drop your PDF", text: "Up to 100 MB. pdf-lib loads it in your browser." },
+      { step: "2", title: "Pick target size + orientation", text: "Letter, Legal, A4, A3, or A5. Optional landscape toggle. We compute the largest scale that keeps the source within the target." },
+      { step: "3", title: "Apply &amp; download", text: "Each source page is embedded and drawn on a new target-sized page, centered, with margins where the aspect ratios differ." },
+    ],
+    faqs: [
+      { q: "Does this preserve content quality?", a: "Yes. Embedding-and-drawing is a reference operation — the source content stream is preserved, just placed on a larger or smaller stage. No rasterization, no quality loss." },
+      { q: "Why are there margins around the content?", a: "Aspect-ratio mismatch. A 3:4 source on a 4:3 target leaves margins on the sides. We center the content; the margins are filled with white." },
+      { q: "Can I resize to custom dimensions?", a: "Not in v1 — 5 standard sizes cover the vast majority of needs. Custom is a future extension." },
+      { q: "Will resizing change file size?", a: "Roughly the same. Resource reuse via embedPdf keeps overhead minimal." },
+      { q: "Is anything uploaded?", a: "No. pdf-lib runs in your browser." },
+    ],
+    cta: { title: "Just want to crop instead?", text: "Crop PDF removes content margins without scaling. Different operation — useful when the page is the right size but the content area is too wide.", linkHref: "/tool/crop-pdf", linkLabel: "Try Crop PDF" },
+  },
+
+  "remove-metadata": {
+    useCasesTitle: "Why people strip PDF metadata",
+    useCasesIntro:
+      "PDFs leak surprising amounts of identity info. Author = your OS username. Producer = your software fingerprint. ProductionDate / ModDate = exact timestamps. XMP can hold full revision history. Strip before sending externally.",
+    useCases: [
+      { icon: "Shield", title: "External sharing", text: "Before emailing a PDF outside your org, strip the OS username and corporate-software signatures." },
+      { icon: "Edit", title: "Whistleblower / journalism", text: "Anonymous tips need their tracks cleaned — metadata can de-anonymize a leaker." },
+      { icon: "File", title: "Pre-FOIA release", text: "Government docs released under FOIA must have authoring metadata stripped per agency policy." },
+      { icon: "Book", title: "Academic anonymization", text: "Double-blind submission policies require author info removed not just from the body but from the metadata too." },
+      { icon: "Receipt", title: "Resume privacy", text: "Resumes uploaded to job boards leak metadata. Strip before upload." },
+      { icon: "Convert", title: "Pipeline normalization", text: "Document-archive ingestion pipelines often want clean metadata — fewer surprises in downstream search and indexing." },
+    ],
+    howWorksTitle: "How Remove PDF Metadata works",
+    howWorks: [
+      { step: "1", title: "Drop your PDF", text: "Up to 100 MB." },
+      { step: "2", title: "Click Remove metadata", text: "We clear /Info dict fields (Title, Author, Subject, Keywords, Producer, Creator, dates) and remove the embedded XMP metadata stream." },
+      { step: "3", title: "Download", text: "Saved with object streams; the document looks identical visually but the metadata fingerprint is gone." },
+    ],
+    faqs: [
+      { q: "Is this destructive to page content?", a: "No. Only metadata is removed. Page text, images, layout, fonts — all preserved exactly." },
+      { q: "Can the metadata be recovered?", a: "Not from the saved file — once the /Info dict and XMP stream are gone, they&rsquo;re gone. (Anyone with the original PDF still has the original metadata, of course.)" },
+      { q: "Does this remove form data?", a: "No. Form field values are part of the document content, not metadata. Use Flatten PDF Forms if you want to bake those in too." },
+      { q: "Will the file size change?", a: "Slightly smaller. Metadata is usually a few KB." },
+      { q: "Is anything uploaded?", a: "No. pdf-lib runs in your browser." },
+      { q: "What about hidden text or invisible layers?", a: "Out of scope — those live in the page content, not metadata. A separate redaction tool would handle that." },
+    ],
+    cta: { title: "Want to inspect first?", text: "PDF Inspector shows you exactly what metadata is in the file. Run it before stripping so you know what&rsquo;s being removed.", linkHref: "/tool/pdf-inspector", linkLabel: "Try PDF Inspector" },
+  },
+
   "crop-pdf": {
     useCasesTitle: "Why people crop PDFs",
     useCasesIntro:

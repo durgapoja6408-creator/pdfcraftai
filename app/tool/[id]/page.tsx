@@ -43,9 +43,14 @@ import {
   PdfRepairTool,
   PdfStripLinksTool,
   PdfFlattenTool,
+  PdfRemoveMetadataTool,
 } from "@/components/tools/PdfSimpleOpsTool";
 // Tier 4 (2026-04-28): first visual editor — Crop PDF.
 import { PdfCropTool } from "@/components/tools/PdfCropTool";
+// Tier 5 (2026-04-28): Watermark / N-up / Resize.
+import { PdfStampTool } from "@/components/tools/PdfStampTool";
+import { PdfNUpTool } from "@/components/tools/PdfNUpTool";
+import { PdfResizeTool } from "@/components/tools/PdfResizeTool";
 import {
   PdfInspectorLongform,
   PDF_INSPECTOR_FAQ,
@@ -983,6 +988,15 @@ function ToolRunner({ id }: { id: string }) {
     // Tier 4 — first visual editor.
     case "crop-pdf":
       return <PdfCropTool />;
+    // Tier 5 — 4 more pdf-lib tools.
+    case "stamp-pdf":
+      return <PdfStampTool />;
+    case "n-up-pdf":
+      return <PdfNUpTool />;
+    case "resize-pdf":
+      return <PdfResizeTool />;
+    case "remove-metadata":
+      return <PdfRemoveMetadataTool />;
     default:
       return null;
   }

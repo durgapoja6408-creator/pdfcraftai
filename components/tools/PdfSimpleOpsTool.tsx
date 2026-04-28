@@ -258,6 +258,53 @@ export function PdfStripLinksTool() {
   );
 }
 
+export function PdfRemoveMetadataTool() {
+  return (
+    <PdfSimpleOpsTool
+      toolId="remove-metadata"
+      toolGroup="Security"
+      dropPrompt="Drop a PDF to strip its metadata"
+      busyLabel="Removing metadata…"
+      actionLabel="Remove metadata"
+      successCta="Strip another PDF"
+      errorCode="remove_metadata_failed"
+      explainer={
+        <>
+          <strong style={{ color: "var(--fg)" }}>What this does:</strong>{" "}
+          clears the /Info dict (Title, Author, Subject, Keywords, Producer,
+          Creator, dates) and removes the embedded XMP metadata stream.
+          PDFs leak surprising amounts of identity info — OS username,
+          software fingerprint, document history. Strip before sending
+          externally.{" "}
+          <strong style={{ color: "var(--fg)" }}>What it doesn&rsquo;t touch:</strong>{" "}
+          page content. Anything visible in the document stays exactly as
+          it was.
+        </>
+      }
+      apply={async (bytes, file) => {
+        const { removePdfMetadata } = await import("@/lib/pdf/ops/remove-metadata");
+        const r = await removePdfMetadata(bytes);
+        const baseName = file.name.replace(/\.pdf$/i, "");
+        const had = r.clearedInfoFields.length > 0 || r.hadXmp;
+        const detail =
+          r.clearedInfoFields.length > 0
+            ? `Cleared: ${r.clearedInfoFields.join(", ")}${r.hadXmp ? " · removed XMP stream" : ""}`
+            : r.hadXmp
+              ? "Removed XMP metadata stream"
+              : "No metadata was present";
+        return {
+          outputBytes: r.bytes,
+          outputFileName: `${baseName || "document"}-clean.pdf`,
+          headline: had
+            ? `Metadata cleared from ${r.pageCount}-page PDF`
+            : `No metadata found — saved a clean copy`,
+          detail,
+        };
+      }}
+    />
+  );
+}
+
 export function PdfFlattenTool() {
   return (
     <PdfSimpleOpsTool
