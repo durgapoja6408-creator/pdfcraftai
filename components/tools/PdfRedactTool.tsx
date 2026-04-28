@@ -130,8 +130,10 @@ function RedactConfigPanel({
   state,
   setState,
   busy,
+  pageRender,
 }: PageEditorConfigProps<RedactState>) {
   const realRects = state.rects.filter((r) => r.w >= 8 && r.h >= 8);
+  const currentPage = pageRender.pageIndex + 1;
   return (
     <div
       className="card"
@@ -172,7 +174,7 @@ function RedactConfigPanel({
         <div style={{ fontSize: 13 }}>
           {realRects.length === 0
             ? "Drag a rectangle on the page to redact. Drag again for more."
-            : `${realRects.length} redaction${realRects.length === 1 ? "" : "s"} on page 1`}
+            : `${realRects.length} redaction${realRects.length === 1 ? "" : "s"} on page ${currentPage}`}
         </div>
         <button
           type="button"

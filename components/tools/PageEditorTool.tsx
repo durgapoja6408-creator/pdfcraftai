@@ -74,6 +74,13 @@ export interface PageEditorConfigProps<TState> {
   state: TState;
   setState: React.Dispatch<React.SetStateAction<TState>>;
   busy: boolean;
+  /**
+   * Current page render — lets config panels show the actual page
+   * number ("3 highlights on page 4") instead of hardcoded "page 1"
+   * labels that lie post-navigation (#183). Always set when the
+   * config panel is rendered (gated on stage === "ready").
+   */
+  pageRender: PageRender;
 }
 
 /**
@@ -695,7 +702,12 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
             </div>
           )}
           {ConfigPanel && (
-            <ConfigPanel state={state} setState={setState} busy={busy} />
+            <ConfigPanel
+              state={state}
+              setState={setState}
+              busy={busy}
+              pageRender={render}
+            />
           )}
           <div
             style={{

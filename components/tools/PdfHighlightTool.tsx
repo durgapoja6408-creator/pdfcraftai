@@ -146,8 +146,10 @@ function HighlightConfigPanel({
   state,
   setState,
   busy,
+  pageRender,
 }: PageEditorConfigProps<HighlightState>) {
   const realRects = state.rects.filter((r) => r.w >= 8 && r.h >= 8);
+  const currentPage = pageRender.pageIndex + 1;
   return (
     <div
       className="card"
@@ -160,7 +162,7 @@ function HighlightConfigPanel({
         <div style={{ fontSize: 13 }}>
           {realRects.length === 0
             ? "Drag a rectangle on the page to add a highlight. Drag again for more."
-            : `${realRects.length} highlight${realRects.length === 1 ? "" : "s"} on page 1`}
+            : `${realRects.length} highlight${realRects.length === 1 ? "" : "s"} on page ${currentPage}`}
         </div>
         <button
           type="button"
