@@ -44,6 +44,17 @@ export interface RasterizeOptions {
   quality?: number;
   /** Called with each rendered page so the UI can stream-render previews. */
   onProgress?: (pageNumber: number, totalPages: number) => void;
+  /**
+   * Per-page callback fired with the FULL RasterPage as soon as each
+   * page lands — before the batch resolves. Lets thumbnail UIs paint
+   * progressively instead of waiting for the whole render to finish.
+   * Returning a Promise from this callback pauses the loop until it
+   * resolves (useful for back-pressure on huge PDFs).
+   *
+   * NOT a replacement for onProgress (which only takes pageNumber +
+   * total, useful for "Rendering 47 of 500…" labels). Both fire.
+   */
+  onPage?: (page: RasterPage) => void | Promise<void>;
 }
 
 /**
@@ -94,7 +105,7 @@ export async function rasterizePdf(
   bytes: Uint8Array,
   options: RasterizeOptions,
 ): Promise<RasterPage[]> {
-  const { format, scale, quality = 0.9, onProgress } = options;
+  const { format, scale, quality = 0.9, onProgress, onPage } = options;
   const renderCallback = makeBrowserRenderCallback(format, quality);
   return withPdfDocument(bytes, async (doc) => {
     const pageCount = doc.getPageCount();
@@ -105,12 +116,19 @@ export async function rasterizePdf(
         scale,
         render: renderCallback,
       });
-      out.push({
+      const page: RasterPage = {
         pageNumber: i + 1,
         bytes: rendered.data,
         width: rendered.width,
         height: rendered.height,
-      });
+      };
+      out.push(page);
+      // Fire onPage BEFORE onProgress so subscribers can mutate UI
+      // state ("here's the thumbnail you can show now") and the
+      // progress bar updates in the same paint frame.
+      if (onPage) {
+        await onPage(page);
+      }
       onProgress?.(i + 1, pageCount);
       // Yield to the event loop so the spinner stays smooth on
       // multi-page docs. The ~0ms timeout is enough to flush

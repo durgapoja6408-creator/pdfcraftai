@@ -102,24 +102,38 @@ export function usePdfThumbnails(
       setRendering(true);
       setProgress({ done: 0, total: 0 });
 
+      // Live-streaming buffer. We push to state as each page lands so
+      // huge PDFs paint thumbnails progressively instead of staring
+      // at a spinner for 40 seconds. Final return value mirrors this
+      // buffer so consumers that await render() get the full array
+      // (Sort needs the .map((t,i) => ...sourceIndex) at the end).
+      const collected: PdfThumbnail[] = [];
+
       try {
         const { rasterizePdf } = await import("@/lib/pdf/ops/rasterize");
-        const rendered = await rasterizePdf(bytes, {
+        await rasterizePdf(bytes, {
           format: "jpeg",
           scale,
           quality,
           onProgress: (done, total) => setProgress({ done, total }),
+          onPage: (page) => {
+            const thumb: PdfThumbnail = {
+              pageNumber: page.pageNumber,
+              thumbnailUrl: URL.createObjectURL(
+                new Blob([page.bytes], { type: "image/jpeg" }),
+              ),
+              width: page.width,
+              height: page.height,
+            };
+            collected.push(thumb);
+            // Functional update so back-to-back onPage calls compose
+            // (otherwise stale closure on `thumbnails` would clobber).
+            // We pass a fresh array so React detects the change — the
+            // collected buffer is mutated in place by design.
+            setThumbnails([...collected]);
+          },
         });
-        const thumbs: PdfThumbnail[] = rendered.map((r) => ({
-          pageNumber: r.pageNumber,
-          thumbnailUrl: URL.createObjectURL(
-            new Blob([r.bytes], { type: "image/jpeg" }),
-          ),
-          width: r.width,
-          height: r.height,
-        }));
-        setThumbnails(thumbs);
-        return thumbs;
+        return collected;
       } catch (err) {
         const msg =
           err instanceof Error ? err.message : "Could not render thumbnails.";

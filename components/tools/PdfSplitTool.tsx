@@ -301,8 +301,11 @@ export function PdfSplitTool() {
             <I.Sparkle size={16} />
           </span>
           <div style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>
-            Rendering page previews
-            {progress.total > 0 ? ` · ${progress.done} / ${progress.total}` : "…"}
+            {progress.total > 0
+              ? thumbnails.length > 0
+                ? `Rendering page previews · ${progress.done} / ${progress.total} (showing as they finish)`
+                : `Rendering page previews · ${progress.done} / ${progress.total}`
+              : "Rendering page previews…"}
           </div>
         </div>
       )}
@@ -324,7 +327,11 @@ export function PdfSplitTool() {
         </div>
       )}
 
-      {stage === "ready" && thumbnails.length > 0 && !result && (
+      {/* Show the grid as soon as the first thumbnail arrives — even
+          while rendering is still in progress. The Apply button below
+          stays gated on stage === "ready" so users can't split
+          mid-stream (which would silently use a wrong segment count). */}
+      {thumbnails.length > 0 && !result && stage !== "applying" && (
         <>
           {/* UI mode toggle */}
           <div className="row" style={{ gap: 8, alignItems: "center" }}>

@@ -356,8 +356,11 @@ export function PageGridTool(props: PageGridToolProps) {
             <I.Sparkle size={16} />
           </span>
           <div style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>
-            Rendering page previews
-            {progress.total > 0 ? ` · ${progress.done} / ${progress.total}` : "…"}
+            {progress.total > 0
+              ? thumbnails.length > 0
+                ? `Rendering page previews · ${progress.done} / ${progress.total} (showing as they finish)`
+                : `Rendering page previews · ${progress.done} / ${progress.total}`
+              : "Rendering page previews…"}
           </div>
         </div>
       )}
@@ -379,7 +382,12 @@ export function PageGridTool(props: PageGridToolProps) {
         </div>
       )}
 
-      {stage === "ready" && thumbnails.length > 0 && !result && (
+      {/* Show the grid as soon as the FIRST thumbnail arrives — even
+          while rendering is still in progress. Live-streaming UX:
+          users see thumbnails appearing instead of staring at a
+          spinner for 40s on a 500-page PDF. The progress card above
+          stays mounted until rendering completes. */}
+      {thumbnails.length > 0 && !result && stage !== "applying" && (
         <>
           {/* Toolbar */}
           <div
