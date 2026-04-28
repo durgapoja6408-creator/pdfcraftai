@@ -18,6 +18,7 @@
 // state on every pointer-move event.
 
 import { useRef, useState } from "react";
+import { I } from "@/components/icons/Icons";
 import {
   PageEditorTool,
   type PageEditorEditorProps,
@@ -259,6 +260,89 @@ function FreeDrawConfigPanel({
           {state.width}px
         </span>
       </label>
+
+      {/*
+       * Per-stroke delete list. Strokes overlap on the canvas, so
+       * click-to-delete via canvas hit-testing would be ambiguous —
+       * a list panel sidesteps that. Each stroke shows its color
+       * swatch + width + point count + index, with an X button to
+       * remove just that one stroke. Same pattern as Add Hyperlinks'
+       * saved-links list. Hidden when there are no strokes (the
+       * helper text "Click and drag to draw freehand…" handles that
+       * empty state above).
+       */}
+      {realStrokes.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 500 }}>
+            Strokes ({realStrokes.length})
+          </div>
+          <ul
+            style={{
+              listStyle: "none",
+              margin: 0,
+              padding: 0,
+              maxHeight: 168,
+              overflowY: "auto",
+            }}
+          >
+            {state.strokes.map((s, i) => {
+              // Skip render entries for strokes filtered as "real" so
+              // index alignment with state.strokes is preserved when
+              // we splice on delete.
+              if (s.points.length < 2) return null;
+              return (
+                <li
+                  key={i}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "auto 1fr auto",
+                    gap: 10,
+                    padding: "6px 10px",
+                    background: "var(--bg-1)",
+                    borderRadius: 4,
+                    marginBottom: 4,
+                    fontSize: 12,
+                    alignItems: "center",
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: 4,
+                      background: s.color,
+                      border: "1px solid var(--border)",
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 500 }}>Stroke {i + 1}</div>
+                    <div className="subtle" style={{ fontSize: 11 }}>
+                      {s.points.length} points · {s.width}px
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-ghost"
+                    onClick={() =>
+                      setState((st) => ({
+                        ...st,
+                        strokes: st.strokes.filter((_, j) => j !== i),
+                      }))
+                    }
+                    disabled={busy}
+                    aria-label={`Remove stroke ${i + 1}`}
+                    title="Remove stroke"
+                  >
+                    <I.X size={12} />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
