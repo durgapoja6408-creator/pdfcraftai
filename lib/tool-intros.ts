@@ -127,6 +127,10 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
     text: "What you'll get: a PDF with your signature image placed at a clicked position on page 1 — adjustable size, lossless overlay. Visual signature only, not a cryptographic e-sign (see FAQ).",
     related: { id: "image-watermark", label: "Image Watermark" },
   },
+  "free-draw-pdf": {
+    text: "What you'll get: a PDF with freehand pen strokes drawn on page 1 — color and width pickers, multi-stroke support, undo / clear all. Lossless overlay via pdf-lib drawLine segments.",
+    related: { id: "highlight-pdf", label: "Highlight PDF" },
+  },
 
   // --------- Common utility free tools ---------
   "free-draw": {

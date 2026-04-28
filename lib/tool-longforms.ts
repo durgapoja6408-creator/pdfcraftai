@@ -1896,6 +1896,37 @@ export const TOOL_LONGFORMS: Record<string, ToolLongformData> = {
     cta: { title: "Want to extract links instead?", text: "Extract Links from PDF lists every hyperlink with page references and CSV/JSON export. Useful for inventorying URLs before stripping them.", linkHref: "/tool/pdf-links", linkLabel: "Try Extract Links" },
   },
 
+  "free-draw-pdf": {
+    useCasesTitle: "Why people draw freehand on PDFs",
+    useCasesIntro:
+      "Sometimes a comment, a circle around a typo, or a quick arrow says more than highlights or text boxes can. Freehand drawing is the closest digital equivalent to marking up a printout with a pen.",
+    useCases: [
+      { icon: "Pen", title: "Casual review markup", text: "Circle a typo, underline a passage, sketch an arrow to the reviewer&rsquo;s comment. Faster than rectangles and text boxes for ad-hoc notes." },
+      { icon: "Edit", title: "Hand-written annotations", text: "Add quick &lsquo;yes / no / maybe&rsquo; marks next to choices on a printable form." },
+      { icon: "Book", title: "Math + diagram notes", text: "Sketch a missing equation step or an arrow connecting two parts of a diagram during study or peer review." },
+      { icon: "Shield", title: "Quick redlines", text: "Strike through a sentence with a freehand line for a redline that takes one second instead of typing replacement text." },
+      { icon: "File", title: "Floor-plan / map markup", text: "Circle a feature on an architectural drawing or map without breaking out a CAD tool." },
+      { icon: "Receipt", title: "Initialing approvals", text: "Quick initials on a printable form when a full Sign PDF feels heavy." },
+    ],
+    howWorksTitle: "How Free Draw works",
+    howWorks: [
+      { step: "1", title: "Drop your PDF", text: "Up to 100 MB. PDFium renders page 1 at 1.5× as the editor canvas." },
+      { step: "2", title: "Pick color + width", text: "Four preset colors (black, blue, red, green) plus a custom-color picker. Width slider 1–20 px." },
+      { step: "3", title: "Draw with the pen tool", text: "Click and drag to draw a stroke. Lift to start a new one. Live preview as you draw. Undo removes the last stroke; Clear all wipes the canvas." },
+      { step: "4", title: "Apply &amp; download", text: "We convert each stroke from screen pixels to PDF user-space points, then drawLine through every consecutive pair via pdf-lib with rounded line caps. Lossless overlay — original page content untouched." },
+    ],
+    faqs: [
+      { q: "Why are my drawn lines a bit jagged?", a: "v1 connects stroke points with straight line segments — no spline smoothing. Short strokes look fine; long, fast strokes show the underlying polyline. Smoothing (quadratic-bezier curves through midpoints of consecutive segments) is a v2 enhancement." },
+      { q: "Can I draw on every page?", a: "v1 = page 1 only. Multi-page drawing needs page navigation in the editor — v2 enhancement once 2-3 visual editors validate the pattern." },
+      { q: "Will my drawing print?", a: "Yes. The strokes are part of the page content stream after applying. Acrobat, Apple Preview, and every printer we&rsquo;ve tested respect them correctly." },
+      { q: "Can I edit a stroke after drawing it?", a: "No — once it&rsquo;s on the canvas, you can only Undo (last stroke) or Clear all. Per-stroke editing (move, color change, delete) is a v2 enhancement." },
+      { q: "Does the tool support a stylus / Apple Pencil?", a: "Yes. We use the Pointer Events API which receives stylus input the same as mouse input. Pressure-sensitivity isn&rsquo;t implemented in v1 — every stroke uses the slider width uniformly." },
+      { q: "Why do I see a tiny dot when I just click?", a: "Stray clicks (less than 2 points) are dropped on pointer-up so they don&rsquo;t accumulate as invisible artifacts. If you need a dot, drag a tiny distance." },
+      { q: "Is anything uploaded?", a: "No. PDFium renders the preview locally; pdf-lib applies the strokes locally. Your PDF and your drawing both stay in your browser." },
+    ],
+    cta: { title: "Need straight rectangles instead?", text: "Highlight PDF gives you drag-to-draw colored rectangles. Better for highlighting passages than pen strokes.", linkHref: "/tool/highlight-pdf", linkLabel: "Try Highlight PDF" },
+  },
+
   "sign-pdf-free": {
     useCasesTitle: "Why people sign PDFs visually",
     useCasesIntro:
