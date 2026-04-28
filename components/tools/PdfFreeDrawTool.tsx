@@ -151,9 +151,12 @@ function FreeDrawConfigPanel({
   state,
   setState,
   busy,
+  pageRender,
 }: PageEditorConfigProps<FreeDrawState>) {
   const realStrokes = state.strokes.filter((s) => s.points.length >= 2);
   const totalPoints = realStrokes.reduce((sum, s) => sum + s.points.length, 0);
+  const currentPage = pageRender.pageIndex + 1;
+  const pageCount = pageRender.pageCount;
 
   const undo = () => {
     setState((s) => ({ ...s, strokes: s.strokes.slice(0, -1) }));
@@ -174,7 +177,9 @@ function FreeDrawConfigPanel({
         <div style={{ fontSize: 13 }}>
           {realStrokes.length === 0
             ? "Click and drag to draw freehand. Lift the pen to start a new stroke."
-            : `${realStrokes.length} stroke${realStrokes.length === 1 ? "" : "s"} · ${totalPoints} points`}
+            : pageCount > 1
+              ? `${realStrokes.length} stroke${realStrokes.length === 1 ? "" : "s"} · ${totalPoints} points on page ${currentPage}`
+              : `${realStrokes.length} stroke${realStrokes.length === 1 ? "" : "s"} · ${totalPoints} points`}
         </div>
         <div className="row" style={{ gap: 6 }}>
           <button

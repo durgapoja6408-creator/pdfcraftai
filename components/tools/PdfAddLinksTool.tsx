@@ -129,7 +129,10 @@ function LinksConfigPanel({
   state,
   setState,
   busy,
+  pageRender,
 }: PageEditorConfigProps<AddLinksState>) {
+  const currentPage = pageRender.pageIndex + 1;
+  const pageCount = pageRender.pageCount;
   const saveLink = () => {
     if (!state.pending) return;
     const { rect, url } = state.pending;
@@ -167,7 +170,9 @@ function LinksConfigPanel({
           ? "Drag a rectangle on the page to start. Then type a URL to link it to."
           : state.pending
             ? "Type the URL for the rectangle you just drew, then Save link."
-            : `${state.saved.length} link${state.saved.length === 1 ? "" : "s"} saved. Drag a saved rect to reposition, drag a corner handle to resize, or drag empty space to add another.`}
+            : pageCount > 1
+              ? `${state.saved.length} link${state.saved.length === 1 ? "" : "s"} saved on page ${currentPage}. Drag to reposition, drag a corner to resize, or drag empty space for another.`
+              : `${state.saved.length} link${state.saved.length === 1 ? "" : "s"} saved. Drag to reposition, drag a corner to resize, or drag empty space for another.`}
       </div>
 
       {state.pending && (
@@ -246,7 +251,9 @@ function LinksConfigPanel({
       {state.saved.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <div style={{ fontSize: 12, fontWeight: 500 }}>
-            Saved links ({state.saved.length})
+            {pageCount > 1
+              ? `Saved links on page ${currentPage} (${state.saved.length})`
+              : `Saved links (${state.saved.length})`}
           </div>
           <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
             {state.saved.map((s, i) => (
