@@ -125,6 +125,8 @@ export const TOOLS: readonly Tool[] = [
   // Tier 6 (2026-04-28): second visual editor on the new
   // <PageEditorTool> base. Click-to-place + text input + style.
   { id: "add-text-box", name: "Add Text to PDF", desc: "Click on the page to place a text box, type your label, pick font size + color. Stamps on every page at the same position.", icon: "Edit", free: true, cost: "free", group: "Edit" },
+  // Tier 6 (continued): third visual editor — drag-to-highlight.
+  { id: "highlight-pdf", name: "Highlight PDF", desc: "Drag to add yellow / green / pink / blue highlights on page 1. Multiple highlights per session, opacity adjustable, lossless overlay.", icon: "Edit", free: true, cost: "free", group: "Edit" },
 
   // ----- AI -----
   { id: "ai-chat", name: "Chat with PDF", desc: "Ask questions. Get answers cited to pages.", icon: "Chat", free: false, cost: "1 credit per question", group: "AI" },

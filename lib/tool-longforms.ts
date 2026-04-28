@@ -1896,6 +1896,36 @@ export const TOOL_LONGFORMS: Record<string, ToolLongformData> = {
     cta: { title: "Want to extract links instead?", text: "Extract Links from PDF lists every hyperlink with page references and CSV/JSON export. Useful for inventorying URLs before stripping them.", linkHref: "/tool/pdf-links", linkLabel: "Try Extract Links" },
   },
 
+  "highlight-pdf": {
+    useCasesTitle: "Why people highlight PDFs",
+    useCasesIntro:
+      "Highlighting calls attention to specific passages without modifying the underlying text. Translucent overlays let the original content show through — perfect for emphasizing key sentences in a contract, marking action items in meeting notes, or flagging passages during research.",
+    useCases: [
+      { icon: "Book", title: "Reading + study", text: "Mark key passages while reading research papers, textbooks, and reference docs. Save the highlighted version for later review." },
+      { icon: "Shield", title: "Contract review", text: "Highlight clauses that need negotiation or follow-up before sending the redlined version back to counterparty." },
+      { icon: "Edit", title: "Meeting notes", text: "Highlight action items and decisions in shared meeting minutes so reviewers spot them at a glance." },
+      { icon: "Receipt", title: "Invoice / statement review", text: "Mark line items in question on a vendor invoice or bank statement before raising a dispute." },
+      { icon: "File", title: "Editorial markup", text: "Highlight passages that need editing in a draft. Different colors = different concerns (factual vs. style vs. tone)." },
+      { icon: "Pages", title: "Reference flagging", text: "Highlight specific quotes or stats in a long source document to find them quickly later." },
+    ],
+    howWorksTitle: "How Highlight PDF works",
+    howWorks: [
+      { step: "1", title: "Drop your PDF", text: "Up to 100 MB. PDFium renders page 1 at 1.5× as the editor canvas." },
+      { step: "2", title: "Drag to add highlights", text: "Click and drag anywhere on the page to draw a translucent rectangle. Drag again to add more — multiple highlights supported. Use Clear All to start over." },
+      { step: "3", title: "Pick color + opacity", text: "Yellow (default), green, pink, or blue. Opacity 10–80% — lower = more readable underlying content." },
+      { step: "4", title: "Apply &amp; download", text: "We draw translucent rectangles on page 1 via pdf-lib drawRectangle. Lossless overlay — original content untouched." },
+    ],
+    faqs: [
+      { q: "Does this highlight every page or just page 1?", a: "v1 = page 1 only. Multi-page highlighting needs page navigation in the editor (e.g. prev/next buttons), which is a v2 enhancement once we have multiple visual editors validating the navigation pattern. For now, if you need to highlight page 5, run our Extract Pages tool first to isolate page 5, highlight it, then merge it back." },
+      { q: "Is this real text-aware highlighting or just rectangles?", a: "Just rectangles. True text-aware highlighting (where you click+drag along a sentence and the highlight follows the text bounds) requires PDFium text-position math we haven&rsquo;t shipped yet. Drag-rectangle covers most users&rsquo; needs — they want to draw over a region they care about, not select specific words." },
+      { q: "Can I delete an individual highlight without clearing all?", a: "Not in v1 — there&rsquo;s a Clear All button only. Per-highlight deletion (click on a highlight to remove it) is a v2 enhancement." },
+      { q: "Will the highlights survive in viewers other than yours?", a: "Yes. We draw using pdf-lib&rsquo;s standard rectangle primitive with opacity. Acrobat, Apple Preview, Chrome, Firefox, and every printer we&rsquo;ve tested respect it correctly." },
+      { q: "Is the highlight an annotation or a page-content overlay?", a: "Page-content overlay (drawn into the content stream). It&rsquo;s permanent and not editable as an annotation in viewers like Acrobat. If you need editable annotations, that&rsquo;s a different tool (PDF.js-backed annotation editor — future work)." },
+      { q: "Is anything uploaded?", a: "No. PDFium renders the preview locally; pdf-lib applies the rectangles locally." },
+    ],
+    cta: { title: "Need to redact instead?", text: "Redact PDF (coming soon) covers the &lsquo;black box over sensitive info&rsquo; case. Highlight is for emphasis; Redact is for hiding.", linkHref: "/tool/add-text-box", linkLabel: "Try Add Text to PDF" },
+  },
+
   "add-text-box": {
     useCasesTitle: "Why people add text to PDFs",
     useCasesIntro:
