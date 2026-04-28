@@ -8,6 +8,12 @@
 //
 // Coordinates arrive in PDF user-space points (y-up) — the runner
 // handles the image-pixel ↔ PDF-point conversion before calling here.
+//
+// 2026-04-28 (smoothing v2): each stroke&rsquo;s point list is run through
+// smoothStroke() before drawLine — quadratic-Bézier-through-midpoints
+// samples produce smooth curves instead of jagged polylines on long
+// or fast strokes. Subdivision factor of 6 samples per source-segment
+// is enough for visual smoothness without bloating output PDF size.
 
 import { PDFDocument, rgb, LineCapStyle } from "pdf-lib";
 
@@ -65,9 +71,12 @@ export async function freeDrawPdf(
     if (stroke.points.length < 2) continue;
     const color = parseHex(stroke.color ?? "#000000");
     const thickness = stroke.width ?? 2;
-    for (let i = 1; i < stroke.points.length; i++) {
-      const a = stroke.points[i - 1];
-      const b = stroke.points[i];
+    // Subdivide via Bézier-through-midpoints for smooth curves.
+    // Strokes with 2 points stay as a single line segment.
+    const smoothed = smoothStroke(stroke.points);
+    for (let i = 1; i < smoothed.length; i++) {
+      const a = smoothed[i - 1];
+      const b = smoothed[i];
       page.drawLine({
         start: { x: a.x, y: a.y },
         end: { x: b.x, y: b.y },
@@ -92,6 +101,54 @@ export async function freeDrawPdf(
     strokeCount,
     segmentCount,
   };
+}
+
+/**
+ * Smooth a stroke by sampling along quadratic Bézier curves whose
+ * control points are the original sample points and whose endpoints
+ * are midpoints of consecutive sample pairs. The first and last
+ * source points are kept as-is so strokes start and end at the user&rsquo;s
+ * actual click positions.
+ *
+ * Algorithm (the "smoothed polyline through midpoints" trick):
+ *   For input points P0, P1, P2, ..., P(n-1) where n >= 3:
+ *     - Output starts with P0
+ *     - For each i in [1, n-2]:
+ *         M_prev = (P_{i-1} + P_i) / 2
+ *         M_next = (P_i + P_{i+1}) / 2
+ *         Sample SUBDIV+1 points along the Bézier from M_prev to M_next
+ *         with control point P_i: B(t) = (1-t)²M_prev + 2(1-t)t·P_i + t²M_next
+ *     - Output ends with P(n-1)
+ *
+ * Each consecutive Bézier piece joins smoothly because they share
+ * midpoint endpoints. Net effect: the polyline looks continuous and
+ * curved, with no kinks at the original sample points.
+ */
+const SUBDIV = 6;
+function smoothStroke(points: StrokePoint[]): StrokePoint[] {
+  if (points.length < 3) return points.slice();
+  const out: StrokePoint[] = [points[0]];
+  for (let i = 1; i < points.length - 1; i++) {
+    const prev = points[i - 1];
+    const cur = points[i];
+    const next = points[i + 1];
+    const mPrev = { x: (prev.x + cur.x) / 2, y: (prev.y + cur.y) / 2 };
+    const mNext = { x: (cur.x + next.x) / 2, y: (cur.y + next.y) / 2 };
+    // Sample SUBDIV+1 points along the quadratic Bézier (skip t=0
+    // because it equals mPrev which we already added — except on the
+    // first iteration where we want to connect from P0 cleanly).
+    const startT = i === 1 ? 0 : 1 / SUBDIV;
+    for (let j = 0; j <= SUBDIV; j++) {
+      const t = j / SUBDIV;
+      if (t < startT - 1e-9) continue;
+      const omt = 1 - t;
+      const x = omt * omt * mPrev.x + 2 * omt * t * cur.x + t * t * mNext.x;
+      const y = omt * omt * mPrev.y + 2 * omt * t * cur.y + t * t * mNext.y;
+      out.push({ x, y });
+    }
+  }
+  out.push(points[points.length - 1]);
+  return out;
 }
 
 function parseHex(hex: string): ReturnType<typeof rgb> {

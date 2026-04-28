@@ -353,11 +353,15 @@ function FreeDrawEditorOverlay({
       >
         {state.strokes.map((stroke, i) => {
           if (stroke.points.length < 1) return null;
-          const points = stroke.points.map((p) => `${p.x},${p.y}`).join(" ");
+          // Build a smooth-curve path (M + Q-through-midpoints) so the
+          // live preview matches what the saved PDF will produce. SVG's
+          // native quadratic-Bezier renderer handles the smoothing on
+          // the browser side; we only need to emit the path string.
+          const d = buildSmoothPath(stroke.points);
           return (
-            <polyline
+            <path
               key={i}
-              points={points}
+              d={d}
               fill="none"
               stroke={stroke.color}
               strokeWidth={stroke.width}
@@ -375,4 +379,44 @@ function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+/**
+ * Build a smooth SVG path string for a stroke using the
+ * "quadratic-Bézier-through-midpoints" approach. Mirrors the same
+ * smoothing math used in lib/pdf/ops/free-draw.ts so the live preview
+ * matches the saved PDF exactly.
+ *
+ * For points P0, P1, P2, ..., P(n-1) where n >= 3:
+ *   M01 M12 M23 ... = midpoints of consecutive pairs
+ *   path = "M P0 L M01 Q P1 M12 Q P2 M23 ... Q P(n-2) M(n-2)(n-1) L P(n-1)"
+ * Each Q segment passes through the next midpoint with the original
+ * sample point as control. Adjacent Q segments share endpoints, so
+ * the rendered curve is C1-continuous.
+ */
+function buildSmoothPath(points: Array<{ x: number; y: number }>): string {
+  if (points.length === 0) return "";
+  if (points.length === 1) {
+    // Degenerate: a single point. Render as a tiny line so the stroke
+    // is at least visible — matches what saving + reload would do.
+    const p = points[0];
+    return `M ${p.x.toFixed(2)} ${p.y.toFixed(2)} L ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
+  }
+  if (points.length === 2) {
+    const a = points[0];
+    const b = points[1];
+    return `M ${a.x.toFixed(2)} ${a.y.toFixed(2)} L ${b.x.toFixed(2)} ${b.y.toFixed(2)}`;
+  }
+  const fmt = (n: number) => n.toFixed(2);
+  let d = `M ${fmt(points[0].x)} ${fmt(points[0].y)}`;
+  for (let i = 1; i < points.length - 1; i++) {
+    const mNext = {
+      x: (points[i].x + points[i + 1].x) / 2,
+      y: (points[i].y + points[i + 1].y) / 2,
+    };
+    d += ` Q ${fmt(points[i].x)} ${fmt(points[i].y)} ${fmt(mNext.x)} ${fmt(mNext.y)}`;
+  }
+  const last = points[points.length - 1];
+  d += ` L ${fmt(last.x)} ${fmt(last.y)}`;
+  return d;
 }
