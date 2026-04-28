@@ -74,13 +74,13 @@ export function PdfRedactTool() {
         const r = await redactPdf(bytes, {
           rects: rectsPt,
           color: state.color,
-          pageIndex: 0,
+          pageIndex: render.pageIndex,
         });
         const baseName = file.name.replace(/\.pdf$/i, "");
         const result: PageEditorResult = {
           outputBytes: r.bytes,
           outputFileName: `${baseName || "document"}-redacted.pdf`,
-          successHeadline: `Applied ${r.redactedRectCount} redaction${r.redactedRectCount === 1 ? "" : "s"} to page 1`,
+          successHeadline: `Applied ${r.redactedRectCount} redaction${r.redactedRectCount === 1 ? "" : "s"} to page ${render.pageIndex + 1}`,
           successDetail: `Output: ${formatSize(r.bytes.length)}. Visual cover only — see FAQ on full destruction.`,
         };
         return result;

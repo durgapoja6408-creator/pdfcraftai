@@ -88,13 +88,13 @@ export function PdfHighlightTool() {
           rects: rectsPt,
           color: state.color,
           opacity: state.opacity,
-          pageIndex: 0,
+          pageIndex: render.pageIndex,
         });
         const baseName = file.name.replace(/\.pdf$/i, "");
         const result: PageEditorResult = {
           outputBytes: r.bytes,
           outputFileName: `${baseName || "document"}-highlighted.pdf`,
-          successHeadline: `Added ${r.highlightedRectCount} highlight${r.highlightedRectCount === 1 ? "" : "s"} to page 1`,
+          successHeadline: `Added ${r.highlightedRectCount} highlight${r.highlightedRectCount === 1 ? "" : "s"} to page ${render.pageIndex + 1}`,
           successDetail: `Output: ${formatSize(r.bytes.length)} · ${r.pageCount} page${r.pageCount === 1 ? "" : "s"} total`,
         };
         return result;

@@ -35,7 +35,7 @@ import { useTrackToolView } from "./useToolTracking";
 import type { ToolGroup } from "@/lib/tools";
 
 export interface PageRender {
-  /** Object URL for the rendered first-page JPEG. */
+  /** Object URL for the rendered page JPEG. */
   url: string;
   /** Rendered image pixel width. */
   pxWidth: number;
@@ -47,6 +47,10 @@ export interface PageRender {
   ptHeight: number;
   /** The render-scale that was used (pixel = point × renderScale). */
   renderScale: number;
+  /** 0-based index of the currently rendered page. */
+  pageIndex: number;
+  /** Total page count of the source PDF. */
+  pageCount: number;
 }
 
 export interface PageEditorResult {
@@ -126,6 +130,40 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
     };
   }, [render]);
 
+  /**
+   * Render a single page of the loaded PDF as a JPEG and store it in
+   * the render state. Used both on initial file drop (page 0) and on
+   * page navigation.
+   *
+   * Renders ONLY the requested page — pdf-lib's rasterize-all
+   * approach would be wasteful here since the editor only ever shows
+   * one page. PDFium-on-demand is fast (50-200 ms per page on typical
+   * docs) so navigation feels instant.
+   */
+  const renderSinglePage = useCallback(
+    async (bytes: Uint8Array, pageIndex: number, pageCount: number) => {
+      const { renderPdfPage } = await import("@/lib/pdf/ops/rasterize-page");
+      const rendered = await renderPdfPage(bytes, {
+        pageIndex,
+        format: "jpeg",
+        scale: renderScale,
+        quality: 0.85,
+      });
+      const blob = new Blob([rendered.bytes], { type: "image/jpeg" });
+      return {
+        url: URL.createObjectURL(blob),
+        pxWidth: rendered.width,
+        pxHeight: rendered.height,
+        ptWidth: rendered.width / renderScale,
+        ptHeight: rendered.height / renderScale,
+        renderScale,
+        pageIndex,
+        pageCount,
+      } satisfies PageRender;
+    },
+    [renderScale],
+  );
+
   const onFiles = useCallback(
     async (files: File[]) => {
       setError(null);
@@ -147,24 +185,15 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
       try {
         const bytes = new Uint8Array(await f.arrayBuffer());
         setPdfBytes(bytes);
-        const { rasterizePdf } = await import("@/lib/pdf/ops/rasterize");
-        const rendered = await rasterizePdf(bytes, {
-          format: "jpeg",
-          scale: renderScale,
-          quality: 0.85,
-        });
-        const first = rendered[0];
-        if (!first) throw new Error("This PDF has no pages.");
-        const blob = new Blob([first.bytes], { type: "image/jpeg" });
-        const url = URL.createObjectURL(blob);
-        setRender({
-          url,
-          pxWidth: first.width,
-          pxHeight: first.height,
-          ptWidth: first.width / renderScale,
-          ptHeight: first.height / renderScale,
-          renderScale,
-        });
+        // Inspect for page count without rendering all pages — much
+        // faster than rasterizing every page on a multi-page doc.
+        const { withPdfDocument } = await import("@/lib/pdf/library");
+        const pageCount = await withPdfDocument(bytes, async (doc) =>
+          doc.getPageCount(),
+        );
+        if (pageCount === 0) throw new Error("This PDF has no pages.");
+        const newRender = await renderSinglePage(bytes, 0, pageCount);
+        setRender(newRender);
         setState(props.initialState);
         setStage("ready");
       } catch (err) {
@@ -174,7 +203,39 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
         tracker.error({ errorCode: `${props.errorCode}_render` });
       }
     },
-    [tracker, renderScale, props.errorCode, props.initialState],
+    [tracker, props.errorCode, props.initialState, renderSinglePage],
+  );
+
+  /**
+   * Navigate to a different page. Re-renders that page and resets
+   * editor state to initialState (so per-page edits don't leak across
+   * pages — most visual editors today are single-page in nature; v2
+   * could add per-page state persistence).
+   */
+  const goToPage = useCallback(
+    async (newIndex: number) => {
+      if (!pdfBytes || !render) return;
+      if (newIndex === render.pageIndex) return;
+      if (newIndex < 0 || newIndex >= render.pageCount) return;
+      setStage("rendering");
+      try {
+        const oldUrl = render.url;
+        const newRender = await renderSinglePage(
+          pdfBytes,
+          newIndex,
+          render.pageCount,
+        );
+        URL.revokeObjectURL(oldUrl);
+        setRender(newRender);
+        setState(props.initialState);
+        setStage("ready");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Could not render page.";
+        setError(msg);
+        setStage("ready");
+      }
+    },
+    [pdfBytes, render, renderSinglePage, props.initialState],
   );
 
   const reset = () => {
@@ -310,7 +371,9 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
             <I.Sparkle size={16} />
           </span>
           <div style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>
-            Rendering page 1…
+            {render
+              ? `Rendering page ${render.pageIndex + 1}…`
+              : "Rendering page 1…"}
           </div>
         </div>
       )}
@@ -334,6 +397,75 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
 
       {render && stage === "ready" && !result && (
         <>
+          {/* Page navigator — only shown for multi-page docs. Reset
+              state on navigate so per-page edits don't leak; users
+              with a multi-page workflow apply each page in turn. */}
+          {render.pageCount > 1 && (
+            <div
+              className="card"
+              style={{
+                padding: "10px 14px",
+                display: "flex",
+                gap: 12,
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 13,
+              }}
+            >
+              <button
+                type="button"
+                className="btn btn-sm btn-outline"
+                onClick={() => goToPage(render.pageIndex - 1)}
+                disabled={busy || render.pageIndex === 0}
+                aria-label="Previous page"
+              >
+                <I.ArrowLeft size={14} /> Prev
+              </button>
+              <span
+                style={{
+                  fontVariantNumeric: "tabular-nums",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <span className="subtle">Page</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={render.pageCount}
+                  value={render.pageIndex + 1}
+                  onChange={(e) => {
+                    const n = Number(e.target.value);
+                    if (Number.isFinite(n) && n >= 1 && n <= render.pageCount) {
+                      goToPage(n - 1);
+                    }
+                  }}
+                  disabled={busy}
+                  style={{
+                    width: 60,
+                    padding: "4px 8px",
+                    border: "1px solid var(--border)",
+                    borderRadius: 4,
+                    background: "var(--bg-1)",
+                    color: "var(--fg)",
+                    fontVariantNumeric: "tabular-nums",
+                    textAlign: "center",
+                  }}
+                />
+                <span className="subtle">of {render.pageCount}</span>
+              </span>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline"
+                onClick={() => goToPage(render.pageIndex + 1)}
+                disabled={busy || render.pageIndex >= render.pageCount - 1}
+                aria-label="Next page"
+              >
+                Next <I.ArrowRight size={14} />
+              </button>
+            </div>
+          )}
           {ConfigPanel && (
             <ConfigPanel state={state} setState={setState} busy={busy} />
           )}

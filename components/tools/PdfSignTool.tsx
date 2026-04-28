@@ -84,13 +84,13 @@ export function PdfSignTool() {
           x: xPt,
           y: yPt,
           width: widthPt,
-          pageIndex: 0,
+          pageIndex: render.pageIndex,
         });
         const baseName = file.name.replace(/\.pdf$/i, "");
         const result: PageEditorResult = {
           outputBytes: r.bytes,
           outputFileName: `${baseName || "document"}-signed.pdf`,
-          successHeadline: `Signature placed on page 1`,
+          successHeadline: `Signature placed on page ${render.pageIndex + 1}`,
           successDetail: `Output: ${formatSize(r.bytes.length)} · ${r.pageCount} page${r.pageCount === 1 ? "" : "s"} total`,
         };
         return result;

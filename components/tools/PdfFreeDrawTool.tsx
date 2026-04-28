@@ -89,12 +89,12 @@ export function PdfFreeDrawTool() {
           })),
         }));
         const { freeDrawPdf } = await import("@/lib/pdf/ops/free-draw");
-        const r = await freeDrawPdf(bytes, { strokes, pageIndex: 0 });
+        const r = await freeDrawPdf(bytes, { strokes, pageIndex: render.pageIndex });
         const baseName = file.name.replace(/\.pdf$/i, "");
         const result: PageEditorResult = {
           outputBytes: r.bytes,
           outputFileName: `${baseName || "document"}-drawing.pdf`,
-          successHeadline: `Drew ${r.strokeCount} stroke${r.strokeCount === 1 ? "" : "s"} on page 1`,
+          successHeadline: `Drew ${r.strokeCount} stroke${r.strokeCount === 1 ? "" : "s"} on page ${render.pageIndex + 1}`,
           successDetail: `${r.segmentCount} line segments · ${formatSize(r.bytes.length)}`,
         };
         return result;
