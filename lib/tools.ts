@@ -112,6 +112,8 @@ export const TOOLS: readonly Tool[] = [
   { id: "repair-pdf", name: "Repair PDF", desc: "Fix mildly malformed PDFs by reparsing through pdf-lib and re-saving. Recovers from dangling xref, stale trailer dicts, bad object streams.", icon: "Edit", free: true, cost: "free", group: "Edit" },
   { id: "strip-links", name: "Strip Hyperlinks", desc: "Remove every clickable hyperlink from a PDF. Print prep, compliance, and accidental-tap-proofing. Other annotations preserved.", icon: "Edit", free: true, cost: "free", group: "Edit" },
   { id: "flatten-pdf", name: "Flatten PDF Forms", desc: "Bake AcroForm field values into static page content. Recipients see filled values but can&apos;t edit them. Lossless for the page content.", icon: "Edit", free: true, cost: "free", group: "Edit" },
+  // Tier 4 (2026-04-28): first visual-editor tool.
+  { id: "crop-pdf", name: "Crop PDF", desc: "Drag a rectangle on page 1 to define a crop area, applied uniformly to every page. Lossless via /CropBox — no content is removed, just hidden.", icon: "Edit", free: true, cost: "free", group: "Edit" },
 
   // ----- AI -----
   { id: "ai-chat", name: "Chat with PDF", desc: "Ask questions. Get answers cited to pages.", icon: "Chat", free: false, cost: "1 credit per question", group: "AI" },

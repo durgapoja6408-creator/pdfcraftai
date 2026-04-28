@@ -44,6 +44,8 @@ import {
   PdfStripLinksTool,
   PdfFlattenTool,
 } from "@/components/tools/PdfSimpleOpsTool";
+// Tier 4 (2026-04-28): first visual editor — Crop PDF.
+import { PdfCropTool } from "@/components/tools/PdfCropTool";
 import {
   PdfInspectorLongform,
   PDF_INSPECTOR_FAQ,
@@ -455,6 +457,8 @@ export default function ToolRunnerPage({ params }: Params) {
     // Merge thumbnails — first-page preview per input PDF in the file
     // list. PDFium first-page render per file, async after add.
     "merge",
+    // Crop PDF — renders page 1 at 1.5× as the editor canvas.
+    "crop-pdf",
     // Tier 2 — Extract / Delete Pages render a thumbnail grid via
     // the shared PageGridTool. Both rely on the PDFium rasterizer
     // for the per-page previews before pdf-lib does the actual op.
@@ -976,6 +980,9 @@ function ToolRunner({ id }: { id: string }) {
       return <PdfStripLinksTool />;
     case "flatten-pdf":
       return <PdfFlattenTool />;
+    // Tier 4 — first visual editor.
+    case "crop-pdf":
+      return <PdfCropTool />;
     default:
       return null;
   }

@@ -1896,6 +1896,35 @@ export const TOOL_LONGFORMS: Record<string, ToolLongformData> = {
     cta: { title: "Want to extract links instead?", text: "Extract Links from PDF lists every hyperlink with page references and CSV/JSON export. Useful for inventorying URLs before stripping them.", linkHref: "/tool/pdf-links", linkLabel: "Try Extract Links" },
   },
 
+  "crop-pdf": {
+    useCasesTitle: "Why people crop PDFs",
+    useCasesIntro:
+      "Cropping removes the visual noise around the content that matters — scanner margins, header/footer junk, oversized print bleeds. Setting a /CropBox is non-destructive (the original page bounds survive in the file) but every viewer respects it.",
+    useCases: [
+      { icon: "Scan", title: "Scanner margins", text: "Office scanners leave thick white borders. Crop to the content area for tighter visual presentation." },
+      { icon: "Edit", title: "Print-prep trim", text: "Designers send PDFs with bleed marks for the printer. Cropping to the trim box gives the rendered preview." },
+      { icon: "Image", title: "Mobile reading", text: "Phone-screen reading benefits from tighter crops — same content, less zooming." },
+      { icon: "Pages", title: "Multi-up reflows", text: "Before laying two pages side-by-side on a sheet, crop each one to its content area so the reflow looks balanced." },
+      { icon: "Book", title: "E-reader transfers", text: "Sending PDFs to Kindle / Kobo? Cropping margins makes the text bigger on small screens without re-typesetting." },
+      { icon: "Shield", title: "Header / footer redaction", text: "If the only thing you need to hide is a header or footer, cropping it off is faster than redacting individual fields." },
+    ],
+    howWorksTitle: "How Crop PDF works",
+    howWorks: [
+      { step: "1", title: "Drop your PDF", text: "Up to 100 MB. PDFium renders page 1 at 1.5× — sharp enough to see the content area you want to keep." },
+      { step: "2", title: "Drag the crop area", text: "Click and drag anywhere on the page to draw the crop rectangle. The area outside dims; the area inside is your final output. Click &lsquo;Reset crop&rsquo; to start over." },
+      { step: "3", title: "Apply &amp; download", text: "We set /CropBox on every page to your rectangle (in PDF user-space coordinates). Lossless — the original /MediaBox is preserved, viewers just respect the crop." },
+    ],
+    faqs: [
+      { q: "Is this destructive?", a: "No. We set /CropBox, not /MediaBox. The original page boundary stays in the file — anyone with the PDF can use a tool like qpdf or Acrobat to recover the full page. If you need true destructive removal, that&rsquo;s a different operation (and harder to do losslessly)." },
+      { q: "Does the crop apply to every page?", a: "Yes — same rectangle on all pages. Per-page crop is a v2 extension; for now, if your pages have different content areas, crop each section separately and merge." },
+      { q: "What if a page is smaller than my crop?", a: "We clamp the crop to fit within each page&rsquo;s media box. Smaller pages just get cropped to their full size (effectively no crop) instead of failing the save." },
+      { q: "Will printing respect the crop?", a: "Yes. /CropBox is honored by every modern viewer and print driver. Acrobat, Apple Preview, Chrome, Firefox all show the cropped area." },
+      { q: "Why does the preview only show page 1?", a: "Cropping is uniform across pages, so showing page 1 is enough — the same rectangle applies everywhere. We don&rsquo;t render every page to keep the editor fast." },
+      { q: "Is anything uploaded?", a: "No. PDFium renders the preview locally; pdf-lib applies the crop locally. The PDF never leaves your browser." },
+    ],
+    cta: { title: "Want to inspect a PDF first?", text: "PDF Inspector tells you the dimensions of every page so you can pick a crop that fits all of them.", linkHref: "/tool/pdf-inspector", linkLabel: "Try PDF Inspector" },
+  },
+
   "flatten-pdf": {
     useCasesTitle: "Why people flatten PDF forms",
     useCasesIntro:

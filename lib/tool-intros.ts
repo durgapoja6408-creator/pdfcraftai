@@ -87,6 +87,10 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
     text: "What you'll get: a PDF with form field values baked into the page content — recipients see filled values but can't edit them. Lossless for the page content.",
     related: { id: "pdf-forms", label: "PDF Form Inspector" },
   },
+  "crop-pdf": {
+    text: "What you'll get: a PDF with every page cropped to the rectangle you draw on page 1 — visual drag-to-select, lossless via /CropBox (content stays in the file, viewers just show the smaller area).",
+    related: { id: "rotate", label: "Rotate PDF" },
+  },
 
   // --------- Common utility free tools ---------
   "free-draw": {
