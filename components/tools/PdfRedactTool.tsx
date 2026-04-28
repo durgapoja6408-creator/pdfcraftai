@@ -173,8 +173,8 @@ function RedactConfigPanel({
       >
         <div style={{ fontSize: 13 }}>
           {realRects.length === 0
-            ? "Drag a rectangle on the page to redact. Drag a placed redaction to reposition it."
-            : `${realRects.length} redaction${realRects.length === 1 ? "" : "s"} on page ${currentPage} · drag to reposition`}
+            ? "Drag a rectangle on the page to redact. Drag a placed redaction to reposition, drag a corner to resize."
+            : `${realRects.length} redaction${realRects.length === 1 ? "" : "s"} on page ${currentPage} · drag to reposition, corners to resize`}
         </div>
         <button
           type="button"
@@ -235,6 +235,18 @@ function RedactEditorOverlay({
   } | null>(null);
   const [movingIndex, setMovingIndex] = useState<number | null>(null);
 
+  // 2026-04-28 (#187): corner-resize handles, mirroring Add
+  // Hyperlinks #181 + Highlight #187.
+  type ResizeCorner = "nw" | "ne" | "sw" | "se";
+  const resizingRef = useRef<{
+    index: number;
+    corner: ResizeCorner;
+    originX: number;
+    originY: number;
+    origRect: PixelRect;
+  } | null>(null);
+  const [resizingIndex, setResizingIndex] = useState<number | null>(null);
+
   const pointerToPx = (e: React.PointerEvent): { x: number; y: number } => {
     if (!overlayRef.current) return { x: 0, y: 0 };
     const rect = overlayRef.current.getBoundingClientRect();
@@ -257,6 +269,10 @@ function RedactEditorOverlay({
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
+    if (resizingRef.current) {
+      applyResize(e);
+      return;
+    }
     if (movingRef.current) {
       applyMove(e);
       return;
@@ -276,6 +292,16 @@ function RedactEditorOverlay({
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
+    if (resizingRef.current) {
+      resizingRef.current = null;
+      setResizingIndex(null);
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {
+        // ignore
+      }
+      return;
+    }
     if (movingRef.current) {
       movingRef.current = null;
       setMovingIndex(null);
@@ -348,6 +374,103 @@ function RedactEditorOverlay({
     if (!movingRef.current) return;
     movingRef.current = null;
     setMovingIndex(null);
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+  };
+
+  // Resize math, mirrors Highlight #187 + Add Hyperlinks #181.
+  const applyResize = (e: React.PointerEvent) => {
+    if (!resizingRef.current) return;
+    const { x: px, y: py } = pointerToPx(e);
+    const { index, corner, originX, originY, origRect } = resizingRef.current;
+    const dx = px - originX;
+    const dy = py - originY;
+    let newX = origRect.x;
+    let newY = origRect.y;
+    let newW = origRect.w;
+    let newH = origRect.h;
+    if (corner === "nw" || corner === "sw") {
+      newX = origRect.x + dx;
+      newW = origRect.w - dx;
+    }
+    if (corner === "ne" || corner === "se") {
+      newW = origRect.w + dx;
+    }
+    if (corner === "nw" || corner === "ne") {
+      newY = origRect.y + dy;
+      newH = origRect.h - dy;
+    }
+    if (corner === "sw" || corner === "se") {
+      newH = origRect.h + dy;
+    }
+    const MIN = 8;
+    if (newW < MIN) {
+      if (corner === "nw" || corner === "sw") {
+        newX = origRect.x + origRect.w - MIN;
+      }
+      newW = MIN;
+    }
+    if (newH < MIN) {
+      if (corner === "nw" || corner === "ne") {
+        newY = origRect.y + origRect.h - MIN;
+      }
+      newH = MIN;
+    }
+    if (newX < 0) {
+      newW += newX;
+      newX = 0;
+    }
+    if (newY < 0) {
+      newH += newY;
+      newY = 0;
+    }
+    if (newX + newW > pageRender.pxWidth) {
+      newW = pageRender.pxWidth - newX;
+    }
+    if (newY + newH > pageRender.pxHeight) {
+      newH = pageRender.pxHeight - newY;
+    }
+    setState((s) => {
+      if (index < 0 || index >= s.rects.length) return s;
+      const next = [...s.rects];
+      next[index] = { x: newX, y: newY, w: newW, h: newH };
+      return { ...s, rects: next };
+    });
+  };
+
+  const onResizeHandlePointerDown = (
+    e: React.PointerEvent,
+    index: number,
+    corner: ResizeCorner,
+  ) => {
+    if (busy) return;
+    e.stopPropagation();
+    const { x, y } = pointerToPx(e);
+    const target = state.rects[index];
+    if (!target) return;
+    resizingRef.current = {
+      index,
+      corner,
+      originX: x,
+      originY: y,
+      origRect: { ...target },
+    };
+    setResizingIndex(index);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onResizeHandlePointerMove = (e: React.PointerEvent) => {
+    if (!resizingRef.current) return;
+    applyResize(e);
+  };
+
+  const onResizeHandlePointerUp = (e: React.PointerEvent) => {
+    if (!resizingRef.current) return;
+    resizingRef.current = null;
+    setResizingIndex(null);
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
     } catch {
@@ -503,6 +626,57 @@ function RedactEditorOverlay({
                 </span>
               </button>
             )}
+            {/* 2026-04-28 (#187): corner-resize handles. Indicator
+                is a white square with dark border — high contrast
+                against any redaction color (black, white, gray). */}
+            {isMovable && !isMoving &&
+              (
+                [
+                  { corner: "nw" as ResizeCorner, style: { top: -12, left: -12 }, cursor: "nwse-resize" },
+                  { corner: "ne" as ResizeCorner, style: { top: -12, right: -12 }, cursor: "nesw-resize" },
+                  { corner: "sw" as ResizeCorner, style: { bottom: -12, left: -12 }, cursor: "nesw-resize" },
+                  { corner: "se" as ResizeCorner, style: { bottom: -12, right: -12 }, cursor: "nwse-resize" },
+                ] as const
+              ).map(({ corner, style, cursor }) => (
+                <button
+                  key={corner}
+                  type="button"
+                  onPointerDown={(e) =>
+                    onResizeHandlePointerDown(e, i, corner)
+                  }
+                  onPointerMove={onResizeHandlePointerMove}
+                  onPointerUp={onResizeHandlePointerUp}
+                  onPointerCancel={onResizeHandlePointerUp}
+                  aria-label={`Resize ${corner.toUpperCase()} corner`}
+                  style={{
+                    position: "absolute",
+                    ...style,
+                    width: 24,
+                    height: 24,
+                    padding: 0,
+                    background: "transparent",
+                    border: "none",
+                    cursor,
+                    pointerEvents: "auto",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    touchAction: "none",
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: 2,
+                      background: "#fff",
+                      border: "2px solid rgba(0, 0, 0, 0.7)",
+                      boxShadow: "0 1px 2px rgba(0, 0, 0, 0.45)",
+                    }}
+                  />
+                </button>
+              ))}
           </div>
         );
       })}
