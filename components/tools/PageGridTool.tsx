@@ -24,19 +24,15 @@
 // label, accessibility wiring). One base + thin wrappers means a
 // single source of truth for the page-selection UX.
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
+import { usePdfThumbnails, type PdfThumbnail } from "./usePdfThumbnails";
 import type { ToolGroup } from "@/lib/tools";
 
-interface PageThumb {
-  pageNumber: number;
-  thumbnailUrl: string;
-  width: number;
-  height: number;
-}
+type PageThumb = PdfThumbnail;
 
 export interface PageGridApplyResult {
   /** Serialized output PDF bytes. */
@@ -107,20 +103,15 @@ export function PageGridTool(props: PageGridToolProps) {
   const tracker = useTrackToolView(props.toolId, props.toolGroup);
   const [file, setFile] = useState<File | null>(null);
   const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
-  const [thumbnails, setThumbnails] = useState<PageThumb[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [stage, setStage] = useState<Stage>("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<PageGridApplyResult | null>(null);
-  const [progress, setProgress] = useState<{ done: number; total: number }>({
-    done: 0,
-    total: 0,
-  });
-
-  // Revoke object URLs on unmount/reset to avoid blob-URL leaks.
-  useEffect(() => {
-    return () => thumbnails.forEach((t) => URL.revokeObjectURL(t.thumbnailUrl));
-  }, [thumbnails]);
+  // Hook owns thumbnail array, blob-URL lifecycle, and progress
+  // state. Three near-identical 25-line blocks across PageGridTool /
+  // SortPages / Split collapsed into one render() call here.
+  const { thumbnails, progress, render: renderThumbnails, reset: resetThumbnails } =
+    usePdfThumbnails();
 
   const onFiles = useCallback(
     async (files: File[]) => {
@@ -143,25 +134,7 @@ export function PageGridTool(props: PageGridToolProps) {
       try {
         const bytes = new Uint8Array(await f.arrayBuffer());
         setPdfBytes(bytes);
-
-        const { rasterizePdf } = await import("@/lib/pdf/ops/rasterize");
-        const rendered = await rasterizePdf(bytes, {
-          format: "jpeg",
-          scale: 0.5,
-          quality: 0.7,
-          onProgress: (done, total) => setProgress({ done, total }),
-        });
-
-        const thumbs: PageThumb[] = rendered.map((r) => {
-          const blob = new Blob([r.bytes], { type: "image/jpeg" });
-          return {
-            pageNumber: r.pageNumber,
-            thumbnailUrl: URL.createObjectURL(blob),
-            width: r.width,
-            height: r.height,
-          };
-        });
-        setThumbnails(thumbs);
+        await renderThumbnails(bytes);
         setSelected(new Set());
         setStage("ready");
       } catch (err) {
@@ -173,19 +146,17 @@ export function PageGridTool(props: PageGridToolProps) {
         tracker.error({ errorCode: "thumbnail_failed" });
       }
     },
-    [props.toolId, tracker],
+    [props.toolId, tracker, renderThumbnails],
   );
 
   const reset = () => {
-    thumbnails.forEach((t) => URL.revokeObjectURL(t.thumbnailUrl));
-    setThumbnails([]);
+    resetThumbnails();
     setFile(null);
     setPdfBytes(null);
     setSelected(new Set());
     setError(null);
     setResult(null);
     setStage("idle");
-    setProgress({ done: 0, total: 0 });
   };
 
   const togglePage = (idx: number) => {

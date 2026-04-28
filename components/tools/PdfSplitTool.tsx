@@ -22,19 +22,16 @@
 //   know exactly what they want and don't need thumbnails — and huge
 //   PDFs (>200 pages) render slowly enough that text-mode is faster.
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
+import { usePdfThumbnails, type PdfThumbnail } from "./usePdfThumbnails";
 import type { SplitMode, SplitOutput } from "@/lib/pdf/ops/split";
 
-interface PageThumb {
-  pageNumber: number;
-  thumbnailUrl: string;
-  width: number;
-  height: number;
-}
+// Split's thumbnail shape matches the hook's exactly — no enrichment.
+type PageThumb = PdfThumbnail;
 
 interface SplitResultState {
   outputs: SplitOutput[];
@@ -49,14 +46,12 @@ export function PdfSplitTool() {
   const tracker = useTrackToolView("split", "Organize");
   const [file, setFile] = useState<File | null>(null);
   const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
-  const [thumbnails, setThumbnails] = useState<PageThumb[]>([]);
   const [stage, setStage] = useState<Stage>("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SplitResultState | null>(null);
-  const [progress, setProgress] = useState<{ done: number; total: number }>({
-    done: 0,
-    total: 0,
-  });
+  // Hook owns thumbnails, blob-URL lifecycle, and progress state.
+  const { thumbnails, progress, render: renderThumbnails, reset: resetThumbnails } =
+    usePdfThumbnails();
 
   // UI state
   const [uiMode, setUiMode] = useState<UIMode>("visual");
@@ -69,11 +64,6 @@ export function PdfSplitTool() {
   const [advMode, setAdvMode] = useState<SplitMode>("every");
   const [advRanges, setAdvRanges] = useState<string>("1-5, 6-10");
   const [advChunkSize, setAdvChunkSize] = useState<number>(2);
-
-  // Revoke object URLs on unmount/reset to avoid blob-URL leaks.
-  useEffect(() => {
-    return () => thumbnails.forEach((t) => URL.revokeObjectURL(t.thumbnailUrl));
-  }, [thumbnails]);
 
   const onFiles = useCallback(
     async (files: File[]) => {
@@ -97,25 +87,7 @@ export function PdfSplitTool() {
       try {
         const bytes = new Uint8Array(await f.arrayBuffer());
         setPdfBytes(bytes);
-
-        const { rasterizePdf } = await import("@/lib/pdf/ops/rasterize");
-        const rendered = await rasterizePdf(bytes, {
-          format: "jpeg",
-          scale: 0.5,
-          quality: 0.7,
-          onProgress: (done, total) => setProgress({ done, total }),
-        });
-
-        const thumbs: PageThumb[] = rendered.map((r) => {
-          const blob = new Blob([r.bytes], { type: "image/jpeg" });
-          return {
-            pageNumber: r.pageNumber,
-            thumbnailUrl: URL.createObjectURL(blob),
-            width: r.width,
-            height: r.height,
-          };
-        });
-        setThumbnails(thumbs);
+        await renderThumbnails(bytes);
         setSplits(new Set());
         setStage("ready");
       } catch (err) {
@@ -127,19 +99,17 @@ export function PdfSplitTool() {
         tracker.error({ errorCode: "thumbnail_failed" });
       }
     },
-    [tracker],
+    [tracker, renderThumbnails],
   );
 
   const reset = () => {
-    thumbnails.forEach((t) => URL.revokeObjectURL(t.thumbnailUrl));
-    setThumbnails([]);
+    resetThumbnails();
     setFile(null);
     setPdfBytes(null);
     setError(null);
     setResult(null);
     setStage("idle");
     setSplits(new Set());
-    setProgress({ done: 0, total: 0 });
   };
 
   const toggleSplit = (idxAfter: number) => {

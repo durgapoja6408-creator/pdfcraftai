@@ -17,20 +17,18 @@
 // 3 page before chapter 2"). The position in the grid is the new
 // position in the output.
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
+import { usePdfThumbnails, type PdfThumbnail } from "./usePdfThumbnails";
 
-interface PageThumb {
-  /** 1-based ORIGINAL page number from the source PDF — fixed, never reassigned. */
-  pageNumber: number;
-  /** 0-based ORIGINAL page index from the source PDF — used by the reorder op. */
+// Sort enriches the base PdfThumbnail with sourceIndex (the position
+// in the SOURCE PDF — used by the reorder op to map "output position
+// i" → "source page index N").
+interface PageThumb extends PdfThumbnail {
   sourceIndex: number;
-  thumbnailUrl: string;
-  width: number;
-  height: number;
 }
 
 interface SortResultState {
@@ -54,15 +52,11 @@ export function PdfSortPagesTool() {
   const [stage, setStage] = useState<Stage>("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SortResultState | null>(null);
-  const [progress, setProgress] = useState<{ done: number; total: number }>({
-    done: 0,
-    total: 0,
-  });
   const [dragIndex, setDragIndex] = useState<number | null>(null);
-
-  useEffect(() => {
-    return () => pages.forEach((p) => URL.revokeObjectURL(p.thumbnailUrl));
-  }, [pages]);
+  // Hook owns rasterize import, blob → URL lifecycle, progress state.
+  // Sort layers sourceIndex on top of hook's thumbnails.
+  const { progress, render: renderThumbnails, reset: resetThumbnails } =
+    usePdfThumbnails();
 
   const onFiles = useCallback(
     async (files: File[]) => {
@@ -85,25 +79,13 @@ export function PdfSortPagesTool() {
       try {
         const bytes = new Uint8Array(await f.arrayBuffer());
         setPdfBytes(bytes);
-
-        const { rasterizePdf } = await import("@/lib/pdf/ops/rasterize");
-        const rendered = await rasterizePdf(bytes, {
-          format: "jpeg",
-          scale: 0.5,
-          quality: 0.7,
-          onProgress: (done, total) => setProgress({ done, total }),
-        });
-
-        const thumbs: PageThumb[] = rendered.map((r, i) => {
-          const blob = new Blob([r.bytes], { type: "image/jpeg" });
-          return {
-            pageNumber: r.pageNumber,
-            sourceIndex: i,
-            thumbnailUrl: URL.createObjectURL(blob),
-            width: r.width,
-            height: r.height,
-          };
-        });
+        const rendered = await renderThumbnails(bytes);
+        // Enrich with sourceIndex — Sort's op needs to know which
+        // SOURCE page lands at each OUTPUT position after reorder.
+        const thumbs: PageThumb[] = rendered.map((t, i) => ({
+          ...t,
+          sourceIndex: i,
+        }));
         setPages(thumbs);
         setOriginalOrder(thumbs);
         setStage("ready");
@@ -116,11 +98,14 @@ export function PdfSortPagesTool() {
         tracker.error({ errorCode: "thumbnail_failed" });
       }
     },
-    [tracker],
+    [tracker, renderThumbnails],
   );
 
   const reset = () => {
-    pages.forEach((p) => URL.revokeObjectURL(p.thumbnailUrl));
+    // resetThumbnails revokes blob URLs; Sort's pages/originalOrder
+    // arrays still hold those (now-dead) URL strings until we clear
+    // them here, but nothing references them across the gap.
+    resetThumbnails();
     setPages([]);
     setOriginalOrder([]);
     setFile(null);
@@ -129,7 +114,6 @@ export function PdfSortPagesTool() {
     setResult(null);
     setStage("idle");
     setDragIndex(null);
-    setProgress({ done: 0, total: 0 });
   };
 
   const moveTo = (from: number, to: number) => {
