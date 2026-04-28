@@ -30,6 +30,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import { usePdfThumbnails, type PdfThumbnail } from "./usePdfThumbnails";
+import { useVirtualGrid } from "./useVirtualGrid";
 import type { ToolGroup } from "@/lib/tools";
 
 type PageThumb = PdfThumbnail;
@@ -291,6 +292,27 @@ export function PageGridTool(props: PageGridToolProps) {
     ? props.maxSelected(thumbnails.length)
     : thumbnails.length;
 
+  // Virtualization for huge thumbnail grids (500+ page PDFs).
+  // Hook returns virtualized=false for small grids, in which case
+  // we just render `.map()` over all thumbnails. For variable-aspect
+  // pages we use the FIRST thumbnail's aspect ratio for the row-
+  // height envelope — pixel-perfect for single-orientation docs
+  // (the common case) and graceful for mixed-orientation (landscape
+  // pages center-align in their tile).
+  const firstAspect =
+    thumbnails.length > 0 && thumbnails[0].width > 0
+      ? thumbnails[0].height / thumbnails[0].width
+      : 1.41; // A4 portrait fallback
+  const virtual = useVirtualGrid({
+    itemCount: thumbnails.length,
+    minColWidth: 140,
+    gap: 14,
+    itemAspectRatio: firstAspect,
+    // Tile chrome: 8px top padding + thumb + 6px gap + ~17px footer
+    // chip + 8px bottom padding + 2px borders.
+    itemFooterHeight: 41,
+  });
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {!file ? (
@@ -476,15 +498,47 @@ export function PageGridTool(props: PageGridToolProps) {
             </div>
           </div>
 
-          {/* Thumbnail grid */}
+          {/* Thumbnail grid — virtualized for huge PDFs (>= 80 pages).
+              Below the threshold the hook returns virtualized=false
+              and we just render every tile. Above it, only items in
+              the visible row range + overscan are rendered, and the
+              outer wrapper holds totalHeight so scroll geometry
+              matches a fully-rendered grid. */}
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-              gap: 14,
-            }}
+            ref={virtual.containerRef}
+            style={
+              virtual.virtualized
+                ? { position: "relative", height: virtual.totalHeight }
+                : {
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+                    gap: 14,
+                  }
+            }
           >
-            {thumbnails.map((p, idx) => {
+            <div
+              style={
+                virtual.virtualized
+                  ? {
+                      position: "absolute",
+                      top: virtual.offsetTop,
+                      left: 0,
+                      right: 0,
+                      display: "grid",
+                      gridTemplateColumns:
+                        "repeat(auto-fill, minmax(140px, 1fr))",
+                      gap: 14,
+                    }
+                  : { display: "contents" }
+              }
+            >
+            {(virtual.virtualized
+              ? thumbnails.slice(virtual.startIndex, virtual.endIndex)
+              : thumbnails
+            ).map((p, sliceIdx) => {
+              const idx = virtual.virtualized
+                ? virtual.startIndex + sliceIdx
+                : sliceIdx;
               const isSelected = selected.has(idx);
               return (
                 <button
@@ -580,6 +634,7 @@ export function PageGridTool(props: PageGridToolProps) {
                 </button>
               );
             })}
+            </div>
           </div>
         </>
       )}
