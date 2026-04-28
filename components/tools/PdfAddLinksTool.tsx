@@ -167,7 +167,7 @@ function LinksConfigPanel({
           ? "Drag a rectangle on the page to start. Then type a URL to link it to."
           : state.pending
             ? "Type the URL for the rectangle you just drew, then Save link."
-            : `${state.saved.length} link${state.saved.length === 1 ? "" : "s"} saved. Drag a saved rect to reposition it, or drag empty space to add another.`}
+            : `${state.saved.length} link${state.saved.length === 1 ? "" : "s"} saved. Drag a saved rect to reposition, drag a corner handle to resize, or drag empty space to add another.`}
       </div>
 
       {state.pending && (
@@ -337,6 +337,22 @@ function LinksEditorOverlay({
   } | null>(null);
   const [movingIndex, setMovingIndex] = useState<number | null>(null);
 
+  // Resize state for saved rects (#181). Same ref-vs-state split as
+  // moving — ref drives the per-pointermove math, useState only for
+  // visual amplification (active-handle highlight). Snapshots the
+  // ORIGINAL rect at pointerdown so we can do absolute math from the
+  // pointer's current position relative to the original origin,
+  // avoiding accumulation drift.
+  type ResizeCorner = "nw" | "ne" | "sw" | "se";
+  const resizingRef = useRef<{
+    index: number;
+    corner: ResizeCorner;
+    originX: number;
+    originY: number;
+    origRect: PixelRect;
+  } | null>(null);
+  const [resizingIndex, setResizingIndex] = useState<number | null>(null);
+
   const onPointerDown = (e: React.PointerEvent) => {
     if (busy) return;
     // If there&rsquo;s already a pending link, drawing replaces it (user
@@ -351,6 +367,11 @@ function LinksEditorOverlay({
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
+    // Resize takes priority over both move and draw.
+    if (resizingRef.current) {
+      applyResize(e);
+      return;
+    }
     // Saved-rect move takes priority — when movingRef is active, we
     // skip the drawing-new-rect path entirely. (movingRef gets set
     // by the saved-rect's own onPointerDown, which stopPropagations,
@@ -393,6 +414,16 @@ function LinksEditorOverlay({
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
+    if (resizingRef.current) {
+      resizingRef.current = null;
+      setResizingIndex(null);
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {
+        // ignore
+      }
+      return;
+    }
     if (movingRef.current) {
       movingRef.current = null;
       setMovingIndex(null);
@@ -479,6 +510,125 @@ function LinksEditorOverlay({
     }
   };
 
+  // Resize math, shared between resize-handle pointermove and the
+  // overlay's onPointerMove fallback path. Pulled into its own fn
+  // because the body is non-trivial — corner-aware delta math + min
+  // size clamp + page-bounds clamp.
+  const applyResize = (e: React.PointerEvent) => {
+    if (!resizingRef.current) return;
+    const { x: px, y: py } = pointerToPx(e);
+    const { index, corner, originX, originY, origRect } = resizingRef.current;
+    const dx = px - originX;
+    const dy = py - originY;
+    let newX = origRect.x;
+    let newY = origRect.y;
+    let newW = origRect.w;
+    let newH = origRect.h;
+    // Western corners (NW, SW): dragging right shrinks width AND
+    // moves the rect right; dragging left grows width AND moves the
+    // rect left. (the rect's right edge stays anchored.)
+    if (corner === "nw" || corner === "sw") {
+      newX = origRect.x + dx;
+      newW = origRect.w - dx;
+    }
+    // Eastern corners (NE, SE): width grows/shrinks from the right;
+    // x stays anchored.
+    if (corner === "ne" || corner === "se") {
+      newW = origRect.w + dx;
+    }
+    // Northern corners (NW, NE): bottom edge stays anchored, top
+    // edge moves with pointer.
+    if (corner === "nw" || corner === "ne") {
+      newY = origRect.y + dy;
+      newH = origRect.h - dy;
+    }
+    // Southern corners (SW, SE): top stays anchored, bottom moves.
+    if (corner === "sw" || corner === "se") {
+      newH = origRect.h + dy;
+    }
+    // Min-size clamp (8×8 to match the drag-to-add discard
+    // threshold). When clamping a western/northern corner, also
+    // anchor the opposite edge so the rect doesn't drift sideways
+    // when shrunk past minimum.
+    const MIN = 8;
+    if (newW < MIN) {
+      if (corner === "nw" || corner === "sw") {
+        newX = origRect.x + origRect.w - MIN;
+      }
+      newW = MIN;
+    }
+    if (newH < MIN) {
+      if (corner === "nw" || corner === "ne") {
+        newY = origRect.y + origRect.h - MIN;
+      }
+      newH = MIN;
+    }
+    // Page-bounds clamp.
+    if (newX < 0) {
+      newW += newX;
+      newX = 0;
+    }
+    if (newY < 0) {
+      newH += newY;
+      newY = 0;
+    }
+    if (newX + newW > pageRender.pxWidth) {
+      newW = pageRender.pxWidth - newX;
+    }
+    if (newY + newH > pageRender.pxHeight) {
+      newH = pageRender.pxHeight - newY;
+    }
+    setState((s) => {
+      if (index < 0 || index >= s.saved.length) return s;
+      const next = [...s.saved];
+      next[index] = {
+        ...next[index],
+        rect: { x: newX, y: newY, w: newW, h: newH },
+      };
+      return { ...s, saved: next };
+    });
+  };
+
+  // Resize handle pointer-down. Snapshot the original rect so all
+  // subsequent move math is absolute (delta from origin) rather than
+  // incremental — incremental would drift due to clamping.
+  const onResizeHandlePointerDown = (
+    e: React.PointerEvent,
+    index: number,
+    corner: ResizeCorner,
+  ) => {
+    if (busy) return;
+    e.stopPropagation();
+    const { x, y } = pointerToPx(e);
+    const target = state.saved[index];
+    if (!target) return;
+    resizingRef.current = {
+      index,
+      corner,
+      originX: x,
+      originY: y,
+      origRect: { ...target.rect },
+    };
+    setResizingIndex(index);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onResizeHandlePointerMove = (e: React.PointerEvent) => {
+    if (!resizingRef.current) return;
+    applyResize(e);
+  };
+
+  const onResizeHandlePointerUp = (e: React.PointerEvent) => {
+    if (!resizingRef.current) return;
+    resizingRef.current = null;
+    setResizingIndex(null);
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+  };
+
   return (
     <div
       ref={overlayRef}
@@ -524,42 +674,67 @@ function LinksEditorOverlay({
         const width = (s.rect.w / pageRender.pxWidth) * 100;
         const height = (s.rect.h / pageRender.pxHeight) * 100;
         const isMoving = movingIndex === i;
+        const isResizing = resizingIndex === i;
+        const isActive = isMoving || isResizing;
+        // 4 corners with their CSS positioning offsets and resize cursors.
+        // top: -12 / left: -12 etc. centers the 24×24 hit area on the
+        // rect corner; the visible 10×10 indicator inside the handle
+        // is centered on the same point. NW+SE share nwse-resize
+        // cursor (diagonal one way), NE+SW share nesw-resize.
+        const corners: Array<{
+          corner: ResizeCorner;
+          style: React.CSSProperties;
+          cursor: string;
+        }> = [
+          { corner: "nw", style: { top: -12, left: -12 }, cursor: "nwse-resize" },
+          { corner: "ne", style: { top: -12, right: -12 }, cursor: "nesw-resize" },
+          { corner: "sw", style: { bottom: -12, left: -12 }, cursor: "nesw-resize" },
+          { corner: "se", style: { bottom: -12, right: -12 }, cursor: "nwse-resize" },
+        ];
         return (
           <div
             key={i}
             // 2026-04-28 (#180): saved rects are draggable. pointerEvents:
             // auto + onPointerDown wires up the move; the overlay's parent
             // pointerdown is stopPropagation'd so it doesn't kick off a
-            // new draw on top of the rect. Cursor reads "move" on hover,
-            // "grabbing" while dragging — standard drag affordance.
-            // The X delete chip retains its own stopPropagation so X
-            // clicks still delete instead of starting a move.
+            // new draw on top of the rect.
+            // 2026-04-28 (#181): rects are also resizable via 4 corner
+            // handles rendered inside this div. Removed overflow:hidden
+            // so the handles (which extend 12px outside the rect) stay
+            // visible at any rect position. The URL chip retains its
+            // own overflow:hidden + textOverflow:ellipsis so long URLs
+            // still truncate cleanly.
             onPointerDown={(e) => onSavedRectPointerDown(e, i)}
             onPointerMove={onSavedRectPointerMove}
             onPointerUp={onSavedRectPointerUp}
             onPointerCancel={onSavedRectPointerUp}
             role="button"
             tabIndex={busy ? -1 : 0}
-            aria-label={`Hyperlink to ${s.url} — drag to reposition`}
+            aria-label={`Hyperlink to ${s.url} — drag to reposition, drag corner handles to resize`}
             style={{
               position: "absolute",
               left: `${left}%`,
               top: `${top}%`,
               width: `${width}%`,
               height: `${height}%`,
-              background: isMoving
+              background: isActive
                 ? "rgba(29, 78, 216, 0.34)"
                 : "rgba(29, 78, 216, 0.22)",
               border: "2px solid rgb(29, 78, 216)",
-              boxShadow: isMoving
+              boxShadow: isActive
                 ? "0 4px 12px rgba(29, 78, 216, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.4)"
                 : "inset 0 0 0 1px rgba(255, 255, 255, 0.4)",
               pointerEvents: busy ? "none" : "auto",
-              overflow: "hidden",
-              cursor: busy ? "default" : isMoving ? "grabbing" : "move",
+              cursor: busy
+                ? "default"
+                : isMoving
+                  ? "grabbing"
+                  : isResizing
+                    ? "default"
+                    : "move",
               touchAction: "none",
               userSelect: "none",
-              transition: isMoving ? "none" : "box-shadow 0.15s ease",
+              transition: isActive ? "none" : "box-shadow 0.15s ease",
             }}
           >
             <span
@@ -583,6 +758,53 @@ function LinksEditorOverlay({
             >
               {s.url}
             </span>
+            {/* Corner resize handles. Rendered AFTER the URL chip so
+                they stack on top in the small case where the chip
+                covers the corner area. Each handle is a 24×24 hit
+                area with a 10×10 visible indicator centered on the
+                corner — touch-friendly and visible without being
+                visually heavy. */}
+            {!busy &&
+              corners.map(({ corner, style, cursor }) => (
+                <button
+                  key={corner}
+                  type="button"
+                  onPointerDown={(e) =>
+                    onResizeHandlePointerDown(e, i, corner)
+                  }
+                  onPointerMove={onResizeHandlePointerMove}
+                  onPointerUp={onResizeHandlePointerUp}
+                  onPointerCancel={onResizeHandlePointerUp}
+                  aria-label={`Resize ${corner.toUpperCase()} corner`}
+                  style={{
+                    position: "absolute",
+                    ...style,
+                    width: 24,
+                    height: 24,
+                    padding: 0,
+                    background: "transparent",
+                    border: "none",
+                    cursor,
+                    pointerEvents: "auto",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    touchAction: "none",
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: 2,
+                      background: "#fff",
+                      border: "2px solid rgb(29, 78, 216)",
+                      boxShadow: "0 1px 2px rgba(0, 0, 0, 0.25)",
+                    }}
+                  />
+                </button>
+              ))}
           </div>
         );
       })}
