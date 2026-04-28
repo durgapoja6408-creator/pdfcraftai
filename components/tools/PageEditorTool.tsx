@@ -76,7 +76,27 @@ export interface PageEditorConfigProps<TState> {
   busy: boolean;
 }
 
-export interface PageEditorToolProps<TState> {
+/**
+ * Snapshot of the page-render dimensions captured at edit time —
+ * needed by multi-page apply callbacks because rect coords are stored
+ * in image-pixel space against the page's pxHeight + renderScale, and
+ * those differ per page on PDFs with mixed orientations / sizes.
+ */
+export interface PageDims {
+  pxWidth: number;
+  pxHeight: number;
+  ptWidth: number;
+  ptHeight: number;
+  renderScale: number;
+}
+
+export interface PageEditEntry<TState> {
+  pageIndex: number;
+  state: TState;
+  dims: PageDims;
+}
+
+interface PageEditorBaseProps<TState> {
   toolId: string;
   toolGroup: ToolGroup;
   dropPrompt: string;
@@ -85,31 +105,82 @@ export interface PageEditorToolProps<TState> {
   renderScale?: number;
   /** Spinner label during apply. */
   busyLabel: string;
-  /** Apply button label — string OR fn(state, render) → string. */
-  applyLabel: string | ((state: TState, render: PageRender) => string);
   /** Repeat-use CTA after success. */
   successCta: string;
   /** Tracker error code on failure. */
   errorCode: string;
   /** Initial editor state. */
   initialState: TState;
-  /**
-   * If set, the Apply button is disabled and shows the returned label
-   * instead. Returning null = enabled.
-   */
+  /** Optional config panel between file card and page editor. */
+  configPanel?: React.FC<PageEditorConfigProps<TState>>;
+  /** Interactive overlay component. */
+  editor: React.FC<PageEditorEditorProps<TState>>;
+}
+
+interface SinglePageProps<TState> extends PageEditorBaseProps<TState> {
+  /** Single-page mode: apply receives the current page's state only. */
+  multiPage?: false;
+  applyLabel: string | ((state: TState, render: PageRender) => string);
   disabledReason?: (state: TState, render: PageRender) => string | null;
-  /** The actual op. */
   apply: (
     bytes: Uint8Array,
     file: File,
     state: TState,
     render: PageRender,
   ) => Promise<PageEditorResult>;
-  /** Optional config panel between file card and page editor. */
-  configPanel?: React.FC<PageEditorConfigProps<TState>>;
-  /** Interactive overlay component. */
-  editor: React.FC<PageEditorEditorProps<TState>>;
 }
+
+interface MultiPageProps<TState> extends PageEditorBaseProps<TState> {
+  /**
+   * Multi-page mode: state is persisted per page. Apply receives every
+   * page that has non-default state. Consumers iterate, calling their
+   * op once per page (chaining bytes through). The page navigator UI
+   * surfaces "N pages edited" so users know other pages still have
+   * pending work.
+   */
+  multiPage: true;
+  /**
+   * Predicate to detect "this page has real edits" — used to decide
+   * which pages roll into the Map passed to apply, and to drive the
+   * "N pages edited" counter. Default: `state !== initialState` by
+   * reference. Most consumers want a deeper check (rect-array length
+   * etc.).
+   */
+  hasEdits?: (state: TState) => boolean;
+  /**
+   * Clear the per-page CONTENT fields (rects, strokes, click position)
+   * while preserving the GLOBAL CONFIG fields (color, opacity, image,
+   * pen width, scale). Called when navigating to a page that has no
+   * stashed entry yet — without this hook we'd reset to initialState
+   * and the user's color picker / opacity slider / signature image
+   * would silently revert on every navigation, which is hostile UX.
+   *
+   * Examples:
+   *   Highlight:  (s) => ({ ...s, rects: [] })
+   *   Sign:       (s) => ({ ...s, posPx: null })
+   *   Free Draw:  (s) => ({ ...s, strokes: [] })
+   *
+   * Default: returns initialState (back-compat, but will reset config).
+   */
+  resetPageContent?: (state: TState) => TState;
+  applyLabel:
+    | string
+    | ((entries: PageEditEntry<TState>[], current: PageRender) => string);
+  disabledReason?: (
+    entries: PageEditEntry<TState>[],
+    current: PageRender,
+  ) => string | null;
+  apply: (
+    bytes: Uint8Array,
+    file: File,
+    entries: PageEditEntry<TState>[],
+    current: PageRender,
+  ) => Promise<PageEditorResult>;
+}
+
+export type PageEditorToolProps<TState> =
+  | SinglePageProps<TState>
+  | MultiPageProps<TState>;
 
 type Stage = "idle" | "rendering" | "ready" | "applying";
 
@@ -123,6 +194,20 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<PageEditorResult | null>(null);
   const [state, setState] = useState<TState>(props.initialState);
+  /**
+   * Multi-page mode only: per-page state map. Keyed by 0-based
+   * pageIndex. When the user navigates away from a page, we snapshot
+   * the current state into this map (alongside the dims used to
+   * produce it, since pxHeight / renderScale can differ across pages
+   * on mixed-orientation docs). On navigate-back, we restore from
+   * this map.
+   *
+   * Persisted across the whole session (file load → apply). Cleared
+   * on reset or new file.
+   */
+  const [pageStates, setPageStates] = useState<Map<number, PageEditEntry<TState>>>(
+    () => new Map(),
+  );
 
   useEffect(() => {
     return () => {
@@ -195,6 +280,7 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
         const newRender = await renderSinglePage(bytes, 0, pageCount);
         setRender(newRender);
         setState(props.initialState);
+        setPageStates(new Map());
         setStage("ready");
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Could not parse PDF.";
@@ -207,10 +293,17 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
   );
 
   /**
-   * Navigate to a different page. Re-renders that page and resets
-   * editor state to initialState (so per-page edits don't leak across
-   * pages — most visual editors today are single-page in nature; v2
-   * could add per-page state persistence).
+   * Navigate to a different page.
+   *
+   * Multi-page mode: snapshot the OUTGOING page's state into pageStates
+   * (if it has real edits), then restore the INCOMING page's state from
+   * pageStates (or initialState if untouched). This is the "state
+   * persistence across pages" promise — a user can highlight on page 1,
+   * jump to page 4, highlight there too, then click Apply once and have
+   * both runs land in a single output.
+   *
+   * Single-page mode (multiPage=false): just reset to initialState. No
+   * map mutation. Crop / Add Text Box behavior unchanged.
    */
   const goToPage = useCallback(
     async (newIndex: number) => {
@@ -220,6 +313,31 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
       setStage("rendering");
       try {
         const oldUrl = render.url;
+        // Snapshot current page's state into the map BEFORE re-rendering.
+        if (props.multiPage) {
+          const hasEdits = props.hasEdits ?? ((s: TState) => s !== props.initialState);
+          setPageStates((prev) => {
+            const next = new Map(prev);
+            if (hasEdits(state)) {
+              next.set(render.pageIndex, {
+                pageIndex: render.pageIndex,
+                state,
+                dims: {
+                  pxWidth: render.pxWidth,
+                  pxHeight: render.pxHeight,
+                  ptWidth: render.ptWidth,
+                  ptHeight: render.ptHeight,
+                  renderScale: render.renderScale,
+                },
+              });
+            } else {
+              // No edits → drop any prior entry for this page so the
+              // map doesn't lie about edit count.
+              next.delete(render.pageIndex);
+            }
+            return next;
+          });
+        }
         const newRender = await renderSinglePage(
           pdfBytes,
           newIndex,
@@ -227,7 +345,21 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
         );
         URL.revokeObjectURL(oldUrl);
         setRender(newRender);
-        setState(props.initialState);
+        // Restore the destination page's state from the map (if any),
+        // otherwise carry global config forward but clear content via
+        // resetPageContent (preserves color/opacity/image/etc).
+        if (props.multiPage) {
+          const restored = pageStates.get(newIndex);
+          if (restored) {
+            setState(restored.state);
+          } else if (props.resetPageContent) {
+            setState(props.resetPageContent(state));
+          } else {
+            setState(props.initialState);
+          }
+        } else {
+          setState(props.initialState);
+        }
         setStage("ready");
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Could not render page.";
@@ -235,7 +367,7 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
         setStage("ready");
       }
     },
-    [pdfBytes, render, renderSinglePage, props.initialState],
+    [pdfBytes, render, renderSinglePage, props, state, pageStates],
   );
 
   const reset = () => {
@@ -247,6 +379,39 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
     setResult(null);
     setStage("idle");
     setState(props.initialState);
+    setPageStates(new Map());
+  };
+
+  /**
+   * Build the full list of edited pages for multi-page apply, merging
+   * the current page's in-flight state (if it has real edits) on top
+   * of the snapshot map. The current page's snapshot in pageStates may
+   * be stale — the user has been editing since the last navigation —
+   * so we always prefer the live state for the current pageIndex.
+   */
+  const buildMultiPageEntries = (): PageEditEntry<TState>[] => {
+    if (!props.multiPage || !render) return [];
+    const hasEdits = props.hasEdits ?? ((s: TState) => s !== props.initialState);
+    const entries: PageEditEntry<TState>[] = [];
+    for (const [pageIndex, entry] of pageStates) {
+      if (pageIndex === render.pageIndex) continue; // current page handled below
+      if (hasEdits(entry.state)) entries.push(entry);
+    }
+    if (hasEdits(state)) {
+      entries.push({
+        pageIndex: render.pageIndex,
+        state,
+        dims: {
+          pxWidth: render.pxWidth,
+          pxHeight: render.pxHeight,
+          ptWidth: render.ptWidth,
+          ptHeight: render.ptHeight,
+          renderScale: render.renderScale,
+        },
+      });
+    }
+    entries.sort((a, b) => a.pageIndex - b.pageIndex);
+    return entries;
   };
 
   const apply = async () => {
@@ -255,12 +420,20 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
     setStage("applying");
     const t0 = performance.now();
     try {
-      const r = await props.apply(pdfBytes, file, state, render);
+      let r: PageEditorResult;
+      if (props.multiPage) {
+        const entries = buildMultiPageEntries();
+        r = await props.apply(pdfBytes, file, entries, render);
+      } else {
+        r = await props.apply(pdfBytes, file, state, render);
+      }
       setResult(r);
       setStage("ready");
       tracker.success({
         creditCost: 0,
-        pageCount: 1,
+        pageCount: props.multiPage
+          ? Math.max(1, buildMultiPageEntries().length)
+          : 1,
         processingMs: Math.round(performance.now() - t0),
       });
     } catch (err) {
@@ -292,16 +465,47 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
     s.length <= max ? s : `${s.slice(0, max - 1)}…`;
 
   const busy = stage === "rendering" || stage === "applying";
-  const disabledLabel = render
-    ? props.disabledReason?.(state, render) ?? null
-    : null;
-  const applyButtonLabel =
-    busy
-      ? props.busyLabel
-      : disabledLabel ??
-        (typeof props.applyLabel === "function" && render
-          ? props.applyLabel(state, render)
-          : (props.applyLabel as string));
+  // Disabled-reason and applyLabel branch by mode. In multi-page mode
+  // both callbacks see the FULL picture (every page with edits), not
+  // just the current page — that's what unlocks "Apply 5 highlights
+  // across 3 pages" labels.
+  let disabledLabel: string | null = null;
+  let applyButtonLabel: string;
+  if (busy) {
+    applyButtonLabel = props.busyLabel;
+  } else if (render && props.multiPage) {
+    const entries = buildMultiPageEntries();
+    disabledLabel = props.disabledReason?.(entries, render) ?? null;
+    applyButtonLabel =
+      disabledLabel ??
+      (typeof props.applyLabel === "function"
+        ? props.applyLabel(entries, render)
+        : (props.applyLabel as string));
+  } else if (render && !props.multiPage) {
+    disabledLabel = props.disabledReason?.(state, render) ?? null;
+    applyButtonLabel =
+      disabledLabel ??
+      (typeof props.applyLabel === "function"
+        ? props.applyLabel(state, render)
+        : (props.applyLabel as string));
+  } else {
+    applyButtonLabel =
+      typeof props.applyLabel === "string" ? props.applyLabel : "Apply";
+  }
+
+  // Count of OTHER pages (excluding current) that have stashed edits —
+  // shown next to the page navigator so the user knows their work on
+  // page 2 didn't evaporate when they jumped to page 5.
+  const otherEditedPageCount = (() => {
+    if (!props.multiPage || !render) return 0;
+    const hasEdits = props.hasEdits ?? ((s: TState) => s !== props.initialState);
+    let n = 0;
+    for (const [pageIndex, entry] of pageStates) {
+      if (pageIndex === render.pageIndex) continue;
+      if (hasEdits(entry.state)) n++;
+    }
+    return n;
+  })();
 
   const ConfigPanel = props.configPanel;
   const EditorOverlay = props.editor;
@@ -397,9 +601,10 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
 
       {render && stage === "ready" && !result && (
         <>
-          {/* Page navigator — only shown for multi-page docs. Reset
-              state on navigate so per-page edits don't leak; users
-              with a multi-page workflow apply each page in turn. */}
+          {/* Page navigator — only shown for multi-page docs. In
+              multiPage mode, edits on the outgoing page are stashed
+              into pageStates, so jumping around doesn't lose work
+              (the "N other pages edited" pill makes that visible). */}
           {render.pageCount > 1 && (
             <div
               className="card"
@@ -410,6 +615,7 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
                 alignItems: "center",
                 justifyContent: "center",
                 fontSize: 13,
+                flexWrap: "wrap",
               }}
             >
               <button
@@ -464,6 +670,28 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
               >
                 Next <I.ArrowRight size={14} />
               </button>
+              {props.multiPage && otherEditedPageCount > 0 && (
+                <span
+                  aria-live="polite"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "3px 10px",
+                    borderRadius: 999,
+                    background: "rgba(59, 130, 246, 0.12)",
+                    border: "1px solid rgba(59, 130, 246, 0.35)",
+                    color: "var(--accent, #3b82f6)",
+                    fontSize: 12,
+                    fontWeight: 500,
+                  }}
+                  title="Edits on other pages will be applied when you click Apply"
+                >
+                  <I.Edit size={11} />
+                  {otherEditedPageCount} other{" "}
+                  {otherEditedPageCount === 1 ? "page" : "pages"} edited
+                </span>
+              )}
             </div>
           )}
           {ConfigPanel && (

@@ -7,6 +7,10 @@
 // points, rendered live as SVG polylines, applied via pdf-lib drawLine
 // segments.
 //
+// 2026-04-28 (Task #171): now multi-page. Iterate entries, chain bytes
+// through freeDrawPdf op once per page. Color and width persist across
+// page navigation (only strokes get cleared by resetPageContent).
+//
 // State shape: array of complete strokes (each is a list of points
 // in image-pixel coords plus color/width). The current in-progress
 // stroke lives in component-local useState since it's transient and
@@ -53,6 +57,9 @@ const COLOR_SWATCHES: Array<{ value: string; label: string }> = [
   { value: "#16a34a", label: "Green" },
 ];
 
+const realStrokes = (strokes: PixelStroke[]) =>
+  strokes.filter((s) => s.points.length >= 2);
+
 export function PdfFreeDrawTool() {
   return (
     <PageEditorTool<FreeDrawState>
@@ -63,39 +70,73 @@ export function PdfFreeDrawTool() {
       successCta="Draw on another PDF"
       errorCode="free_draw_failed"
       initialState={INITIAL_STATE}
-      disabledReason={(state) => {
-        const real = state.strokes.filter((s) => s.points.length >= 2);
-        if (real.length === 0) return "Draw at least one stroke";
+      multiPage={true}
+      hasEdits={(s) => realStrokes(s.strokes).length > 0}
+      // Keep pen color and width across pages — only clear the strokes.
+      resetPageContent={(s) => ({ ...s, strokes: [] })}
+      disabledReason={(entries) => {
+        const total = entries.reduce(
+          (n, e) => n + realStrokes(e.state.strokes).length,
+          0,
+        );
+        if (total === 0) return "Draw at least one stroke";
         return null;
       }}
-      applyLabel={(state) => {
-        const real = state.strokes.filter((s) => s.points.length >= 2);
-        return `Save ${real.length} stroke${real.length === 1 ? "" : "s"}`;
+      applyLabel={(entries) => {
+        const total = entries.reduce(
+          (n, e) => n + realStrokes(e.state.strokes).length,
+          0,
+        );
+        const pages = entries.length;
+        if (pages <= 1) {
+          return `Save ${total} stroke${total === 1 ? "" : "s"}`;
+        }
+        return `Save ${total} stroke${total === 1 ? "" : "s"} on ${pages} pages`;
       }}
-      apply={async (bytes, file, state, render) => {
-        const real = state.strokes.filter((s) => s.points.length >= 2);
-        if (real.length === 0) {
+      apply={async (bytes, file, entries) => {
+        if (entries.length === 0) {
           throw new Error("No valid strokes to apply.");
         }
-        // Convert each point from image-pixel coords (top-left origin,
-        // y-down) to PDF user-space points (bottom-left origin, y-up).
-        // Stroke width also converts via render scale.
-        const strokes = real.map((s) => ({
-          color: s.color,
-          width: s.width / render.renderScale,
-          points: s.points.map((p) => ({
-            x: p.x / render.renderScale,
-            y: (render.pxHeight - p.y) / render.renderScale,
-          })),
-        }));
         const { freeDrawPdf } = await import("@/lib/pdf/ops/free-draw");
-        const r = await freeDrawPdf(bytes, { strokes, pageIndex: render.pageIndex });
+        let currentBytes = bytes;
+        let totalStrokes = 0;
+        let totalSegments = 0;
+        let totalPages = 0;
+        const editedPageNumbers: number[] = [];
+        for (const entry of entries) {
+          const real = realStrokes(entry.state.strokes);
+          if (real.length === 0) continue;
+          // Convert each point from image-pixel coords (top-left origin,
+          // y-down) to PDF user-space points (bottom-left origin, y-up).
+          // Stroke width also converts via render scale.
+          const strokes = real.map((s) => ({
+            color: s.color,
+            width: s.width / entry.dims.renderScale,
+            points: s.points.map((p) => ({
+              x: p.x / entry.dims.renderScale,
+              y: (entry.dims.pxHeight - p.y) / entry.dims.renderScale,
+            })),
+          }));
+          const r = await freeDrawPdf(currentBytes, {
+            strokes,
+            pageIndex: entry.pageIndex,
+          });
+          currentBytes = r.bytes;
+          totalStrokes += r.strokeCount;
+          totalSegments += r.segmentCount;
+          totalPages += 1;
+          editedPageNumbers.push(entry.pageIndex + 1);
+        }
         const baseName = file.name.replace(/\.pdf$/i, "");
+        const headline =
+          totalPages === 1
+            ? `Drew ${totalStrokes} stroke${totalStrokes === 1 ? "" : "s"} on page ${editedPageNumbers[0]}`
+            : `Drew ${totalStrokes} stroke${totalStrokes === 1 ? "" : "s"} across ${totalPages} pages`;
         const result: PageEditorResult = {
-          outputBytes: r.bytes,
+          outputBytes: currentBytes,
           outputFileName: `${baseName || "document"}-drawing.pdf`,
-          successHeadline: `Drew ${r.strokeCount} stroke${r.strokeCount === 1 ? "" : "s"} on page ${render.pageIndex + 1}`,
-          successDetail: `${r.segmentCount} line segments · ${formatSize(r.bytes.length)}`,
+          successHeadline: headline,
+          successDetail: `${totalSegments} line segments · ${formatSize(currentBytes.length)}`,
         };
         return result;
       }}

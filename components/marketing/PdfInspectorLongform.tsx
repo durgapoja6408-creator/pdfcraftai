@@ -18,6 +18,7 @@
 // lib/seo-pages.ts for tools without a custom component.
 
 import Link from "next/link";
+import { TOOL_STATS } from "@/lib/tools";
 import { I } from "@/components/icons/Icons";
 
 const FAQ: Array<{ q: string; a: string }> = [
@@ -418,8 +419,8 @@ export function PdfInspectorLongform() {
             Need more than a page count?
           </h3>
           <p className="muted" style={{ fontSize: 14, marginTop: 8, marginBottom: 16 }}>
-            PDF Inspector is one of {">"}50 tools on pdfcraft ai. Most are
-            free, all are private.
+            PDF Inspector is one of {TOOL_STATS.total} tools on pdfcraft ai.
+            Most are free, all are private.
           </p>
           <Link href="/tools" className="btn btn-outline">
             Browse all tools <I.ArrowRight size={14} />

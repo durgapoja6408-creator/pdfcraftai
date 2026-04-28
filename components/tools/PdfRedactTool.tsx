@@ -7,6 +7,9 @@
 // multiple redactions per session. Same shape as Highlight but with
 // solid color (no opacity slider) and an upfront honest-scope warning
 // about what this can and can't do.
+//
+// 2026-04-28 (Task #171): now multi-page. Iterate entries, chain bytes
+// through redactPdf op once per page.
 
 import { useState, useRef } from "react";
 import {
@@ -39,6 +42,9 @@ const COLOR_SWATCHES: Array<{ value: string; label: string }> = [
   { value: "#808080", label: "Gray" },
 ];
 
+const realRects = (rects: PixelRect[]) =>
+  rects.filter((r) => r.w >= 8 && r.h >= 8);
+
 export function PdfRedactTool() {
   return (
     <PageEditorTool<RedactState>
@@ -49,39 +55,67 @@ export function PdfRedactTool() {
       successCta="Redact another PDF"
       errorCode="redact_failed"
       initialState={INITIAL_STATE}
-      disabledReason={(state) => {
-        const real = state.rects.filter((r) => r.w >= 8 && r.h >= 8);
-        if (real.length === 0) return "Drag to add a redaction box";
+      multiPage={true}
+      hasEdits={(s) => realRects(s.rects).length > 0}
+      resetPageContent={(s) => ({ ...s, rects: [] })}
+      disabledReason={(entries) => {
+        const total = entries.reduce(
+          (n, e) => n + realRects(e.state.rects).length,
+          0,
+        );
+        if (total === 0) return "Drag to add a redaction box";
         return null;
       }}
-      applyLabel={(state) => {
-        const real = state.rects.filter((r) => r.w >= 8 && r.h >= 8);
-        return `Apply ${real.length} redaction${real.length === 1 ? "" : "s"}`;
+      applyLabel={(entries) => {
+        const total = entries.reduce(
+          (n, e) => n + realRects(e.state.rects).length,
+          0,
+        );
+        const pages = entries.length;
+        if (pages <= 1) {
+          return `Apply ${total} redaction${total === 1 ? "" : "s"}`;
+        }
+        return `Apply ${total} redaction${total === 1 ? "" : "s"} on ${pages} pages`;
       }}
-      apply={async (bytes, file, state, render) => {
-        const real = state.rects.filter((r) => r.w >= 8 && r.h >= 8);
-        if (real.length === 0) {
+      apply={async (bytes, file, entries) => {
+        if (entries.length === 0) {
           throw new Error("No valid redaction rectangles to apply.");
         }
-        const pxToPt = (px: number) => px / render.renderScale;
-        const rectsPt = real.map((r) => ({
-          x: pxToPt(r.x),
-          y: pxToPt(render.pxHeight - r.y - r.h),
-          width: pxToPt(r.w),
-          height: pxToPt(r.h),
-        }));
         const { redactPdf } = await import("@/lib/pdf/ops/redact");
-        const r = await redactPdf(bytes, {
-          rects: rectsPt,
-          color: state.color,
-          pageIndex: render.pageIndex,
-        });
+        let currentBytes = bytes;
+        let totalRects = 0;
+        let totalPages = 0;
+        const editedPageNumbers: number[] = [];
+        for (const entry of entries) {
+          const real = realRects(entry.state.rects);
+          if (real.length === 0) continue;
+          const pxToPt = (px: number) => px / entry.dims.renderScale;
+          const rectsPt = real.map((r) => ({
+            x: pxToPt(r.x),
+            y: pxToPt(entry.dims.pxHeight - r.y - r.h),
+            width: pxToPt(r.w),
+            height: pxToPt(r.h),
+          }));
+          const r = await redactPdf(currentBytes, {
+            rects: rectsPt,
+            color: entry.state.color,
+            pageIndex: entry.pageIndex,
+          });
+          currentBytes = r.bytes;
+          totalRects += r.redactedRectCount;
+          totalPages += 1;
+          editedPageNumbers.push(entry.pageIndex + 1);
+        }
         const baseName = file.name.replace(/\.pdf$/i, "");
+        const headline =
+          totalPages === 1
+            ? `Applied ${totalRects} redaction${totalRects === 1 ? "" : "s"} to page ${editedPageNumbers[0]}`
+            : `Applied ${totalRects} redaction${totalRects === 1 ? "" : "s"} across ${totalPages} pages`;
         const result: PageEditorResult = {
-          outputBytes: r.bytes,
+          outputBytes: currentBytes,
           outputFileName: `${baseName || "document"}-redacted.pdf`,
-          successHeadline: `Applied ${r.redactedRectCount} redaction${r.redactedRectCount === 1 ? "" : "s"} to page ${render.pageIndex + 1}`,
-          successDetail: `Output: ${formatSize(r.bytes.length)}. Visual cover only — see FAQ on full destruction.`,
+          successHeadline: headline,
+          successDetail: `Output: ${formatSize(currentBytes.length)}. Visual cover only — see FAQ on full destruction.`,
         };
         return result;
       }}

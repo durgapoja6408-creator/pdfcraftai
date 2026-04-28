@@ -5,8 +5,10 @@
 // Tier 6 (2026-04-28): seventh and final visual editor on
 // PageEditorTool. Drag a rectangle on the page, type a URL, click
 // "Save link" to commit. Repeat for additional links. Apply stamps
-// every saved link as a /Link annotation on page 1 via the
-// add-links op.
+// every saved link as a /Link annotation via the add-links op.
+//
+// 2026-04-28 (Task #171): now multi-page. Iterate entries, chain bytes
+// through addLinksPdf op once per page.
 //
 // Two-phase interaction (drag then type) is more involved than the
 // other visual editors but matches user expectation: a hyperlink
@@ -56,33 +58,64 @@ export function PdfAddLinksTool() {
       successCta="Add links to another PDF"
       errorCode="add_links_failed"
       initialState={INITIAL_STATE}
-      disabledReason={(state) => {
-        if (state.saved.length === 0) return "Save at least one link";
+      multiPage={true}
+      hasEdits={(s) => s.saved.length > 0}
+      resetPageContent={(s) => ({ ...s, saved: [], pending: null })}
+      disabledReason={(entries) => {
+        const total = entries.reduce((n, e) => n + e.state.saved.length, 0);
+        if (total === 0) return "Save at least one link";
         return null;
       }}
-      applyLabel={(state) =>
-        `Apply ${state.saved.length} link${state.saved.length === 1 ? "" : "s"}`
-      }
-      apply={async (bytes, file, state, render) => {
-        if (state.saved.length === 0) {
+      applyLabel={(entries) => {
+        const total = entries.reduce((n, e) => n + e.state.saved.length, 0);
+        const pages = entries.length;
+        if (pages <= 1) {
+          return `Apply ${total} link${total === 1 ? "" : "s"}`;
+        }
+        return `Apply ${total} link${total === 1 ? "" : "s"} on ${pages} pages`;
+      }}
+      apply={async (bytes, file, entries) => {
+        if (entries.length === 0) {
           throw new Error("No saved links to apply.");
         }
-        const pxToPt = (px: number) => px / render.renderScale;
-        const links = state.saved.map((s) => ({
-          x: pxToPt(s.rect.x),
-          y: pxToPt(render.pxHeight - s.rect.y - s.rect.h),
-          width: pxToPt(s.rect.w),
-          height: pxToPt(s.rect.h),
-          url: s.url,
-        }));
         const { addLinksPdf } = await import("@/lib/pdf/ops/add-links");
-        const r = await addLinksPdf(bytes, { links, pageIndex: render.pageIndex });
+        let currentBytes = bytes;
+        let totalLinks = 0;
+        let totalPages = 0;
+        const editedPageNumbers: number[] = [];
+        let lastPageCount = 0;
+        for (const entry of entries) {
+          if (entry.state.saved.length === 0) continue;
+          const pxToPt = (px: number) => px / entry.dims.renderScale;
+          const links = entry.state.saved.map((s) => ({
+            x: pxToPt(s.rect.x),
+            y: pxToPt(entry.dims.pxHeight - s.rect.y - s.rect.h),
+            width: pxToPt(s.rect.w),
+            height: pxToPt(s.rect.h),
+            url: s.url,
+          }));
+          const r = await addLinksPdf(currentBytes, {
+            links,
+            pageIndex: entry.pageIndex,
+          });
+          currentBytes = r.bytes;
+          totalLinks += r.linkCount;
+          totalPages += 1;
+          editedPageNumbers.push(entry.pageIndex + 1);
+          lastPageCount = r.pageCount;
+        }
         const baseName = file.name.replace(/\.pdf$/i, "");
+        const headline =
+          totalPages === 1
+            ? `Added ${totalLinks} hyperlink${totalLinks === 1 ? "" : "s"} to page ${editedPageNumbers[0]}`
+            : `Added ${totalLinks} hyperlink${totalLinks === 1 ? "" : "s"} across ${totalPages} pages`;
+        const detailPages =
+          totalPages > 1 ? ` · pages ${editedPageNumbers.join(", ")}` : "";
         const result: PageEditorResult = {
-          outputBytes: r.bytes,
+          outputBytes: currentBytes,
           outputFileName: `${baseName || "document"}-linked.pdf`,
-          successHeadline: `Added ${r.linkCount} hyperlink${r.linkCount === 1 ? "" : "s"} to page ${render.pageIndex + 1}`,
-          successDetail: `Output: ${formatSize(r.bytes.length)} · ${r.pageCount} page${r.pageCount === 1 ? "" : "s"} total`,
+          successHeadline: headline,
+          successDetail: `Output: ${formatSize(currentBytes.length)} · ${lastPageCount} page${lastPageCount === 1 ? "" : "s"} total${detailPages}`,
         };
         return result;
       }}

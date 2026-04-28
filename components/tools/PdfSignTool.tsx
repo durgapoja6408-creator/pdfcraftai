@@ -7,6 +7,11 @@
 // drop a PDF + signature image, click on page 1 to place the
 // signature, adjust size with a slider, apply.
 //
+// 2026-04-28 (Task #171): now multi-page. Common case: contract where
+// you initial each page. Image and scale persist across navigation
+// (resetPageContent only clears posPx); user uploads sig once, clicks
+// once per page, applies.
+//
 // HONEST SCOPE: visual signing only — not cryptographic e-sign. The
 // config panel surfaces this upfront so users with binding-signature
 // needs route to DocuSign / Adobe Sign instead.
@@ -56,42 +61,74 @@ export function PdfSignTool() {
       successCta="Sign another PDF"
       errorCode="sign_failed"
       initialState={INITIAL_STATE}
-      disabledReason={(state) => {
-        if (!state.image) return "Pick a signature image";
-        if (!state.posPx) return "Click on the page to place it";
+      multiPage={true}
+      // "Real edit" = signature has been placed (posPx set). Picking an
+      // image alone doesn't count — that's just config.
+      hasEdits={(s) => Boolean(s.image && s.posPx)}
+      // Keep image + scale across pages (the user uploaded once and
+      // wants to re-stamp on multiple pages). Just clear the click.
+      resetPageContent={(s) => ({ ...s, posPx: null })}
+      disabledReason={(entries, current) => {
+        // Need an image to do anything at all. Image lives in current
+        // state (it's session-global).
+        if (entries.length === 0) {
+          // current state may have an image but no click yet, or no
+          // image at all — buildMultiPageEntries excludes "no edits"
+          // pages, so falling here means nothing's been placed.
+          return "Pick a signature image and click on the page";
+        }
         return null;
       }}
-      applyLabel="Place signature & save"
-      apply={async (bytes, file, state, render) => {
-        if (!state.image || !state.posPx) {
+      applyLabel={(entries) => {
+        const pages = entries.length;
+        if (pages <= 1) return "Place signature & save";
+        return `Place signature on ${pages} pages & save`;
+      }}
+      apply={async (bytes, file, entries) => {
+        if (entries.length === 0) {
           throw new Error("Need both an image and a click position.");
         }
-        // Convert image-pixel (top-left) to PDF user-space (bottom-left).
-        // The click is treated as the TOP-LEFT corner of the placed
-        // signature for click-where-you-want-it-to-appear semantics.
-        const widthPt = state.scale * render.ptWidth;
-        const heightPt =
-          widthPt * (state.image.naturalHeight / state.image.naturalWidth);
-        const xPt = state.posPx.x / render.renderScale;
-        const yPxFromTop = state.posPx.y;
-        const yPxFromBottom =
-          render.pxHeight - yPxFromTop - heightPt * render.renderScale;
-        const yPt = yPxFromBottom / render.renderScale;
         const { signPdf } = await import("@/lib/pdf/ops/sign");
-        const r = await signPdf(bytes, {
-          imageBytes: state.image.bytes,
-          imageMime: state.image.mime,
-          x: xPt,
-          y: yPt,
-          width: widthPt,
-          pageIndex: render.pageIndex,
-        });
+        let currentBytes = bytes;
+        let totalPages = 0;
+        const editedPageNumbers: number[] = [];
+        let lastPageCount = 0;
+        for (const entry of entries) {
+          const { state, dims, pageIndex } = entry;
+          if (!state.image || !state.posPx) continue;
+          const widthPt = state.scale * dims.ptWidth;
+          const heightPt =
+            widthPt * (state.image.naturalHeight / state.image.naturalWidth);
+          const xPt = state.posPx.x / dims.renderScale;
+          const yPxFromTop = state.posPx.y;
+          const yPxFromBottom =
+            dims.pxHeight - yPxFromTop - heightPt * dims.renderScale;
+          const yPt = yPxFromBottom / dims.renderScale;
+          const r = await signPdf(currentBytes, {
+            imageBytes: state.image.bytes,
+            imageMime: state.image.mime,
+            x: xPt,
+            y: yPt,
+            width: widthPt,
+            pageIndex,
+          });
+          currentBytes = r.bytes;
+          totalPages += 1;
+          editedPageNumbers.push(pageIndex + 1);
+          lastPageCount = r.pageCount;
+        }
         const baseName = file.name.replace(/\.pdf$/i, "");
+        const headline =
+          totalPages === 1
+            ? `Signature placed on page ${editedPageNumbers[0]}`
+            : `Signature placed on ${totalPages} pages`;
+        const detailPages =
+          totalPages > 1 ? ` · pages ${editedPageNumbers.join(", ")}` : "";
         const result: PageEditorResult = {
-          outputBytes: r.bytes,
+          outputBytes: currentBytes,
           outputFileName: `${baseName || "document"}-signed.pdf`,
-          successHeadline: `Signature placed on page ${render.pageIndex + 1}`,
-          successDetail: `Output: ${formatSize(r.bytes.length)} · ${r.pageCount} page${r.pageCount === 1 ? "" : "s"} total`,
+          successHeadline: headline,
+          successDetail: `Output: ${formatSize(currentBytes.length)} · ${lastPageCount} page${lastPageCount === 1 ? "" : "s"} total${detailPages}`,
         };
         return result;
       }}

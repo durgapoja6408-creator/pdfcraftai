@@ -9,9 +9,9 @@
 // translucent yellow (or other color) overlays via pdf-lib instead of
 // modifying /CropBox.
 //
-// v1 SCOPE: single-page only — highlights apply to page 1. Multi-page
-// highlighting needs page navigation in PageEditorTool which is a v2
-// enhancement once 2+ visual editors validate the navigation pattern.
+// 2026-04-28 (Task #171): now multi-page. PageEditorTool persists
+// per-page state, and apply iterates every page with edits, chaining
+// bytes through highlightPdf op once per page.
 
 import { useState, useRef } from "react";
 import {
@@ -47,6 +47,11 @@ const COLOR_SWATCHES: Array<{ value: string; label: string }> = [
   { value: "#ADD8E6", label: "Blue" },
 ];
 
+// "Real" rect = at least 8×8 px (drop stray clicks). Used everywhere
+// we need to know "does this state have actual edits".
+const realRects = (rects: PixelRect[]) =>
+  rects.filter((r) => r.w >= 8 && r.h >= 8);
+
 export function PdfHighlightTool() {
   return (
     <PageEditorTool<HighlightState>
@@ -57,45 +62,76 @@ export function PdfHighlightTool() {
       successCta="Highlight another PDF"
       errorCode="highlight_failed"
       initialState={INITIAL_STATE}
-      disabledReason={(state) => {
-        if (state.rects.length === 0) return "Drag to add a highlight";
-        // Drop tiny rects (stray clicks) before checking — they won't
-        // contribute to the apply call but shouldn't enable the button.
-        const real = state.rects.filter((r) => r.w >= 8 && r.h >= 8);
-        if (real.length === 0) return "Drag to add a highlight";
+      multiPage={true}
+      hasEdits={(s) => realRects(s.rects).length > 0}
+      resetPageContent={(s) => ({ ...s, rects: [] })}
+      disabledReason={(entries) => {
+        if (entries.length === 0) return "Drag to add a highlight";
+        const total = entries.reduce(
+          (n, e) => n + realRects(e.state.rects).length,
+          0,
+        );
+        if (total === 0) return "Drag to add a highlight";
         return null;
       }}
-      applyLabel={(state) => {
-        const real = state.rects.filter((r) => r.w >= 8 && r.h >= 8);
-        return `Apply ${real.length} highlight${real.length === 1 ? "" : "s"}`;
+      applyLabel={(entries) => {
+        const total = entries.reduce(
+          (n, e) => n + realRects(e.state.rects).length,
+          0,
+        );
+        const pages = entries.length;
+        if (pages <= 1) {
+          return `Apply ${total} highlight${total === 1 ? "" : "s"}`;
+        }
+        return `Apply ${total} highlight${total === 1 ? "" : "s"} on ${pages} pages`;
       }}
-      apply={async (bytes, file, state, render) => {
-        const real = state.rects.filter((r) => r.w >= 8 && r.h >= 8);
-        if (real.length === 0) {
+      apply={async (bytes, file, entries) => {
+        if (entries.length === 0) {
           throw new Error("No valid highlight rectangles to apply.");
         }
-        // image-pixel coords (top-left origin) → PDF user-space points
-        // (bottom-left origin). Y axis flips, both divide by render scale.
-        const pxToPt = (px: number) => px / render.renderScale;
-        const rectsPt = real.map((r) => ({
-          x: pxToPt(r.x),
-          y: pxToPt(render.pxHeight - r.y - r.h),
-          width: pxToPt(r.w),
-          height: pxToPt(r.h),
-        }));
         const { highlightPdf } = await import("@/lib/pdf/ops/highlight");
-        const r = await highlightPdf(bytes, {
-          rects: rectsPt,
-          color: state.color,
-          opacity: state.opacity,
-          pageIndex: render.pageIndex,
-        });
+        // Chain bytes through one highlightPdf call per edited page.
+        // Each call re-encodes the PDF — measurable overhead only on
+        // very large files with many edited pages, acceptable for v1.
+        let currentBytes = bytes;
+        let totalRects = 0;
+        let totalPages = 0;
+        const editedPageNumbers: number[] = [];
+        let lastPageCount = 0;
+        for (const entry of entries) {
+          const real = realRects(entry.state.rects);
+          if (real.length === 0) continue;
+          const pxToPt = (px: number) => px / entry.dims.renderScale;
+          const rectsPt = real.map((r) => ({
+            x: pxToPt(r.x),
+            y: pxToPt(entry.dims.pxHeight - r.y - r.h),
+            width: pxToPt(r.w),
+            height: pxToPt(r.h),
+          }));
+          const r = await highlightPdf(currentBytes, {
+            rects: rectsPt,
+            color: entry.state.color,
+            opacity: entry.state.opacity,
+            pageIndex: entry.pageIndex,
+          });
+          currentBytes = r.bytes;
+          totalRects += r.highlightedRectCount;
+          totalPages += 1;
+          editedPageNumbers.push(entry.pageIndex + 1);
+          lastPageCount = r.pageCount;
+        }
         const baseName = file.name.replace(/\.pdf$/i, "");
+        const headline =
+          totalPages === 1
+            ? `Added ${totalRects} highlight${totalRects === 1 ? "" : "s"} to page ${editedPageNumbers[0]}`
+            : `Added ${totalRects} highlight${totalRects === 1 ? "" : "s"} across ${totalPages} pages`;
+        const detailPages =
+          totalPages > 1 ? ` · pages ${editedPageNumbers.join(", ")}` : "";
         const result: PageEditorResult = {
-          outputBytes: r.bytes,
+          outputBytes: currentBytes,
           outputFileName: `${baseName || "document"}-highlighted.pdf`,
-          successHeadline: `Added ${r.highlightedRectCount} highlight${r.highlightedRectCount === 1 ? "" : "s"} to page ${render.pageIndex + 1}`,
-          successDetail: `Output: ${formatSize(r.bytes.length)} · ${r.pageCount} page${r.pageCount === 1 ? "" : "s"} total`,
+          successHeadline: headline,
+          successDetail: `Output: ${formatSize(currentBytes.length)} · ${lastPageCount} page${lastPageCount === 1 ? "" : "s"} total${detailPages}`,
         };
         return result;
       }}
