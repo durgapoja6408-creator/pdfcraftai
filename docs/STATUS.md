@@ -19,6 +19,41 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 **Latest pushed commit:** `5327cb7` (M24 — per-tool code splitting). Hostinger redeploy in flight at session close.
 
+**2026-04-30 EOD addendum — full test pyramid shipped (auto-mode session, 4 commits):**
+
+After the M-series closed out, an autonomous 10-hour session shipped the
+full 7-phase test pyramid plan documented in
+`docs/SESSION_2026-04-29.md`. Test count grew from 3250/39 suites → **3290
+across 41 suites** (Phase 2 contributes 36 new tests, Phase 5 adds 4).
+
+| Phase | Layer | Files | Status |
+|---|---|---|---|
+| 1 | Playwright E2E (chromium/firefox/webkit/mobile-Safari) | 6 specs + utils | shipped `aeceb30`; user runs `npx playwright install` + `npm run test:e2e` |
+| 2 | Fixture-PDF parse-back tests for 17 pdf-lib ops (36 tests) | `scripts/test-pdf-ops.ts` | shipped `ce41480`; runs via tsx, integrated into `npm test` |
+| 3 | axe-core accessibility audit on 7 representative pages | `tests/e2e/accessibility.spec.ts` | shipped `f782cfd`; runs in Playwright suite |
+| 4 | Visual regression on 6 high-traffic pages (Chromium only) | `tests/e2e/visual-regression.spec.ts` | shipped `f782cfd`; baselines need first local run to generate |
+| 5 | Bundle-size budget guard | `scripts/test-bundle-budget.mjs` | shipped `f782cfd`; integrated into `npm test`; skips silently if no `.next/` build |
+| 6 | Synthetic uptime monitor (5-min cron from GitHub Actions) | `.github/workflows/synthetic-monitor.yml` | shipped `f782cfd`; needs `SLACK_WEBHOOK_URL` repo secret to start posting |
+| 7 | Mutation testing (Stryker) | `docs/MUTATION_TESTING.md` | scaffolded as docs only; multi-hour runs need dedicated session |
+
+**Full test inventory (8 layers):**
+- Layer 1: 39 static-parse `.mjs` suites (TOOLS ↔ ToolRunner consistency, csv-helper RFC-4180, AbortController plumbing, etc.)
+- Layer 2: `test-pdf-ops.ts` — 36 functional tests for merge, split, rotate, crop, flatten, strip-links, remove-metadata, unlock, page-numbers, stamp, n-up, resize, repair, highlight, redact, free-draw, add-text-box + 7 byte-parser inspectors + round-trip + large-fixture
+- Layer 3: `test-bundle-budget.mjs` — 4 tests on per-chunk cap, shared-chunks total, total-dir size, per-page first-load JS
+- Layer 4: 6 Playwright specs × 4 browser engines = 32 test runs (homepage, merge, split, highlight, pdf-fonts ×2, ai-summarize)
+- Layer 5: 7 axe-core specs × 4 browsers = 28 test runs
+- Layer 6: 6 visual-regression specs × Chromium = 6 baselines
+- Layer 7: GitHub Actions synthetic monitor (every 5 min, posts to Slack)
+- Layer 8: Stryker mutation testing (deferred per `docs/MUTATION_TESTING.md`)
+
+**One-time user setup needed to fully activate Layers 4-7:**
+- `npx playwright install` (downloads ~300MB of browser binaries)
+- `npm run test:e2e:fixtures` (regenerates fixture PDFs)
+- Set `SLACK_WEBHOOK_URL` in GitHub repo secrets for Phase 6 alerts
+- First `npx playwright test visual-regression --update-snapshots` to generate Phase 4 baselines, then commit them
+
+**Latest pushed commit:** `f782cfd` (Phases 3-7 — a11y, visual regression, bundle budget, synthetic monitor, mutation-testing scaffold).
+
 **Tests:** 3246 passed, 0 failed across 38 suites (unchanged — pure implementation move).
 
 Full handoff in `docs/SESSION_2026-04-29.md` post-cascade-batch section.
