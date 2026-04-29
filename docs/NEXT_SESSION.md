@@ -1,11 +1,55 @@
 # Next session — pick up here
 
+**Updated 2026-04-29 EOD (latest live commit `1d03c26`).** The
+M-series sweep is complete (25/25 + 3 verified-canonical + M21 closed
+at full applicable scope + M22 part 2 closed as vacuous). Same-day
+follow-ups: M24 architecture + CI guard, #20 root-cause hypothesis +
+10-grid prefetch fix, /admin/deploy "Recent commits" widget. No
+genuine pending engineering items remain from the M-series.
+
+**Status as of 2026-04-29 EOD:**
+- Latest live commit: `1d03c26` (#20 round 2 — homepage + 5 more grids)
+- M-series 25/25 shipped; M-series + #20 + M24 follow-up all closed
+- All shipped changes are tsc-clean and 3250/0 test-passing across 39 suites
+- Only blockers remaining: #20 confirmation (watch uptimeSec on next bursty
+  deploy) + #22 (Razorpay dashboard domain allowlist — user-side action)
+
+**Older notes below kept for archive of the visual-editor + G-series work.**
+
+---
+
+## What to look at next session
+
+The big-picture engineering punch list is empty. Productive directions if a
+new arc kicks off:
+
+1. **Validate the #20 fix** — the 10-grid `prefetch={false}` sweep is a
+   speculative root-cause hypothesis. Confirmation comes from observation:
+   if `/api/health`'s `uptimeSec` stays high through the next bursty deploy
+   without a 503 cascade, the prefetch flood was the trigger. If it
+   cascades again, dig deeper (Hostinger LSAPI thread budget, analytics
+   script load timing, RSC payload sizes).
+
+2. **pako → fflate shim** (~1 day, fragile) — biggest remaining bundle
+   win. The 425KB pako chunk is loaded for every writable-tool user.
+   Replacing via `webpack.resolve.alias` saves ~395KB raw / ~70KB gzipped.
+   pdf-lib doesn't expose a swap point so the shim has to mock pako's
+   exact API surface; brittle but well-trodden.
+
+3. **#22 Razorpay domain allowlist** — user-side blocker. Add
+   `pdfcraftai.com` to the merchant allowlist in the Razorpay dashboard
+   to unblock the card payment rail.
+
+---
+
+## Older notes — archive of 2026-04-28's work
+
 Today's session shipped 30+ commits across two arcs (the visual editor parity push #186-#192, then the G-series audit response #193). Three audit items are genuinely deferred and best tackled in a fresh session with full attention rather than chat-batch mode. This doc tells future-Claude (or future-Raj) exactly how to land them.
 
-**Status as of 2026-04-28 EOD:**
-- Latest live commit: `981d8d8` (G8 foundation hook shipped)
+**Original 2026-04-28 status:**
+- Latest live commit at the time: `981d8d8` (G8 foundation hook shipped)
 - 14 of 17 G-series audit items addressed
-- All shipped changes are tsc-clean and 2843/0 test-passing
+- 2843/0 test-passing
 
 ---
 
