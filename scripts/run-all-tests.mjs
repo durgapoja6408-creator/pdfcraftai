@@ -688,6 +688,14 @@ const SUITES = [
   // lib/client/handoff.ts. PageEditorTool is verified to consume
   // ?handoff=<key> on mount and strip the param from the URL.
   { name: "tool-handoff", file: "test-tool-handoff.mjs" },
+  // M20 (#193, 2026-04-29): retry-on-transient-failure semantics for
+  // AI op fetches. Mocks global.fetch with scripted responses and
+  // exercises every retry branch: 200 first try (no retry), 503→200
+  // (one retry), 503→502→200 (two retries), 503×3 (returns last 503),
+  // 400 (no retry on 4xx), 500 (no retry on non-transient 5xx),
+  // network TypeError + recovery, network TypeError exhaustion,
+  // 408 retry, and bodyFactory called per-attempt.
+  { name: "fetch-ai-retry", file: "test-fetch-ai-retry.mjs" },
 ];
 
 /**

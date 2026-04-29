@@ -40,6 +40,7 @@ import {
   deleteMacroAction,
   listMacrosForToolAction,
 } from "@/lib/macro-actions";
+import { fetchAiWithRetry } from "@/lib/client/fetch-ai-with-retry";
 
 type Depth = "tldr" | "standard" | "detailed";
 
@@ -236,14 +237,19 @@ export function SummarizePdfTool() {
         : `ik-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
     try {
-      const form = new FormData();
-      form.append("pdf", file);
-      form.append("depth", depth);
-      form.append("idempotencyKey", idempotencyKey);
-
-      const res = await fetch("/api/ai/summarize", {
-        method: "POST",
-        body: form,
+      // M20 (#193, 2026-04-29): retry on transient 5xx / network failures.
+      // FormData is single-use (consumes the underlying File stream once),
+      // so the helper accepts a factory and rebuilds it on each attempt.
+      // The same idempotencyKey is reused — server-side ledger unique
+      // index dedupes if the first attempt's transaction already landed.
+      const res = await fetchAiWithRetry("/api/ai/summarize", {
+        bodyFactory: () => {
+          const form = new FormData();
+          form.append("pdf", file);
+          form.append("depth", depth);
+          form.append("idempotencyKey", idempotencyKey);
+          return form;
+        },
       });
 
       // Parse the body once; every response branch is JSON.
