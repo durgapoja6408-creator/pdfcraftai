@@ -22,6 +22,7 @@ import { logToolResultAction } from "@/lib/tool-result-actions";
 import { useToolTracking } from "./useToolTracking";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import { fetchAiWithRetry } from "@/lib/client/fetch-ai-with-retry";
+import { UploadedFilePreview } from "./UploadedFilePreview";
 
 type Flag = "normal" | "low" | "high" | "critical" | "unknown";
 
@@ -265,7 +266,7 @@ export function BloodTestTool() {
         <ToolDropzone onFiles={onFiles} disabled={busy} prompt="Drop a lab report PDF to extract test values" />
       ) : (
         <div className="card" style={{ padding: "14px 16px", display: "flex", gap: 12, alignItems: "center" }}>
-          <span style={{ color: "var(--fg-subtle)" }}><I.File size={18} /></span>
+          <UploadedFilePreview file={file} maxHeight={80} />
           <div style={{ flex: 1, overflow: "hidden" }}>
             <div title={file.name} style={{ fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{file.name}</div>
             <div className="subtle" style={{ fontSize: 12 }}>{humanSize(file.size)}</div>

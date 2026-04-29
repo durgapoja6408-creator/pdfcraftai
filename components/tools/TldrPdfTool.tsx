@@ -31,6 +31,7 @@ import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import { fetchAiWithRetry } from "@/lib/client/fetch-ai-with-retry";
+import { UploadedFilePreview } from "./UploadedFilePreview";
 
 const SIGN_IN_HREF = "/login?callbackUrl=/tool/ai-tldr";
 
@@ -155,9 +156,7 @@ export function TldrPdfTool() {
           className="card"
           style={{ padding: "14px 16px", display: "flex", gap: 12, alignItems: "center" }}
         >
-          <span style={{ color: "var(--fg-subtle)" }}>
-            <I.File size={18} />
-          </span>
+          <UploadedFilePreview file={file} maxHeight={80} />
           <div style={{ flex: 1, overflow: "hidden" }}>
             <div
               title={file.name}

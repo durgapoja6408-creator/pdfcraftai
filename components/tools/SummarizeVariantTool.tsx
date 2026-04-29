@@ -22,6 +22,7 @@ import { renderMarkdown } from "@/lib/markdown-mini";
 import { track } from "@/lib/analytics";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import { fetchAiWithRetry } from "@/lib/client/fetch-ai-with-retry";
+import { UploadedFilePreview } from "./UploadedFilePreview";
 
 type Depth =
   | "key-points"
@@ -281,9 +282,7 @@ export function SummarizeVariantTool(props: {
           className="card"
           style={{ padding: "14px 16px", display: "flex", gap: 12, alignItems: "center" }}
         >
-          <span style={{ color: "var(--fg-subtle)" }}>
-            <I.File size={18} />
-          </span>
+          <UploadedFilePreview file={file} maxHeight={80} />
           <div style={{ flex: 1, overflow: "hidden" }}>
             <div
               title={file.name}

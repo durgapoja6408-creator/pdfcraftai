@@ -44,11 +44,15 @@ TOOLS = [
 
 # Match the placeholder span+icon. Lookahead: must be followed by a
 # `<div style={{ flex: 1, overflow:` block (the file-info div) so we
-# don't accidentally hit other I.File occurrences.
+# don't accidentally hit other I.File occurrences. Accepts either
+# size={16} (the original Summarize-pattern) or size={18} (the
+# variant pattern that ships of newer AI tools — Tldr, Mindmap,
+# SemanticSearch, Structured/SummarizeVariant, BloodTest, ResumeParser,
+# SearchablePdf).
 PATTERN = re.compile(
     r"""<span\s+style=\{\{\s*color:\s*"var\(--fg-subtle\)"\s*\}\}>
         \s*
-        <I\.File\s+size=\{16\}\s*/>
+        <I\.File\s+size=\{1[68]\}\s*/>
         \s*
         </span>
         (?=\s*<div\s+style=\{\{\s*flex:\s*1)

@@ -297,9 +297,10 @@ console.log("bodyFactory called per-attempt:");
 
 // ──────────────────────────────────────────────────────────────────
 // M20 part 2: every AI tool consumer wires fetchAiWithRetry
+// M18: every AI tool consumer renders the page-1 preview thumbnail
 // ──────────────────────────────────────────────────────────────────
 console.log("");
-console.log("All AI tool consumers use fetchAiWithRetry:");
+console.log("All AI tool consumers use fetchAiWithRetry + UploadedFilePreview:");
 {
   const AI_CONSUMERS = [
     "BloodTestTool.tsx",
@@ -333,6 +334,23 @@ console.log("All AI tool consumers use fetchAiWithRetry:");
     assert(
       !/await\s+fetch\(\s*"\/api\/ai\//.test(src),
       `${name} no longer has raw await fetch("/api/ai/...")`,
+    );
+  }
+
+  // M18: every AI tool that takes a file upload (Generate is
+  // prompt-only, so it doesn't need a preview) renders
+  // <UploadedFilePreview /> on its upload card.
+  const FILE_UPLOAD_CONSUMERS = AI_CONSUMERS.filter(
+    (n) => n !== "GeneratePdfTool.tsx",
+  );
+  for (const name of FILE_UPLOAD_CONSUMERS) {
+    const src = fs.readFileSync(
+      path.join(ROOT, "components/tools", name),
+      "utf8",
+    );
+    assert(
+      /<UploadedFilePreview/.test(src),
+      `${name} renders <UploadedFilePreview /> on upload card (M18)`,
     );
   }
 }
