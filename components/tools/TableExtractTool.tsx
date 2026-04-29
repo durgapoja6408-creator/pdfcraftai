@@ -29,6 +29,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
 import { classifyAiError } from "@/lib/ai/degradation";
+import { fetchAiWithRetry } from "@/lib/client/fetch-ai-with-retry";
 
 type ExtractedTable = {
   title: string;
@@ -102,13 +103,16 @@ export function TableExtractTool() {
         : `ik-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
     try {
-      const form = new FormData();
-      form.append("pdf", file);
-      form.append("idempotencyKey", idempotencyKey);
+      const res = await fetchAiWithRetry("/api/ai/table", {
+        // M20 (#193): retry on transient 5xx / network failures.
+        // FormData is single-use; rebuild it on each attempt.
+        bodyFactory: () => {
+          const form = new FormData();
+          form.append("pdf", file);
+          form.append("idempotencyKey", idempotencyKey);
 
-      const res = await fetch("/api/ai/table", {
-        method: "POST",
-        body: form,
+          return form;
+        },
       });
 
       const body = (await res.json().catch(() => ({}))) as Record<

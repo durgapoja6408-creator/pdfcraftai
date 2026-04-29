@@ -21,6 +21,7 @@ import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
 import { track } from "@/lib/analytics";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
+import { fetchAiWithRetry } from "@/lib/client/fetch-ai-with-retry";
 
 type Depth =
   | "key-points"
@@ -181,15 +182,21 @@ export function SummarizeVariantTool(props: {
     const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
 
     try {
-      const form = new FormData();
-      form.append("pdf", file);
-      form.append("depth", props.depth);
-      form.append("idempotencyKey", idempotencyKey);
-      if (props.queryField && query.trim()) {
-        const cap = props.queryField.maxLength ?? 2000;
-        form.append("query", query.trim().slice(0, cap));
-      }
-      const res = await fetch("/api/ai/summarize", { method: "POST", body: form });
+      const res = await fetchAiWithRetry("/api/ai/summarize", {
+        // M20 (#193): retry on transient 5xx / network failures.
+        // FormData is single-use; rebuild it on each attempt.
+        bodyFactory: () => {
+          const form = new FormData();
+          form.append("pdf", file);
+          form.append("depth", props.depth);
+          form.append("idempotencyKey", idempotencyKey);
+          if (props.queryField && query.trim()) {
+            const cap = props.queryField.maxLength ?? 2000;
+            form.append("query", query.trim().slice(0, cap));
+          }
+          return form;
+        },
+      });
       const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
       const tEnd = typeof performance !== "undefined" ? performance.now() : Date.now();
       const processing_ms = Math.round(tEnd - t0);

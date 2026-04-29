@@ -296,6 +296,48 @@ console.log("bodyFactory called per-attempt:");
 }
 
 // ──────────────────────────────────────────────────────────────────
+// M20 part 2: every AI tool consumer wires fetchAiWithRetry
+// ──────────────────────────────────────────────────────────────────
+console.log("");
+console.log("All AI tool consumers use fetchAiWithRetry:");
+{
+  const AI_CONSUMERS = [
+    "BloodTestTool.tsx",
+    "ComparePdfTool.tsx",
+    "GeneratePdfTool.tsx",
+    "MindmapPdfTool.tsx",
+    "OcrPdfTool.tsx",
+    "RedactPdfTool.tsx",
+    "ResumeParserTool.tsx",
+    "RewritePdfTool.tsx",
+    "SearchablePdfTool.tsx",
+    "SemanticSearchPdfTool.tsx",
+    "SignPdfTool.tsx",
+    "StructuredVariantTool.tsx",
+    "SummarizePdfTool.tsx",
+    "SummarizeVariantTool.tsx",
+    "TableExtractTool.tsx",
+    "TldrPdfTool.tsx",
+    "TranslatePdfTool.tsx",
+  ];
+  for (const name of AI_CONSUMERS) {
+    const src = fs.readFileSync(
+      path.join(ROOT, "components/tools", name),
+      "utf8",
+    );
+    assert(
+      /fetchAiWithRetry/.test(src),
+      `${name} imports/uses fetchAiWithRetry`,
+    );
+    // Should NOT have a raw `await fetch("/api/ai/` left over.
+    assert(
+      !/await\s+fetch\(\s*"\/api\/ai\//.test(src),
+      `${name} no longer has raw await fetch("/api/ai/...")`,
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────
 // Wrap up
 // ──────────────────────────────────────────────────────────────────
 globalThis.setTimeout = realSetTimeout;

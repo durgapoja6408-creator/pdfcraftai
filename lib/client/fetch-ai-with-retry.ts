@@ -43,9 +43,16 @@ export interface FetchAiOptions {
    * Build a fresh body for each attempt. FormData is single-use —
    * once consumed, the underlying File stream can't be re-read. The
    * caller closes over the source File and re-creates the FormData
-   * each call.
+   * each call. JSON tools that don't have this single-use problem
+   * can still use the factory pattern (returning a BodyInit string)
+   * so the call shape is uniform across all AI tools.
    */
-  bodyFactory: () => FormData;
+  bodyFactory: () => BodyInit;
+  /**
+   * Optional headers (Content-Type for JSON bodies, etc). Sent on
+   * every attempt — same as init.headers on a regular fetch.
+   */
+  headers?: HeadersInit;
   /**
    * Called before each attempt (1-indexed). UI can show "Retrying…
    * (2/3)" or similar. Optional — silent retry is fine.
@@ -81,6 +88,7 @@ export async function fetchAiWithRetry(
       const res = await fetch(url, {
         method: "POST",
         body: opts.bodyFactory(),
+        headers: opts.headers,
         signal: opts.signal,
       });
       // Retry only the transient HTTP statuses.

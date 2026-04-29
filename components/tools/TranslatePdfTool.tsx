@@ -28,6 +28,7 @@ import { classifyAiError } from "@/lib/ai/degradation";
 import { renderMarkdown } from "@/lib/markdown-mini";
 import { COMMON_TARGET_LANGUAGES } from "@/lib/ai/translate-langs";
 import { MacroBar, type MacroBarItem } from "./MacroBar";
+import { fetchAiWithRetry } from "@/lib/client/fetch-ai-with-retry";
 import {
   createMacroAction,
   deleteMacroAction,
@@ -246,14 +247,17 @@ export function TranslatePdfTool() {
         : `ik-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
     try {
-      const form = new FormData();
-      form.append("pdf", file);
-      form.append("targetLang", targetLang);
-      form.append("idempotencyKey", idempotencyKey);
+      const res = await fetchAiWithRetry("/api/ai/translate", {
+        // M20 (#193): retry on transient 5xx / network failures.
+        // FormData is single-use; rebuild it on each attempt.
+        bodyFactory: () => {
+          const form = new FormData();
+          form.append("pdf", file);
+          form.append("targetLang", targetLang);
+          form.append("idempotencyKey", idempotencyKey);
 
-      const res = await fetch("/api/ai/translate", {
-        method: "POST",
-        body: form,
+          return form;
+        },
       });
 
       const body = (await res.json().catch(() => ({}))) as Record<

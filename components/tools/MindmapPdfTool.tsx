@@ -28,6 +28,7 @@ import {
 import { logToolResultAction } from "@/lib/tool-result-actions";
 import { useToolTracking } from "./useToolTracking";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
+import { fetchAiWithRetry } from "@/lib/client/fetch-ai-with-retry";
 
 type TreeNode = {
   label: string;
@@ -201,11 +202,17 @@ export function MindmapPdfTool() {
     const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
 
     try {
-      const form = new FormData();
-      form.append("pdf", file);
-      form.append("depth", "mindmap");
-      form.append("idempotencyKey", idempotencyKey);
-      const res = await fetch("/api/ai/summarize", { method: "POST", body: form });
+      const res = await fetchAiWithRetry("/api/ai/summarize", {
+        // M20 (#193): retry on transient 5xx / network failures.
+        // FormData is single-use; rebuild it on each attempt.
+        bodyFactory: () => {
+          const form = new FormData();
+          form.append("pdf", file);
+          form.append("depth", "mindmap");
+          form.append("idempotencyKey", idempotencyKey);
+          return form;
+        },
+      });
       const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
       const processingMs = Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - t0);
 

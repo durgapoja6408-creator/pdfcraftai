@@ -37,6 +37,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
 import { classifyAiError } from "@/lib/ai/degradation";
+import { fetchAiWithRetry } from "@/lib/client/fetch-ai-with-retry";
 
 type SignFilling = {
   label: string;
@@ -202,14 +203,17 @@ export function SignPdfTool() {
     }
 
     try {
-      const form = new FormData();
-      form.append("pdf", file);
-      form.append("info", JSON.stringify(info));
-      form.append("idempotencyKey", idempotencyKey);
+      const res = await fetchAiWithRetry("/api/ai/sign", {
+        // M20 (#193): retry on transient 5xx / network failures.
+        // FormData is single-use; rebuild it on each attempt.
+        bodyFactory: () => {
+          const form = new FormData();
+          form.append("pdf", file);
+          form.append("info", JSON.stringify(info));
+          form.append("idempotencyKey", idempotencyKey);
 
-      const res = await fetch("/api/ai/sign", {
-        method: "POST",
-        body: form,
+          return form;
+        },
       });
 
       const body = (await res.json().catch(() => ({}))) as Record<

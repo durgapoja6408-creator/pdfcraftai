@@ -44,6 +44,7 @@ import {
 } from "@/lib/client/pdf-utils";
 import { classifyAiError } from "@/lib/ai/degradation";
 import { useTrackToolView } from "./useToolTracking";
+import { fetchAiWithRetry } from "@/lib/client/fetch-ai-with-retry";
 
 // Server constants duplicated; see OcrPdfTool for rationale.
 const CLIENT_MAX_OCR_PAGES = 50;
@@ -284,10 +285,16 @@ export function SearchablePdfTool() {
     let markdown = "";
 
     try {
-      const form = new FormData();
-      form.append("pdf", file);
-      form.append("idempotencyKey", idempotencyKey);
-      const res = await fetch("/api/ai/ocr", { method: "POST", body: form });
+      const res = await fetchAiWithRetry("/api/ai/ocr", {
+        // M20 (#193): retry on transient 5xx / network failures.
+        // FormData is single-use; rebuild it on each attempt.
+        bodyFactory: () => {
+          const form = new FormData();
+          form.append("pdf", file);
+          form.append("idempotencyKey", idempotencyKey);
+          return form;
+        },
+      });
       const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
 
       if (res.ok || res.status === 207) {

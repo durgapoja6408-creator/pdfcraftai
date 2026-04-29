@@ -43,6 +43,7 @@ import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
 import { classifyAiError } from "@/lib/ai/degradation";
 import { useToolTracking } from "./useToolTracking";
+import { fetchAiWithRetry } from "@/lib/client/fetch-ai-with-retry";
 
 // Keep in sync with server-side `MAX_OCR_PAGES` in lib/ai/ocr.ts.
 // We can't import the server module (it's "server-only"), so the
@@ -180,13 +181,16 @@ export function OcrPdfTool() {
     const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
 
     try {
-      const form = new FormData();
-      form.append("pdf", file);
-      form.append("idempotencyKey", idempotencyKey);
+      const res = await fetchAiWithRetry("/api/ai/ocr", {
+        // M20 (#193): retry on transient 5xx / network failures.
+        // FormData is single-use; rebuild it on each attempt.
+        bodyFactory: () => {
+          const form = new FormData();
+          form.append("pdf", file);
+          form.append("idempotencyKey", idempotencyKey);
 
-      const res = await fetch("/api/ai/ocr", {
-        method: "POST",
-        body: form,
+          return form;
+        },
       });
 
       const body = (await res.json().catch(() => ({}))) as Record<

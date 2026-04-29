@@ -26,6 +26,7 @@ import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
 import { classifyAiError } from "@/lib/ai/degradation";
 import { useTrackToolView } from "./useToolTracking";
+import { fetchAiWithRetry } from "@/lib/client/fetch-ai-with-retry";
 
 type CompareResult = {
   fileId?: string;
@@ -105,14 +106,17 @@ export function ComparePdfTool() {
         : `ik-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
     try {
-      const form = new FormData();
-      form.append("pdfA", pdfA);
-      form.append("pdfB", pdfB);
-      form.append("idempotencyKey", idempotencyKey);
+      const res = await fetchAiWithRetry("/api/ai/compare", {
+        // M20 (#193): retry on transient 5xx / network failures.
+        // FormData is single-use; rebuild it on each attempt.
+        bodyFactory: () => {
+          const form = new FormData();
+          form.append("pdfA", pdfA);
+          form.append("pdfB", pdfB);
+          form.append("idempotencyKey", idempotencyKey);
 
-      const res = await fetch("/api/ai/compare", {
-        method: "POST",
-        body: form,
+          return form;
+        },
       });
 
       const body = (await res.json().catch(() => ({}))) as Record<

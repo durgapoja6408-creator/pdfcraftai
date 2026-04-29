@@ -31,6 +31,7 @@ import { humanSize } from "@/lib/client/pdf-utils";
 import { classifyAiError } from "@/lib/ai/degradation";
 import { renderMarkdown } from "@/lib/markdown-mini";
 import { useTrackToolView } from "./useToolTracking";
+import { fetchAiWithRetry } from "@/lib/client/fetch-ai-with-retry";
 
 // Keep in sync with VALID_MODES in /api/ai/rewrite/route.ts.
 type Mode = "simplify" | "formal" | "casual" | "concise" | "expand";
@@ -137,14 +138,17 @@ export function RewritePdfTool() {
         : `ik-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
     try {
-      const form = new FormData();
-      form.append("pdf", file);
-      form.append("mode", mode);
-      form.append("idempotencyKey", idempotencyKey);
+      const res = await fetchAiWithRetry("/api/ai/rewrite", {
+        // M20 (#193): retry on transient 5xx / network failures.
+        // FormData is single-use; rebuild it on each attempt.
+        bodyFactory: () => {
+          const form = new FormData();
+          form.append("pdf", file);
+          form.append("mode", mode);
+          form.append("idempotencyKey", idempotencyKey);
 
-      const res = await fetch("/api/ai/rewrite", {
-        method: "POST",
-        body: form,
+          return form;
+        },
       });
 
       const body = (await res.json().catch(() => ({}))) as Record<

@@ -27,6 +27,7 @@ import { I } from "@/components/icons/Icons";
 import { renderMarkdown } from "@/lib/markdown-mini";
 import { classifyAiError } from "@/lib/ai/degradation";
 import { useTrackToolView } from "./useToolTracking";
+import { fetchAiWithRetry } from "@/lib/client/fetch-ai-with-retry";
 
 // Keep in sync with VALID_DOC_TYPES / VALID_LENGTHS / VALID_TONES in the
 // route handler.
@@ -136,17 +137,20 @@ export function GeneratePdfTool() {
         : `ik-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
     try {
-      const res = await fetch("/api/ai/generate", {
-        method: "POST",
+      // M20 part 2 (#193): retry on transient 5xx / network failures.
+      // JSON body — re-stringify per attempt for parity with FormData
+      // tools (also free; the inputs don't change between attempts).
+      const res = await fetchAiWithRetry("/api/ai/generate", {
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: trimmed,
-          title: title.trim() || undefined,
-          docType,
-          length,
-          tone,
-          idempotencyKey,
-        }),
+        bodyFactory: () =>
+          JSON.stringify({
+            prompt: trimmed,
+            title: title.trim() || undefined,
+            docType,
+            length,
+            tone,
+            idempotencyKey,
+          }),
       });
 
       const body = (await res.json().catch(() => ({}))) as Record<
