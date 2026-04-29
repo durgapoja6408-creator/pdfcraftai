@@ -24,9 +24,18 @@ export function ToolDropzone({
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * M4 (#193, 2026-04-28): soft notice when the user drops multiple
+   * files into a single-file tool. We still take files[0] (preserves
+   * existing behavior), but tell the user we ignored the rest so
+   * they don't end up confused why "only one of my PDFs got
+   * watermarked." Clears on next drop or after 6 seconds.
+   */
+  const [notice, setNotice] = useState<string | null>(null);
 
   function handleList(list: FileList | File[]) {
     setError(null);
+    setNotice(null);
     const files = Array.from(list);
     if (files.length === 0) return;
 
@@ -39,6 +48,15 @@ export function ToolDropzone({
         setError(`"${f.name}" exceeds the ${humanSize(MAX_FILE_SIZE_BYTES)} limit.`);
         return;
       }
+    }
+
+    // M4: surface the multi-file → single-file truncation explicitly.
+    if (!multiple && files.length > 1) {
+      setNotice(
+        `Took the first PDF (${files[0]!.name}). This tool processes one file at a time — drop the rest separately.`,
+      );
+      // Auto-clear after 6s so the notice doesn't persist forever.
+      setTimeout(() => setNotice(null), 6000);
     }
 
     onFiles(multiple ? files : [files[0]!]);
@@ -123,6 +141,23 @@ export function ToolDropzone({
       {error && (
         <p role="alert" style={{ color: "var(--red)", fontSize: 13, marginTop: 12 }}>
           {error}
+        </p>
+      )}
+      {notice && (
+        <p
+          role="status"
+          aria-live="polite"
+          style={{
+            color: "var(--fg-muted)",
+            fontSize: 13,
+            marginTop: 12,
+            padding: "8px 12px",
+            background: "var(--bg-2)",
+            borderRadius: "var(--radius)",
+            border: "1px solid var(--border)",
+          }}
+        >
+          {notice}
         </p>
       )}
     </div>
