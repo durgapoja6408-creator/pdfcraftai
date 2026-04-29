@@ -1,0 +1,3 @@
+# Generated PDF fixtures — regenerable via tests/fixtures/generate.mjs.
+# The generator script itself is committed; the .pdf outputs are not.
+*.pdf

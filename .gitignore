@@ -3,6 +3,12 @@ node_modules/
 .pnp
 .pnp.js
 
+# Playwright (Phase 1 e2e suite, 2026-04-29)
+test-results/
+playwright-report/
+playwright/.cache/
+/blob-report/
+
 # next
 .next/
 .next-build/
