@@ -203,6 +203,24 @@ function LinksConfigPanel({
             disabled={busy}
             placeholder="https://example.com"
             autoFocus
+            // M12 (#193, 2026-04-29): on mobile, the soft keyboard can occlude
+            // the URL input — the pending-link card lives below the page
+            // canvas, which on a small screen often sits below the fold once
+            // the keyboard takes ~40% of the viewport. Scroll the input into
+            // view (centered) on focus so it stays visible above the keyboard.
+            //
+            // The 280ms delay matches typical mobile keyboard animation time
+            // (iOS ~250ms, Android 200-300ms) — scrolling immediately can
+            // land on a position that's wrong once the keyboard finishes
+            // expanding the viewport. autoFocus also fires this callback
+            // on first mount, so it covers both the auto-focus case and any
+            // subsequent user-tap re-focus.
+            onFocus={(e) => {
+              const target = e.currentTarget;
+              setTimeout(() => {
+                target.scrollIntoView({ block: "center", behavior: "smooth" });
+              }, 280);
+            }}
             style={{
               padding: "8px 12px",
               border: "1px solid var(--border)",
