@@ -9,9 +9,9 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 - **M23** (`fb4b48c`) — single-purpose Service Worker for PDFium WASM caching. `public/pdfium-sw.js` intercepts ONLY `/pdfium.wasm` (cache-first, versioned `pdfium-wasm-v1`). `components/PdfiumServiceWorker.tsx` defers registration to `requestIdleCallback`. Single-purpose scope avoids classic SW staleness trap
 - **M21 base + 4 inspectors** (`4fc67fc` + `4d8ada8`) — `PdfReadOpsTool` slot-based shared base shipped (parallel to PageEditorTool / PageGridTool / PdfSimpleOpsTool). Owns: file drop + size validation, stage machine, busy/error/result cards, GA4 funnel, Copy-JSON + CSV download, M9/M10/M16/M18 hooks. Slot-fills: parser + headline + renderBody + optional csvExport/jsonExport. PdfLinks/Annotations/Forms/Fonts migrated: 1573 → 666 LOC + 362 LOC base = -545 net LOC, 907 LOC of duplicated boilerplate removed. **Post-batch landscape audit closed M21 at 4/4 applicable** — PdfChecklistTool already-DRY (own base for 4 audit tools); PdfOutlineTool + PdfAttachmentsTool have intentional UX divergence (Copy-as-text + JSON-download semantics, not Copy-JSON + CSV); no separate Wave 8 byte-parser components exist. The "9-inspector" framing in earlier notes was wrong.
 
-**M-series scoreboard:** 24 of 25 shipped; 3 verified-canonical (M8, M13, M15); M21 closed at full applicable scope. Genuine remaining: M12 (~1h, mobile keyboard occluding inputs), M24 (~4h, code-split free vs AI bundles).
+**M-series scoreboard:** **25 of 25 shipped**; 3 verified-canonical (M8, M13, M15); M21 closed at full applicable scope. Only M24 (~4h, code-split free vs AI bundles) remains as a genuine pending item — and that's bundle-size optimization, not a functional gap.
 
-**Latest pushed commit:** `4d8ada8` (Hostinger redeploy in flight at session close).
+**Latest pushed commit:** `62d3754` (M12 — mobile keyboard occluding inputs in PdfAddLinksTool's URL input). Hostinger redeploy in flight at session close.
 
 **Tests:** 3246 passed, 0 failed across 38 suites (unchanged — pure implementation move).
 
