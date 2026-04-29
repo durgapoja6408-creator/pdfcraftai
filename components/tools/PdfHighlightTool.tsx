@@ -517,7 +517,13 @@ function HighlightEditorOverlay({
         borderRadius: 8,
         overflow: "hidden",
         border: "1px solid var(--border)",
-        touchAction: "none",
+        // M11 (#193, 2026-04-29): pinch-zoom lets mobile users zoom in
+        // with two fingers on the editor surface itself; single-finger
+        // pointer events still fire (drawing, dragging rects) because
+        // pinch-zoom blocks pan + double-tap, not pointer events.
+        // Was "none" — which blocked pinch entirely if the gesture
+        // started on the editor.
+        touchAction: "pinch-zoom",
       }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -575,7 +581,7 @@ function HighlightEditorOverlay({
                   ? "grabbing"
                   : "move"
                 : "default",
-              touchAction: "none",
+              touchAction: "pinch-zoom",
               userSelect: "none",
             }}
           >
@@ -697,7 +703,7 @@ function HighlightEditorOverlay({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    touchAction: "none",
+                    touchAction: "pinch-zoom",
                   }}
                 >
                   <span

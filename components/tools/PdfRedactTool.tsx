@@ -494,7 +494,7 @@ function RedactEditorOverlay({
         borderRadius: 8,
         overflow: "hidden",
         border: "1px solid var(--border)",
-        touchAction: "none",
+        touchAction: "pinch-zoom",
       }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -552,7 +552,7 @@ function RedactEditorOverlay({
                   ? "grabbing"
                   : "move"
                 : "default",
-              touchAction: "none",
+              touchAction: "pinch-zoom",
               userSelect: "none",
             }}
           >
@@ -661,7 +661,7 @@ function RedactEditorOverlay({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    touchAction: "none",
+                    touchAction: "pinch-zoom",
                   }}
                 >
                   <span

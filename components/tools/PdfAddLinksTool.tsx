@@ -652,7 +652,7 @@ function LinksEditorOverlay({
         borderRadius: 8,
         overflow: "hidden",
         border: "1px solid var(--border)",
-        touchAction: "none",
+        touchAction: "pinch-zoom",
       }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -739,7 +739,7 @@ function LinksEditorOverlay({
                   : isResizing
                     ? "default"
                     : "move",
-              touchAction: "none",
+              touchAction: "pinch-zoom",
               userSelect: "none",
               transition: isActive ? "none" : "box-shadow 0.15s ease",
             }}
@@ -796,7 +796,7 @@ function LinksEditorOverlay({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    touchAction: "none",
+                    touchAction: "pinch-zoom",
                   }}
                 >
                   <span

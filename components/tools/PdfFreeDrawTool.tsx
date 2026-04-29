@@ -607,7 +607,7 @@ function FreeDrawEditorOverlay({
         borderRadius: 8,
         overflow: "hidden",
         border: "1px solid var(--border)",
-        touchAction: "none",
+        touchAction: "pinch-zoom",
       }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
