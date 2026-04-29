@@ -26,6 +26,7 @@ import { useTrackToolView } from "./useToolTracking";
 import { usePdfThumbnails, type PdfThumbnail } from "./usePdfThumbnails";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import { useHandoffConsumer } from "./useHandoffConsumer";
+import { useFileUrlConsumer } from "./useFileUrlConsumer";
 import { HandoffSuggestions } from "./HandoffSuggestions";
 
 // Sort enriches the base PdfThumbnail with sourceIndex (the position
@@ -126,6 +127,8 @@ export function PdfSortPagesTool() {
 
   // M9 part 2 (#193, 2026-04-29): consume incoming handoff.
   useHandoffConsumer(onFiles);
+  // M10 (#193, 2026-04-29): consume incoming ?file=<url> deep-link.
+  useFileUrlConsumer(onFiles);
 
   const reset = () => {
     // resetThumbnails revokes blob URLs; Sort's pages/originalOrder

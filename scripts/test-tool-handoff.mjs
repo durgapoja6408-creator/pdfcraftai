@@ -186,6 +186,51 @@ for (const name of HANDOFF_OFFERERS) {
 }
 
 // ──────────────────────────────────────────────────────────────────
+// M10 (#193, 2026-04-29): every consumer that consumes handoffs ALSO
+// consumes ?file=<url> deep-links — same five runners.
+// ──────────────────────────────────────────────────────────────────
+console.log("");
+console.log("M10 — runners wired to file-URL deep-link consumer:");
+for (const name of HANDOFF_CONSUMERS) {
+  const src = fs.readFileSync(
+    path.join(ROOT, "components/tools", name),
+    "utf8",
+  );
+  assert(
+    /useFileUrlConsumer/.test(src),
+    `${name} imports useFileUrlConsumer (M10 deep-link)`,
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// M10 — security: useFileUrlConsumer enforces same-origin only.
+// ──────────────────────────────────────────────────────────────────
+console.log("");
+console.log("M10 — useFileUrlConsumer security guards:");
+{
+  const src = fs.readFileSync(
+    path.join(ROOT, "components/tools/useFileUrlConsumer.ts"),
+    "utf8",
+  );
+  assert(
+    /resolved\.origin\s*!==\s*window\.location\.origin/.test(src),
+    "useFileUrlConsumer rejects cross-origin URLs",
+  );
+  assert(
+    /MAX_FILE_SIZE_BYTES/.test(src),
+    "useFileUrlConsumer enforces MAX_FILE_SIZE_BYTES",
+  );
+  assert(
+    /history\.replaceState/.test(src),
+    "useFileUrlConsumer strips ?file= from URL after consume",
+  );
+  assert(
+    /content-type/i.test(src),
+    "useFileUrlConsumer checks Content-Type header",
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
 // Wrap up
 // ──────────────────────────────────────────────────────────────────
 console.log("");

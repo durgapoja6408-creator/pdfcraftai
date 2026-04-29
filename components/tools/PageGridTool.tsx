@@ -34,6 +34,7 @@ import { usePdfThumbnails, type PdfThumbnail } from "./usePdfThumbnails";
 import { useVirtualGrid } from "./useVirtualGrid";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import { useHandoffConsumer } from "./useHandoffConsumer";
+import { useFileUrlConsumer } from "./useFileUrlConsumer";
 import { HandoffSuggestions } from "./HandoffSuggestions";
 import type { ToolGroup } from "@/lib/tools";
 
@@ -186,6 +187,8 @@ export function PageGridTool(props: PageGridToolProps) {
 
   // M9 part 2: feed incoming ?handoff=<key> through onFiles on mount.
   useHandoffConsumer(onFiles);
+  // M10: feed incoming ?file=<url> through onFiles on mount.
+  useFileUrlConsumer(onFiles);
 
   const reset = () => {
     resetThumbnails();

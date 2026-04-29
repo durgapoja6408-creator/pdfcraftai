@@ -20,6 +20,7 @@ import { suffixedFilename } from "@/lib/client/download";
 import { useTrackToolView } from "./useToolTracking";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import { useHandoffConsumer } from "./useHandoffConsumer";
+import { useFileUrlConsumer } from "./useFileUrlConsumer";
 import { HandoffSuggestions } from "./HandoffSuggestions";
 import type { ToolGroup } from "@/lib/tools";
 
@@ -128,6 +129,8 @@ function PdfSimpleOpsTool(props: SimpleOpToolProps) {
 
   // M9 part 2 (#193, 2026-04-29): consume incoming handoff.
   useHandoffConsumer(onFiles);
+  // M10 (#193, 2026-04-29): consume incoming ?file=<url> deep-link.
+  useFileUrlConsumer(onFiles);
 
   const reset = () => {
     setFile(null);

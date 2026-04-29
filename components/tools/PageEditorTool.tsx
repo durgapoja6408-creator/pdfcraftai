@@ -35,6 +35,7 @@ import { suffixedFilename } from "@/lib/client/download";
 import { useTrackToolView } from "./useToolTracking";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import { useHandoffConsumer } from "./useHandoffConsumer";
+import { useFileUrlConsumer } from "./useFileUrlConsumer";
 import { HandoffSuggestions } from "./HandoffSuggestions";
 import type { ToolGroup } from "@/lib/tools";
 
@@ -310,6 +311,10 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
   // runners (PageGrid, Split, Sort, Merge, SimpleOps) can reuse it
   // with one line.
   useHandoffConsumer(onFiles);
+  // M10 (#193, 2026-04-29): consume incoming `?file=<url>` deep-link.
+  // Same-origin only; size + MIME-validated; bytes pushed through
+  // onFiles. At most one of handoff / file will fire per mount.
+  useFileUrlConsumer(onFiles);
 
   /**
    * Navigate to a different page.

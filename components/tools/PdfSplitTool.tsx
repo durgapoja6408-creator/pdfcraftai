@@ -31,6 +31,7 @@ import { usePdfThumbnails, type PdfThumbnail } from "./usePdfThumbnails";
 import { useVirtualGrid } from "./useVirtualGrid";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import { useHandoffConsumer } from "./useHandoffConsumer";
+import { useFileUrlConsumer } from "./useFileUrlConsumer";
 import type { SplitMode, SplitOutput } from "@/lib/pdf/ops/split";
 
 // Split's thumbnail shape matches the hook's exactly — no enrichment.
@@ -128,6 +129,8 @@ export function PdfSplitTool() {
   // doesn't offer handoff buttons (its output is N files, not 1) but it
   // can receive a single PDF from another tool's "Open in Split" link.
   useHandoffConsumer(onFiles);
+  // M10 (#193, 2026-04-29): consume incoming ?file=<url> deep-link.
+  useFileUrlConsumer(onFiles);
 
   const reset = () => {
     resetThumbnails();
