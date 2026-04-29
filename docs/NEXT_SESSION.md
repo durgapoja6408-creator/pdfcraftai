@@ -166,7 +166,8 @@ Remaining 6 of 25 M-items, ranked:
 2. **M18** (AI tools first-page preview) — 3h; apply `useFirstPagePreview` to Summarize / Chat / Resume Parser / etc. so users can see what they uploaded before paying credits. (M25 cache makes this cheaper than before — handoff users see the preview instantly on the second tool.)
 3. **M25** **SHIPPED** (`12a2191`, 2026-04-29) — module-level LRU cache (4 entries, ~2MB cap) keyed by quick FNV-1a-style sample hash of head 1KB + tail 1KB + length + scale. Cache hits skip PDFium render entirely (saves 50-200ms on handoff navigations and reset+redrop flows). 12-assertion unit suite covers hash determinism, collision detection, and LRU eviction order.
 4. **M10** **SHIPPED** (`f4a47c2`, 2026-04-29) — `useFileUrlConsumer` hook fetches `?file=<url>` on mount with same-origin + MIME + size guards, strips the URL param before fetching, falls back silently on failure. Wired into the same 5 runners as M9 handoff. Test guard verifies all four security checks.
-5. Tier 4 leftovers: **M13** (mobile orientation rect-rescale, 2h), **M23** (Service Worker for PDFium WASM caching, 4h).
+5. **M13** **VERIFIED-CANONICAL** (`4e8133c`, 2026-04-29) — investigation found the architecture already handles orientation change: pointer coords convert to PDFium pixels (orientation-independent) and rects render via `% of pageRender.pxWidth` (auto-rescales on container re-flow). No code changes needed; 6 new assertions codify the invariant as a CI guard.
+6. Tier 4 leftover: **M23** (Service Worker for PDFium WASM caching, 4h).
 4. **M16** (focus return on error) — probably skip; `role="alert"` already announces and moving focus on error can disrupt user flow per WCAG guidance.
 
 ---
