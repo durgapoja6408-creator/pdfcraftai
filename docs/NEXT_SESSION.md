@@ -160,10 +160,10 @@ small, a few (M21, M23, M24) are real refactors.
 
 (M17 / M3 / M5 / M22 / M6 / M19 etc. all SHIPPED — see Tier tables above for SHA references.)
 
-Remaining 4 of 25 M-items, ranked:
+Remaining 3 of 25 M-items, ranked:
 
 1. **M21** (`PdfReadOpsTool` extraction) — 6h dedicated session; biggest single LOC reduction (~3000 LOC across 18 inspectors).
-2. **M18** **SHIPPED part 1** (`c02765e`, 2026-04-29) — `UploadedFilePreview` component wraps M25-cached `useFirstPagePreview` for AI upload cards. Wired into 8 tools (Summarize / Translate / Compare / Ocr / Rewrite / Redact / Sign / TableExtract) via canary + `scripts/wrap-uploaded-file-preview.py`. **M18 part 2 deferred:** 8 tools (TldrPdf, Mindmap, SemanticSearch, Structured/SummarizeVariant, BloodTest, ResumeParser, SearchablePdf) use slightly different file-card layouts; either extend the regex or do per-pattern manual refactors.
+2. **M18 parts 1+2** **SHIPPED** (`c02765e` + `baa2759`, 2026-04-29) — `UploadedFilePreview` component wraps M25-cached `useFirstPagePreview` for AI upload cards. Wired into ALL 16 file-upload AI tools (Generate is prompt-only, no upload). Idempotent wrap script `scripts/wrap-uploaded-file-preview.py` accepts both `size={16}` and `size={18}` icon variants. Test guard asserts every AI consumer wires the preview.
 3. **M25** **SHIPPED** (`12a2191`, 2026-04-29) — module-level LRU cache (4 entries, ~2MB cap) keyed by quick FNV-1a-style sample hash of head 1KB + tail 1KB + length + scale. Cache hits skip PDFium render entirely (saves 50-200ms on handoff navigations and reset+redrop flows). 12-assertion unit suite covers hash determinism, collision detection, and LRU eviction order.
 4. **M10** **SHIPPED** (`f4a47c2`, 2026-04-29) — `useFileUrlConsumer` hook fetches `?file=<url>` on mount with same-origin + MIME + size guards, strips the URL param before fetching, falls back silently on failure. Wired into the same 5 runners as M9 handoff. Test guard verifies all four security checks.
 5. **M13** **VERIFIED-CANONICAL** (`4e8133c`, 2026-04-29) — investigation found the architecture already handles orientation change: pointer coords convert to PDFium pixels (orientation-independent) and rects render via `% of pageRender.pxWidth` (auto-rescales on container re-flow). No code changes needed; 6 new assertions codify the invariant as a CI guard.
