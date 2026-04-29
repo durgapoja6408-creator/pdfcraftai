@@ -132,6 +132,9 @@ When wiring a new tool runner, prefer these shared modules over re-implementing 
 | `components/tools/PageEditorTool.tsx` | Shared base for visual editors | Tier 6 |
 | `components/tools/PageGridTool.tsx` | Shared base for thumbnail-grid tools | Task #156 |
 | `components/tools/PdfSimpleOpsTool.tsx` | Shared base for single-shot pdf-lib ops | G2 |
+| `components/tools/PdfReadOpsTool.tsx` | Shared base for read-only inspector tools (slot-fill: parser + headline + renderBody + optional csvExport/jsonExport) | M21 |
+| `public/pdfium-sw.js` | Single-purpose Service Worker — caches `/pdfium.wasm` only | M23 |
+| `components/PdfiumServiceWorker.tsx` | Idle-callback SW registration helper | M23 |
 
 **CI guards** (under `scripts/test-*.mjs`) codify these patterns and fail the build on regressions:
 - `test-objecturl-revocation.mjs` — every `createObjectURL` has a matching `revokeObjectURL`

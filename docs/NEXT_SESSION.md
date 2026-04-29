@@ -109,7 +109,7 @@ small, a few (M21, M23, M24) are real refactors.
 | ID | Item | Effort | Notes |
 |---|---|---|---|
 | M3 | **SHIPPED** (`430aea0`, 2026-04-28) | — | `lib/client/download.ts` `suffixedFilename()` |
-| M5 | **SHIPPED** parts 1+2 (`36ece46` + `9498285`, 2026-04-29) | — | AbortController plumbing through `rasterize.ts` → `usePdfThumbnails` → 3 consumer tools (PageGrid/Split/Sort) with Cancel buttons |
+| M5 | **SHIPPED** parts 1+2+3 (`36ece46` + `9498285` + `2c9c575`, 2026-04-29) | — | Part 1+2: AbortController plumbing through `rasterize.ts` → `usePdfThumbnails` → 3 consumer tools (PageGrid/Split/Sort) with Cancel buttons. Part 3: extended through merge + split apply phase (per-input/per-chunk signal check), with independent `applyAbortRef` in PdfMergeTool + PdfSplitTool |
 | M9 | **SHIPPED** (`be39236`, 2026-04-29) | — | `lib/client/handoff.ts` window-scoped Blob registry + `tool-suggestions.ts` curated map; PageEditorTool consumes `?handoff=` on mount and offers "Open in [Tool]" buttons on success card |
 | M14 | **SHIPPED** (`ecf0427`, 2026-04-28) | — | `@media print` block hides chrome, forces light theme |
 | M17 | **SHIPPED** (`1ab0221`, 2026-04-28) | — | `mapPdfOpError` extended to 25 AI/inspector catch sites |
@@ -120,9 +120,9 @@ small, a few (M21, M23, M24) are real refactors.
 |---|---|---|---|
 | M11 | **SHIPPED** (`c1b9e43`, 2026-04-29) | — | Switched 11 `touchAction:"none"` → `"pinch-zoom"` across 5 visual editors |
 | M12 | Mobile keyboard occluding inputs | 1h | scrollIntoView on focus for the URL input modal |
-| M21 | `PdfReadOpsTool` shared base for 18 inspectors | 6h | Biggest single LOC reduction (~3000 LOC) |
+| M21 | **SHIPPED** base + 4/9 inspectors (`4fc67fc` + `4d8ada8`, 2026-04-29) | ~1h remaining | `PdfReadOpsTool` slot-based base. PdfLinks/Annotations/Forms/Fonts migrated (1573 → 666 LOC + 362 base = -545 LOC, 907 LOC of duplication removed). Remaining: PdfAttachments, PdfChecklist, PdfOutline, 6 Wave 8 byte-parsers (~10 min each, ~1500 LOC more reduction) |
 | M24 | Code-split free vs AI tool bundles | 4h | Next.js dynamic imports per tool group |
-| M22 | **SHIPPED** (`3e86d9f`, 2026-04-29) | — | `lib/client/csv.ts` canonical writer, 4 inspector consumers migrated, 20 unit-test assertions |
+| M22 | **SHIPPED** (`3e86d9f`, 2026-04-29) + part 2 closed as vacuous (`2c9c575`) | — | `lib/client/csv.ts` canonical writer, 4 inspector consumers migrated, 20 unit-test assertions. Part 2 (BOM-on-load) vacuous: no consumer reads CSVs |
 
 ### Tier 3 — polish (~7h total)
 
@@ -146,7 +146,7 @@ small, a few (M21, M23, M24) are real refactors.
 | M10 | Deep-link `?file=<url>` to auto-load | 2h | URL param + fetch + validation |
 | M13 | Mobile orientation change rect-rescaling | 2h | ResizeObserver + rect coord normalization |
 | M20 | AI tool retry on transient network failure | 2h | Backoff + idempotency |
-| M23 | Service Worker for PDFium WASM caching | 4h | Workbox or hand-rolled |
+| M23 | **SHIPPED** (`fb4b48c`, 2026-04-29) | — | `public/pdfium-sw.js` single-purpose SW caches ONLY `/pdfium.wasm` (cache-first + network fallback, versioned `pdfium-wasm-v1`). `components/PdfiumServiceWorker.tsx` defers registration to `requestIdleCallback`. Single-purpose scope avoids classic SW staleness trap |
 | M25 | Memoize `useFirstPagePreview` by content hash | 2h | Hash + cache invalidation |
 
 ### Tier 5 — speculative (skip unless real users complain)
@@ -158,17 +158,19 @@ small, a few (M21, M23, M24) are real refactors.
 
 ### Recommended next-session priority order
 
-(M17 / M3 / M5 / M22 / M6 / M19 etc. all SHIPPED — see Tier tables above for SHA references.)
+24 of 25 M-items shipped; 3 verified-canonical (M8, M13, M15); M21 partial
+(4 of 9 inspectors migrated). Remaining work, ranked:
 
-Remaining 3 of 25 M-items, ranked:
-
-1. **M21** (`PdfReadOpsTool` extraction) — 6h dedicated session; biggest single LOC reduction (~3000 LOC across 18 inspectors).
-2. **M18 parts 1+2** **SHIPPED** (`c02765e` + `baa2759`, 2026-04-29) — `UploadedFilePreview` component wraps M25-cached `useFirstPagePreview` for AI upload cards. Wired into ALL 16 file-upload AI tools (Generate is prompt-only, no upload). Idempotent wrap script `scripts/wrap-uploaded-file-preview.py` accepts both `size={16}` and `size={18}` icon variants. Test guard asserts every AI consumer wires the preview.
-3. **M25** **SHIPPED** (`12a2191`, 2026-04-29) — module-level LRU cache (4 entries, ~2MB cap) keyed by quick FNV-1a-style sample hash of head 1KB + tail 1KB + length + scale. Cache hits skip PDFium render entirely (saves 50-200ms on handoff navigations and reset+redrop flows). 12-assertion unit suite covers hash determinism, collision detection, and LRU eviction order.
-4. **M10** **SHIPPED** (`f4a47c2`, 2026-04-29) — `useFileUrlConsumer` hook fetches `?file=<url>` on mount with same-origin + MIME + size guards, strips the URL param before fetching, falls back silently on failure. Wired into the same 5 runners as M9 handoff. Test guard verifies all four security checks.
-5. **M13** **VERIFIED-CANONICAL** (`4e8133c`, 2026-04-29) — investigation found the architecture already handles orientation change: pointer coords convert to PDFium pixels (orientation-independent) and rects render via `% of pageRender.pxWidth` (auto-rescales on container re-flow). No code changes needed; 6 new assertions codify the invariant as a CI guard.
-6. Tier 4 leftover: **M23** (Service Worker for PDFium WASM caching, 4h).
-4. **M16** **SHIPPED** (`b526b47`, 2026-04-29) — `useScrollErrorIntoView` scrolls error into view on null→string transition (no focus steal); wired into the same 5 shared runners.
+1. **M21 follow-up sweep** (~1h, mechanical) — migrate the remaining 5
+   inspectors to `PdfReadOpsTool`: PdfAttachments, PdfChecklist,
+   PdfOutline, plus the 6 Wave 8 byte-parsers if they haven't been
+   migrated. Estimated additional reduction: ~1500 LOC. Pattern is
+   proven across 4 different result shapes (table, grouped list,
+   mixed-content cells).
+2. **M12** Mobile keyboard occluding inputs (~1h) — scrollIntoView on
+   focus for the URL input modal in PdfAddLinksTool.
+3. **M24** Code-split free vs AI tool bundles (~4h) — Next.js dynamic
+   imports per tool group; biggest remaining bundle-size win.
 
 ---
 
