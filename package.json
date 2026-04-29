@@ -12,6 +12,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:fixtures": "node tests/fixtures/generate.mjs",
+    "test:ops": "tsx scripts/test-pdf-ops.ts",
     "smoke": "node scripts/smoke-live.mjs",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
@@ -53,6 +54,7 @@
     "eslint-config-next": "14.2.35",
     "postcss": "8.4.49",
     "tailwindcss": "3.4.14",
+    "tsx": "^4.21.0",
     "typescript": "5.6.3"
   },
   "engines": {

@@ -489,6 +489,19 @@ const SUITES = [
     name: "tool-runner-coverage",
     file: "test-tool-runner-coverage.mjs",
   },
+  // Phase 2 (2026-04-30): functional parse-back tests for every Node-
+  // runnable pdf-lib op. ~36 tests across writable ops (merge, split,
+  // rotate, crop, etc.), visual editors (highlight, redact, etc.),
+  // and byte-parser inspectors (fonts, links, forms, etc.). Catches
+  // "op produced corrupt PDF" — the failure class that static-parse
+  // and Playwright UI tests both miss. Runs via tsx because the ops
+  // are TypeScript and the test imports them directly.
+  {
+    name: "pdf-ops",
+    file: "test-pdf-ops.ts",
+    runner: "npx",
+    args: ["tsx"],
+  },
   // schema-drift pins Task #28 — the migration-drift boot-time guard.
   // After the errno-150 incident on 0009, we learned migrations can
   // silently fail to land on Hostinger-managed MariaDB. lib/db/schema-
@@ -722,7 +735,13 @@ const SUITES = [
 function runSuite(suite) {
   return new Promise((resolve) => {
     const scriptPath = path.join(__dirname, suite.file);
-    const child = spawn(process.execPath, [scriptPath], {
+    // Phase 2 (2026-04-30): some suites are TypeScript and need tsx
+    // to run. A suite can specify `runner` (defaults to node's
+    // execPath) and optional `args` prepended before the script path.
+    // For .ts suites: `runner: "npx", args: ["tsx"]`.
+    const runner = suite.runner ?? process.execPath;
+    const childArgs = [...(suite.args ?? []), scriptPath];
+    const child = spawn(runner, childArgs, {
       stdio: ["ignore", "pipe", "pipe"],
     });
 

@@ -52,7 +52,7 @@ async function buildSinglePage() {
   });
   pdf.setTitle("Single-page test fixture");
   pdf.setAuthor("pdfcraftai test suite");
-  return pdf.save();
+  return pdf.save({ useObjectStreams: false });
 }
 
 // ---------------------------------------------------------------------------
@@ -80,7 +80,7 @@ async function buildMultiPage() {
     });
   }
   pdf.setTitle("Multi-page test fixture");
-  return pdf.save();
+  return pdf.save({ useObjectStreams: false });
 }
 
 // ---------------------------------------------------------------------------
@@ -103,7 +103,7 @@ async function buildLarge() {
     });
   }
   pdf.setTitle("Large test fixture (50 pages)");
-  return pdf.save();
+  return pdf.save({ useObjectStreams: false });
 }
 
 // ---------------------------------------------------------------------------
@@ -134,7 +134,7 @@ async function buildEncryptedPlaceholder() {
     font,
   });
   pdf.setTitle("encrypted-placeholder");
-  return pdf.save();
+  return pdf.save({ useObjectStreams: false });
 }
 
 // ---------------------------------------------------------------------------
