@@ -160,11 +160,12 @@ small, a few (M21, M23, M24) are real refactors.
 
 (M17 / M3 / M5 / M22 / M6 / M19 etc. all SHIPPED — see Tier tables above for SHA references.)
 
-Remaining 8 of 25 M-items, ranked:
+Remaining 7 of 25 M-items, ranked:
 
 1. **M21** (`PdfReadOpsTool` extraction) — 6h dedicated session; biggest single LOC reduction (~3000 LOC across 18 inspectors).
-2. **M18** (AI tools first-page preview) — 3h; apply `useFirstPagePreview` to Summarize / Chat / Resume Parser / etc. so users can see what they uploaded before paying credits.
-3. Tier 4 leftovers: **M10** (deep-link `?file=<url>`, 2h), **M13** (mobile orientation rect-rescale, 2h), **M23** (Service Worker for PDFium WASM caching, 4h), **M25** (memoize `useFirstPagePreview` by content hash, 2h).
+2. **M18** (AI tools first-page preview) — 3h; apply `useFirstPagePreview` to Summarize / Chat / Resume Parser / etc. so users can see what they uploaded before paying credits. (M25 cache makes this cheaper than before — handoff users see the preview instantly on the second tool.)
+3. **M25** **SHIPPED** (`12a2191`, 2026-04-29) — module-level LRU cache (4 entries, ~2MB cap) keyed by quick FNV-1a-style sample hash of head 1KB + tail 1KB + length + scale. Cache hits skip PDFium render entirely (saves 50-200ms on handoff navigations and reset+redrop flows). 12-assertion unit suite covers hash determinism, collision detection, and LRU eviction order.
+4. Tier 4 leftovers: **M10** (deep-link `?file=<url>`, 2h), **M13** (mobile orientation rect-rescale, 2h), **M23** (Service Worker for PDFium WASM caching, 4h).
 4. **M16** (focus return on error) — probably skip; `role="alert"` already announces and moving focus on error can disrupt user flow per WCAG guidance.
 
 ---
