@@ -777,3 +777,64 @@ h4 {
     scroll-behavior: auto !important;
   }
 }
+
+/* M14 (2026-04-28): print stylesheet. When users hit Cmd/Ctrl+P on a
+ * tool result page (most common: printing the success card as a
+ * receipt for a watermarked / numbered / signed PDF), we hide the
+ * navigation chrome, marketing footer, busy-state animations, and
+ * cross-promo cards. The result card and its download link stay
+ * visible; everything else collapses. Print-specific colors: force
+ * black text on white background regardless of theme so ink
+ * cartridges aren't drained on the dark-mode background. */
+@media print {
+  /* Hide navigation, footer, ads, and any decorative chrome. */
+  nav,
+  header[role="banner"],
+  footer,
+  .ad-slot,
+  .pulse-soft,
+  [aria-busy="true"],
+  /* Cross-promo / related-tools sections. */
+  [data-related-tools],
+  /* Floating action buttons / chrome. */
+  [data-floating],
+  /* Skip-to-main link. */
+  .skip-to-main {
+    display: none !important;
+  }
+
+  /* Force light theme on print. Saves toner; matches reader expectation. */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Result cards print as standalone blocks without the dark surface. */
+  .card {
+    background: white !important;
+    color: black !important;
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+
+  /* Don't print interactive controls — they're meaningless on paper. */
+  button,
+  input[type="range"],
+  input[type="color"],
+  input[type="file"] {
+    display: none !important;
+  }
+
+  /* Keep links visible but show their URL inline so the print is
+   * self-contained (no clickable links on paper). */
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 90%;
+    color: #555;
+  }
+  a[href^="#"]::after,
+  a[href^="javascript:"]::after {
+    content: "";
+  }
+}

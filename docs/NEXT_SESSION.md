@@ -94,6 +94,77 @@ The "uniform inspect API" was speculative in the audit. G2 already addressed the
 
 ---
 
+---
+
+## M-series (second-pass audit) — 25 items the G-series missed
+
+A second-pass audit on 2026-04-28 surfaced 25 additional gaps the
+G-series didn't cover. **M14 (print stylesheet) is shipped today
+in `globals.css`.** The remaining 24 are documented here for future
+sessions. Effort estimates assume one-batch-per-item; many are
+small, a few (M21, M23, M24) are real refactors.
+
+### Tier 1 — high value, low risk (~6h total)
+
+| ID | Item | Effort | Notes |
+|---|---|---|---|
+| M3 | Output filename collision suffix on repeat runs | 30min | Each download() function gets a counter or timestamp; 20+ tools |
+| M5 | Apply cancellation via AbortController | 2h | Cancel button on the busy card; AbortSignal threaded through ops |
+| M9 | "Open in another tool" workflow on success card | 2h | 1-click handoff to compatible tools; passes blob URL via session storage |
+| M14 | **SHIPPED** in `app/globals.css` | — | `@media print` block hides chrome, forces light theme |
+| M17 | Extend `mapPdfOpError` to AI tools | 1h | Wrap the 30+ AI tool catch sites; same pattern as PageEditorTool |
+
+### Tier 2 — high value, moderate risk (~14h total)
+
+| ID | Item | Effort | Notes |
+|---|---|---|---|
+| M11 | Pinch-zoom on PDF previews (mobile) | 2h | Refactor PageEditorTool's touch-action; allow pinch but block single-finger scroll |
+| M12 | Mobile keyboard occluding inputs | 1h | scrollIntoView on focus for the URL input modal |
+| M21 | `PdfReadOpsTool` shared base for 18 inspectors | 6h | Biggest single LOC reduction (~3000 LOC) |
+| M24 | Code-split free vs AI tool bundles | 4h | Next.js dynamic imports per tool group |
+| M22 | Inspector CSV export shape consistency | 1h | Pick one flattening strategy; apply to all 7 inspector exports |
+
+### Tier 3 — polish (~7h total)
+
+| ID | Item | Effort | Notes |
+|---|---|---|---|
+| M1 | 0/1-page PDF edge cases on multi-page editors | 1h | Smoke-test all 5 visual editors with single-page input |
+| M2 | Disabled-state visibility on Apply buttons | 30min | Add explicit border or icon to disabled state |
+| M4 | Multi-file drag-drop UX (toast or accept all) | 1h | Either queue or warn |
+| M15 | `aria-live` on inspect-before-apply card (G2 follow-up) | 15min | Add `role="status"` |
+| M16 | Focus return to error message on setError | 30min | useRef on error element + .focus() |
+| M18 | AI tools first-page preview | 3h | Apply useFirstPagePreview to Summarize, Chat, Resume Parser, etc. |
+| M19 | AI tool credit-cost copy consistency | 1h | Doc + sweep |
+
+### Tier 4 — long tail (~16h total)
+
+| ID | Item | Effort | Notes |
+|---|---|---|---|
+| M6 | Object URL revocation audit | 2h | Walk every createObjectURL site |
+| M7 | Release input pdfBytes after apply success | 1h | setPdfBytes(null) post-success |
+| M8 | Stale blob URLs on browser-back | 1h | Detect via navigation API |
+| M10 | Deep-link `?file=<url>` to auto-load | 2h | URL param + fetch + validation |
+| M13 | Mobile orientation change rect-rescaling | 2h | ResizeObserver + rect coord normalization |
+| M20 | AI tool retry on transient network failure | 2h | Backoff + idempotency |
+| M23 | Service Worker for PDFium WASM caching | 4h | Workbox or hand-rolled |
+| M25 | Memoize `useFirstPagePreview` by content hash | 2h | Hash + cache invalidation |
+
+### Tier 5 — speculative (skip unless real users complain)
+
+| ID | Item | Notes |
+|---|---|---|
+| M16 — covered by Tier 3 |  |
+| (no others) |  |
+
+### Recommended next-session priority order
+
+1. **M17** (encrypted-PDF UX for AI tools) — extends existing infrastructure to ~30 more tools in 1h
+2. **M3** (filename collision) — small, contained, eliminates a real user friction
+3. **M5** (apply cancellation) — high user value, scoped scope
+4. **M21** (PdfReadOpsTool extraction) — biggest LOC reduction; do as a dedicated session
+
+---
+
 ## Quick reference — what shipped today
 
 **Visual editor parity arc (#186–#192):**
