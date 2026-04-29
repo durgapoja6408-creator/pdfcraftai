@@ -103,9 +103,45 @@ HOSTINGER_SSH_PRIVATE_KEY_PATH=/sessions/gifted-funny-franklin/mnt/pdfcraftai.co
 - `CLAUDE.md` (this file) — session bootstrap (credentials + infra)
 - **`docs/STATUS.md` — live punch list: what's DONE, what's PENDING, who owns each. Read this IMMEDIATELY after CLAUDE.md at session start.**
 - **`docs/TOOL_PATTERN.md` — canonical structure every new tool must follow. Read BEFORE shipping any new tool. The PDF Inspector saga (P0–P9) hardened this pattern; treat `/tool/page-count` and `/tool/pdf-inspector` as reference implementations.**
+- **`docs/NEXT_SESSION.md` — handoff doc with item-by-item ranked priorities. Read for "what should I work on next" guidance.**
+- `docs/UI_COPY.md` — UI copy style guide + canonical error strings (M14 / G1 deliverable)
 - `docs/DEPLOYMENT_NOTES.md` — detailed env vars, integration status, recovery playbook
 - `app/layout.tsx` — analytics / tracking scripts live here
 - `auth.ts` / `auth.config.ts` — NextAuth v5 Google provider wiring
+
+### 7a. Shared client-side infrastructure (M-series, 2026-04-29)
+
+When wiring a new tool runner, prefer these shared modules over re-implementing inline:
+
+| Module | Purpose | Used by |
+|---|---|---|
+| `lib/client/handoff.ts` | Window-scoped Blob registry for "Open in another tool" workflows | M9 |
+| `lib/client/tool-suggestions.ts` | Curated `source toolId → target toolIds` map | M9 |
+| `lib/client/csv.ts` | Canonical CSV writer (RFC 4180, BOM, CRLF) | M22 |
+| `lib/client/download.ts` | Filename collision suffix + download helper | M3 |
+| `lib/client/fetch-ai-with-retry.ts` | AI op fetch with backoff retry on 408/502/503/504 + TypeError | M20 |
+| `lib/pdf/error-messages.ts` | Canonical user-facing error mapping | G1 |
+| `components/tools/useHandoffConsumer.ts` | Mount hook to consume `?handoff=<key>` | M9 |
+| `components/tools/useFileUrlConsumer.ts` | Mount hook to consume `?file=<url>` (same-origin only) | M10 |
+| `components/tools/useScrollErrorIntoView.ts` | Scroll error into view on null→string | M16 |
+| `components/tools/useFirstPagePreview.ts` | Page-1 PDFium render with M25 LRU cache | M18, M25 |
+| `components/tools/useVirtualGrid.ts` | Window-scroll-driven DOM virtualization | G4, #192 |
+| `components/tools/useRectEditor.ts` | Foundation hook for move/resize plumbing | G8 |
+| `components/tools/HandoffSuggestions.tsx` | "Open this output in: [Tool]" panel | M9 |
+| `components/tools/UploadedFilePreview.tsx` | Page-1 thumbnail for AI upload cards | M18 |
+| `components/tools/PageEditorTool.tsx` | Shared base for visual editors | Tier 6 |
+| `components/tools/PageGridTool.tsx` | Shared base for thumbnail-grid tools | Task #156 |
+| `components/tools/PdfSimpleOpsTool.tsx` | Shared base for single-shot pdf-lib ops | G2 |
+
+**CI guards** (under `scripts/test-*.mjs`) codify these patterns and fail the build on regressions:
+- `test-objecturl-revocation.mjs` — every `createObjectURL` has a matching `revokeObjectURL`
+- `test-csv-helper.mjs` — RFC-4180 escape/row/build invariants
+- `test-page-editor-consumers.mjs` — multiPage discriminator + single-page edge cases + orientation invariants
+- `test-tool-handoff.mjs` — suggestion map references valid ids; no self-loops; security guards in place
+- `test-fetch-ai-retry.mjs` — every AI op route uses retry + has the file preview
+- `test-first-page-preview-cache.mjs` — sample hash + LRU eviction order
+
+When adding a new tool, run `npm test` to verify it doesn't regress these invariants.
 
 ## 8. Session hygiene
 
