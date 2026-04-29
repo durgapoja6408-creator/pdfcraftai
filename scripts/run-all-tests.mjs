@@ -502,6 +502,15 @@ const SUITES = [
     runner: "npx",
     args: ["tsx"],
   },
+  // Phase 5 (2026-04-30): bundle-size budget guard. Reads
+  // .next/build-manifest.json + chunks dir; fails if any chunk or
+  // page first-load JS regresses past budget. Skips silently if
+  // .next/ doesn't exist (so local `npm test` doesn't force a build).
+  // CI should run `npm run build` before this.
+  {
+    name: "bundle-budget",
+    file: "test-bundle-budget.mjs",
+  },
   // schema-drift pins Task #28 — the migration-drift boot-time guard.
   // After the errno-150 incident on 0009, we learned migrations can
   // silently fail to land on Hostinger-managed MariaDB. lib/db/schema-

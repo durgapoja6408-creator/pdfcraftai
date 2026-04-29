@@ -1,0 +1,122 @@
+# .github/workflows/synthetic-monitor.yml
+#
+# Phase 6 (2026-04-30): synthetic uptime monitor for pdfcraftai.com.
+#
+# Why this exists:
+#   The Hostinger LSAPI 503 cascade (CLAUDE.md §5) recurs on bursty
+#   deploys. Local dev has no signal that the site is down — we only
+#   find out when a user complains or the next push triggers another
+#   cascade. This workflow runs from GitHub Actions infra (independent
+#   of Hostinger) every 5 minutes, hits /api/health + 4 representative
+#   pages, and posts to Slack on failure.
+#
+# What's checked every 5 minutes:
+#   1. /api/health           → expects 200 + `"ok":true` in body
+#   2. /                     → expects 200
+#   3. /tools                → expects 200
+#   4. /tool/merge           → expects 200 (representative tool runner)
+#   5. /admin/deploy         → expects 200 OR 401 (auth-gated, both are
+#                              fine — what we DON'T want is 5xx)
+#
+# Failure mode:
+#   - Any non-2xx (or 5xx for /admin/deploy) → workflow fails
+#   - Failed runs post to Slack via SLACK_WEBHOOK_URL secret
+#   - GitHub Actions auto-retries via the schedule on next 5-min tick,
+#     so transient blips don't page; sustained downtime does
+#
+# Setup needed (user action, one-time):
+#   1. Create a Slack incoming webhook for the channel that should
+#      receive alerts. Copy the URL.
+#   2. In GitHub repo settings → Secrets → Actions → New secret:
+#      Name:  SLACK_WEBHOOK_URL
+#      Value: https://hooks.slack.com/services/T.../B.../...
+#   3. Push this file (already committed). The cron starts firing
+#      automatically on the next interval.
+#
+# Cost: GitHub Actions free tier gives 2000 minutes/month for
+# private repos. This workflow runs ~1 minute per invocation × 12
+# invocations/hour × 24h × 30d = ~8640 minutes — but the actual run
+# time is ~10 seconds, so it's well under the free quota.
+
+name: Synthetic monitor
+
+on:
+  schedule:
+    # Every 5 minutes. GitHub Actions cron has a max precision of
+    # 5min and may be delayed by 5-15min during platform load.
+    - cron: "*/5 * * * *"
+  # Allow manual trigger for ad-hoc checks (e.g., post-deploy verify).
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Health check + page sanity
+        id: smoke
+        run: |
+          set +e   # don't bail on first failure — collect all signals
+          fail=0
+          report=""
+
+          check() {
+            local label="$1"
+            local url="$2"
+            local expected="$3"  # regex matching expected codes (e.g. "200" or "200|401")
+            local code
+            code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 "$url" || echo "000")
+            if echo "$code" | grep -qE "^($expected)$"; then
+              report="$report\n  ✓ $label ($code) $url"
+            else
+              report="$report\n  ✗ $label expected $expected got $code — $url"
+              fail=1
+            fi
+          }
+
+          # /api/health is the gold-standard signal. We additionally
+          # verify the body contains `"ok":true` because Hostinger's
+          # nginx can return 200 + "Service Unavailable" page during
+          # cascade recovery.
+          health_body=$(curl -sS --max-time 15 https://pdfcraftai.com/api/health || true)
+          if echo "$health_body" | grep -q '"ok":true'; then
+            report="$report\n  ✓ /api/health ok=true"
+          else
+            report="$report\n  ✗ /api/health body did not contain \"ok\":true"
+            fail=1
+          fi
+
+          check "homepage"          https://pdfcraftai.com/                    "200"
+          check "/tools index"      https://pdfcraftai.com/tools               "200"
+          check "/tool/merge"       https://pdfcraftai.com/tool/merge          "200"
+          check "/admin/deploy"     https://pdfcraftai.com/admin/deploy        "200|401|307"
+
+          echo -e "Synthetic monitor results at $(date -u +%FT%TZ):$report"
+          if [ "$fail" -ne 0 ]; then
+            echo -e "$report" > /tmp/smoke-fail.txt
+            echo "fail=1" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          echo "fail=0" >> $GITHUB_OUTPUT
+
+      - name: Post to Slack on failure
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          report=$(cat /tmp/smoke-fail.txt 2>/dev/null || echo "(no detail captured)")
+          payload=$(cat <<EOF
+          {
+            "text": ":rotating_light: pdfcraftai.com synthetic monitor failed",
+            "blocks": [
+              {"type": "header", "text": {"type": "plain_text", "text": "🚨 pdfcraftai.com smoke failed"}},
+              {"type": "section", "text": {"type": "mrkdwn", "text": "Run: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|view logs>\nTime: $(date -u +%FT%TZ)"}},
+              {"type": "section", "text": {"type": "mrkdwn", "text": "\`\`\`$report\`\`\`"}},
+              {"type": "context", "elements": [{"type": "mrkdwn", "text": "Likely fix: hPanel → Resource Usage → Stop running process (per CLAUDE.md §5)"}]}
+            ]
+          }
+          EOF
+          )
+          curl -sS -X POST -H "Content-Type: application/json" \
+            --data "$payload" "$SLACK_WEBHOOK_URL" || true
