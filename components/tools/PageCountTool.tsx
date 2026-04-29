@@ -26,6 +26,7 @@ import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 type Result = {
   pageCount: number;
@@ -108,7 +109,7 @@ export function PageCountTool() {
       console.error("page-count failed", err);
       const msg =
         err instanceof Error ? err.message : "Could not read the PDF. Is it valid?";
-      setError(msg);
+      setError(mapPdfOpError(msg));
       setStage("idle");
       const errorCode =
         err instanceof Error && /pdfium|wasm/i.test(err.message)

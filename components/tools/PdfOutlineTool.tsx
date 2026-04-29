@@ -14,6 +14,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import type { OutlineNode } from "@/lib/pdf/ops/outline";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 interface OutlineToolResult {
   fileName: string;
@@ -77,7 +78,7 @@ export function PdfOutlineTool() {
       console.error("pdf-outline failed", err);
       const msg =
         err instanceof Error ? err.message : "Could not parse the PDF outline.";
-      setError(msg);
+      setError(mapPdfOpError(msg));
       setStage("idle");
       tracker.error({ errorCode: "parse_failed" });
     }

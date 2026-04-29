@@ -18,6 +18,7 @@ import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 interface PendingFile {
   /** Stable key for React + DnD reordering. */
@@ -190,7 +191,7 @@ export function PdfMergeTool() {
     } catch (err) {
       console.error("merge failed", err);
       const msg = err instanceof Error ? err.message : "Could not merge PDFs.";
-      setError(msg);
+      setError(mapPdfOpError(msg));
       tracker.error({ errorCode: "merge_failed" });
     } finally {
       setBusy(false);

@@ -27,6 +27,7 @@ import {
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
 import { useToolTracking } from "./useToolTracking";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 type TreeNode = {
   label: string;
@@ -235,7 +236,7 @@ export function MindmapPdfTool() {
       trackTool.error({ errorCode: `http_${res.status}`, depth: "mindmap" });
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "Request failed.");
+      setError(mapPdfOpError(err instanceof Error ? err.message : "Request failed."));
       trackTool.error({ errorCode: "network_error", depth: "mindmap" });
     } finally {
       setBusy(false);

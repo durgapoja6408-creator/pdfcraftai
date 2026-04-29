@@ -29,6 +29,7 @@ import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 const SIGN_IN_HREF = "/login?callbackUrl=/tool/ai-tldr";
 
@@ -133,7 +134,7 @@ export function TldrPdfTool() {
       );
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "TL;DR failed.");
+      setError(mapPdfOpError(err instanceof Error ? err.message : "TL;DR failed."));
     } finally {
       setBusy(false);
     }

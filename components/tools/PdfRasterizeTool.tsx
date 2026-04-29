@@ -23,6 +23,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import type { RasterFormat, RasterPage } from "@/lib/pdf/ops/rasterize";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 export type RasterizeFormat = RasterFormat;
 
@@ -147,7 +148,7 @@ export function PdfRasterizeTool({ toolId, format }: PdfRasterizeToolProps) {
       console.error(`${toolId} failed`, err);
       const msg =
         err instanceof Error ? err.message : "Could not render the PDF. Is it valid?";
-      setError(msg);
+      setError(mapPdfOpError(msg));
       setStage("idle");
       const errorCode =
         err instanceof Error && /pdfium|wasm/i.test(err.message)

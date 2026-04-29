@@ -8,6 +8,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import type { PdfAnnotation } from "@/lib/pdf/ops/annotations";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 interface ToolResult {
   fileName: string;
@@ -67,7 +68,7 @@ export function PdfAnnotationsTool() {
       });
     } catch (err) {
       console.error("pdf-annotations failed", err);
-      setError(err instanceof Error ? err.message : "Could not parse the PDF.");
+      setError(mapPdfOpError(err instanceof Error ? err.message : "Could not parse the PDF."));
       setStage("idle");
       tracker.error({ errorCode: "parse_failed" });
     }

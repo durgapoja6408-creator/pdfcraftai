@@ -10,6 +10,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import type { PaperSize } from "@/lib/pdf/ops/resize";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 interface ResultState {
   outputBytes: Uint8Array;
@@ -86,7 +87,7 @@ export function PdfResizeTool() {
         processingMs: Math.round(performance.now() - t0),
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not resize the PDF.");
+      setError(mapPdfOpError(err instanceof Error ? err.message : "Could not resize the PDF."));
       tracker.error({ errorCode: "resize_failed" });
     } finally {
       setBusy(false);

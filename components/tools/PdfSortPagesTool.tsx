@@ -23,6 +23,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import { usePdfThumbnails, type PdfThumbnail } from "./usePdfThumbnails";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 // Sort enriches the base PdfThumbnail with sourceIndex (the position
 // in the SOURCE PDF — used by the reorder op to map "output position
@@ -93,7 +94,7 @@ export function PdfSortPagesTool() {
         console.error("sort-pages thumbnail render failed", err);
         const msg =
           err instanceof Error ? err.message : "Could not parse the PDF.";
-        setError(msg);
+        setError(mapPdfOpError(msg));
         setStage("idle");
         tracker.error({ errorCode: "thumbnail_failed" });
       }
@@ -176,7 +177,7 @@ export function PdfSortPagesTool() {
       console.error("sort-pages apply failed", err);
       const msg =
         err instanceof Error ? err.message : "Could not save the reordered PDF.";
-      setError(msg);
+      setError(mapPdfOpError(msg));
       setStage("ready");
       tracker.error({ errorCode: "sort_failed" });
     }

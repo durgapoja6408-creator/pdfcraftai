@@ -30,6 +30,7 @@ import {
   type DocumentInspection,
 } from "@/lib/pdf/ops/inspect";
 import type { PdfMetadata } from "@/lib/pdf/ops/metadata";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 type Result = DocumentInspection & {
   fileName: string;
@@ -105,7 +106,7 @@ export function PdfInspectorTool() {
       console.error("inspect failed", err);
       const msg =
         err instanceof Error ? err.message : "Could not read the PDF. Is it valid?";
-      setError(msg);
+      setError(mapPdfOpError(msg));
       setStage("idle");
       // P6: classify error coarsely for analytics — distinguishes
       // engine-load failures from parse failures.

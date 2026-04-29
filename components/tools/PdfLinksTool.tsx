@@ -9,6 +9,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import type { PdfLink } from "@/lib/pdf/ops/links";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 interface ToolResult {
   fileName: string;
@@ -75,7 +76,7 @@ export function PdfLinksTool() {
     } catch (err) {
       console.error("pdf-links failed", err);
       const msg = err instanceof Error ? err.message : "Could not parse the PDF.";
-      setError(msg);
+      setError(mapPdfOpError(msg));
       setStage("idle");
       tracker.error({ errorCode: "parse_failed" });
     }

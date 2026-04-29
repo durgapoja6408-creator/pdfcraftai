@@ -24,6 +24,7 @@ import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useToolTracking } from "./useToolTracking";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 type Passage = {
   passage: string;
@@ -159,7 +160,7 @@ export function SemanticSearchPdfTool() {
       trackTool.error({ errorCode: `http_${res.status}`, depth: "semantic-search" });
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "Request failed.");
+      setError(mapPdfOpError(err instanceof Error ? err.message : "Request failed."));
       trackTool.error({ errorCode: "network_error", depth: "semantic-search" });
     } finally {
       setBusy(false);

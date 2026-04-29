@@ -28,6 +28,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import { usePdfThumbnails, type PdfThumbnail } from "./usePdfThumbnails";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 // Rotate enriches the base PdfThumbnail with a `rotation` field
 // (0/90/180/270) tracked per-page — same enrich-on-top pattern as
@@ -96,7 +97,7 @@ export function PdfRotateTool() {
         console.error("rotate thumbnail render failed", err);
         const msg =
           err instanceof Error ? err.message : "Could not parse the PDF.";
-        setError(msg);
+        setError(mapPdfOpError(msg));
         setStage("idle");
         tracker.error({ errorCode: "thumbnail_failed" });
       }
@@ -169,7 +170,7 @@ export function PdfRotateTool() {
       console.error("rotate apply failed", err);
       const msg =
         err instanceof Error ? err.message : "Could not rotate the PDF.";
-      setError(msg);
+      setError(mapPdfOpError(msg));
       setStage("ready");
       tracker.error({ errorCode: "rotate_failed" });
     }

@@ -11,6 +11,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import type { PdfFont } from "@/lib/pdf/ops/fonts";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 interface FontsToolResult {
   fileName: string;
@@ -76,7 +77,7 @@ export function PdfFontsTool() {
       console.error("pdf-fonts failed", err);
       const msg =
         err instanceof Error ? err.message : "Could not parse the PDF fonts.";
-      setError(msg);
+      setError(mapPdfOpError(msg));
       setStage("idle");
       tracker.error({ errorCode: "parse_failed" });
     }

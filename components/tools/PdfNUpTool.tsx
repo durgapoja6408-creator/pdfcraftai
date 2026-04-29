@@ -10,6 +10,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import type { NUpLayout } from "@/lib/pdf/ops/n-up";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 interface ResultState {
   outputBytes: Uint8Array;
@@ -75,7 +76,7 @@ export function PdfNUpTool() {
         processingMs: Math.round(performance.now() - t0),
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not produce N-up PDF.");
+      setError(mapPdfOpError(err instanceof Error ? err.message : "Could not produce N-up PDF."));
       tracker.error({ errorCode: "n_up_failed" });
     } finally {
       setBusy(false);

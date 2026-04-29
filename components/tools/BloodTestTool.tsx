@@ -20,6 +20,7 @@ import {
 } from "@/lib/client/pdf-utils";
 import { logToolResultAction } from "@/lib/tool-result-actions";
 import { useToolTracking } from "./useToolTracking";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 type Flag = "normal" | "low" | "high" | "critical" | "unknown";
 
@@ -211,7 +212,7 @@ export function BloodTestTool() {
       trackTool.error({ errorCode: `http_${res.status}`, depth: "blood-test" });
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "Request failed.");
+      setError(mapPdfOpError(err instanceof Error ? err.message : "Request failed."));
       trackTool.error({ errorCode: "network_error", depth: "blood-test" });
     } finally {
       setBusy(false);

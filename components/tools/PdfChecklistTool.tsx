@@ -17,6 +17,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import type { ToolGroup } from "@/lib/tools";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 export interface ChecklistItem {
   label: string;
@@ -107,7 +108,7 @@ export function PdfChecklistTool({
       });
     } catch (err) {
       console.error(`${toolId} failed`, err);
-      setError(err instanceof Error ? err.message : "Could not check the PDF.");
+      setError(mapPdfOpError(err instanceof Error ? err.message : "Could not check the PDF."));
       setStage("idle");
       tracker.error({ errorCode: "parse_failed" });
     }

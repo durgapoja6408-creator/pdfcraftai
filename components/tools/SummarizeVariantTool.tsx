@@ -20,6 +20,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
 import { track } from "@/lib/analytics";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 type Depth =
   | "key-points"
@@ -250,7 +251,7 @@ export function SummarizeVariantTool(props: {
       });
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "Request failed.");
+      setError(mapPdfOpError(err instanceof Error ? err.message : "Request failed."));
       track({
         event: "tool_run_error",
         tool_id: props.toolId,

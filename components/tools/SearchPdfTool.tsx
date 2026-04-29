@@ -13,6 +13,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import type { SearchMatch, SearchResult } from "@/lib/pdf/ops/search-text";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 type LoadStage = "idle" | "loading-engine" | "searching" | "done";
 
@@ -91,7 +92,7 @@ export function SearchPdfTool() {
       console.error("pdf-search failed", err);
       const msg =
         err instanceof Error ? err.message : "Could not read the PDF. Is it valid?";
-      setError(msg);
+      setError(mapPdfOpError(msg));
       setStage("idle");
       tracker.error({
         errorCode:

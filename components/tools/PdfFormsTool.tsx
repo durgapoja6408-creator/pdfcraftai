@@ -13,6 +13,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import type { FormField } from "@/lib/pdf/ops/forms";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 interface FormsToolResult {
   fileName: string;
@@ -78,7 +79,7 @@ export function PdfFormsTool() {
       console.error("pdf-forms failed", err);
       const msg =
         err instanceof Error ? err.message : "Could not parse the PDF form.";
-      setError(msg);
+      setError(mapPdfOpError(msg));
       setStage("idle");
       tracker.error({ errorCode: "parse_failed" });
     }

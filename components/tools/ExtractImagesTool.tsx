@@ -17,6 +17,7 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import type { ExtractedImage } from "@/lib/pdf/ops/extract-images";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 interface ExtractResult {
   fileName: string;
@@ -103,7 +104,7 @@ export function ExtractImagesTool() {
       console.error("extract-images failed", err);
       const msg =
         err instanceof Error ? err.message : "Could not read the PDF. Is it valid?";
-      setError(msg);
+      setError(mapPdfOpError(msg));
       setStage("idle");
       tracker.error({
         errorCode:

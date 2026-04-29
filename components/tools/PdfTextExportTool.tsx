@@ -25,6 +25,7 @@ import {
   formatAsMarkdown,
   formatAsHtml,
 } from "@/lib/pdf/ops/text-export";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 
 export type TextExportFormat = "text" | "markdown" | "html";
 
@@ -164,7 +165,7 @@ export function PdfTextExportTool({ toolId, format }: PdfTextExportToolProps) {
       console.error(`${toolId} failed`, err);
       const msg =
         err instanceof Error ? err.message : "Could not read the PDF. Is it valid?";
-      setError(msg);
+      setError(mapPdfOpError(msg));
       setStage("idle");
       const errorCode =
         err instanceof Error && /pdfium|wasm/i.test(err.message)
