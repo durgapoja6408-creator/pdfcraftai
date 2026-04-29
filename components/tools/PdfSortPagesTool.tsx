@@ -17,7 +17,7 @@
 // 3 page before chapter 2"). The position in the grid is the new
 // position in the output.
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
@@ -60,6 +60,10 @@ export function PdfSortPagesTool() {
   const { progress, render: renderThumbnails, reset: resetThumbnails } =
     usePdfThumbnails();
 
+  // M5 (#193, 2026-04-29): cancellation. AbortController per render.
+  const renderAbortRef = useRef<AbortController | null>(null);
+  const cancelRender = useCallback(() => renderAbortRef.current?.abort(), []);
+
   const onFiles = useCallback(
     async (files: File[]) => {
       setError(null);
@@ -78,10 +82,15 @@ export function PdfSortPagesTool() {
       tracker.upload(f);
       setStage("rendering-thumbnails");
 
+      // M5 (#193): supersede any prior in-flight render.
+      renderAbortRef.current?.abort();
+      const controller = new AbortController();
+      renderAbortRef.current = controller;
+
       try {
         const bytes = new Uint8Array(await f.arrayBuffer());
         setPdfBytes(bytes);
-        const rendered = await renderThumbnails(bytes);
+        const rendered = await renderThumbnails(bytes, controller.signal);
         // Enrich with sourceIndex — Sort's op needs to know which
         // SOURCE page lands at each OUTPUT position after reorder.
         const thumbs: PageThumb[] = rendered.map((t, i) => ({
@@ -91,12 +100,22 @@ export function PdfSortPagesTool() {
         setPages(thumbs);
         setOriginalOrder(thumbs);
         setStage("ready");
+        renderAbortRef.current = null;
       } catch (err) {
+        // M5: cancel-by-user → reset cleanly.
+        if (err instanceof DOMException && err.name === "AbortError") {
+          setFile(null);
+          setPdfBytes(null);
+          setStage("idle");
+          renderAbortRef.current = null;
+          return;
+        }
         console.error("sort-pages thumbnail render failed", err);
         const msg =
           err instanceof Error ? err.message : "Could not parse the PDF.";
         setError(mapPdfOpError(msg));
         setStage("idle");
+        renderAbortRef.current = null;
         tracker.error({ errorCode: "thumbnail_failed" });
       }
     },
@@ -273,6 +292,16 @@ export function PdfSortPagesTool() {
             Rendering page previews
             {progress.total > 0 ? ` · ${progress.done} / ${progress.total}` : "…"}
           </div>
+          {/* M5 (#193): cancel an in-flight render. */}
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            onClick={cancelRender}
+            aria-label="Cancel preview rendering"
+            style={{ padding: "4px 10px", fontSize: 12 }}
+          >
+            Cancel
+          </button>
         </div>
       )}
 

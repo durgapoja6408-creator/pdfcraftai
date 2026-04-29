@@ -22,7 +22,7 @@
 //   know exactly what they want and don't need thumbnails — and huge
 //   PDFs (>200 pages) render slowly enough that text-mode is faster.
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
@@ -55,6 +55,10 @@ export function PdfSplitTool() {
   const { thumbnails, progress, render: renderThumbnails, reset: resetThumbnails } =
     usePdfThumbnails();
 
+  // M5 (#193, 2026-04-29): cancellation. AbortController per render.
+  const renderAbortRef = useRef<AbortController | null>(null);
+  const cancelRender = useCallback(() => renderAbortRef.current?.abort(), []);
+
   // UI state
   const [uiMode, setUiMode] = useState<UIMode>("visual");
   // Visual-mode state: set of 0-based indices AFTER which to split.
@@ -86,18 +90,33 @@ export function PdfSplitTool() {
       tracker.upload(f);
       setStage("rendering-thumbnails");
 
+      // M5 (#193): supersede any prior in-flight render.
+      renderAbortRef.current?.abort();
+      const controller = new AbortController();
+      renderAbortRef.current = controller;
+
       try {
         const bytes = new Uint8Array(await f.arrayBuffer());
         setPdfBytes(bytes);
-        await renderThumbnails(bytes);
+        await renderThumbnails(bytes, controller.signal);
         setSplits(new Set());
         setStage("ready");
+        renderAbortRef.current = null;
       } catch (err) {
+        // M5: cancel-by-user — reset cleanly, don't surface as error.
+        if (err instanceof DOMException && err.name === "AbortError") {
+          setFile(null);
+          setPdfBytes(null);
+          setStage("idle");
+          renderAbortRef.current = null;
+          return;
+        }
         console.error("split thumbnail render failed", err);
         const msg =
           err instanceof Error ? err.message : "Could not parse the PDF.";
         setError(mapPdfOpError(msg));
         setStage("idle");
+        renderAbortRef.current = null;
         tracker.error({ errorCode: "thumbnail_failed" });
       }
     },
@@ -333,6 +352,16 @@ export function PdfSplitTool() {
                 : `Rendering page previews · ${progress.done} / ${progress.total}`
               : "Rendering page previews…"}
           </div>
+          {/* M5 (#193): cancel an in-flight render. */}
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            onClick={cancelRender}
+            aria-label="Cancel preview rendering"
+            style={{ padding: "4px 10px", fontSize: 12 }}
+          >
+            Cancel
+          </button>
         </div>
       )}
 
