@@ -28,6 +28,7 @@ import { useState, useCallback } from "react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
+import { suffixedFilename } from "@/lib/client/download";
 import { useTrackToolView } from "./useToolTracking";
 import { usePdfThumbnails, type PdfThumbnail } from "./usePdfThumbnails";
 import { useVirtualGrid } from "./useVirtualGrid";
@@ -263,7 +264,7 @@ export function PageGridTool(props: PageGridToolProps) {
     try {
       const a = document.createElement("a");
       a.href = url;
-      a.download = result.outputFileName;
+      a.download = suffixedFilename(result.outputFileName);
       document.body.appendChild(a);
       a.click();
       a.remove();

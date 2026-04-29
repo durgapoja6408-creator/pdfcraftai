@@ -31,6 +31,7 @@ import { useState, useCallback, useEffect } from "react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
+import { suffixedFilename } from "@/lib/client/download";
 import { useTrackToolView } from "./useToolTracking";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import type { ToolGroup } from "@/lib/tools";
@@ -460,7 +461,7 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
     try {
       const a = document.createElement("a");
       a.href = url;
-      a.download = result.outputFileName;
+      a.download = suffixedFilename(result.outputFileName);
       document.body.appendChild(a);
       a.click();
       a.remove();
