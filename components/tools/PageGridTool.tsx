@@ -293,6 +293,89 @@ export function PageGridTool(props: PageGridToolProps) {
     ? props.maxSelected(thumbnails.length)
     : thumbnails.length;
 
+  // G12 (#193, 2026-04-28): keyboard arrow navigation across the
+  // thumbnail grid. ArrowLeft/Right move ±1 within a row; Up/Down
+  // move ±cols (computed from the virtualization hook below); Home
+  // jumps to first, End to last. Space / Enter on a focused tile
+  // toggles selection (the button element handles those natively).
+  // Tab still cycles into the grid normally; once inside, arrow
+  // keys take over until Tab exits.
+  const onGridKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (thumbnails.length === 0) return;
+      // Find the currently-focused button (active grid item) and
+      // its index. We walk the focused element up to the closest
+      // <button> child of the grid container — the data-grid-idx
+      // attribute (set on each tile below) is the source of truth.
+      const target = e.target as HTMLElement;
+      const btn = target.closest<HTMLButtonElement>("button[data-grid-idx]");
+      if (!btn) return;
+      const cur = Number(btn.dataset.gridIdx);
+      if (!Number.isFinite(cur)) return;
+      const cols = Math.max(
+        1,
+        // useVirtualGrid returns the live cols count when measured;
+        // fall back to a reasonable default for the unmeasured /
+        // small-grid case.
+        (virtual.virtualized && virtual.columnsPerRow) || 4,
+      );
+      let next = cur;
+      switch (e.key) {
+        case "ArrowLeft":
+          next = Math.max(0, cur - 1);
+          break;
+        case "ArrowRight":
+          next = Math.min(thumbnails.length - 1, cur + 1);
+          break;
+        case "ArrowUp":
+          next = Math.max(0, cur - cols);
+          break;
+        case "ArrowDown":
+          next = Math.min(thumbnails.length - 1, cur + cols);
+          break;
+        case "Home":
+          next = 0;
+          break;
+        case "End":
+          next = thumbnails.length - 1;
+          break;
+        default:
+          return; // Don't preventDefault — let other keys (Space/Enter/Tab) work natively.
+      }
+      if (next === cur) return;
+      e.preventDefault();
+      // If virtualization is on and `next` is outside the rendered
+      // slice, scroll into view first; the next paint will mount
+      // the tile and we re-focus once it exists.
+      const targetBtn = e.currentTarget.querySelector<HTMLButtonElement>(
+        `button[data-grid-idx="${next}"]`,
+      );
+      if (targetBtn) {
+        targetBtn.focus();
+        targetBtn.scrollIntoView({ block: "nearest", inline: "nearest" });
+      } else {
+        // Out of slice — scroll the page so the row will render,
+        // then focus on next tick.
+        const approxRowH = virtual.rowHeight || 240;
+        const targetRow = Math.floor(next / cols);
+        window.scrollTo({
+          top: window.scrollY + (targetRow * approxRowH - window.innerHeight / 3),
+          behavior: "auto",
+        });
+        requestAnimationFrame(() => {
+          const after = e.currentTarget?.querySelector<HTMLButtonElement>(
+            `button[data-grid-idx="${next}"]`,
+          );
+          if (after) after.focus();
+        });
+      }
+    },
+    [thumbnails.length],
+    // virtual is referenced but its identity changes every render —
+    // we read the live columnsPerRow / rowHeight inside the handler
+    // so we don't need it in the dep array. This is intentional.
+  );
+
   // Virtualization for huge thumbnail grids (500+ page PDFs).
   // Hook returns virtualized=false for small grids, in which case
   // we just render `.map()` over all thumbnails. For variable-aspect
@@ -507,6 +590,9 @@ export function PageGridTool(props: PageGridToolProps) {
               matches a fully-rendered grid. */}
           <div
             ref={virtual.containerRef}
+            onKeyDown={onGridKeyDown}
+            role="grid"
+            aria-label={`${thumbnails.length} page thumbnails`}
             style={
               virtual.virtualized
                 ? { position: "relative", height: virtual.totalHeight }
@@ -545,6 +631,8 @@ export function PageGridTool(props: PageGridToolProps) {
                 <button
                   key={p.pageNumber}
                   type="button"
+                  data-grid-idx={idx}
+                  role="gridcell"
                   onClick={() => togglePage(idx)}
                   aria-label={
                     isSelected
