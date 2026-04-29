@@ -120,7 +120,7 @@ small, a few (M21, M23, M24) are real refactors.
 |---|---|---|---|
 | M11 | **SHIPPED** (`c1b9e43`, 2026-04-29) | — | Switched 11 `touchAction:"none"` → `"pinch-zoom"` across 5 visual editors |
 | M12 | Mobile keyboard occluding inputs | 1h | scrollIntoView on focus for the URL input modal |
-| M21 | **SHIPPED** base + 4/9 inspectors (`4fc67fc` + `4d8ada8`, 2026-04-29) | ~1h remaining | `PdfReadOpsTool` slot-based base. PdfLinks/Annotations/Forms/Fonts migrated (1573 → 666 LOC + 362 base = -545 LOC, 907 LOC of duplication removed). Remaining: PdfAttachments, PdfChecklist, PdfOutline, 6 Wave 8 byte-parsers (~10 min each, ~1500 LOC more reduction) |
+| M21 | **CLOSED at 4/4 applicable** (`4fc67fc` + `4d8ada8`, 2026-04-29) | — | `PdfReadOpsTool` slot-based base. PdfLinks/Annotations/Forms/Fonts migrated (1573 → 666 LOC + 362 base = -545 LOC, 907 LOC of duplication removed). Post-batch landscape audit found the "9-inspector" framing was wrong: PdfChecklistTool is already-DRY (own base for 4 audit tools); PdfOutlineTool + PdfAttachmentsTool have intentional UX divergence (Copy-as-text + JSON-download, not Copy-JSON + CSV); no separate Wave 8 byte-parser components exist. Future work to unify Outline/Attachments would require adding `copyText?` + `jsonDownload?` slots to the base (API extension, not mechanical migration) |
 | M24 | Code-split free vs AI tool bundles | 4h | Next.js dynamic imports per tool group |
 | M22 | **SHIPPED** (`3e86d9f`, 2026-04-29) + part 2 closed as vacuous (`2c9c575`) | — | `lib/client/csv.ts` canonical writer, 4 inspector consumers migrated, 20 unit-test assertions. Part 2 (BOM-on-load) vacuous: no consumer reads CSVs |
 
@@ -158,19 +158,23 @@ small, a few (M21, M23, M24) are real refactors.
 
 ### Recommended next-session priority order
 
-24 of 25 M-items shipped; 3 verified-canonical (M8, M13, M15); M21 partial
-(4 of 9 inspectors migrated). Remaining work, ranked:
+24 of 25 M-items shipped; 3 verified-canonical (M8, M13, M15); M21 closed
+at full applicable scope (4 of 4 — see SESSION_2026-04-29 §M21 landscape
+audit: PdfChecklistTool already-DRY, Outline + Attachments have intentional
+UX divergence, no separate Wave 8 byte-parser components exist). Genuine
+remaining work, ranked:
 
-1. **M21 follow-up sweep** (~1h, mechanical) — migrate the remaining 5
-   inspectors to `PdfReadOpsTool`: PdfAttachments, PdfChecklist,
-   PdfOutline, plus the 6 Wave 8 byte-parsers if they haven't been
-   migrated. Estimated additional reduction: ~1500 LOC. Pattern is
-   proven across 4 different result shapes (table, grouped list,
-   mixed-content cells).
-2. **M12** Mobile keyboard occluding inputs (~1h) — scrollIntoView on
-   focus for the URL input modal in PdfAddLinksTool.
-3. **M24** Code-split free vs AI tool bundles (~4h) — Next.js dynamic
+1. **M12** Mobile keyboard occluding inputs (~1h) — scrollIntoView on
+   focus for the URL input modal in PdfAddLinksTool. Smallest, lowest-risk.
+2. **M24** Code-split free vs AI tool bundles (~4h) — Next.js dynamic
    imports per tool group; biggest remaining bundle-size win.
+
+**Optional scope extension** (not in original M-series, but logical
+follow-up): add `copyText?` + `jsonDownload?` slots to PdfReadOpsTool,
+then migrate PdfOutlineTool + PdfAttachmentsTool. ~3h including the
+base-API change and two consumer migrations. Worth it only if the
+codebase grows more "outline-shape" tools that would re-use the new
+slots.
 
 ---
 
