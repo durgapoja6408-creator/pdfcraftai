@@ -118,7 +118,7 @@ small, a few (M21, M23, M24) are real refactors.
 
 | ID | Item | Effort | Notes |
 |---|---|---|---|
-| M11 | Pinch-zoom on PDF previews (mobile) | 2h | Refactor PageEditorTool's touch-action; allow pinch but block single-finger scroll |
+| M11 | **SHIPPED** (`c1b9e43`, 2026-04-29) | — | Switched 11 `touchAction:"none"` → `"pinch-zoom"` across 5 visual editors |
 | M12 | Mobile keyboard occluding inputs | 1h | scrollIntoView on focus for the URL input modal |
 | M21 | `PdfReadOpsTool` shared base for 18 inspectors | 6h | Biggest single LOC reduction (~3000 LOC) |
 | M24 | Code-split free vs AI tool bundles | 4h | Next.js dynamic imports per tool group |
@@ -128,7 +128,7 @@ small, a few (M21, M23, M24) are real refactors.
 
 | ID | Item | Effort | Notes |
 |---|---|---|---|
-| M1 | 0/1-page PDF edge cases on multi-page editors | 1h | Smoke-test all 5 visual editors with single-page input |
+| M1 | **SHIPPED** (`5c39d49`, 2026-04-29) | — | Codified single-page invariants as a 30-assertion CI guard in `scripts/test-page-editor-consumers.mjs` |
 | M2 | **SHIPPED** (`0cc6f9b`, 2026-04-28) | — | Unified disabled state across all `.btn` variants in `app/globals.css` |
 | M4 | **SHIPPED** (`98c6914`, 2026-04-28) | — | Soft notice in `ToolDropzone` when multi-file drop hits a single-file tool |
 | M15 | **ALREADY-CANONICAL** | — | Inspect card already had `role="status"` + `aria-live="polite"` (verified during M19 audit) |
@@ -160,15 +160,13 @@ small, a few (M21, M23, M24) are real refactors.
 
 (M17 / M3 / M5 / M22 / M6 / M19 etc. all SHIPPED — see Tier tables above for SHA references.)
 
-Remaining 14 of 25 M-items, ranked:
+Remaining 12 of 25 M-items, ranked:
 
-1. **M9** (open in another tool) — 2h, real user value: place blob URL in sessionStorage and add "Open in [N suggestions]" buttons on the success card.
+1. **M9** (open in another tool) — 2h, real user value: needs IndexedDB or window-scoped Blob handoff (sessionStorage too small for big PDFs); register output bytes under a key, add "Open in [N suggestions]" buttons on the success card, target tool checks for the key on mount.
 2. **M21** (`PdfReadOpsTool` extraction) — 6h dedicated session; biggest single LOC reduction (~3000 LOC across 18 inspectors).
-3. **M11** (mobile pinch-zoom on PDF previews) — 2h; refactor PageEditorTool's `touch-action` so single-finger pans the thumbnail grid but two-finger pinches to zoom.
-4. **M18** (AI tools first-page preview) — 3h; apply `useFirstPagePreview` to Summarize / Chat / Resume Parser / etc. so users can see what they uploaded before paying credits.
-5. **M1** (single-page PDF edge cases) — 1h smoke-test pass on 5 visual editors with single-page input.
-6. Remaining tier 4 (M8 / M10 / M13 / M20 / M23 / M25) — pick based on user complaints.
-7. **M16** (focus return on error) — probably skip; `role="alert"` already announces and moving focus on error can disrupt user flow per WCAG guidance.
+3. **M18** (AI tools first-page preview) — 3h; apply `useFirstPagePreview` to Summarize / Chat / Resume Parser / etc. so users can see what they uploaded before paying credits.
+4. Remaining tier 4 (M8 / M10 / M13 / M20 / M23 / M25) — pick based on user complaints.
+5. **M16** (focus return on error) — probably skip; `role="alert"` already announces and moving focus on error can disrupt user flow per WCAG guidance.
 
 ---
 
