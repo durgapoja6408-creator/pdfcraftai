@@ -672,6 +672,14 @@ const SUITES = [
   // migrated consumer tools (PdfLinks / PdfAnnotations / PdfFonts
   // / PdfForms) plus the objecturl-revocation invariant above.
   { name: "csv-helper", file: "test-csv-helper.mjs" },
+  // M1 (#193, 2026-04-29): single-page edge-case audit for the five
+  // multi-page consumers of PageEditorTool. Asserts each declares
+  // `multiPage`, branches applyLabel + success headline on
+  // single-vs-multi page, and pluralizes count nouns correctly.
+  // Catches "Apply 3 highlights on 1 pages" regressions before they
+  // ship. Also verifies single-page consumers (Crop, AddTextBox)
+  // don't opt into multiPage mode.
+  { name: "page-editor-consumers", file: "test-page-editor-consumers.mjs" },
 ];
 
 /**
