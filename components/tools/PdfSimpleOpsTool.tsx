@@ -21,6 +21,7 @@ import { useTrackToolView } from "./useToolTracking";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import { useHandoffConsumer } from "./useHandoffConsumer";
 import { useFileUrlConsumer } from "./useFileUrlConsumer";
+import { useScrollErrorIntoView } from "./useScrollErrorIntoView";
 import { HandoffSuggestions } from "./HandoffSuggestions";
 import type { ToolGroup } from "@/lib/tools";
 
@@ -131,6 +132,8 @@ function PdfSimpleOpsTool(props: SimpleOpToolProps) {
   useHandoffConsumer(onFiles);
   // M10 (#193, 2026-04-29): consume incoming ?file=<url> deep-link.
   useFileUrlConsumer(onFiles);
+  // M16: scroll error into view on null→string transition.
+  const errorRef = useScrollErrorIntoView(error);
 
   const reset = () => {
     setFile(null);
@@ -248,7 +251,7 @@ function PdfSimpleOpsTool(props: SimpleOpToolProps) {
         </div>
       )}
 
-      {error && <p role="alert" style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>{error}</p>}
+      {error && <p ref={errorRef as React.RefObject<HTMLParagraphElement>} role="alert" style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>{error}</p>}
 
       {busy && (
         <div className="card" style={{ padding: 16, background: "var(--bg-1)", display: "flex", gap: 12 }} role="status" aria-live="polite" aria-busy="true">

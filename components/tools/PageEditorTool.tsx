@@ -36,6 +36,7 @@ import { useTrackToolView } from "./useToolTracking";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import { useHandoffConsumer } from "./useHandoffConsumer";
 import { useFileUrlConsumer } from "./useFileUrlConsumer";
+import { useScrollErrorIntoView } from "./useScrollErrorIntoView";
 import { HandoffSuggestions } from "./HandoffSuggestions";
 import type { ToolGroup } from "@/lib/tools";
 
@@ -315,6 +316,11 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
   // Same-origin only; size + MIME-validated; bytes pushed through
   // onFiles. At most one of handoff / file will fire per mount.
   useFileUrlConsumer(onFiles);
+  // M16 (#193, 2026-04-29): scroll the error message into view when
+  // it transitions from null to a string. Doesn't steal focus —
+  // role="alert" already announces; this just makes sure the user
+  // sees it on long forms.
+  const errorRef = useScrollErrorIntoView(error);
 
   /**
    * Navigate to a different page.
@@ -590,7 +596,11 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
       )}
 
       {error && (
-        <p role="alert" style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>
+        <p
+          ref={errorRef as React.RefObject<HTMLParagraphElement>}
+          role="alert"
+          style={{ color: "var(--red)", fontSize: 13, margin: 0 }}
+        >
           {error}
         </p>
       )}

@@ -27,6 +27,7 @@ import { usePdfThumbnails, type PdfThumbnail } from "./usePdfThumbnails";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import { useHandoffConsumer } from "./useHandoffConsumer";
 import { useFileUrlConsumer } from "./useFileUrlConsumer";
+import { useScrollErrorIntoView } from "./useScrollErrorIntoView";
 import { HandoffSuggestions } from "./HandoffSuggestions";
 
 // Sort enriches the base PdfThumbnail with sourceIndex (the position
@@ -129,6 +130,8 @@ export function PdfSortPagesTool() {
   useHandoffConsumer(onFiles);
   // M10 (#193, 2026-04-29): consume incoming ?file=<url> deep-link.
   useFileUrlConsumer(onFiles);
+  // M16: scroll error into view on null→string transition.
+  const errorRef = useScrollErrorIntoView(error);
 
   const reset = () => {
     // resetThumbnails revokes blob URLs; Sort's pages/originalOrder
@@ -280,7 +283,11 @@ export function PdfSortPagesTool() {
       )}
 
       {error && (
-        <p role="alert" style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>
+        <p
+          ref={errorRef as React.RefObject<HTMLParagraphElement>}
+          role="alert"
+          style={{ color: "var(--red)", fontSize: 13, margin: 0 }}
+        >
           {error}
         </p>
       )}

@@ -32,6 +32,7 @@ import { useVirtualGrid } from "./useVirtualGrid";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import { useHandoffConsumer } from "./useHandoffConsumer";
 import { useFileUrlConsumer } from "./useFileUrlConsumer";
+import { useScrollErrorIntoView } from "./useScrollErrorIntoView";
 import type { SplitMode, SplitOutput } from "@/lib/pdf/ops/split";
 
 // Split's thumbnail shape matches the hook's exactly — no enrichment.
@@ -131,6 +132,8 @@ export function PdfSplitTool() {
   useHandoffConsumer(onFiles);
   // M10 (#193, 2026-04-29): consume incoming ?file=<url> deep-link.
   useFileUrlConsumer(onFiles);
+  // M16: scroll error into view on null→string transition.
+  const errorRef = useScrollErrorIntoView(error);
 
   const reset = () => {
     resetThumbnails();
@@ -338,7 +341,11 @@ export function PdfSplitTool() {
       )}
 
       {error && (
-        <p role="alert" style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>
+        <p
+          ref={errorRef as React.RefObject<HTMLParagraphElement>}
+          role="alert"
+          style={{ color: "var(--red)", fontSize: 13, margin: 0 }}
+        >
           {error}
         </p>
       )}

@@ -35,6 +35,7 @@ import { useVirtualGrid } from "./useVirtualGrid";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import { useHandoffConsumer } from "./useHandoffConsumer";
 import { useFileUrlConsumer } from "./useFileUrlConsumer";
+import { useScrollErrorIntoView } from "./useScrollErrorIntoView";
 import { HandoffSuggestions } from "./HandoffSuggestions";
 import type { ToolGroup } from "@/lib/tools";
 
@@ -189,6 +190,8 @@ export function PageGridTool(props: PageGridToolProps) {
   useHandoffConsumer(onFiles);
   // M10: feed incoming ?file=<url> through onFiles on mount.
   useFileUrlConsumer(onFiles);
+  // M16: scroll error into view on null→string transition.
+  const errorRef = useScrollErrorIntoView(error);
 
   const reset = () => {
     resetThumbnails();
@@ -489,7 +492,11 @@ export function PageGridTool(props: PageGridToolProps) {
       )}
 
       {error && (
-        <p role="alert" style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>
+        <p
+          ref={errorRef as React.RefObject<HTMLParagraphElement>}
+          role="alert"
+          style={{ color: "var(--red)", fontSize: 13, margin: 0 }}
+        >
           {error}
         </p>
       )}
