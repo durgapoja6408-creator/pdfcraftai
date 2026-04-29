@@ -17,6 +17,7 @@ import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import type { ToolGroup } from "@/lib/tools";
 
 interface SimpleOpResult {
@@ -91,7 +92,7 @@ function PdfSimpleOpsTool(props: SimpleOpToolProps) {
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Operation failed.";
-      setError(msg);
+      setError(mapPdfOpError(msg));
       tracker.error({ errorCode: props.errorCode });
     } finally {
       setBusy(false);

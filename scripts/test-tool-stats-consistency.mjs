@@ -198,6 +198,42 @@ assert(
 );
 
 // =============================================================================
+// SECTION E — every PageEditorTool consumer declares the four
+// required UX strings: dropPrompt, errorCode, successCta, busyLabel.
+// =============================================================================
+//
+// G17 (2026-04-28): the standardization audit (#193 / docs/UI_COPY.md)
+// found that PageEditorTool consumers occasionally shipped without one
+// of these — usually busyLabel, which left the spinner showing the
+// active CTA label instead of a present-continuous form. Catching this
+// in tests means future tools fail the harness instead of drifting
+// silently to production.
+
+const PAGE_EDITOR_CONSUMERS = [
+  "components/tools/PdfAddLinksTool.tsx",
+  "components/tools/PdfAddTextBoxTool.tsx",
+  "components/tools/PdfCropTool.tsx",
+  "components/tools/PdfFreeDrawTool.tsx",
+  "components/tools/PdfHighlightTool.tsx",
+  "components/tools/PdfImageWatermarkTool.tsx",
+  "components/tools/PdfRedactTool.tsx",
+  "components/tools/PdfSignTool.tsx",
+];
+
+const REQUIRED_PROPS = ["dropPrompt", "busyLabel", "successCta", "errorCode"];
+
+for (const rel of PAGE_EDITOR_CONSUMERS) {
+  const src = readFileSync(resolve(ROOT, rel), "utf8");
+  for (const prop of REQUIRED_PROPS) {
+    assert(
+      `E.${rel}#${prop}`,
+      new RegExp(`\\b${prop}\\s*[=:]`).test(src),
+      `${rel} uses PageEditorTool but doesn't pass \`${prop}\`. The shared base needs all four (dropPrompt, busyLabel, successCta, errorCode) to render correctly. See docs/UI_COPY.md for canonical voice.`,
+    );
+  }
+}
+
+// =============================================================================
 // Report
 // =============================================================================
 

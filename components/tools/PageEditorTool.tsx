@@ -32,6 +32,7 @@ import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import type { ToolGroup } from "@/lib/tools";
 
 export interface PageRender {
@@ -291,7 +292,7 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
         setStage("ready");
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Could not parse PDF.";
-        setError(msg);
+        setError(mapPdfOpError(msg));
         setStage("idle");
         tracker.error({ errorCode: `${props.errorCode}_render` });
       }
@@ -370,7 +371,7 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
         setStage("ready");
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Could not render page.";
-        setError(msg);
+        setError(mapPdfOpError(msg));
         setStage("ready");
       }
     },
@@ -446,7 +447,7 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Could not apply the operation.";
-      setError(msg);
+      setError(mapPdfOpError(msg));
       setStage("ready");
       tracker.error({ errorCode: props.errorCode });
     }

@@ -761,3 +761,19 @@ h4 {
     grid-template-columns: 2fr 1fr 1fr 1fr !important;
   }
 }
+
+/* G14 (2026-04-28): honor prefers-reduced-motion. Kills any CSS
+ * transition / animation > ~10ms across the whole app (spinners,
+ * thumbnail streaming fades, selection border-color transitions,
+ * etc). Direct-manipulation feedback driven by JS transforms
+ * (pointer-driven move/resize, drag-to-reorder) is unaffected. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

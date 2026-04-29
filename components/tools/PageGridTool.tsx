@@ -31,6 +31,7 @@ import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import { usePdfThumbnails, type PdfThumbnail } from "./usePdfThumbnails";
 import { useVirtualGrid } from "./useVirtualGrid";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import type { ToolGroup } from "@/lib/tools";
 
 type PageThumb = PdfThumbnail;
@@ -142,7 +143,7 @@ export function PageGridTool(props: PageGridToolProps) {
         console.error(`${props.toolId} thumbnail render failed`, err);
         const msg =
           err instanceof Error ? err.message : "Could not parse the PDF.";
-        setError(msg);
+        setError(mapPdfOpError(msg));
         setStage("idle");
         tracker.error({ errorCode: "thumbnail_failed" });
       }
@@ -249,7 +250,7 @@ export function PageGridTool(props: PageGridToolProps) {
       console.error(`${props.toolId} apply failed`, err);
       const msg =
         err instanceof Error ? err.message : "Could not apply the operation.";
-      setError(msg);
+      setError(mapPdfOpError(msg));
       setStage("ready");
       tracker.error({ errorCode: props.errorCode });
     }
