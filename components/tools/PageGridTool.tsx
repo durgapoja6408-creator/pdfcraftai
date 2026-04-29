@@ -24,7 +24,7 @@
 // label, accessibility wiring). One base + thin wrappers means a
 // single source of truth for the page-selection UX.
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
@@ -116,6 +116,15 @@ export function PageGridTool(props: PageGridToolProps) {
   const { thumbnails, progress, render: renderThumbnails, reset: resetThumbnails } =
     usePdfThumbnails();
 
+  // M5 (#193, 2026-04-29): cancellation. The AbortController is
+  // recreated for each render. Reset to null after success/error so
+  // the Cancel button only appears during an in-flight render.
+  const renderAbortRef = useRef<AbortController | null>(null);
+
+  const cancelRender = useCallback(() => {
+    renderAbortRef.current?.abort();
+  }, []);
+
   const onFiles = useCallback(
     async (files: File[]) => {
       setError(null);
@@ -134,18 +143,36 @@ export function PageGridTool(props: PageGridToolProps) {
       tracker.upload(f);
       setStage("rendering-thumbnails");
 
+      // M5 (#193): create a fresh AbortController for this render.
+      // If the user clicked Cancel while a previous render was in
+      // flight (rare; reset() supersedes), abort that one too.
+      renderAbortRef.current?.abort();
+      const controller = new AbortController();
+      renderAbortRef.current = controller;
+
       try {
         const bytes = new Uint8Array(await f.arrayBuffer());
         setPdfBytes(bytes);
-        await renderThumbnails(bytes);
+        await renderThumbnails(bytes, controller.signal);
         setSelected(new Set());
         setStage("ready");
+        renderAbortRef.current = null;
       } catch (err) {
+        // M5: AbortError is the user clicking Cancel — reset to idle
+        // without surfacing as an error.
+        if (err instanceof DOMException && err.name === "AbortError") {
+          setFile(null);
+          setPdfBytes(null);
+          setStage("idle");
+          renderAbortRef.current = null;
+          return;
+        }
         console.error(`${props.toolId} thumbnail render failed`, err);
         const msg =
           err instanceof Error ? err.message : "Could not parse the PDF.";
         setError(mapPdfOpError(msg));
         setStage("idle");
+        renderAbortRef.current = null;
         tracker.error({ errorCode: "thumbnail_failed" });
       }
     },
@@ -486,6 +513,20 @@ export function PageGridTool(props: PageGridToolProps) {
                 {Math.round((progress.done / progress.total) * 100)}%
               </span>
             )}
+            {/* M5 (#193): cancel an in-flight render. Useful when the
+                user picks the wrong PDF or realizes the file is too
+                big to wait for. The page-by-page loop checks the
+                signal between pages, so cancellation feels instant
+                on small PDFs and within ~100ms even on large ones. */}
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              onClick={cancelRender}
+              aria-label="Cancel preview rendering"
+              style={{ padding: "4px 10px", fontSize: 12 }}
+            >
+              Cancel
+            </button>
           </div>
           {/* Visual progress bar — text gives the count, the bar gives
               instant glanceable progress. Only renders when total is

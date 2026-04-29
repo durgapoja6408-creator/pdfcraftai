@@ -55,6 +55,19 @@ export interface RasterizeOptions {
    * total, useful for "Rendering 47 of 500…" labels). Both fire.
    */
   onPage?: (page: RasterPage) => void | Promise<void>;
+  /**
+   * M5 (#193, 2026-04-29): cooperative cancellation. The page-by-page
+   * loop checks this signal between each page's render — when the
+   * caller aborts, we throw a DOMException("aborted", "AbortError")
+   * before starting the next page. The current page in flight is NOT
+   * interrupted (PDFium's render call is uninterruptible from JS),
+   * but the user usually doesn't notice — the cancel feels instant
+   * compared to "render all 500 pages then stop."
+   *
+   * Caller is responsible for catching AbortError and not surfacing
+   * it as a real error in the UI.
+   */
+  signal?: AbortSignal;
 }
 
 /**
@@ -105,12 +118,21 @@ export async function rasterizePdf(
   bytes: Uint8Array,
   options: RasterizeOptions,
 ): Promise<RasterPage[]> {
-  const { format, scale, quality = 0.9, onProgress, onPage } = options;
+  const { format, scale, quality = 0.9, onProgress, onPage, signal } = options;
   const renderCallback = makeBrowserRenderCallback(format, quality);
   return withPdfDocument(bytes, async (doc) => {
     const pageCount = doc.getPageCount();
     const out: RasterPage[] = [];
     for (let i = 0; i < pageCount; i++) {
+      // M5 (#193): check before each page. Throws DOMException with
+      // name === "AbortError" — same shape fetch() uses. Callers can
+      // catch this and skip the error UI.
+      if (signal?.aborted) {
+        throw new DOMException(
+          signal.reason instanceof Error ? signal.reason.message : "Rasterize aborted",
+          "AbortError",
+        );
+      }
       const p = doc.getPage(i);
       const rendered = await p.render({
         scale,

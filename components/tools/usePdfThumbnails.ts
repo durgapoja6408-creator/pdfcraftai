@@ -53,8 +53,15 @@ export interface UsePdfThumbnailsResult {
    * Render thumbnails for the given PDF bytes. Resolves with the
    * array; also pushes into the hook's `thumbnails` state. Throws on
    * parse failure (consumer can catch + show an error UI).
+   *
+   * M5 (#193, 2026-04-29): pass an AbortSignal to support
+   * cancellation. The page-by-page render loop checks the signal
+   * between pages — `controller.abort()` from the consumer aborts
+   * before the next page starts. Throws DOMException with name
+   * === "AbortError" (consumer should special-case this and not
+   * surface it as a real error).
    */
-  render: (bytes: Uint8Array) => Promise<PdfThumbnail[]>;
+  render: (bytes: Uint8Array, signal?: AbortSignal) => Promise<PdfThumbnail[]>;
   /**
    * Clear thumbnails and revoke all object URLs. Call this on file
    * change or when the consumer resets its own state.
@@ -93,7 +100,7 @@ export function usePdfThumbnails(
   }, []);
 
   const render = useCallback(
-    async (bytes: Uint8Array): Promise<PdfThumbnail[]> => {
+    async (bytes: Uint8Array, signal?: AbortSignal): Promise<PdfThumbnail[]> => {
       // Revoke prior batch BEFORE replacing — otherwise blob URLs
       // pile up across multiple file drops.
       thumbsRef.current.forEach((t) => URL.revokeObjectURL(t.thumbnailUrl));
@@ -115,6 +122,10 @@ export function usePdfThumbnails(
           format: "jpeg",
           scale,
           quality,
+          // M5 (#193): cooperative cancellation — rasterizePdf checks
+          // signal between pages and throws AbortError. Consumer must
+          // catch and not surface it as an error.
+          signal,
           onProgress: (done, total) => setProgress({ done, total }),
           onPage: (page) => {
             const thumb: PdfThumbnail = {
@@ -135,6 +146,16 @@ export function usePdfThumbnails(
         });
         return collected;
       } catch (err) {
+        // M5 (#193): AbortError is not a "real" error — caller chose
+        // to cancel. Don't surface in the error UI; just clean up
+        // any partial blobs and return without re-throwing.
+        if (err instanceof DOMException && err.name === "AbortError") {
+          // Revoke the partial-batch URLs the same way reset() does.
+          collected.forEach((t) => URL.revokeObjectURL(t.thumbnailUrl));
+          setThumbnails([]);
+          setProgress({ done: 0, total: 0 });
+          throw err; // still throw so the consumer's catch can branch on it
+        }
         const msg =
           err instanceof Error ? err.message : "Could not render thumbnails.";
         setError(msg);
