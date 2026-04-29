@@ -28,6 +28,8 @@ import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import { usePdfThumbnails, type PdfThumbnail } from "./usePdfThumbnails";
+import { useVirtualGrid } from "./useVirtualGrid";
+import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import type { SplitMode, SplitOutput } from "@/lib/pdf/ops/split";
 
 // Split's thumbnail shape matches the hook's exactly — no enrichment.
@@ -94,7 +96,7 @@ export function PdfSplitTool() {
         console.error("split thumbnail render failed", err);
         const msg =
           err instanceof Error ? err.message : "Could not parse the PDF.";
-        setError(msg);
+        setError(mapPdfOpError(msg));
         setStage("idle");
         tracker.error({ errorCode: "thumbnail_failed" });
       }
@@ -180,7 +182,7 @@ export function PdfSplitTool() {
     } catch (err) {
       console.error("split failed", err);
       const msg = err instanceof Error ? err.message : "Could not split the PDF.";
-      setError(msg);
+      setError(mapPdfOpError(msg));
       setStage("ready");
       tracker.error({ errorCode: "split_failed" });
     }
@@ -237,6 +239,26 @@ export function PdfSplitTool() {
     s.length <= max ? s : `${s.slice(0, max - 1)}…`;
 
   const busy = stage === "rendering-thumbnails" || stage === "applying";
+
+  // G4 (#193): virtualization for huge split grids (500+ page PDFs).
+  // Same hook as PageGridTool. Below the threshold returns
+  // virtualized=false so the existing .map() runs unchanged.
+  const firstAspect =
+    thumbnails.length > 0 && thumbnails[0].width > 0
+      ? thumbnails[0].height / thumbnails[0].width
+      : 1.41;
+  const virtual = useVirtualGrid({
+    itemCount: thumbnails.length,
+    minColWidth: 140,
+    gap: 14,
+    itemAspectRatio: firstAspect,
+    // Tile chrome: 8px top padding + thumb + 6px gap + ~14px page
+    // label + 8px bottom padding + 2px borders. The split-after
+    // button lives in the gap, sized 0 vertically (extends from
+    // top: 6 to bottom: 6 inside the card) so it doesn't change
+    // row height.
+    itemFooterHeight: 38,
+  });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -436,15 +458,47 @@ export function PdfSplitTool() {
                 </div>
               )}
 
-              {/* Thumbnail grid */}
+              {/* Thumbnail grid — G4 (#193) virtualizes when >= 80 pages.
+                  Below the threshold, virtual.virtualized is false and
+                  the original `.map()` runs unchanged with no extra
+                  wrapper. Above it, only items in the visible row
+                  range + 2-row overscan are rendered. */}
               <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-                  gap: 14,
-                }}
+                ref={virtual.containerRef}
+                style={
+                  virtual.virtualized
+                    ? { position: "relative", height: virtual.totalHeight }
+                    : {
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fill, minmax(140px, 1fr))",
+                        gap: 14,
+                      }
+                }
               >
-                {thumbnails.map((p, idx) => {
+                <div
+                  style={
+                    virtual.virtualized
+                      ? {
+                          position: "absolute",
+                          top: virtual.offsetTop,
+                          left: 0,
+                          right: 0,
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fill, minmax(140px, 1fr))",
+                          gap: 14,
+                        }
+                      : { display: "contents" }
+                  }
+                >
+                {(virtual.virtualized
+                  ? thumbnails.slice(virtual.startIndex, virtual.endIndex)
+                  : thumbnails
+                ).map((p, sliceIdx) => {
+                  const idx = virtual.virtualized
+                    ? virtual.startIndex + sliceIdx
+                    : sliceIdx;
                   const isLast = idx === thumbnails.length - 1;
                   const isSplitAfter = splits.has(idx);
                   return (
@@ -562,6 +616,7 @@ export function PdfSplitTool() {
                     </div>
                   );
                 })}
+                </div>
               </div>
             </>
           ) : (
