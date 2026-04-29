@@ -696,6 +696,11 @@ const SUITES = [
   // network TypeError + recovery, network TypeError exhaustion,
   // 408 retry, and bodyFactory called per-attempt.
   { name: "fetch-ai-retry", file: "test-fetch-ai-retry.mjs" },
+  // M25 (#193, 2026-04-29): unit tests for useFirstPagePreview's
+  // sampleHash + LRU cache. The React surface needs jsdom (skipped),
+  // but the pure-logic portions M25 added — the FNV-1a-style sample
+  // hash and the LRU eviction order — are testable in pure node.
+  { name: "first-page-preview-cache", file: "test-first-page-preview-cache.mjs" },
 ];
 
 /**

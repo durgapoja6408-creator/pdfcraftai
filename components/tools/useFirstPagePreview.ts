@@ -13,8 +13,76 @@
 // Stamp + Page Numbers don't need that — their config is global and
 // applies doc-wide. They just want a visual confirmation, not an
 // editor surface. This hook is the minimal lift to give them one.
+//
+// M25 (#193, 2026-04-29): module-level LRU cache keyed by a quick
+// content-sample hash (first 1KB + last 1KB + size + scale). Two
+// scenarios where this saves a 50–200ms PDFium render:
+//   1. User navigates Highlight → Redact via the M9 handoff. Same
+//      file, both tools render page 1 — second one hits cache.
+//   2. User reaches the success card, clicks Reset, drops the same
+//      file again to redo a config tweak. Cache hit.
+// The cache stores the rendered JPEG bytes (~100–500KB at scale=1.5,
+// much smaller than the source PDF) so cache hits build a fresh
+// object URL from cached bytes — no rendering required. LRU bounded
+// at 4 entries to cap memory at ~2MB max.
 
 import { useEffect, useRef, useState } from "react";
+
+// ──────────────────────────────────────────────────────────────────
+// Sample hash + LRU cache (module-level — shared across all hook
+// instances and across Next.js client-side route changes).
+// ──────────────────────────────────────────────────────────────────
+
+interface CachedRender {
+  bytes: Uint8Array;
+  pxWidth: number;
+  pxHeight: number;
+  pageCount: number;
+}
+
+const CACHE_MAX = 4;
+const cache = new Map<string, CachedRender>();
+
+/**
+ * Compute a quick fingerprint of the PDF bytes. Samples the head and
+ * tail (1KB each) and combines with the byte length. NOT a
+ * cryptographic hash — collision-prone in adversarial settings, fine
+ * for cache-key purposes where the only consequence of a collision
+ * is showing a wrong preview that the user immediately notices.
+ *
+ * The byte length alone catches the common case (different files
+ * almost always have different sizes); the head + tail samples catch
+ * "two truncated copies of the same source" and similar near-misses.
+ */
+function sampleHash(bytes: Uint8Array, scale: number): string {
+  const SAMPLE = 1024;
+  const head = bytes.subarray(0, Math.min(SAMPLE, bytes.length));
+  const tail = bytes.subarray(Math.max(0, bytes.length - SAMPLE));
+  // Cheap mix: walk each sample as 32-bit words, fold into an int.
+  let h = 0x811c9dc5; // FNV-1a basis
+  for (let i = 0; i < head.length; i++) {
+    h ^= head[i]!;
+    h = Math.imul(h, 0x01000193);
+  }
+  for (let i = 0; i < tail.length; i++) {
+    h ^= tail[i]!;
+    h = Math.imul(h, 0x01000193);
+  }
+  // Include length and scale so different scales / different files of
+  // the same length don't collide trivially.
+  return `${bytes.length}:${scale}:${(h >>> 0).toString(16)}`;
+}
+
+/** LRU touch: re-insert to make this the most-recently-used entry. */
+function lruTouch(key: string, value: CachedRender) {
+  cache.delete(key);
+  cache.set(key, value);
+  while (cache.size > CACHE_MAX) {
+    // Map iteration is insertion-order, so the first entry is the LRU.
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey !== undefined) cache.delete(oldestKey);
+  }
+}
 
 export interface FirstPagePreview {
   url: string;
@@ -63,6 +131,35 @@ export function useFirstPagePreview(
       return;
     }
 
+    // M25 (#193): cache check. If we've already rendered these bytes
+    // at this scale, build a fresh URL from cached JPEG bytes and skip
+    // the PDFium spin entirely.
+    const key = sampleHash(bytes, renderScale);
+    const cached = cache.get(key);
+    if (cached) {
+      const blob = new Blob([cached.bytes], { type: "image/jpeg" });
+      const url = URL.createObjectURL(blob);
+      if (lastUrlRef.current) URL.revokeObjectURL(lastUrlRef.current);
+      lastUrlRef.current = url;
+      lruTouch(key, cached);
+      setState({
+        preview: {
+          url,
+          pxWidth: cached.pxWidth,
+          pxHeight: cached.pxHeight,
+          ptWidth: cached.pxWidth / renderScale,
+          ptHeight: cached.pxHeight / renderScale,
+          renderScale,
+          pageCount: cached.pageCount,
+        },
+        rendering: false,
+        error: null,
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
     setState((s) => ({ ...s, rendering: true, error: null }));
 
     (async () => {
@@ -88,6 +185,13 @@ export function useFirstPagePreview(
         // (so the <img> never points at a freshly-revoked URL).
         if (lastUrlRef.current) URL.revokeObjectURL(lastUrlRef.current);
         lastUrlRef.current = url;
+        // M25: stash in the LRU cache for future hits.
+        lruTouch(key, {
+          bytes: rendered.bytes,
+          pxWidth: rendered.width,
+          pxHeight: rendered.height,
+          pageCount,
+        });
         setState({
           preview: {
             url,
