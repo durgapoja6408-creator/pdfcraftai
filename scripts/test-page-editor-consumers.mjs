@@ -124,6 +124,51 @@ console.log("PageEditorTool — page navigator gated on pageCount > 1:");
   );
 }
 
+// ──────────────────────────────────────────────────────────────────
+// M13 (#193, 2026-04-29): orientation-change resilience.
+//
+// The architectural invariant that makes M13 a non-issue: every
+// visual editor stores rects/strokes in PDFium-pixel coordinates
+// (orientation-independent) and renders them via percentage-based
+// positioning relative to pageRender.pxWidth/pxHeight. When the
+// device rotates, the container re-flows, but:
+//   - Stored rects don't change (PDFium pixels are fixed)
+//   - Rendered positions auto-rescale (% of new container width)
+//   - Pointer coords convert via current rect.width on each event
+// So orientation change "just works" — the only mid-rotation glitch
+// would be a single in-flight drag, which the user can abandon.
+//
+// This block codifies the invariant: editor surfaces must store
+// rects in pageRender pixels and render via `% of pxWidth/pxHeight`.
+// ──────────────────────────────────────────────────────────────────
+console.log("");
+console.log("M13 — visual editors use orientation-independent % positioning:");
+const VISUAL_EDITORS_WITH_RECTS = [
+  "PdfHighlightTool.tsx",
+  "PdfRedactTool.tsx",
+  "PdfAddLinksTool.tsx",
+];
+for (const name of VISUAL_EDITORS_WITH_RECTS) {
+  const src = fs.readFileSync(path.join(TOOLS_DIR, name), "utf8");
+  // pointerToPx pattern: divides clientX-rect.left by rect.width and
+  // multiplies by pageRender.pxWidth. That's the "store in PDFium
+  // pixels, regardless of current display size" pattern.
+  assert(
+    /\(\s*xCss\s*\/\s*rect\.width\s*\)\s*\*\s*pageRender\.pxWidth/.test(src) ||
+      /xCss\s*\*\s*pageRender\.pxWidth\s*\/\s*rect\.width/.test(src),
+    `${name} converts pointer coords to PDFium pixels (orientation-independent)`,
+  );
+  // Render: rect x-coord divided by pageRender.pxWidth times 100 →
+  // percentage positioning. Either `r.x` or `s.rect.x` shape (the two
+  // structures consumers use). % positioning means a re-flowed
+  // container automatically displays the rect at the correct relative
+  // position post-rotation.
+  assert(
+    /\(\s*\w+(?:\.\w+)*\.x\s*\/\s*pageRender\.pxWidth\s*\)\s*\*\s*100/.test(src),
+    `${name} renders rect x-coord as % of pxWidth (auto-rescales on rotation)`,
+  );
+}
+
 console.log("");
 if (failed === 0) {
   console.log(`PASS — ${passed} assertions`);
