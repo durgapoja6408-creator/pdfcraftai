@@ -108,11 +108,11 @@ small, a few (M21, M23, M24) are real refactors.
 
 | ID | Item | Effort | Notes |
 |---|---|---|---|
-| M3 | Output filename collision suffix on repeat runs | 30min | Each download() function gets a counter or timestamp; 20+ tools |
-| M5 | Apply cancellation via AbortController | 2h | Cancel button on the busy card; AbortSignal threaded through ops |
+| M3 | **SHIPPED** (`430aea0`, 2026-04-28) | — | `lib/client/download.ts` `suffixedFilename()` |
+| M5 | **SHIPPED** parts 1+2 (`36ece46` + `9498285`, 2026-04-29) | — | AbortController plumbing through `rasterize.ts` → `usePdfThumbnails` → 3 consumer tools (PageGrid/Split/Sort) with Cancel buttons |
 | M9 | "Open in another tool" workflow on success card | 2h | 1-click handoff to compatible tools; passes blob URL via session storage |
-| M14 | **SHIPPED** in `app/globals.css` | — | `@media print` block hides chrome, forces light theme |
-| M17 | Extend `mapPdfOpError` to AI tools | 1h | Wrap the 30+ AI tool catch sites; same pattern as PageEditorTool |
+| M14 | **SHIPPED** (`ecf0427`, 2026-04-28) | — | `@media print` block hides chrome, forces light theme |
+| M17 | **SHIPPED** (`1ab0221`, 2026-04-28) | — | `mapPdfOpError` extended to 25 AI/inspector catch sites |
 
 ### Tier 2 — high value, moderate risk (~14h total)
 
@@ -122,26 +122,26 @@ small, a few (M21, M23, M24) are real refactors.
 | M12 | Mobile keyboard occluding inputs | 1h | scrollIntoView on focus for the URL input modal |
 | M21 | `PdfReadOpsTool` shared base for 18 inspectors | 6h | Biggest single LOC reduction (~3000 LOC) |
 | M24 | Code-split free vs AI tool bundles | 4h | Next.js dynamic imports per tool group |
-| M22 | Inspector CSV export shape consistency | 1h | Pick one flattening strategy; apply to all 7 inspector exports |
+| M22 | **SHIPPED** (`3e86d9f`, 2026-04-29) | — | `lib/client/csv.ts` canonical writer, 4 inspector consumers migrated, 20 unit-test assertions |
 
 ### Tier 3 — polish (~7h total)
 
 | ID | Item | Effort | Notes |
 |---|---|---|---|
 | M1 | 0/1-page PDF edge cases on multi-page editors | 1h | Smoke-test all 5 visual editors with single-page input |
-| M2 | Disabled-state visibility on Apply buttons | 30min | Add explicit border or icon to disabled state |
-| M4 | Multi-file drag-drop UX (toast or accept all) | 1h | Either queue or warn |
-| M15 | `aria-live` on inspect-before-apply card (G2 follow-up) | 15min | Add `role="status"` |
-| M16 | Focus return to error message on setError | 30min | useRef on error element + .focus() |
+| M2 | **SHIPPED** (`0cc6f9b`, 2026-04-28) | — | Unified disabled state across all `.btn` variants in `app/globals.css` |
+| M4 | **SHIPPED** (`98c6914`, 2026-04-28) | — | Soft notice in `ToolDropzone` when multi-file drop hits a single-file tool |
+| M15 | **ALREADY-CANONICAL** | — | Inspect card already had `role="status"` + `aria-live="polite"` (verified during M19 audit) |
+| M16 | Focus return to error message on setError | 30min | Probably skip — `role="alert"` already announces; moving focus on error can disrupt user flow per WCAG guidance |
 | M18 | AI tools first-page preview | 3h | Apply useFirstPagePreview to Summarize, Chat, Resume Parser, etc. |
-| M19 | AI tool credit-cost copy consistency | 1h | Doc + sweep |
+| M19 | **SHIPPED** (`d6592c6`, 2026-04-29) | — | `lib/api-endpoints.ts` price strings unified to "N credit[s] per <unit>" |
 
 ### Tier 4 — long tail (~16h total)
 
 | ID | Item | Effort | Notes |
 |---|---|---|---|
-| M6 | Object URL revocation audit | 2h | Walk every createObjectURL site |
-| M7 | Release input pdfBytes after apply success | 1h | setPdfBytes(null) post-success |
+| M6 | **SHIPPED** (`086b762`, 2026-04-29) | — | `scripts/test-objecturl-revocation.mjs` static-parse audit; baseline 39 sites all clean; wired into `npm test` |
+| M7 | **SHIPPED** (`da5bd6e`, 2026-04-28) | — | `setPdfBytes(null)` after apply success in PageEditor/PageGrid/Split |
 | M8 | Stale blob URLs on browser-back | 1h | Detect via navigation API |
 | M10 | Deep-link `?file=<url>` to auto-load | 2h | URL param + fetch + validation |
 | M13 | Mobile orientation change rect-rescaling | 2h | ResizeObserver + rect coord normalization |
@@ -158,10 +158,17 @@ small, a few (M21, M23, M24) are real refactors.
 
 ### Recommended next-session priority order
 
-1. **M17** (encrypted-PDF UX for AI tools) — extends existing infrastructure to ~30 more tools in 1h
-2. **M3** (filename collision) — small, contained, eliminates a real user friction
-3. **M5** (apply cancellation) — high user value, scoped scope
-4. **M21** (PdfReadOpsTool extraction) — biggest LOC reduction; do as a dedicated session
+(M17 / M3 / M5 / M22 / M6 / M19 etc. all SHIPPED — see Tier tables above for SHA references.)
+
+Remaining 14 of 25 M-items, ranked:
+
+1. **M9** (open in another tool) — 2h, real user value: place blob URL in sessionStorage and add "Open in [N suggestions]" buttons on the success card.
+2. **M21** (`PdfReadOpsTool` extraction) — 6h dedicated session; biggest single LOC reduction (~3000 LOC across 18 inspectors).
+3. **M11** (mobile pinch-zoom on PDF previews) — 2h; refactor PageEditorTool's `touch-action` so single-finger pans the thumbnail grid but two-finger pinches to zoom.
+4. **M18** (AI tools first-page preview) — 3h; apply `useFirstPagePreview` to Summarize / Chat / Resume Parser / etc. so users can see what they uploaded before paying credits.
+5. **M1** (single-page PDF edge cases) — 1h smoke-test pass on 5 visual editors with single-page input.
+6. Remaining tier 4 (M8 / M10 / M13 / M20 / M23 / M25) — pick based on user complaints.
+7. **M16** (focus return on error) — probably skip; `role="alert"` already announces and moving focus on error can disrupt user flow per WCAG guidance.
 
 ---
 
