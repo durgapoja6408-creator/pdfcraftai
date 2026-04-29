@@ -13,7 +13,7 @@
 //   3. The minimum-viable input is 2 files; one file shows a friendlier
 //      "drop another to merge with" hint.
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
@@ -142,6 +142,13 @@ export function PdfMergeTool() {
   // M16: scroll error into view on null→string transition.
   const errorRef = useScrollErrorIntoView(error);
 
+  // M5 part 3 (#193, 2026-04-29): cancellation. Each merge attempt
+  // gets a fresh AbortController; mid-merge cancel is checked
+  // before each input file's load + copyPages, so a user merging
+  // 50 PDFs hits abort within ~one input's worth of processing.
+  const applyAbortRef = useRef<AbortController | null>(null);
+  const cancelApply = useCallback(() => applyAbortRef.current?.abort(), []);
+
   const removeAt = (idx: number) => {
     setFiles((prev) => {
       const removed = prev[idx];
@@ -180,6 +187,10 @@ export function PdfMergeTool() {
     setError(null);
     setBusy(true);
     const t0 = performance.now();
+    // M5 part 3: fresh AbortController per attempt.
+    applyAbortRef.current?.abort();
+    const applyController = new AbortController();
+    applyAbortRef.current = applyController;
     try {
       const inputs = await Promise.all(
         files.map(async (f) => ({
@@ -188,7 +199,7 @@ export function PdfMergeTool() {
         })),
       );
       const { mergePdfs } = await import("@/lib/pdf/ops/merge");
-      const r = await mergePdfs(inputs);
+      const r = await mergePdfs(inputs, { signal: applyController.signal });
       const totalSize = files.reduce((acc, f) => acc + f.file.size, 0);
       const baseName = (files[0]?.file.name ?? "merged").replace(/\.pdf$/i, "");
       const outputFileName = `${baseName || "merged"}-merged.pdf`;
@@ -204,7 +215,13 @@ export function PdfMergeTool() {
         pageCount: r.pageCount,
         processingMs: Math.round(performance.now() - t0),
       });
+      applyAbortRef.current = null;
     } catch (err) {
+      // M5 part 3: AbortError = user cancelled — clear busy + reset.
+      if (err instanceof DOMException && err.name === "AbortError") {
+        applyAbortRef.current = null;
+        return;
+      }
       console.error("merge failed", err);
       const msg = err instanceof Error ? err.message : "Could not merge PDFs.";
       setError(mapPdfOpError(msg));

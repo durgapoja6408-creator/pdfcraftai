@@ -62,6 +62,15 @@ export function PdfSplitTool() {
   const renderAbortRef = useRef<AbortController | null>(null);
   const cancelRender = useCallback(() => renderAbortRef.current?.abort(), []);
 
+  // M5 part 3 (#193, 2026-04-29): a separate controller for the apply
+  // phase. The render controller is consumed by usePdfThumbnails which
+  // sets its own abort reason; sharing the same controller for both
+  // phases would mean a Cancel during render would also abort a future
+  // apply attempt unless we reset it. Distinct refs keep the two
+  // phases independent.
+  const applyAbortRef = useRef<AbortController | null>(null);
+  const cancelApply = useCallback(() => applyAbortRef.current?.abort(), []);
+
   // UI state
   const [uiMode, setUiMode] = useState<UIMode>("visual");
   // Visual-mode state: set of 0-based indices AFTER which to split.
@@ -196,9 +205,16 @@ export function PdfSplitTool() {
     setError(null);
     setStage("applying");
     const t0 = performance.now();
+    // M5 part 3 (#193): fresh AbortController per apply attempt.
+    applyAbortRef.current?.abort();
+    const applyController = new AbortController();
+    applyAbortRef.current = applyController;
     try {
       const { splitPdf } = await import("@/lib/pdf/ops/split");
-      const r = await splitPdf(pdfBytes, opts);
+      const r = await splitPdf(pdfBytes, {
+        ...opts,
+        signal: applyController.signal,
+      });
       setResult({
         outputs: r.outputs,
         sourceFileName: file.name,
@@ -209,12 +225,20 @@ export function PdfSplitTool() {
       // result is a list of N output blobs; the input is no longer
       // needed until the user resets and re-uploads.
       setPdfBytes(null);
+      applyAbortRef.current = null;
       tracker.success({
         creditCost: 0,
         pageCount: r.sourcePageCount,
         processingMs: Math.round(performance.now() - t0),
       });
     } catch (err) {
+      // M5 part 3: AbortError = user clicked Cancel during apply.
+      // Reset to ready (so they can try again with same/different opts).
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setStage("ready");
+        applyAbortRef.current = null;
+        return;
+      }
       console.error("split failed", err);
       const msg = err instanceof Error ? err.message : "Could not split the PDF.";
       setError(mapPdfOpError(msg));

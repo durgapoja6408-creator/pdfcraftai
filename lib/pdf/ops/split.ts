@@ -22,6 +22,14 @@ export interface SplitOptions {
   ranges?: string;
   /** Required when mode === "size". Pages per chunk, ≥ 1. */
   chunkSize?: number;
+  /**
+   * M5 part 3 (#193, 2026-04-29): cooperative cancellation. Checked
+   * once per output chunk (before each `copyPagesIntoNewDoc` + `save`
+   * pair). For a 100-page PDF split per-page that's 100 checkpoints;
+   * a user who clicks Cancel mid-apply sees abort within ~one
+   * chunk's processing time.
+   */
+  signal?: AbortSignal;
 }
 
 export interface SplitOutput {
@@ -89,6 +97,14 @@ export async function splitPdf(
   // Build one output PDF per chunk.
   const outputs: SplitOutput[] = [];
   for (const indices of chunks) {
+    if (opts.signal?.aborted) {
+      throw new DOMException(
+        opts.signal.reason instanceof Error
+          ? opts.signal.reason.message
+          : "Split aborted",
+        "AbortError",
+      );
+    }
     const newDoc = await copyPagesIntoNewDoc(src, indices);
     const out = await newDoc.save({ useObjectStreams: true });
     const pageNumbers = indices.map((i) => i + 1);
