@@ -680,6 +680,14 @@ const SUITES = [
   // ship. Also verifies single-page consumers (Crop, AddTextBox)
   // don't opt into multiPage mode.
   { name: "page-editor-consumers", file: "test-page-editor-consumers.mjs" },
+  // M9 (#193, 2026-04-29): tool-handoff infrastructure tests.
+  // Validates that every TOOL_SUGGESTIONS source/target id exists in
+  // lib/tools.ts (no broken references), that no tool suggests
+  // itself, that suggestion arrays are 1–4 entries with no dupes,
+  // and that handoffUrl + register/consume are exported from
+  // lib/client/handoff.ts. PageEditorTool is verified to consume
+  // ?handoff=<key> on mount and strip the param from the URL.
+  { name: "tool-handoff", file: "test-tool-handoff.mjs" },
 ];
 
 /**

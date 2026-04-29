@@ -34,7 +34,13 @@ import { humanSize } from "@/lib/client/pdf-utils";
 import { suffixedFilename } from "@/lib/client/download";
 import { useTrackToolView } from "./useToolTracking";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
-import type { ToolGroup } from "@/lib/tools";
+import {
+  consumeHandoff,
+  registerHandoff,
+  handoffUrl,
+} from "@/lib/client/handoff";
+import { suggestionsFor } from "@/lib/client/tool-suggestions";
+import { toolById, type ToolGroup } from "@/lib/tools";
 
 export interface PageRender {
   /** Object URL for the rendered page JPEG. */
@@ -300,6 +306,41 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
     },
     [tracker, props.errorCode, props.initialState, renderSinglePage],
   );
+
+  // M9 (#193, 2026-04-29): consume incoming handoff. If the user clicked
+  // "Open in <this tool>" from another tool's success card, the URL has
+  // ?handoff=<key>. Look it up in the window-scoped registry, build a
+  // File from the blob, and push it into onFiles so the rest of the
+  // load flow runs unchanged.
+  //
+  // Runs once on mount. We strip the handoff param from the URL after
+  // consumption so a refresh doesn't try to consume an already-empty
+  // key (which would just no-op, but it's tidier).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const key = params.get("handoff");
+    if (!key) return;
+    const payload = consumeHandoff(key);
+    // Strip the param either way — if consume returned null (page
+    // refreshed past the handoff), we don't want to keep it in the URL
+    // pretending it's still actionable.
+    params.delete("handoff");
+    const newSearch = params.toString();
+    const newUrl =
+      window.location.pathname + (newSearch ? `?${newSearch}` : "");
+    window.history.replaceState(null, "", newUrl);
+    if (!payload) return;
+    const incoming = new File([payload.blob], payload.filename, {
+      type: "application/pdf",
+      lastModified: Date.now(),
+    });
+    // Push through the existing onFiles handler — same validation,
+    // same render, same tracker.upload telemetry. From this point the
+    // tool can't tell the difference between a drag-drop and a handoff.
+    void onFiles([incoming]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot
+  }, []);
 
   /**
    * Navigate to a different page.
@@ -769,6 +810,64 @@ export function PageEditorTool<TState>(props: PageEditorToolProps<TState>) {
               <I.Download size={12} /> Download
             </button>
           </div>
+          {/* M9 (#193, 2026-04-29): handoff buttons. Suggest 1-3 follow-on
+              tools based on this tool's id; clicking registers the
+              output Blob in the window-scoped handoff registry and
+              navigates to the target tool which auto-loads it. */}
+          {(() => {
+            const targets = suggestionsFor(props.toolId).slice(0, 3);
+            if (targets.length === 0) return null;
+            return (
+              <div
+                style={{
+                  marginTop: 14,
+                  paddingTop: 14,
+                  borderTop: "1px solid var(--border)",
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  alignItems: "center",
+                }}
+              >
+                <span
+                  className="subtle"
+                  style={{ fontSize: 12, marginRight: 4 }}
+                >
+                  Open this output in:
+                </span>
+                {targets.map((targetId) => {
+                  const target = toolById(targetId);
+                  if (!target) return null;
+                  return (
+                    <a
+                      key={targetId}
+                      href={handoffUrl(targetId, "")}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const blob = new Blob([result.outputBytes], {
+                          type: "application/pdf",
+                        });
+                        const key = registerHandoff(
+                          blob,
+                          result.outputFileName,
+                          props.toolId,
+                        );
+                        // Use anchor href semantics for middle-click /
+                        // ctrl-click correctness, but for left-click
+                        // we navigate via the framework if possible.
+                        // History push keeps client-side routing.
+                        window.location.href = handoffUrl(targetId, key);
+                      }}
+                      className="btn btn-sm btn-ghost"
+                      style={{ fontSize: 12, padding: "4px 10px" }}
+                    >
+                      {target.name} <I.ArrowRight size={11} />
+                    </a>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       )}
 
