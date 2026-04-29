@@ -666,6 +666,12 @@ const SUITES = [
   // Pure static parse — no DB, no fetches — always last so a leak
   // failure shows up after the heavier suites have already passed.
   { name: "objecturl-revocation", file: "test-objecturl-revocation.mjs" },
+  // M22 (#193, 2026-04-29): unit tests for lib/client/csv.ts. Pure
+  // logic — escapeCsvField, csvRow, buildCsv. The downloadCsv helper
+  // touches DOM globals so it's covered indirectly by the four
+  // migrated consumer tools (PdfLinks / PdfAnnotations / PdfFonts
+  // / PdfForms) plus the objecturl-revocation invariant above.
+  { name: "csv-helper", file: "test-csv-helper.mjs" },
 ];
 
 /**

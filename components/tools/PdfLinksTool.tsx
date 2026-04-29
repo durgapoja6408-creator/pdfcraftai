@@ -10,6 +10,7 @@ import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import type { PdfLink } from "@/lib/pdf/ops/links";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
+import { downloadCsv as downloadCsvFile } from "@/lib/client/csv";
 
 interface ToolResult {
   fileName: string;
@@ -92,26 +93,13 @@ export function PdfLinksTool() {
 
   const downloadCsv = () => {
     if (!result) return;
-    const escape = (s: string) => `"${s.replace(/"/g, '""')}"`;
-    const header = "page,type,target";
-    const rows = result.links.map((l) =>
-      [l.pageNumber, l.type, escape(l.target)].join(","),
+    // M22 (#193): canonical CSV writer (escape + BOM + CRLF + Excel-safe).
+    const base = result.fileName.replace(/\.pdf$/i, "");
+    downloadCsvFile(
+      `${base}.links.csv`,
+      ["page", "type", "target"],
+      result.links.map((l) => [l.pageNumber, l.type, l.target]),
     );
-    const blob = new Blob([[header, ...rows].join("\n")], {
-      type: "text/csv;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    try {
-      const a = document.createElement("a");
-      a.href = url;
-      const base = result.fileName.replace(/\.pdf$/i, "");
-      a.download = `${base}.links.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    } finally {
-      URL.revokeObjectURL(url);
-    }
   };
 
   const copyJson = async () => {

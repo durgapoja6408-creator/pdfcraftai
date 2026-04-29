@@ -12,6 +12,7 @@ import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import type { PdfFont } from "@/lib/pdf/ops/fonts";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
+import { downloadCsv as downloadCsvFile } from "@/lib/client/csv";
 
 interface FontsToolResult {
   fileName: string;
@@ -93,31 +94,19 @@ export function PdfFontsTool() {
 
   const downloadCsv = () => {
     if (!result) return;
-    const escape = (s: string) => `"${s.replace(/"/g, '""')}"`;
-    const header = "base_font,subtype,embedded,subsetted,pages";
-    const rows = result.fonts.map((f) =>
-      [
-        escape(f.baseFont),
+    // M22 (#193): canonical CSV writer (escape + BOM + CRLF + Excel-safe).
+    const base = result.fileName.replace(/\.pdf$/i, "");
+    downloadCsvFile(
+      `${base}.fonts.csv`,
+      ["base_font", "subtype", "embedded", "subsetted", "pages"],
+      result.fonts.map((f) => [
+        f.baseFont,
         f.subtype,
         f.embedded ? "yes" : "no",
         f.subsetted ? "yes" : "no",
-        escape(f.pages.join(",")),
-      ].join(","),
+        f.pages.join(","),
+      ]),
     );
-    const csv = [header, ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    try {
-      const a = document.createElement("a");
-      a.href = url;
-      const base = result.fileName.replace(/\.pdf$/i, "");
-      a.download = `${base}.fonts.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    } finally {
-      URL.revokeObjectURL(url);
-    }
   };
 
   const copyJson = async () => {

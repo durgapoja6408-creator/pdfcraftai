@@ -14,6 +14,7 @@ import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import type { FormField } from "@/lib/pdf/ops/forms";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
+import { downloadCsv as downloadCsvFile } from "@/lib/client/csv";
 
 interface FormsToolResult {
   fileName: string;
@@ -95,31 +96,19 @@ export function PdfFormsTool() {
 
   const downloadCsv = () => {
     if (!result) return;
-    const escape = (s: string) => `"${s.replace(/"/g, '""')}"`;
-    const header = "name,type,value,required,read_only";
-    const rows = result.fields.map((f) =>
-      [
-        escape(f.name),
+    // M22 (#193): canonical CSV writer (escape + BOM + CRLF + Excel-safe).
+    const base = result.fileName.replace(/\.pdf$/i, "");
+    downloadCsvFile(
+      `${base}.form-fields.csv`,
+      ["name", "type", "value", "required", "read_only"],
+      result.fields.map((f) => [
+        f.name,
         f.type,
-        escape(f.value),
+        f.value,
         f.flags.required ? "yes" : "no",
         f.flags.readOnly ? "yes" : "no",
-      ].join(","),
+      ]),
     );
-    const csv = [header, ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    try {
-      const a = document.createElement("a");
-      a.href = url;
-      const base = result.fileName.replace(/\.pdf$/i, "");
-      a.download = `${base}.form-fields.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    } finally {
-      URL.revokeObjectURL(url);
-    }
   };
 
   const copyJson = async () => {

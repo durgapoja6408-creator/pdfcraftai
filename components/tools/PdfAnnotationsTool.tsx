@@ -9,6 +9,7 @@ import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import type { PdfAnnotation } from "@/lib/pdf/ops/annotations";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
+import { downloadCsv as downloadCsvFile } from "@/lib/client/csv";
 
 interface ToolResult {
   fileName: string;
@@ -84,33 +85,20 @@ export function PdfAnnotationsTool() {
 
   const downloadCsv = () => {
     if (!result) return;
-    const escape = (s: string) => `"${s.replace(/"/g, '""')}"`;
-    const header = "page,type,author,date,content,color";
-    const rows = result.annotations.map((a) =>
-      [
+    // M22 (#193): canonical CSV writer (escape + BOM + CRLF + Excel-safe).
+    const base = result.fileName.replace(/\.pdf$/i, "");
+    downloadCsvFile(
+      `${base}.annotations.csv`,
+      ["page", "type", "author", "date", "content", "color"],
+      result.annotations.map((a) => [
         a.pageNumber,
         a.subtype,
-        escape(a.author),
+        a.author,
         a.creationDate || a.modDate || "",
-        escape(a.contents.replace(/\n/g, " ")),
+        a.contents,
         a.colorHex || "",
-      ].join(","),
+      ]),
     );
-    const blob = new Blob([[header, ...rows].join("\n")], {
-      type: "text/csv;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    try {
-      const a = document.createElement("a");
-      a.href = url;
-      const base = result.fileName.replace(/\.pdf$/i, "");
-      a.download = `${base}.annotations.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    } finally {
-      URL.revokeObjectURL(url);
-    }
   };
 
   const copyJson = async () => {
