@@ -160,14 +160,13 @@ small, a few (M21, M23, M24) are real refactors.
 
 (M17 / M3 / M5 / M22 / M6 / M19 etc. all SHIPPED — see Tier tables above for SHA references.)
 
-Remaining 10 of 25 M-items, ranked:
+Remaining 9 of 25 M-items, ranked:
 
 1. **M21** (`PdfReadOpsTool` extraction) — 6h dedicated session; biggest single LOC reduction (~3000 LOC across 18 inspectors).
 2. **M18** (AI tools first-page preview) — 3h; apply `useFirstPagePreview` to Summarize / Chat / Resume Parser / etc. so users can see what they uploaded before paying credits.
-3. **M20** (AI tool retry on transient network failure) — 2h; the existing AI tools already build per-click idempotency keys, so server-side dedupe protects retries. Build `lib/client/fetch-ai-with-retry.ts` (formFactory closure since FormData is single-use, backoff 1s/2s/4s on 5xx + TypeError, max 3 attempts), wire into the canary tool (Summarize) and roll forward.
-4. **M8** — already covered by M6. The createObjectURL audit baseline shows every site has a matching revoke; browser-back unmount fires the cleanup useEffect that revokes any held URLs. Marking as already-canonical.
-5. Remaining tier 4 (M10 / M13 / M23 / M25) — pick based on user complaints.
-6. **M16** (focus return on error) — probably skip; `role="alert"` already announces and moving focus on error can disrupt user flow per WCAG guidance.
+3. **M20 part 2** — extend `fetchAiWithRetry` to the other 8 AI tools (Translate / OCR / Redact / Generate / Sign / Compare / Chat / Table). Each is a mechanical 1-line refactor — could be done with a Python wrap script.
+4. Remaining tier 4 (M10 / M13 / M23 / M25) — pick based on user complaints.
+5. **M16** (focus return on error) — probably skip; `role="alert"` already announces and moving focus on error can disrupt user flow per WCAG guidance.
 
 ---
 
