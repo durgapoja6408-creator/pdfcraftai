@@ -155,12 +155,14 @@ const HANDOFF_CONSUMERS = [
   "PdfSplitTool.tsx",    // Split (consume only — many-output)
   "PdfSortPagesTool.tsx",// Sort
   "PdfSimpleOpsTool.tsx",// Strip Links / Flatten / Repair / Remove Metadata
+  "PdfMergeTool.tsx",    // Merge (M9 part 3 — handoff appends to file list)
 ];
 const HANDOFF_OFFERERS = [
   "PageEditorTool.tsx",
   "PageGridTool.tsx",
   "PdfSortPagesTool.tsx",
   "PdfSimpleOpsTool.tsx",
+  "PdfMergeTool.tsx",
 ];
 
 for (const name of HANDOFF_CONSUMERS) {

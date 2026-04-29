@@ -20,6 +20,10 @@ import { humanSize } from "@/lib/client/pdf-utils";
 import { suffixedFilename } from "@/lib/client/download";
 import { useTrackToolView } from "./useToolTracking";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
+import { useHandoffConsumer } from "./useHandoffConsumer";
+import { useFileUrlConsumer } from "./useFileUrlConsumer";
+import { useScrollErrorIntoView } from "./useScrollErrorIntoView";
+import { HandoffSuggestions } from "./HandoffSuggestions";
 
 interface PendingFile {
   /** Stable key for React + DnD reordering. */
@@ -126,6 +130,17 @@ export function PdfMergeTool() {
     },
     [tracker, renderThumbnailFor],
   );
+
+  // M9 part 3 (#193, 2026-04-29): consume incoming handoff. Merge's
+  // semantics are perfect for this — the handoff file becomes one of
+  // the merge inputs (the user can then add more files to merge with).
+  // No special-casing needed since onFiles already appends.
+  useHandoffConsumer(onFiles);
+  // M10: consume incoming ?file=<url> deep-link. Same shape as
+  // handoff — the file becomes one of the merge inputs.
+  useFileUrlConsumer(onFiles);
+  // M16: scroll error into view on null→string transition.
+  const errorRef = useScrollErrorIntoView(error);
 
   const removeAt = (idx: number) => {
     setFiles((prev) => {
@@ -387,6 +402,7 @@ export function PdfMergeTool() {
 
       {error && (
         <p
+          ref={errorRef as React.RefObject<HTMLParagraphElement>}
           role="alert"
           style={{ color: "var(--red)", fontSize: 13, margin: 0 }}
         >
@@ -451,6 +467,14 @@ export function PdfMergeTool() {
               <I.Download size={12} /> Download
             </button>
           </div>
+          {/* M9 part 3 (#193, 2026-04-29): handoff suggestions on the
+              merged output — split it again, rotate it, add page
+              numbers, etc. */}
+          <HandoffSuggestions
+            sourceToolId="merge"
+            outputBytes={result.outputBytes}
+            outputFileName={result.outputFileName}
+          />
         </div>
       )}
 
