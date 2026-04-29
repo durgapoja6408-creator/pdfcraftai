@@ -37,6 +37,63 @@
 // hit-test against existing rects" flow). When the Crop / Add Text
 // Box / Sign tools land in v2 (G5), they'll need it — at which
 // point this hook gains a `hitTest(p, slack)` helper.
+//
+// USAGE EXAMPLE (migrating PdfHighlightTool / PdfRedactTool /
+// PdfAddLinksTool — see docs/NEXT_SESSION.md for the step-by-step
+// recipe):
+//
+//   import { useRectEditor } from "./useRectEditor";
+//
+//   function MyEditor({ pageRender, state, setState }) {
+//     // Wrap the rect-array setter so the hook can call it cleanly.
+//     const editor = useRectEditor(
+//       state.rects,
+//       (rects) => setState((s) => ({ ...s, rects })),
+//       { pxWidth: pageRender.pxWidth, pxHeight: pageRender.pxHeight },
+//     );
+//
+//     return (
+//       <div data-rect-overlay="true" style={{ position: "relative" }}>
+//         <img src={pageRender.url} />
+//         {state.rects.map((r, i) => (
+//           <div key={i}
+//             onPointerDown={(e) => editor.onRectPointerDown(e, i)}
+//             onPointerMove={editor.onRectPointerMove}
+//             onPointerUp={editor.onRectPointerUp}
+//             onPointerCancel={editor.onRectPointerUp}
+//             style={{
+//               position: "absolute",
+//               left: r.x, top: r.y, width: r.w, height: r.h,
+//               outline: editor.movingIndex === i ? "2px solid blue" : "1px solid gray",
+//               cursor: editor.movingIndex === i ? "grabbing" : "grab",
+//             }}
+//           >
+//             {(["nw","ne","sw","se"] as const).map((corner) => (
+//               <div key={corner}
+//                 onPointerDown={(e) => editor.onResizeHandlePointerDown(e, i, corner)}
+//                 onPointerMove={editor.onResizeHandlePointerMove}
+//                 onPointerUp={editor.onResizeHandlePointerUp}
+//                 onPointerCancel={editor.onResizeHandlePointerUp}
+//                 style={{
+//                   position: "absolute",
+//                   width: 24, height: 24,
+//                   ...(corner === "nw" && { top: -12, left: -12, cursor: "nwse-resize" }),
+//                   ...(corner === "ne" && { top: -12, right: -12, cursor: "nesw-resize" }),
+//                   ...(corner === "sw" && { bottom: -12, left: -12, cursor: "nesw-resize" }),
+//                   ...(corner === "se" && { bottom: -12, right: -12, cursor: "nwse-resize" }),
+//                 }}
+//               />
+//             ))}
+//           </div>
+//         ))}
+//       </div>
+//     );
+//   }
+//
+// CRITICAL: the OUTER overlay wrapper MUST have `data-rect-overlay="true"`.
+// The hook walks up from event.currentTarget to find the overlay's
+// bounding rect for pixel-coord conversion. Without that attribute,
+// move/resize will silently do nothing.
 
 import { useRef, useState } from "react";
 
