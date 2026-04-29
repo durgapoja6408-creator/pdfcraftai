@@ -354,6 +354,34 @@ h4 {
   background: var(--bg-2);
   border-color: var(--fg-subtle);
 }
+/* M2 (#193, 2026-04-28): unified disabled state across all .btn
+ * variants. Browsers default to ~30% opacity which is too subtle on
+ * busy screens — users miss the disabled state and click anyway,
+ * then wonder why nothing happened. Stronger opacity + cursor +
+ * dashed outline + hover suppression makes the state unambiguous.
+ *
+ * Specificity: needs to win over the .btn-primary / .btn-outline /
+ * .btn-ghost rules, so we scope to `.btn:disabled` + `.btn[disabled]`
+ * (cover both the boolean attribute and the React-rendered DOM
+ * attribute) + their hover pseudoclass to neuter any hover styles. */
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  pointer-events: none;
+  /* Subtle dashed outline so the disabled state still parses as
+   * "this is a button" while screen readers (aria-disabled inferred
+   * from disabled attr) announce the state. */
+  border-style: dashed;
+}
+.btn:disabled:hover,
+.btn[disabled]:hover {
+  /* Suppress hover transforms that would otherwise misleadingly
+   * suggest interactivity. */
+  background: inherit !important;
+  filter: none !important;
+}
+
 .btn-danger {
   color: var(--red);
   border: 1px solid var(--border);
