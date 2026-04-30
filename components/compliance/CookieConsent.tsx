@@ -186,7 +186,19 @@ export function CookieConsent({ initialLevel }: Props) {
         and only load if you accept. You can change this any time on{" "}
         <Link
           href="/cookies"
-          style={{ color: "var(--accent, #6aa9ff)", textDecoration: "none" }}
+          // 2026-04-30 a11y: underline restored. axe link-in-text-block
+          // (serious) flagged the link as indistinguishable from the
+          // surrounding subtle-foreground text — accent vs. fg-subtle
+          // contrast was 1.14:1 against the 3:1 minimum. Underline is
+          // a non-color affordance so it satisfies WCAG 1.4.1 even
+          // when the brand-accent token gets re-skinned in light/dark
+          // themes. textUnderlineOffset gives the link a touch of
+          // visual breathing room without breaking line-height.
+          style={{
+            color: "var(--accent, #6aa9ff)",
+            textDecoration: "underline",
+            textUnderlineOffset: 2,
+          }}
         >
           the cookies page
         </Link>

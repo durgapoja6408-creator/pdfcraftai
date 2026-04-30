@@ -136,7 +136,18 @@ export function LaunchNotifySignup({
         >
           Only regions where we haven&apos;t launched yet are listed. If
           your country isn&apos;t here, you can already{" "}
-          <a href="/register" style={{ color: "var(--accent)" }}>
+          {/* 2026-04-30 a11y: underline added (axe link-in-text-block,
+              serious). Pure-color link affordances fail WCAG 1.4.1 when
+              surrounding-text contrast drops below 3:1, which our brand
+              accent does on the muted body-copy treatment. */}
+          <a
+            href="/register"
+            style={{
+              color: "var(--accent)",
+              textDecoration: "underline",
+              textUnderlineOffset: 2,
+            }}
+          >
             sign up and check out
           </a>
           .
