@@ -65,8 +65,11 @@ function assert(cond, msg) {
 const SEO_SRC = fs.readFileSync(path.join(LIB_ROOT, "seo-pages.ts"), "utf8");
 
 // Match `| "<slug>"` lines anywhere in the type union. The union spans
-// many lines with category-comment blocks interleaved.
-const SEO_UNION_RE = /^\s*\|\s*"([^"]+)"\s*$/gm;
+// many lines with category-comment blocks interleaved. The LAST entry
+// ends with `";` (statement terminator) not bare `"`, so allow an
+// optional trailing semicolon — without it the last slug silently
+// drops from the count.
+const SEO_UNION_RE = /^\s*\|\s*"([^"]+)"\s*;?\s*$/gm;
 const SEO_SLUGS = [];
 let m;
 while ((m = SEO_UNION_RE.exec(SEO_SRC)) !== null) {

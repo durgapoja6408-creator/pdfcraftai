@@ -764,6 +764,15 @@ const SUITES = [
   // deep so legitimate /tools/<slug> → /<slug> → /tool/<id>
   // patterns work.
   { name: "redirect-destinations", file: "test-redirect-destinations.mjs" },
+  // 2026-04-30 sitemap canonicalization guard: the
+  // REDIRECTED_SEO_SLUGS Set in app/sitemap.ts (filters redirect-
+  // sourced slugs out of sitemap.xml so Google sees only canonical
+  // URLs) must stay in sync with the single-segment 308 redirects
+  // in next.config.mjs whose source is in SEO_SLUGS. Without this
+  // guard, drift between the two files silently re-introduces
+  // redirect-sourced sitemap entries OR drops live SEO landings
+  // from the sitemap.
+  { name: "sitemap-redirect-sync", file: "test-sitemap-redirect-sync.mjs" },
 ];
 
 /**

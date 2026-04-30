@@ -52,12 +52,51 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "chat-with-pdf", "summarize-pdf", "ai-pdf-ocr",
     "make-pdf-searchable", "compare-pdfs",
   ]);
-  const seoRoutes: MetadataRoute.Sitemap = SEO_SLUGS.map((slug) => ({
-    url: `${SITE_URL}/${slug}`,
-    lastModified: now,
-    changeFrequency: "monthly",
-    priority: HEAD_SEO_SLUGS.has(slug) ? 0.9 : 0.7,
-  }));
+  // 2026-04-30 — slugs that 308-redirect to a canonical destination
+  // (commits 89cd1e8 + cadf27c). Best-practice SEO: sitemap.xml
+  // should contain only canonical URLs (200), not redirect sources.
+  // Google handles redirect-sourced sitemap entries OK (follows the
+  // 308 and indexes the destination), but listing the canonical
+  // /tool/<id> directly is cleaner — fewer redirect hops in the
+  // crawler's path = better crawl efficiency + tighter index
+  // alignment.
+  //
+  // The destinations are already in toolRoutes above, so this
+  // exclusion is purely subtractive — no SEO loss, just
+  // canonicalization.
+  //
+  // CRITICAL: keep this list in sync with the redirects() block in
+  // next.config.mjs. The `redirect-destinations` static guard
+  // (scripts/test-redirect-destinations.mjs) catches redirect
+  // destinations that go dead, but doesn't catch this side. Check
+  // both files when adding/removing slugs.
+  const REDIRECTED_SEO_SLUGS = new Set([
+    // First-pass redirects (commit 89cd1e8) — slugs without
+    // app/<slug>/page.tsx, redirect to /tool/<id> or /tools.
+    "merge-pdf", "split-pdf", "compress-pdf", "word-to-pdf",
+    "excel-to-pdf", "powerpoint-to-pdf", "jpg-to-pdf", "png-to-pdf",
+    "extract-pdf-pages", "delete-pdf-pages", "pdf-page-count",
+    "resize-pdf", "remove-pdf-metadata", "add-logo-to-pdf",
+    "add-text-to-pdf", "highlight-pdf", "redact-pdf-free",
+    "extract-pdf-attachments", "edit-pdf", "sign-pdf-free",
+    "repair-pdf", "flatten-pdf", "markdown-to-pdf", "text-to-pdf",
+    "extract-pdf-form-data", "reorder-pdf-pages",
+    "extract-emails-from-pdf", "extract-entities-from-pdf",
+    "stamp-pdf", "n-up-pdf", "grayscale-pdf", "strip-links",
+    "booklet-pdf", "free-draw-pdf", "add-links",
+    // Second-pass redirects (commit cadf27c) — slugs with
+    // app/<slug>/page.tsx but broken-render via dead tool: ref.
+    "pdf-to-word", "pdf-to-excel", "pdf-to-powerpoint",
+    "pdf-to-ics-calendar", "court-judgment-summarizer",
+  ]);
+  const seoRoutes: MetadataRoute.Sitemap = SEO_SLUGS
+    .filter((slug) => !REDIRECTED_SEO_SLUGS.has(slug))
+    .map((slug) => ({
+      url: `${SITE_URL}/${slug}`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: HEAD_SEO_SLUGS.has(slug) ? 0.9 : 0.7,
+    }));
 
   const blogRoutes: MetadataRoute.Sitemap = BLOG_POSTS.map((p) => ({
     url: `${SITE_URL}/blog/${p.slug}`,
