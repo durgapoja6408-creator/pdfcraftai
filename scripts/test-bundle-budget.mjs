@@ -60,6 +60,24 @@ if (!existsSync(MANIFEST)) {
   process.exit(0);
 }
 
+// 2026-04-30: skip if .next/ is from `next dev`, not `next build`. Dev
+// builds emit `_app-pages-browser_*` chunks under static/chunks/ and a
+// static/development/ directory — the chunks include source maps and
+// HMR runtime, so they're 5-10× the prod size and would always blow
+// the budget. This isn't a regression, just the wrong build mode.
+//
+// `next dev` artifacts: chunks named `_app-pages-browser_*`, plus a
+// `static/development/` directory.
+// `next build` artifacts: chunks named `XXXX-<hash>.js` and a
+// `static/<buildId>/` directory matching `.next/BUILD_ID`.
+const DEV_DIR = resolve(NEXT_DIR, "static/development");
+if (existsSync(DEV_DIR)) {
+  console.log(
+    "test-bundle-budget: 0 passed, 0 failed (of 0) [skipped — .next/ is from `next dev`; run `npm run build` for budget validation]",
+  );
+  process.exit(0);
+}
+
 // ---------------------------------------------------------------------------
 // Budgets (bytes, uncompressed). Chosen to allow normal growth but
 // catch accidental bloat. Update with deliberate intent + a commit
