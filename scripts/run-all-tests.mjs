@@ -773,6 +773,15 @@ const SUITES = [
   // redirect-sourced sitemap entries OR drops live SEO landings
   // from the sitemap.
   { name: "sitemap-redirect-sync", file: "test-sitemap-redirect-sync.mjs" },
+  // 2026-04-30 dynamic-route coverage guard: every public dynamic
+  // route advertised in sitemap.xml (blog, help, alternatives,
+  // authors, use-cases, tools) must have (a) a non-empty data
+  // source above floor-count, (b) a working app/<path>/[<param>]/
+  // page.tsx, and (c) generateStaticParams (where applicable).
+  // sitemap.ts must continue importing from each data file. Catches
+  // the class of regression where someone removes data entries or
+  // renames the route file, silently shrinking sitemap surface.
+  { name: "dynamic-route-coverage", file: "test-dynamic-route-coverage.mjs" },
 ];
 
 /**
