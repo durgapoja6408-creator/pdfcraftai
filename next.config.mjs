@@ -258,6 +258,24 @@ const nextConfig = {
         source: "/:path*",
         headers: securityHeaders,
       },
+      // 2026-04-30: Apache/LiteSpeed default mime.types doesn't include
+      // .wasm, and Passenger forwards static-file requests to Node
+      // which then serves with text/plain (Next.js's static file server
+      // doesn't infer wasm MIME for files in public/). Browsers fail
+      // WebAssembly.compileStreaming() with "Incorrect response MIME
+      // type" — every PDFium-dependent free tool (page-count, inspector,
+      // visual editors, etc.) silently fell back to slower ArrayBuffer
+      // instantiation. This explicit Content-Type fixes it. Discovered
+      // via Phase 1 Playwright validation against prod (highlight spec).
+      {
+        source: "/pdfium.wasm",
+        headers: [
+          {
+            key: "Content-Type",
+            value: "application/wasm",
+          },
+        ],
+      },
     ];
   },
   async redirects() {
