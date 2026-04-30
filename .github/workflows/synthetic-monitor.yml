@@ -48,6 +48,16 @@ on:
   # Allow manual trigger for ad-hoc checks (e.g., post-deploy verify).
   workflow_dispatch:
 
+# 2026-04-30: skip overlapping runs during prod 503 cascades. Without
+# this, every 5min during a 30min cascade fires 6+ identical Slack
+# alerts. `cancel-in-progress: false` keeps the in-flight run going
+# rather than killing it (we want the most-recent diagnostic, not the
+# newest scheduled trigger). The schedule auto-recovers — once the
+# in-flight run completes, the next 5-min tick can fire normally.
+concurrency:
+  group: synthetic-monitor
+  cancel-in-progress: false
+
 jobs:
   smoke:
     runs-on: ubuntu-latest
@@ -66,7 +76,13 @@ jobs:
             local url="$2"
             local expected="$3"  # regex matching expected codes (e.g. "200" or "200|401")
             local code
-            code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 "$url" || echo "000")
+            # 2026-04-30 fix: curl outputs `%{http_code}` AND exits non-
+            # zero on timeout, so the previous `|| echo "000"` would
+            # append a second "000" → got reported as "got 000000".
+            # Use `2>/dev/null` and a default fallback only if `code`
+            # ends up empty.
+            code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 "$url" 2>/dev/null)
+            code="${code:-000}"
             if echo "$code" | grep -qE "^($expected)$"; then
               report="$report\n  ✓ $label ($code) $url"
             else
