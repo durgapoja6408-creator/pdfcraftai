@@ -100,7 +100,8 @@ export function LoginForm() {
               href="/forgot-password"
               style={{
                 color: "var(--accent)",
-                textDecoration: "none",
+                textDecoration: "underline",
+                textUnderlineOffset: 2,
                 fontSize: 12,
                 fontWeight: 500,
               }}

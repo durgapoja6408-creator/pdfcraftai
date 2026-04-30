@@ -110,6 +110,10 @@ export default async function AdminTaxPage({
           }}
         >
           <DayPicker current={days} base="/admin/tax" />
+          {/* a11y-allowed: button-styled CTA with explicit border +
+              background + padding gives clear non-color affordance.
+              No underline by design (would clash with the chip
+              treatment). */}
           <a
             href={`/api/admin/tax/export.csv?days=${days}`}
             style={{

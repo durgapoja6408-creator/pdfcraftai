@@ -140,7 +140,8 @@ export default function ContactPage() {
                     className="mono"
                     style={{
                       color: "var(--accent)",
-                      textDecoration: "none",
+                      textDecoration: "underline",
+                      textUnderlineOffset: 2,
                       fontSize: 12,
                     }}
                   >

@@ -731,6 +731,16 @@ const SUITES = [
   // but the pure-logic portions M25 added — the FNV-1a-style sample
   // hash and the LRU eviction order — are testable in pure node.
   { name: "first-page-preview-cache", file: "test-first-page-preview-cache.mjs" },
+  // 2026-04-30 a11y guard: prevents `color: var(--accent),
+  // textDecoration: "none"` from being reintroduced in body-text JSX
+  // contexts. Pattern was the source of 18 serious axe
+  // link-in-text-block violations across 13 files in this arc; without
+  // a CI guard, any future visual designer's "links look cleaner
+  // without underlines" instinct would silently regress the fix until
+  // the next prod axe run. Allow marker (`a11y-allowed:` in either
+  // `//` line comment or `{/* */}` JSX block comment) silences false
+  // positives like button-styled CTAs.
+  { name: "inline-link-a11y", file: "test-inline-link-a11y.mjs" },
 ];
 
 /**

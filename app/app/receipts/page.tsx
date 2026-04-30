@@ -137,7 +137,8 @@ export default async function ReceiptsPage() {
                       href={`/api/invoices/${encodeURIComponent(row.id)}`}
                       style={{
                         color: "var(--accent)",
-                        textDecoration: "none",
+                        textDecoration: "underline",
+                        textUnderlineOffset: 2,
                         fontSize: 12,
                       }}
                       title="Download a PDF invoice for this payment."
