@@ -789,6 +789,14 @@ const SUITES = [
   // falls off the disallow list and gets indexed. Sub-second
   // static parse.
   { name: "robots-config", file: "test-robots-config.mjs" },
+  // 2026-04-30 reverse-tabnabbing guard: every <a target="_blank">
+  // must carry rel="noopener". Without it, the linked page can use
+  // window.opener to redirect/modify the original tab — a classic
+  // phishing vector. noreferrer is advisory (some patterns
+  // intentionally allow Referer). Modern browsers default to
+  // noopener for target=_blank since 2021, but Lighthouse + manual
+  // security audits still flag the missing attribute.
+  { name: "target-blank-rel", file: "test-target-blank-rel.mjs" },
 ];
 
 /**
