@@ -3,9 +3,10 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-04-30 EOD (auto-mode arc, 31 commits since `29daf91`).
-**Live commit:** `2eab606` (verified 200 OK on /api/health).
-**Aggregator:** 3392 passed across 51 suites in 3.5s.
+**Last updated:** 2026-04-30 EOD (auto-mode arc, 34 commits since `29daf91`).
+**Live commit:** `8ba8291` (verified 200 OK on /api/health).
+**Aggregator:** 3407 passed across 54 suites in 3.6s.
+**E2E re-run on prod (final sweep):** 181 + 23 = **204 specs**, 1 correctly skipped, 0 failed (all-tools 95, SEO landings 86, Phase 1 7, axe a11y 16).
 
 ---
 
@@ -16,7 +17,7 @@ suite, surfaced 12 distinct findings ranging from SEO catastrophes
 to perf regressions, and shipped 13 sub-second CI guards to prevent
 the same classes of bug from re-occurring.
 
-### Findings closed this arc (12)
+### Findings closed this arc (14)
 
 | # | Finding | Resolution | Commit |
 |---|---|---|---|
@@ -32,10 +33,12 @@ the same classes of bug from re-occurring.
 | 10 | 5 broken-render SEO landings (200 with 404-body) | 308 redirects to closest live tools | `cadf27c` |
 | 11 | Sitemap not canonicalized (40 redirect sources advertised) | filtered via `REDIRECTED_SEO_SLUGS` | `1b4b693` |
 | 12 | Dead WASM preload `<link rel="preload" href="/pdfium.wasm">` | repointed to `/api/pdfium-wasm` after `7395e02` moved runtime | `2eab606` |
+| 13 | 2-hop legacy redirect chains (/tools/<slug> → /<slug> → /tool/<id>) | flattened 13 redirects to point directly at /tool/<id> | `85b665f` |
+| 14 | Orphan test file `test-reverse-sweep.mjs` never running in CI | wired into SUITES + aligned output format to aggregator regex | `8ba8291` |
 
-### CI guards shipped (13 sub-second static checks)
+### CI guards shipped (15 sub-second static checks)
 
-**SEO domain (8):**
+**SEO domain (9):**
 1. `seo-pages-tool-mapping` — every `tool:` ref resolves in `lib/tools.ts`
 2. `sitemap-routes-exist` — every `SEO_SLUGS` entry has `app/<slug>/page.tsx` (or is in `KNOWN_MISSING_SEO_ROUTES` allowlist)
 3. `redirect-destinations` — every redirect destination resolves to a real route
@@ -44,21 +47,29 @@ the same classes of bug from re-occurring.
 6. `robots-config` — `/admin/`, `/api/`, etc. stay disallowed; `/tools`, `/pricing` stay crawlable
 7. `internal-links` — every literal `<Link/a href="/...">` resolves to a live route
 8. `public-asset-refs` — every `/foo.png|wasm|mjs` reference exists under `/public/`
+9. `redirect-chains` — no destination matches another redirect's source (no 2+ hop chains)
 
 **Quality + security (5):**
-9. `inline-link-a11y` — accent-color links inside body text need underline
-10. `bundle-budget` — chunk-size limits (skips on dev builds)
-11. `tool-runner-coverage` — `TOOLS` ↔ `ToolRunner` consistency
-12. `csv-helper` — RFC-4180 CSV invariants
-13. `target-blank-rel` — security: reverse-tabnabbing protection
+10. `inline-link-a11y` — accent-color links inside body text need underline
+11. `bundle-budget` — chunk-size limits (skips on dev builds)
+12. `tool-runner-coverage` — `TOOLS` ↔ `ToolRunner` consistency
+13. `csv-helper` — RFC-4180 CSV invariants
+14. `target-blank-rel` — security: reverse-tabnabbing protection
+
+**Test infrastructure (1):**
+15. `aggregator-coverage` — every `scripts/test-*.{mjs,ts}` is wired into SUITES; every SUITES `file:` exists on disk
 
 ### E2E coverage on prod (Chromium)
 
-- **Phase 1** (writable-tool flows): 6 specs + 1 correctly skipped
-- **Phase 3** (axe-core a11y): 16 pages
-- **all-tools smoke**: 94 tools
-- **SEO-landings smoke**: 86 landings (use-cases + static landings)
-- **Total verified post-deploy:** ~203 prod E2E test runs, all green
+Final sweep against commit `8ba8291` (deployed verified):
+
+| Suite | Specs | Result |
+|---|---|---|
+| Phase 1 (writable-tool flows) | 7 | 6 passed + 1 correctly skipped |
+| Phase 3 (axe-core a11y) | 16 | all green |
+| all-tools smoke | 95 | 94 tools + 1 registry-parse |
+| SEO-landings smoke | 86 | 81 static + 5 use-cases + index pages |
+| **Total** | **204** | **203 passed + 1 skipped, 0 failed** |
 
 ### Open backlog (tracked, allowlisted)
 
