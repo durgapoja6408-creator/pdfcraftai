@@ -3,12 +3,39 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-04-30 EOD (auto-mode arc, 38 commits since `29daf91`).
-**Live commit:** `97e1d24` (verified 200 OK on /api/health).
-**Aggregator:** 3408 passed across 54 suites in 3.8s.
+**Last updated:** 2026-04-30 EOD (auto-mode arc, 41 commits since `29daf91`).
+**Live commit:** `f8333a5` (verified 200 OK on /api/health).
+**Aggregator:** 3404 passed across 54 suites in 4.6s.
 **E2E re-run on prod (final sweep):** 181 + 23 = **204 specs**, 1 correctly skipped, 0 failed (all-tools 95, SEO landings 86, Phase 1 7, axe a11y 16).
-**Phase 4 baselines:** 6 committed in `c5cc51a` (homepage, tools, pricing, seo-landing-merge, tool-merge, tool-highlight) — visual regression now ACTIVE.
-**Phase 6 synthetic monitor:** verified active — 4 GitHub Actions runs since 2026-04-29 22:15 UTC have correctly caught real Hostinger 503 cascades. Slack delivery activates immediately when user adds `SLACK_WEBHOOK_URL` repo secret (the env-scope eval-order bug that would have kept it broken even after the secret was added is fixed in `97e1d24`).
+**Phase 4 baselines:** 6 committed in `c5cc51a` — visual regression now ACTIVE.
+**Phase 6 synthetic monitor:** verified active — 4 runs caught real Hostinger 503 cascades. Slack delivery activates when user adds `SLACK_WEBHOOK_URL`.
+
+### 2026-04-30 EOD addendum — 42-tool standardization arc
+
+Commits `bb2fa55` (3 inspectors → PdfReadOpsTool + PdfChecklistTool upgraded) and `f8333a5` (n-up + resize → PdfSimpleOpsTool with new configPanel slot) closed out the per-tool standardization findings from the audit:
+
+| Tool | Was | Now | LOC delta |
+|---|---|---|---|
+| `pdf-attachments` | 422 LOC bespoke | `PdfReadOpsTool` slot-fill (175) | -247 |
+| `pdf-outline` | 387 LOC bespoke | `PdfReadOpsTool` slot-fill (135) | -252 |
+| `n-up-pdf` | 169 LOC bespoke | `PdfSimpleOpsTool` slot-fill (81) | -88 |
+| `resize-pdf` | 187 LOC bespoke | `PdfSimpleOpsTool` slot-fill (98) | -89 |
+| **Net** | | | **-676 LOC** |
+
+Plus base extensions:
+- `PdfChecklistTool` upgraded with M9/M10/M16 hooks (handoff-IN, file-URL, scroll-error) — lifts 4 audit tools (`pdf-a-check`, `pdf-x-check`, `pdf-accessibility`, `pdf-javascript`) to parity with PdfReadOpsTool consumers.
+- `PdfSimpleOpsTool` gained `configPanel?: ReactNode` slot + `actionLabel: string | (() => string)` — unblocks future config-driven simple-ops.
+- `scripts/test-tier1-expansion.mjs` regex extended to recognize `PdfReadOpsTool` / `PdfSimpleOpsTool` / `PdfChecklistTool` as valid `ToolDropzone` wrappers.
+
+**Final standardization scoreboard:**
+
+| Status | Was | Now |
+|---|---|---|
+| Fully standardized on shared base | 24/42 (57%) | **32/42 (76%)** |
+| Justified custom layout | 9/42 (21%) | 10/42 (24%) |
+| Unjustified drift | 9/42 (21%) | **0/42 (0%)** |
+
+The 10 justified-custom tools each have a documented reason: multi-file uploader (`merge`), multi-output ZIP (`split`), drag-reorder (`sort-pages`), password input (`unlock`), bespoke hero (`page-count`), multi-section dashboard (`pdf-inspector`), gallery + ZIP (`extract-images`), per-page overlay (`page-numbers`, `stamp-pdf`), per-page rotation grid (`rotate`).
 
 ---
 
