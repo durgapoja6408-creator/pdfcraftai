@@ -319,8 +319,14 @@ const nextConfig = {
       { source: "/tools/merge-pdf", destination: "/merge-pdf", permanent: true },
       { source: "/tools/split-pdf", destination: "/split-pdf", permanent: true },
       { source: "/tools/compress-pdf", destination: "/compress-pdf", permanent: true },
-      { source: "/tools/protect-pdf", destination: "/tool/protect", permanent: true },
-      { source: "/tools/unlock-pdf", destination: "/tool/protect", permanent: true },
+      // 2026-04-30: was /tool/protect (dead — no "protect" tool in
+      // lib/tools.ts). The redirect-destinations CI guard caught
+      // this. Re-pointed to /tool/unlock (the closest security-
+      // category tool we ship). Adding a "protect" tool that
+      // password-encrypts a PDF would be a real product addition;
+      // until then this is the best destination.
+      { source: "/tools/protect-pdf", destination: "/tool/unlock", permanent: true },
+      { source: "/tools/unlock-pdf", destination: "/tool/unlock", permanent: true },
       { source: "/tools/organize-pdf", destination: "/tool/sort-pages", permanent: true },
       { source: "/tools/remove-pages", destination: "/delete-pdf-pages", permanent: true },
       { source: "/tools/extract-pages", destination: "/extract-pdf-pages", permanent: true },

@@ -756,6 +756,14 @@ const SUITES = [
   // domain authority hit). KNOWN_MISSING_SEO_ROUTES allowlist tracks
   // the existing backlog; new dead routes fail the guard.
   { name: "sitemap-routes-exist", file: "test-sitemap-routes-exist.mjs" },
+  // 2026-04-30 redirect health guard: every `destination:` in
+  // next.config.mjs `redirects()` must resolve to a real route.
+  // First run caught two pre-existing dead redirects (/tools/
+  // protect-pdf + /tools/unlock-pdf both pointed at /tool/protect
+  // which doesn't exist). Resolves chained redirects up to 4 hops
+  // deep so legitimate /tools/<slug> → /<slug> → /tool/<id>
+  // patterns work.
+  { name: "redirect-destinations", file: "test-redirect-destinations.mjs" },
 ];
 
 /**
