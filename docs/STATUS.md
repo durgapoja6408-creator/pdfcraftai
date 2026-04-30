@@ -167,11 +167,53 @@ Real findings from the validation:
   highlight, pdf-fonts) + 1 correctly skipped
 - Phase 3 (a11y): 16/16 expanded audit pages passing
 - All-tools smoke (commit `4f69c4b`): **94/94 tools** rendering
-  without console errors. Total test runs against prod this arc:
-  16 (a11y) + 7 (Phase 1) + 95 (smoke) = **118 tests, 117 passed,
-  1 correctly skipped, 0 failed**.
-- Total wall-clock for the smoke spec: 7.6 min on prod with
-  workers=4 — proves the cost is tolerable as a daily cron.
+  without console errors
+- SEO-landings smoke (commit pending): **81/81** static landings +
+  use-case detail pages rendering without console errors. **5
+  routes explicitly skipped** as known-broken (see "5 dead SEO
+  landings" finding below).
+- Total test runs against prod this arc: 16 (a11y) + 7 (Phase 1) +
+  95 (all-tools) + 81 (SEO landings) = **199 tests, 198 passed,
+  1 correctly skipped (CSV when totalCount=0), 0 failed**, plus
+  5 known-issue skips.
+
+## ⚠️ Open finding — 5 dead SEO landings (2026-04-30)
+
+The SEO-landings smoke spec discovered 5 routes whose `tool:` field
+in `lib/seo-pages.ts` references a tool ID that doesn't exist in
+`lib/tools.ts`:
+
+| Route | Referenced tool | Status |
+|---|---|---|
+| `/court-judgment-summarizer` | `ai-court-order` | tool ID missing |
+| `/pdf-to-excel` | `pdf-to-office` | tool ID missing |
+| `/pdf-to-ics-calendar` | `extract-dates` | tool ID missing |
+| `/pdf-to-powerpoint` | `pdf-to-office` | tool ID missing |
+| `/pdf-to-word` | `pdf-to-office` | tool ID missing |
+
+`components/marketing/SeoLandingPage.tsx` does
+`if (!tool) return null;` when the lookup fails, which causes Next
+to render the layout's notFound fallback ("This page hasn't been
+ported yet"). The pages return 200 OK so they're crawlable, but the
+body is a 404 message — terrible SEO signal and direct-traffic
+drop-off.
+
+**Why not auto-fix:** the right mapping is a product decision. For
+example, `pdf-to-excel` could route to `ai-table` (extract tables
+to spreadsheet) or to a missing-but-planned `pdf-to-office` runner.
+Picking the wrong mapping silently degrades user expectations.
+
+**Mitigation in place:** the SEO smoke spec lists these in
+`KNOWN_BROKEN_LANDINGS` and skips them explicitly so the suite
+stays green and only flags NEW dead landings. Once product picks
+mappings, remove the entry from KNOWN_BROKEN_LANDINGS and add the
+mapping to `lib/tools.ts`/`lib/seo-pages.ts`.
+
+**Worth considering longer-term:** make `SeoLandingPage` either
+throw at build time (so dead landings break CI) or render a
+graceful "tool coming soon" surface (so users who land on these
+pages don't see "page hasn't been ported yet"). Current fail-mode
+is the worst of both worlds.
 
 ---
 
