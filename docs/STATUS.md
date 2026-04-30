@@ -87,24 +87,115 @@ Real findings from the validation:
      fixture uses Standard 14 fonts (correct byte-parser behavior);
      CSV test auto-skips when totalCount=0.
 
-3. **Live deployment quirk noted (NOT FIXED — needs ops investigation).**
-   `/tool/highlight-pdf` returns Next.js `notFound()` page on prod
-   despite being correctly registered in `lib/tools.ts`. /api/health
-   reports today's commit, but chunked page output suggests partial
-   build cache. The highlight spec can't be validated against prod
-   until this is resolved. Likely paths: hPanel "Stop running process"
-   to force a clean rebuild, or check Hostinger build logs for any
-   skipped routes during the auto-deploy.
+3. **Live deployment quirk RESOLVED (2026-04-30 02:47 UTC).**
+   `/tool/highlight-pdf` was returning Next.js `notFound()` page on
+   prod due to a combination of stale Passenger workers + the WASM
+   MIME issue (canvas couldn't initialize, so the editor never
+   mounted past PDFium init). Resolved by:
+   (a) killing 10 zombie `next-server` processes via SSH (these were
+       holding cgroup thread slots and causing every fresh worker to
+       die at `uv_thread_create` assertion before it could fully
+       boot — the user-process limit was effectively saturated; see
+       commit `7395e02` deploy aftermath at 02:30 UTC), and
+   (b) fixing the PDFium WASM Content-Type via a Next.js route
+       handler (commit `7395e02`, see WASM-MIME finding below).
 
 **Current end-state:**
-- 5/6 Phase 1 specs validated working against prod
+- 6/6 Phase 1 specs validated working against prod (Chromium): homepage
+  ×2, merge, split, highlight, pdf-fonts (1 skipped — CSV when
+  totalCount=0)
 - Phase 2 (test-pdf-ops): 36/36 passing
 - Phase 5 (bundle-budget): 4/4 passing against today's `.next` build
 - Phases 3, 4, 6, 7: shipped, need user-side activation per setup
   checklist
+- Cross-browser (firefox/webkit/mobile-safari): browsers not installed
+  in current sandbox (`npx playwright install` needed); chromium-only
+  validation deemed sufficient for this round.
 
-**Latest pushed commit:** `baa948c` (Phase 1 spec fixes from live-prod
-validation). Earlier commits this round: `29daf91` (CSP fix).
+**Latest pushed commits:**
+- `7395e02` — fix(wasm): route PDFium WASM through Next.js API handler
+- `baa948c` — test(e2e): Phase 1 spec fixes from live-prod validation
+- `29daf91` — fix(csp): allow cloudflareinsights origins
+
+---
+
+## ✅ Resolved ops finding — PDFium WASM Content-Type (2026-04-30)
+
+**Symptom (Phase 1 highlight spec failure against prod):**
+
+```
+TypeError: WebAssembly.compileStreaming(): Incorrect response MIME type.
+Expected 'application/wasm', received 'text/plain'.
+```
+
+Every PDFium-dependent free tool (page-count, inspector, page-numbers,
+highlight, redact, free-draw, etc.) silently fell back to the slower
+`ArrayBuffer` instantiation path on first load. Tools that require the
+canvas overlay to render before user interaction (highlight, redact,
+crop) never reached an interactive state on prod.
+
+**Root cause investigation:**
+
+1. `next.config.mjs` `headers()` does NOT apply to files in `/public`
+   on this Hostinger setup — verified via curl after deploying the
+   header entry for `/pdfium.wasm`. (Entry was kept in place as
+   belt-and-suspenders.)
+2. Apache `.htaccess` directives — `AddType application/wasm .wasm`,
+   `<FilesMatch "\.wasm$"> ForceType application/wasm </FilesMatch>`,
+   `<FilesMatch> Header always unset Content-Type` + `Header always
+   set Content-Type "application/wasm"` — none of these took effect
+   on the static-file path. LiteSpeed serves the bytes with a baked-in
+   default `text/plain` and the `mod_headers` directives don't get a
+   chance to override it for static files.
+3. Putting the WASM in `public_html/` (Apache-served) vs.
+   `nodejs/public/` (Passenger→Node-served) made no difference —
+   either path returned `Content-Type: text/plain`.
+
+**Fix (commit `7395e02`):**
+
+Route the WASM through a Next.js API handler at
+`app/api/pdfium-wasm/route.ts`. The route reads `/public/pdfium.wasm`
+from disk on first request, caches the bytes in module scope, and
+returns them with `Content-Type: application/wasm` + 7-day immutable
+cache.
+
+The bytes leave Node with the right Content-Type and LiteSpeed
+forwards them untouched (verified: same posture as `/api/health`).
+
+Updated `lib/pdf/library.ts` to load from `/api/pdfium-wasm`.
+
+Bumped the dedicated PDFium service worker
+(`public/pdfium-sw.js`) cache name from `pdfium-wasm-v1` to
+`pdfium-wasm-v2` so any broken-MIME response in the v1 cache is
+evicted on activate, and updated its cached URL.
+
+**Verification:**
+
+```
+$ curl -I https://pdfcraftai.com/api/pdfium-wasm
+HTTP/2 200
+content-type: application/wasm
+content-length: 3988829
+cache-control: public, max-age=604800, immutable
+x-served-by: pdfium-wasm-route
+```
+
+Phase 1 highlight spec on Chromium against prod: **passes** (14.2s).
+
+**Caveat — Passenger zombie cleanup:** the deploy of `7395e02`
+triggered a 503 outage for ~17 minutes because 10 stale `next-server`
+processes from earlier deploys had accumulated and saturated the LVE
+user-process / thread-count limit (`uv_thread_create` assertion
+failures in `nodejs/stderr.log`). Resolved via SSH:
+
+```
+ssh -p 65002 u692382124@... \
+  'ps -fu u692382124 | grep next-server | awk "{print \$2}" | xargs -r kill -KILL'
+```
+
+Then `touch ~/domains/pdfcraftai.com/nodejs/tmp/restart.txt`. App came
+back healthy within 30s. Worth adding to the runbook (CLAUDE.md §5)
+as a fallback when "Stop running process" via hPanel isn't reachable.
 
 ---
 
