@@ -2639,6 +2639,255 @@ export const TOOL_LONGFORMS: Record<string, ToolLongformData> = {
     },
   },
 
+  "markdown-to-pdf": {
+    useCasesTitle: "Why people convert markdown to PDF",
+    useCasesIntro:
+      "Markdown is the universal authoring format for technical writing — from README files to engineering specs to academic notes. PDF is the universal sharing format. Markdown to PDF closes the gap with proper typography for headings, lists, code, and quotes.",
+    useCases: [
+      {
+        icon: "Book",
+        title: "Documentation handouts",
+        text: "Convert your project README into a printable PDF for onboarding kits, partner sharing, or offline reference. Headings render at proper hierarchy, code blocks keep monospaced formatting.",
+      },
+      {
+        icon: "Pages",
+        title: "Technical specs &amp; RFCs",
+        text: "Engineering teams write specs in markdown for diff-friendly version control. Convert the final draft to PDF for sign-off, archival, or distribution to non-technical stakeholders.",
+      },
+      {
+        icon: "Convert",
+        title: "Notes &amp; meeting minutes",
+        text: "Notes apps (Obsidian, Bear, Logseq, plain editors) export markdown. Convert your meeting notes to PDF for distribution without forcing recipients to install a markdown viewer.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Academic &amp; research drafts",
+        text: "Researchers using Pandoc-style workflows often draft in markdown then convert. Get a quick PDF for sharing with co-authors or printing a draft to read on paper.",
+      },
+      {
+        icon: "Edit",
+        title: "AI-generated content",
+        text: "ChatGPT / Claude / Gemini outputs are typically markdown. Pipe the output through this tool to get a clean PDF artifact instead of leaving content trapped in chat history.",
+      },
+    ],
+    howWorksTitle: "How Markdown to PDF works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Paste or drop a file",
+        text: "Type / paste into the textarea, or drop a .md / .markdown / .txt file (up to 5 MB). All processing stays in your browser.",
+      },
+      {
+        step: "2",
+        title: "Pick paper size &amp; body size",
+        text: "Letter or A4. Body size 9–14pt. Headings auto-scale relative to the body size. Times Roman for prose, Courier for code blocks.",
+      },
+      {
+        step: "3",
+        title: "Build &amp; download",
+        text: "Block-level parser handles headings, paragraphs, lists, code blocks, blockquotes, horizontal rules. Inline parser handles **bold**, *italic*, `code`, and [links](url). Output is text-selectable + searchable.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Which markdown features are supported?",
+        a: "Headings (H1–H6 via #..######), paragraphs, ordered + unordered lists, fenced code blocks (```), inline code, blockquotes (>), horizontal rules, **bold**, *italic*, `code`, and [links](url). Tables, footnotes, nested lists, and HTML passthrough are NOT supported — use a markdown-to-HTML converter first if you need those.",
+      },
+      {
+        q: "Is the output PDF searchable?",
+        a: "Yes. Unlike rasterized PDFs, this tool writes real glyph runs — your output is fully searchable, copyable, and screen-reader accessible. Verify by Ctrl+F inside any PDF viewer.",
+      },
+      {
+        q: "Why don't [text](url) links work as clickable links in the PDF?",
+        a: "Markdown link text renders in italic to hint at the link visually, but the URL isn't embedded as a clickable PDF annotation. Adding clickable links would require a separate PDF annotation pass — a future enhancement. For now, link destinations are visible to readers via the rendered text content. Tip: include the URL inline like `Read more at https://example.com`.",
+      },
+      {
+        q: "How are headings sized?",
+        a: "Relative to body size: H1 is 2.0×, H2 is 1.6×, H3 is 1.3×, H4 is 1.15×, H5 is 1.05×, H6 is 1.0× (same as body but bold). At 11pt body, H1 renders as 22pt. Auto-scales when you change body size.",
+      },
+      {
+        q: "What's the page-break behavior?",
+        a: "Block-level — the layout engine measures each block (heading, paragraph, code, etc.) and advances to a new page if the block doesn't fit on the current one. Long blocks (huge code listings) break mid-block on the line nearest the page bottom; we don't currently keep blocks together (would require multi-pass layout).",
+      },
+      {
+        q: "Is anything uploaded?",
+        a: "No. Markdown parsing and PDF generation both run in your browser via pdf-lib. Verifiable in DevTools → Network.",
+      },
+    ],
+    cta: {
+      title: "Need plain text instead?",
+      text: "Text to PDF skips the markdown parser and renders your input as literal text — useful for code listings, logs, or tabular data where formatting characters should appear as-is.",
+      linkHref: "/tool/text-to-pdf",
+      linkLabel: "Try Text to PDF",
+    },
+  },
+
+  "grayscale-pdf": {
+    useCasesTitle: "Why people convert PDFs to grayscale",
+    useCasesIntro:
+      "Color costs money: at the print shop, on your office printer's toner budget, and in ink cartridges at home. Converting a PDF to grayscale before printing is the simplest cost-control step — and it&rsquo;s also useful for monochrome e-readers and accessibility.",
+    useCases: [
+      {
+        icon: "Pages",
+        title: "Print-cost reduction",
+        text: "Office laser printers charge color per page (sometimes 10× the B&amp;W rate). Convert long internal docs to grayscale before printing — saves real money on training materials, internal reports, draft contracts.",
+      },
+      {
+        icon: "Edit",
+        title: "Monochrome printers",
+        text: "Personal laser printers with B&amp;W-only toner render color PDFs unevenly (bright reds become light gray, blues become muddy). Pre-converting to grayscale gives you predictable, balanced output.",
+      },
+      {
+        icon: "Sparkle",
+        title: "E-reader friendliness",
+        text: "Kindle, Kobo, and other e-ink devices display only grayscale. Converting first means you control the conversion (perceptual luminance) rather than letting the device guess.",
+      },
+      {
+        icon: "Receipt",
+        title: "Photocopying prep",
+        text: "Color PDFs photocopy poorly — gradients turn into bands, light yellows disappear entirely. Grayscale-first means the copy looks like the original.",
+      },
+      {
+        icon: "Shield",
+        title: "Accessibility &amp; contrast",
+        text: "Some readers have color-vision differences that make red/green text hard to distinguish. Grayscale forces the document to communicate via tone alone — a useful sanity check for color-only callouts.",
+      },
+    ],
+    howWorksTitle: "How PDF to Grayscale works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your PDF",
+        text: "Up to 100 MB. Files stay in your browser — nothing uploaded.",
+      },
+      {
+        step: "2",
+        title: "Pick render scale &amp; quality",
+        text: "1× / 2× / 3× DPI scale. 2× is the default — sharp enough for printing, balanced file size. JPEG quality Low (70) / Standard (85) / High (95). Higher = larger files, sharper output.",
+      },
+      {
+        step: "3",
+        title: "Convert &amp; download",
+        text: "PDFium renders each page; we apply the BT.709 luminance formula (0.2126·R + 0.7152·G + 0.0722·B) — the same math Photoshop uses for &ldquo;Image → Mode → Grayscale&rdquo;. JPEGs re-embed into a fresh PDF at original page dimensions.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Why is the text in the output not searchable?",
+        a: "We rasterize each page to grayscale it — text becomes part of the image rather than glyph data. This is how every online &ldquo;grayscale PDF&rdquo; tool works because the alternative (parsing every content stream and rewriting color operators to grayscale equivalents) is fragile across tagged PDFs, soft masks, and transparency groups. For text-preserving grayscale, the only reliable path is server-side Ghostscript with `-sColorConversionStrategy=Gray` — that&rsquo;s a future server-side rail, not yet available here.",
+      },
+      {
+        q: "Why BT.709 luminance instead of just averaging RGB?",
+        a: "Naive averaging (R+G+B)/3 produces less perceptually accurate results — pure-blue text would render too light, pure-red text too dark, because human eyes are most sensitive to green. BT.709 weights green at 71%, red at 21%, blue at 7% — matches what Photoshop, ImageMagick, and most modern image software use as default. The output looks &ldquo;right&rdquo; even on hard-to-grayscale source content.",
+      },
+      {
+        q: "How big will the output file be?",
+        a: "Roughly proportional to scale and quality. At 2× / Standard quality (the defaults), expect 1–2× the source file size for typical text PDFs (rasterizing adds bytes but grayscale JPEG is smaller than color). At 3× / High quality on photo-heavy PDFs, output can be 3–5× the input. Prefer 1× / Low if you&rsquo;re only printing.",
+      },
+      {
+        q: "Does this work for multi-page PDFs?",
+        a: "Yes. Every page is rendered, grayscaled, and re-embedded individually. Page dimensions are preserved (8.5×11 stays 8.5×11). Memory grows with page count + scale; for very large documents (500+ pages at 3×), use a smaller scale to avoid browser tab freeze.",
+      },
+      {
+        q: "Is anything uploaded?",
+        a: "No. PDFium WASM rendering, the grayscale pixel transform, and pdf-lib re-embedding all run in your browser. Verifiable in DevTools → Network.",
+      },
+      {
+        q: "What about CMYK PDFs (print-prep documents)?",
+        a: "PDFium converts CMYK to RGB internally before rendering, so CMYK input works the same as RGB input. The output is grayscale-RGB (not pure CMYK-K). For true CMYK-to-K conversion, use a press-prep tool like Ghostscript or Adobe Acrobat&rsquo;s Print Production tools.",
+      },
+    ],
+    cta: {
+      title: "Need to print a booklet?",
+      text: "Booklet PDF lays out pages in saddle-stitch order so you can print double-sided, fold the stack in half, and staple. Combine with grayscale for a low-cost printed booklet.",
+      linkHref: "/tool/booklet-pdf",
+      linkLabel: "Try Booklet PDF",
+    },
+  },
+
+  "booklet-pdf": {
+    useCasesTitle: "Why people make saddle-stitch booklets",
+    useCasesIntro:
+      "Saddle-stitch booklets are the simplest, cheapest way to bind a multi-page document — print double-sided, fold the stack in half, staple along the fold. Every program, conference handout, recipe collection, and small zine has used this format for a century. Booklet PDF reorders the pages so the math works out.",
+    useCases: [
+      {
+        icon: "Book",
+        title: "Event programs &amp; handouts",
+        text: "Wedding programs, conference agendas, school recitals, church bulletins. Drop the source PDF, fold the printed sheets, staple — done in 15 minutes.",
+      },
+      {
+        icon: "Pages",
+        title: "Recipe books &amp; zines",
+        text: "Self-published booklets, family cookbooks, fan zines. Saddle-stitch is the format every small print run uses; this tool gives you the pre-press output.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Children&rsquo;s storybooks",
+        text: "Print a homemade storybook on letter-size paper (8 source pages → 2 sheets). Folds open into a 5.5×8.5 booklet — a perfect kids&rsquo; book size.",
+      },
+      {
+        icon: "Edit",
+        title: "Workshop materials",
+        text: "Course handouts, conference workshops, training kits. Booklet format is more polished than a stapled stack of single-sided handouts.",
+      },
+      {
+        icon: "Receipt",
+        title: "Sales &amp; marketing collateral",
+        text: "Sample brochures, capability decks, leave-behind one-pagers. Saddle-stitch on coated stock looks more professional than coil binding for short runs.",
+      },
+    ],
+    howWorksTitle: "How Booklet PDF works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your PDF",
+        text: "Source pages auto-pad with blanks at the end so the total is a multiple of 4 (each output sheet holds 4 source pages — 2 front, 2 back).",
+      },
+      {
+        step: "2",
+        title: "Pick output paper",
+        text: "Letter / A4 / Legal / A3 — all in landscape. Each output sheet holds two source pages side-by-side. Optional faint fold-line guide on each sheet for clean folding.",
+      },
+      {
+        step: "3",
+        title: "Print, fold, staple",
+        text: "Print double-sided with flip-on-long-edge. Stack in order. Fold the entire stack in half. Staple along the fold (saddle stitch). Done.",
+      },
+    ],
+    faqs: [
+      {
+        q: "What's the page-reorder rule?",
+        a: "For an N-page document (padded to a multiple of 4), output sheet i (1-based) carries [page N-2(i-1), page 2(i-1)+1] on the front and [page 2(i-1)+2, page N-2(i-1)-1] on the back. So sheet 1 front = [pageN, page1], sheet 1 back = [page2, pageN-1], etc. When folded, the source order reads cleanly from front to back.",
+      },
+      {
+        q: "Why are sheets in landscape?",
+        a: "Each sheet holds two portrait source pages side-by-side. When you fold the sheet vertically (along the centerline), each half becomes a portrait page in the final booklet. Letter landscape = 11×8.5 → folds to 5.5×8.5 booklet pages. A4 landscape = 11.69×8.27 → folds to A5 booklet pages.",
+      },
+      {
+        q: "What's the &ldquo;flip-on-long-edge&rdquo; print option?",
+        a: "When printing double-sided on landscape sheets, the printer needs to know which edge the page rotates around. &ldquo;Flip on long edge&rdquo; (sometimes called &ldquo;long-edge binding&rdquo; or &ldquo;portrait binding&rdquo;) is the right setting for this output — both halves end up oriented the same way after folding. The wrong setting (&ldquo;flip on short edge&rdquo;) prints the back upside-down relative to the front.",
+      },
+      {
+        q: "What if my source isn't a multiple of 4 pages?",
+        a: "We auto-pad with blank pages at the end so the math works out. A 10-page source becomes 12-page padded → 3 sheets. The padding always lands at the end so the flow of your content isn't disturbed.",
+      },
+      {
+        q: "Why is there a faint line down the center of each sheet?",
+        a: "That&rsquo;s the fold-line guide — a 0.5pt line at 15% opacity. Helps you fold cleanly without measuring. Toggle it off in the Options panel for production print where you want a perfectly clean sheet.",
+      },
+      {
+        q: "Is anything uploaded?",
+        a: "No. Saddle-stitch imposition is pure pdf-lib (page tree manipulation, no rasterization). Runs entirely in your browser. Verifiable in DevTools → Network.",
+      },
+    ],
+    cta: {
+      title: "Want to print color booklets cheaper?",
+      text: "Convert your source to grayscale first to cut color-printing costs by 5–10× per page. Pairs perfectly with booklet imposition for an ultra-cheap print job.",
+      linkHref: "/tool/grayscale-pdf",
+      linkLabel: "Try PDF to Grayscale",
+    },
+  },
+
   "text-to-pdf": {
     useCasesTitle: "Why people convert text to PDF",
     useCasesIntro:

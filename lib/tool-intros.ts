@@ -484,4 +484,18 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
     text: "What you'll get: a paginated PDF from plain text or .txt/.md/.csv — pick a font, size, paper size; output is text-selectable + searchable.",
     related: { id: "pdf-to-text", label: "PDF to Text (reverse)" },
   },
+
+  // --------- 2026-05-01 Tier 1 batch ---------
+  "markdown-to-pdf": {
+    text: "What you'll get: a styled PDF rendered from markdown — headings, lists, code blocks, blockquotes, and inline bold/italic/code preserved. Output is text-selectable + searchable.",
+    related: { id: "text-to-pdf", label: "Text to PDF (plain)" },
+  },
+  "grayscale-pdf": {
+    text: "What you'll get: a grayscale copy of your PDF, ready for monochrome printing — uses BT.709 luminance for perceptually-accurate gray tones. Output is rasterized.",
+    related: { id: "resize-pdf", label: "Resize PDF" },
+  },
+  "booklet-pdf": {
+    text: "What you'll get: a saddle-stitch imposed PDF — print double-sided, fold the stack in half, staple along the fold to make a booklet. Pages auto-padded to a multiple of 4.",
+    related: { id: "n-up-pdf", label: "N-up PDF (multi-up tiling)" },
+  },
 };

@@ -111,6 +111,12 @@ const LIVE_TOOL_IDS = new Set<string>([
   "jpg-to-pdf",
   "png-to-pdf",
   "text-to-pdf",
+  // 2026-05-01 Tier 1 batch (encrypt-pdf deferred — pdf-lib doesn't
+  // support write-encryption; plan to revisit with qpdf-wasm or a
+  // server-side rail):
+  "markdown-to-pdf",
+  "grayscale-pdf",
+  "booklet-pdf",
   // AI tools.
   "ai-summarize",
   "ai-tldr",

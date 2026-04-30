@@ -66,6 +66,17 @@ export const TOOL_SUGGESTIONS: Record<string, readonly string[]> = {
   // Text → PDF: most users want pagination metadata next, then to
   // combine with a cover page (merge), then to add a watermark.
   "text-to-pdf": ["page-numbers", "merge", "stamp-pdf"],
+
+  // 2026-05-01 Tier 1 batch.
+  // Markdown → PDF: same shape as text-to-pdf (paginate, combine,
+  // watermark). Adding page numbers is the most common follow-up.
+  "markdown-to-pdf": ["page-numbers", "merge", "stamp-pdf"],
+  // Grayscale → typically the last step before sending to print, so
+  // pair with size/layout adjustments and final pagination.
+  "grayscale-pdf": ["resize-pdf", "n-up-pdf", "page-numbers"],
+  // Booklet → users often add page numbers AFTER imposition (page
+  // numbers stamped on each half of each sheet) and a fold guide.
+  "booklet-pdf": ["page-numbers", "stamp-pdf", "merge"],
 };
 
 /** Look up suggestions, defaulting to empty if no entry. */

@@ -67,6 +67,11 @@ export const TOOLS: readonly Tool[] = [
   { id: "jpg-to-pdf", name: "JPG to PDF", desc: "Combine multiple JPG images into a single PDF — drag to reorder, choose page size, output preserves native image resolution. Free, in-browser.", icon: "Image", free: true, cost: "free", group: "Convert" },
   { id: "png-to-pdf", name: "PNG to PDF", desc: "Combine multiple PNG images into a single PDF — lossless image embedding, drag to reorder, page-size selectable. Free, in-browser.", icon: "Image", free: true, cost: "free", group: "Convert" },
   { id: "text-to-pdf", name: "Text to PDF", desc: "Convert plain text or .txt/.md/.csv files into a paginated PDF — pick a font, size, paper size; output is text-selectable + searchable.", icon: "Convert", free: true, cost: "free", group: "Convert" },
+  // 2026-05-01 Tier 1 batch (3 tools — encrypt-pdf deferred, no
+  // pdf-lib write-encryption support):
+  { id: "markdown-to-pdf", name: "Markdown to PDF", desc: "Render markdown (headings, lists, code blocks, blockquotes, inline bold/italic/code) into a styled, paginated PDF. Output is text-selectable + searchable.", icon: "Convert", free: true, cost: "free", group: "Convert" },
+  { id: "grayscale-pdf", name: "PDF to Grayscale", desc: "Convert any PDF to grayscale via PDFium-rasterize + BT.709 luminance. Ideal for printing on monochrome printers; output is rasterized so text becomes part of the image.", icon: "Edit", free: true, cost: "free", group: "Optimize" },
+  { id: "booklet-pdf", name: "Booklet PDF", desc: "Saddle-stitch imposition — reorder pages so you can print double-sided, fold the stack in half, and staple along the fold to make a booklet.", icon: "Pages", free: true, cost: "free", group: "Edit" },
 
   // Build 2 Wave 3 (2026-04-27): Search + Extract Images. Both
   // PDFium-backed read-only ops.

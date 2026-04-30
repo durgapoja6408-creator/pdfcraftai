@@ -137,11 +137,11 @@ const KNOWN_DEAD_REFS = new Map([
   ["word-to-pdf", "to-pdf"],
   ["excel-to-pdf", "to-pdf"],
   ["powerpoint-to-pdf", "to-pdf"],
-  // 2026-05-01: jpg-to-pdf, png-to-pdf, text-to-pdf REMOVED — real
-  // tools now exist in lib/tools.ts (commit shipping today). The
-  // SEO landings' tool: refs were updated to point at the new
-  // canonical IDs.
-  ["markdown-to-pdf", "markdown-to-pdf"],
+  // 2026-05-01 (first batch): jpg-to-pdf, png-to-pdf, text-to-pdf
+  // REMOVED — real tools now ship.
+  // 2026-05-01 Tier 1 batch: markdown-to-pdf, grayscale-pdf,
+  // booklet-pdf REMOVED — real tools now ship in this commit. SEO
+  // landings' tool: refs already point at the canonical tool IDs.
   // Extract-X tools that are subset of inspectors but advertised as
   // their own action.
   ["extract-pdf-attachments", "extract-attachments"],
@@ -153,9 +153,6 @@ const KNOWN_DEAD_REFS = new Map([
   ["edit-pdf", "edit-pdf"],
   // AI variants not yet in the registry.
   ["court-judgment-summarizer", "ai-court-order"],
-  // Visual transforms not built.
-  ["grayscale-pdf", "grayscale-pdf"],
-  ["booklet-pdf", "booklet-pdf"],
 ]);
 
 const deadRefs = [];

@@ -141,6 +141,22 @@ const TextToPdfTool = dyn(() =>
     default: m.TextToPdfTool,
   })),
 );
+// 2026-05-01 Tier 1 batch:
+const MarkdownToPdfTool = dyn(() =>
+  import("@/components/tools/MarkdownToPdfTool").then((m) => ({
+    default: m.MarkdownToPdfTool,
+  })),
+);
+const PdfGrayscaleTool = dyn(() =>
+  import("@/components/tools/PdfGrayscaleTool").then((m) => ({
+    default: m.PdfGrayscaleTool,
+  })),
+);
+const PdfBookletTool = dyn(() =>
+  import("@/components/tools/PdfBookletTool").then((m) => ({
+    default: m.PdfBookletTool,
+  })),
+);
 
 const SearchPdfTool = dyn(() =>
   import("@/components/tools/SearchPdfTool").then((m) => ({
@@ -600,6 +616,12 @@ export function ToolRunner({ id }: { id: string }) {
       return <PdfPngToPdfTool />;
     case "text-to-pdf":
       return <TextToPdfTool />;
+    case "markdown-to-pdf":
+      return <MarkdownToPdfTool />;
+    case "grayscale-pdf":
+      return <PdfGrayscaleTool />;
+    case "booklet-pdf":
+      return <PdfBookletTool />;
     case "pdf-search":
       return <SearchPdfTool />;
     case "extract-images":
