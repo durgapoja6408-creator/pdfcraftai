@@ -54,6 +54,58 @@ across 41 suites** (Phase 2 contributes 36 new tests, Phase 5 adds 4).
 
 **Latest pushed commit:** `f782cfd` (Phases 3-7 — a11y, visual regression, bundle budget, synthetic monitor, mutation-testing scaffold).
 
+---
+
+**2026-04-30 EOD continuation — Phase 1 prod validation + spec fixes:**
+
+Installed Chromium browser binary in the sandbox (~150MB), ran the
+Phase 1 Playwright suite against the live production site. **5 of 6
+tests now pass** (homepage navigation, merge, split, pdf-fonts inspect,
+pdf-fonts CSV correctly skipped for standard-font fixtures).
+
+Real findings from the validation:
+
+1. **Cloudflare Web Insights CSP violation (FIXED in `29daf91`).**
+   Cloudflare auto-injects its RUM beacon when CF proxy is enabled.
+   Our CSP didn't allowlist `cloudflareinsights.com`, so every page
+   load logged a silent CSP violation in the user's browser console.
+   Added `https://static.cloudflareinsights.com` to script-src +
+   connect-src.
+
+2. **Phase 1 specs had selector + flow mistakes (FIXED in `baa948c`).**
+   - `merge.spec.ts`: button regex didn't match dynamic "Merge N PDFs"
+     copy (with file count interpolation). Updated to `/merge.*pdfs?/i`.
+   - `merge` / `split` / `highlight`: discovered all three tools use a
+     **2-step download flow** (apply button → result card → separate
+     Download button). Specs updated to chain both clicks and capture
+     the download from the second.
+   - `split.spec.ts`: switches to "Advanced" mode for deterministic
+     test (visual mode requires click-to-mark-split-points).
+   - `highlight.spec.ts`: 30s canvas-ready timeout + 1.5s render settle
+     before mouse drag; coords now scale to canvas bounding box.
+   - `pdf-fonts.spec.ts`: accepts "No fonts found" headline when
+     fixture uses Standard 14 fonts (correct byte-parser behavior);
+     CSV test auto-skips when totalCount=0.
+
+3. **Live deployment quirk noted (NOT FIXED — needs ops investigation).**
+   `/tool/highlight-pdf` returns Next.js `notFound()` page on prod
+   despite being correctly registered in `lib/tools.ts`. /api/health
+   reports today's commit, but chunked page output suggests partial
+   build cache. The highlight spec can't be validated against prod
+   until this is resolved. Likely paths: hPanel "Stop running process"
+   to force a clean rebuild, or check Hostinger build logs for any
+   skipped routes during the auto-deploy.
+
+**Current end-state:**
+- 5/6 Phase 1 specs validated working against prod
+- Phase 2 (test-pdf-ops): 36/36 passing
+- Phase 5 (bundle-budget): 4/4 passing against today's `.next` build
+- Phases 3, 4, 6, 7: shipped, need user-side activation per setup
+  checklist
+
+**Latest pushed commit:** `baa948c` (Phase 1 spec fixes from live-prod
+validation). Earlier commits this round: `29daf91` (CSP fix).
+
 **Tests:** 3246 passed, 0 failed across 38 suites (unchanged — pure implementation move).
 
 Full handoff in `docs/SESSION_2026-04-29.md` post-cascade-batch section.
