@@ -424,6 +424,38 @@ const nextConfig = {
       { source: "/booklet-pdf", destination: "/tools", permanent: true },
       { source: "/free-draw-pdf", destination: "/tool/free-draw-pdf", permanent: true },
       { source: "/add-links", destination: "/tool/add-links", permanent: true },
+      //
+      // 2026-04-30 second-pass — close out the 5 "broken-render"
+      // landings (originally surfaced by the SEO smoke spec). These
+      // five DO have app/<slug>/page.tsx files but their `tool:`
+      // field in lib/seo-pages.ts references a tool ID that doesn't
+      // exist in lib/tools.ts. SeoLandingPage's `if (!tool) return
+      // null;` falls back to the layout's notFound boundary, so the
+      // pages return 200 OK with a "this page hasn't been ported
+      // yet" body — bad UX, bad SEO.
+      //
+      // next.config.mjs redirects() runs BEFORE the file-system
+      // route matcher, so adding a 308 here intercepts the request
+      // before the broken-render path can fire. The dead app/<slug>/
+      // page.tsx files become dead code — could be deleted later
+      // but the redirect alone fixes the user-visible problem.
+      //
+      // Destination rationale:
+      //   - pdf-to-word/excel/powerpoint: no PDF-to-Office
+      //     extraction tool exists; route to /tool/pdf-to-text
+      //     (closest extraction tool, preserves the "get content out
+      //     of a PDF" intent).
+      //   - pdf-to-ics-calendar: no extract-dates tool exists; route
+      //     to /tool/pdf-search (text-finding is the closest live
+      //     analog).
+      //   - court-judgment-summarizer: no ai-court-order tool;
+      //     route to /tool/ai-summarize (general PDF summarization
+      //     covers the legal-doc summary use case).
+      { source: "/pdf-to-word", destination: "/tool/pdf-to-text", permanent: true },
+      { source: "/pdf-to-excel", destination: "/tool/pdf-to-text", permanent: true },
+      { source: "/pdf-to-powerpoint", destination: "/tool/pdf-to-text", permanent: true },
+      { source: "/pdf-to-ics-calendar", destination: "/tool/pdf-search", permanent: true },
+      { source: "/court-judgment-summarizer", destination: "/tool/ai-summarize", permanent: true },
     ];
   },
 };

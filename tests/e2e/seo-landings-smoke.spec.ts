@@ -88,16 +88,14 @@ function discoverStaticLandings(): string[] {
   return routes.sort();
 }
 
-// SEO landings whose tool: reference is dead (see header note).
-// The smoke spec skips these explicitly so the suite tracks real
-// regressions, not the existing known issue.
-const KNOWN_BROKEN_LANDINGS = new Set<string>([
-  "/court-judgment-summarizer", // tool: ai-court-order (missing)
-  "/pdf-to-excel", // tool: pdf-to-office (missing)
-  "/pdf-to-ics-calendar", // tool: extract-dates (missing)
-  "/pdf-to-powerpoint", // tool: pdf-to-office (missing)
-  "/pdf-to-word", // tool: pdf-to-office (missing)
-]);
+// 2026-04-30 second-pass: the 5 routes that originally rendered the
+// notFound fallback (because their tool: ref was dead) are now
+// 308-redirected to live destinations in next.config.mjs. The
+// redirect intercepts before the file-system route matcher, so
+// page.goto follows the chain to a working /tool/<id> page and the
+// smoke passes. KNOWN_BROKEN_LANDINGS is intentionally empty now —
+// kept the type for future regressions to land in.
+const KNOWN_BROKEN_LANDINGS = new Set<string>([]);
 
 const STATIC_LANDINGS = discoverStaticLandings().filter(
   (route) => !KNOWN_BROKEN_LANDINGS.has(route),
