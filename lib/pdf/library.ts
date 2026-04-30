@@ -33,13 +33,20 @@ export async function getPdfiumLibrary(): Promise<PDFiumLibType> {
     // Dynamic import keeps PDFium WASM out of the baseline bundle.
     // Only pulled in when a tool actually needs it.
     const { PDFiumLibrary } = await import("@hyzyla/pdfium");
-    // Self-host the WASM at /pdfium.wasm (copied to /public by
-    // scripts/copy-pdfium-wasm.mjs at prebuild). The default browser
-    // entry requires us to either pass `wasmUrl` explicitly or use
-    // the CDN/base64 shortcuts. Self-hosted is production-correct:
-    // single origin, no CSP exception, browser HTTP cache holds it
-    // for 7 days after first user.
-    const lib = await PDFiumLibrary.init({ wasmUrl: "/pdfium.wasm" });
+    // Self-host the WASM via /api/pdfium-wasm (route handler reads
+    // /public/pdfium.wasm — copied there by scripts/copy-pdfium-wasm.mjs
+    // at prebuild). We route through an API handler instead of serving
+    // the static file directly because Hostinger's LiteSpeed/Passenger
+    // path strips the Content-Type to `text/plain`, which breaks
+    // `WebAssembly.instantiateStreaming` (it requires exactly
+    // `application/wasm`). The route handler sets the header
+    // explicitly. See app/api/pdfium-wasm/route.ts and
+    // docs/STATUS.md WASM-MIME finding 2026-04-30.
+    //
+    // Production-correct: single origin, no CSP exception, browser
+    // HTTP cache + the dedicated PDFium service worker
+    // (public/pdfium-sw.js) hold the bytes after first user.
+    const lib = await PDFiumLibrary.init({ wasmUrl: "/api/pdfium-wasm" });
     _library = lib;
     _initPromise = null;
     return lib;

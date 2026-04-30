@@ -36,8 +36,15 @@
 // file gets touched. Everything else falls through to the default
 // network handling.
 
-const PDFIUM_CACHE = "pdfium-wasm-v1";
-const PDFIUM_URL = "/pdfium.wasm";
+// v2 (2026-04-30): URL changed from /pdfium.wasm to /api/pdfium-wasm
+// after the static-asset path was found to serve text/plain on
+// Hostinger LiteSpeed/Passenger, which broke
+// WebAssembly.instantiateStreaming. The route handler at
+// app/api/pdfium-wasm/route.ts sets Content-Type: application/wasm
+// explicitly. Cache name bumped so existing v1 cache (containing the
+// broken text/plain response) is evicted on activate.
+const PDFIUM_CACHE = "pdfium-wasm-v2";
+const PDFIUM_URL = "/api/pdfium-wasm";
 
 self.addEventListener("install", (event) => {
   // Skip-waiting so a freshly-installed SW activates immediately

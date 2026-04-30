@@ -258,15 +258,22 @@ const nextConfig = {
         source: "/:path*",
         headers: securityHeaders,
       },
-      // 2026-04-30: Apache/LiteSpeed default mime.types doesn't include
-      // .wasm, and Passenger forwards static-file requests to Node
-      // which then serves with text/plain (Next.js's static file server
-      // doesn't infer wasm MIME for files in public/). Browsers fail
-      // WebAssembly.compileStreaming() with "Incorrect response MIME
+      // 2026-04-30: Apache/LiteSpeed serves /public/*.wasm with
+      // text/plain regardless of next.config.mjs `headers()` (which
+      // doesn't apply to /public files in this Hostinger setup) or
+      // .htaccess `AddType` / `ForceType` / `<FilesMatch>` directives
+      // (none of which took effect on the static-handler path). Browsers
+      // fail WebAssembly.compileStreaming() with "Incorrect response MIME
       // type" — every PDFium-dependent free tool (page-count, inspector,
       // visual editors, etc.) silently fell back to slower ArrayBuffer
-      // instantiation. This explicit Content-Type fixes it. Discovered
-      // via Phase 1 Playwright validation against prod (highlight spec).
+      // instantiation. We've moved the WASM behind a route handler at
+      // /api/pdfium-wasm that sets Content-Type explicitly; see
+      // app/api/pdfium-wasm/route.ts. The static /pdfium.wasm path is
+      // left in place for the file copy (scripts/copy-pdfium-wasm.mjs
+      // still drops the bytes into /public) but no client code references
+      // it directly. Keeping this header entry as a belt-and-suspenders
+      // fallback in case a future Hostinger setting starts honouring
+      // it.
       {
         source: "/pdfium.wasm",
         headers: [
