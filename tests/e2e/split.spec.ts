@@ -31,10 +31,24 @@ test.describe("/tool/split", () => {
       page.getByText(/page 1|page 2|page 3/i).first(),
     ).toBeVisible({ timeout: 15_000 });
 
-    // Default split (split-after-page-1) is the simplest path. Click
-    // the Apply button — copy is "Split PDF".
+    // Default UI is "visual" mode where the user clicks pages to mark
+    // split points — that's hard to script reliably. Switch to
+    // "Advanced" mode where the default is "split every page" and
+    // the apply button is just "Split PDF".
+    await page.getByRole("button", { name: /^advanced$/i }).click();
+
+    // 2-step flow: "Split PDF" runs the op + shows result card with
+    // its own download buttons. Multiple-output splits get a
+    // "Download all (.zip)" button; single-output gets "Download".
+    await page.getByRole("button", { name: /^split pdf$/i }).click();
+
+    // Wait for result card (any "download" affordance).
+    await expect(
+      page.getByRole("button", { name: /download/i }).first(),
+    ).toBeVisible({ timeout: 30_000 });
+
     const split = await captureDownload(page, () =>
-      page.getByRole("button", { name: /split pdf/i }).click(),
+      page.getByRole("button", { name: /download/i }).first().click(),
     );
 
     expect(split.bytes.byteLength).toBeGreaterThan(100);

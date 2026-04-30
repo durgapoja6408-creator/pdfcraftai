@@ -42,10 +42,21 @@ test.describe("/tool/merge", () => {
     await expect(page.getByText("single-page.pdf").first()).toBeVisible();
     await expect(page.getByText("multi-page.pdf").first()).toBeVisible();
 
-    // Click the Apply button. PdfMergeTool's primary CTA copy is
-    // "Merge PDFs" (per the UI copy style guide #191).
+    // PdfMergeTool has a 2-step flow:
+    //   1. Click "Merge N PDFs" — runs the op, shows result card
+    //   2. Click "Download" on the result card — fires the download
+    // The op itself doesn't auto-download; the result is shown so the
+    // user can verify before downloading.
+    await page.getByRole("button", { name: /merge.*pdfs?/i }).click();
+
+    // Wait for the result card. The headline says "Merged N PDFs into
+    // one with X pages" or similar.
+    await expect(
+      page.getByText(/merged|combined|total page/i).first(),
+    ).toBeVisible({ timeout: 30_000 });
+
     const merged = await captureDownload(page, () =>
-      page.getByRole("button", { name: /merge pdfs/i }).click(),
+      page.getByRole("button", { name: /^download$/i }).click(),
     );
 
     // Downloaded file should be a real PDF (starts with %PDF).
