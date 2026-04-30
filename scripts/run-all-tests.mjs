@@ -749,6 +749,13 @@ const SUITES = [
   // run; KNOWN_DEAD_REFS allowlist whitelists "shipped ahead of
   // tooling" cases so the guard fires only on NEW dead refs.
   { name: "seo-pages-tool-mapping", file: "test-seo-pages-tool-mapping.mjs" },
+  // 2026-04-30 SEO health guard: every slug advertised in sitemap.xml
+  // must have a corresponding routable page. Curl audit found
+  // **35 of 116 (30%)** non-dynamic sitemap URLs returning 404 —
+  // worst possible SEO signal (soft-404, wasted crawl budget,
+  // domain authority hit). KNOWN_MISSING_SEO_ROUTES allowlist tracks
+  // the existing backlog; new dead routes fail the guard.
+  { name: "sitemap-routes-exist", file: "test-sitemap-routes-exist.mjs" },
 ];
 
 /**

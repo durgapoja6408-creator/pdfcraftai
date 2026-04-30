@@ -177,6 +177,73 @@ Real findings from the validation:
   1 correctly skipped (CSV when totalCount=0), 0 failed**, plus
   5 known-issue skips.
 
+## 🚨 Critical open finding — 30% of sitemap.xml is 404 (2026-04-30)
+
+**Severity: high SEO impact, found by curl audit**
+
+A bulk-curl of every URL in `https://pdfcraftai.com/sitemap.xml` (116
+non-dynamic URLs after stripping /tool/, /blog/, /help/, /use-cases/,
+/about/authors/, /alternatives/) returned:
+
+- **81 alive (200 OK)**
+- **35 dead (404)** — 30% of the catalog
+
+Every dead URL is a slug declared in `lib/seo-pages.ts` `SEO_SLUGS`
+but lacking a corresponding `app/<slug>/page.tsx` directory. The
+sitemap.ts route reads `SEO_SLUGS` directly to build the sitemap, so
+slugs that exist for SEO equity (keyword targeting) but have no
+route file get advertised to search engines as crawlable URLs that
+404.
+
+**Why this matters:**
+- Google treats sitemap-advertised 404s as soft-404 — crawl budget
+  is wasted re-checking them
+- Persistent soft-404s in sitemap signal poor site health → ranking
+  demotion across the entire domain
+- Direct traffic from organic search hits 404 → bounce + lost
+  conversion
+
+**Dead routes (full list — same set tracked in
+`KNOWN_MISSING_SEO_ROUTES` in
+`scripts/test-sitemap-routes-exist.mjs`):**
+
+```
+add-links              flatten-pdf            png-to-pdf
+add-logo-to-pdf        free-draw-pdf          powerpoint-to-pdf
+add-text-to-pdf        grayscale-pdf          redact-pdf-free
+booklet-pdf            highlight-pdf          remove-pdf-metadata
+compress-pdf           jpg-to-pdf             reorder-pdf-pages
+delete-pdf-pages       markdown-to-pdf        repair-pdf
+edit-pdf               merge-pdf              resize-pdf
+excel-to-pdf           n-up-pdf               sign-pdf-free
+extract-emails-...     pdf-page-count         split-pdf
+extract-entities-...   pdf-to-...             stamp-pdf
+extract-pdf-...        booklet-pdf            strip-links
+                                              text-to-pdf
+                                              word-to-pdf
+```
+
+**Remediation paths (any of):**
+1. **Build the missing route files** (mirror an existing landing's
+   pattern in `app/extract-images-from-pdf/page.tsx` etc.). The
+   `lib/seo-pages.ts` data is already there for each slug — it's
+   just the wiring that's missing. ~30 minutes per route at a steady
+   pace.
+2. **Trim `SEO_SLUGS`**: remove dead slugs from the type union in
+   `lib/seo-pages.ts`. Sitemap stops advertising them. Minimal SEO
+   loss compared to current state.
+3. **301 redirect**: add entries to `next.config.mjs` `redirects()`
+   so each dead slug redirects to its closest live equivalent (e.g.
+   `/merge-pdf` → `/tool/merge`). Preserves keyword equity, fixes
+   the 404, and gives users a useful destination.
+
+**Mitigation in place:** `scripts/test-sitemap-routes-exist.mjs`
+guards against NEW dead routes via `KNOWN_MISSING_SEO_ROUTES`. The
+existing 35 are listed; any new addition to `SEO_SLUGS` that lacks a
+route file fails `npm test`.
+
+---
+
 ## ⚠️ Open finding — 5 dead SEO landings (2026-04-30)
 
 The SEO-landings smoke spec discovered 5 routes whose `tool:` field
