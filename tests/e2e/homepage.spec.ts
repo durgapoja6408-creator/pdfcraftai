@@ -38,11 +38,15 @@ test.describe("/ — homepage", () => {
     await page.goto("/");
     // Settle — give analytics/SW/etc. time to throw if they're going to.
     await page.waitForLoadState("networkidle");
-    // Filter out known-noisy warnings that aren't real bugs.
-    // Playwright's WebKit emits a benign "Cookie X is rejected" line
-    // for cross-site analytics cookies — those aren't our problem.
+    // Filter out known-noisy warnings that aren't real bugs:
+    //   - WebKit's benign "Cookie X is rejected" for cross-site
+    //     analytics cookies
+    //   - Resource preload warnings (Next.js handles preload
+    //     hinting that may not always match)
+    //   - Benign GA4 warnings about 3rd-party cookie deprecation
     const realErrors = errors.filter(
-      (e) => !/cookie.*rejected|preload.*not used/i.test(e),
+      (e) =>
+        !/cookie.*rejected|preload.*not used|3rd party cookie/i.test(e),
     );
     expect(realErrors, "console errors on /").toEqual([]);
   });

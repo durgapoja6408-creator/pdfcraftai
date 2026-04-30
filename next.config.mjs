@@ -111,15 +111,26 @@ const PADDLE_ORIGINS = [
 // Analytics — must match app/layout.tsx. If a new vendor is added, review
 // PCI scope first: analytics origins touch script-src / connect-src / img-src,
 // and widening any of those is a SAQ-A review trigger.
+//
+// 2026-04-30: added Cloudflare Web Insights (cloudflareinsights.com).
+// Discovered via Phase 1 Playwright homepage spec running against prod —
+// Cloudflare auto-injects its RUM beacon when CF proxy is enabled, and
+// our CSP was rejecting it on every page load (silent CSP violation in
+// every user's browser console). PCI scope unchanged: CF Insights is
+// first-party-style telemetry from the same edge that fronts our origin,
+// no card-data path, no SAQ-A widening.
 const ANALYTICS_ORIGINS_SCRIPT = [
   "https://www.googletagmanager.com",
   "https://www.clarity.ms",
+  "https://static.cloudflareinsights.com",
 ];
 const ANALYTICS_ORIGINS_CONNECT = [
   "https://www.google-analytics.com",
   "https://www.clarity.ms",
   "https://c.clarity.ms",
   "https://www.googletagmanager.com",
+  "https://cloudflareinsights.com",
+  "https://static.cloudflareinsights.com",
 ];
 const ANALYTICS_ORIGINS_IMG = [
   "https://www.google-analytics.com",
