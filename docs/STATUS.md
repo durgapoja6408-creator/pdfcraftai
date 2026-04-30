@@ -106,6 +106,67 @@ Real findings from the validation:
 **Latest pushed commit:** `baa948c` (Phase 1 spec fixes from live-prod
 validation). Earlier commits this round: `29daf91` (CSP fix).
 
+---
+
+## ⚠️ Open ops finding — .htaccess CSP override out of sync (2026-04-30)
+
+**Diagnosis via SSH (per CLAUDE.md §5):** the CSP fix in `29daf91`
+landed correctly in `next.config.mjs` and was baked into the build's
+`.next/routes-manifest.json` (verified on the server). But the live
+HTTP response still serves the OLD CSP.
+
+**Root cause:** there's an Apache `.htaccess` at
+`~/domains/pdfcraftai.com/public_html/.htaccess` that:
+
+```
+<IfModule mod_headers.c>
+  Header always unset Content-Security-Policy
+  Header always set Content-Security-Policy "default-src 'self'; ...
+    [HARDCODED OLD CSP — no cloudflareinsights, no Paddle origins]
+  "
+</IfModule>
+```
+
+The comment explains this was a manual workaround for LSAPI/Passenger
+stripping the Node-set CSP down to just `upgrade-insecure-requests`.
+
+**Implication:** every CSP change in `next.config.mjs` requires a
+mirror change in this .htaccess file. The current .htaccess is at
+least 2 weeks behind:
+- Missing `https://cdn.paddle.com` + sandbox-buy.paddle.com etc.
+  (Paddle origins added some time ago)
+- Missing `https://static.cloudflareinsights.com` (added today in
+  `29daf91`)
+
+**Fix path (user action via hPanel, since .htaccess isn't in the git
+repo):**
+
+1. SSH or hPanel File Manager → edit
+   `~/domains/pdfcraftai.com/public_html/.htaccess`
+2. Replace the hardcoded `Content-Security-Policy` value with the
+   current value from `next.config.mjs`'s `CSP` constant (use
+   `routes-manifest.json` from the latest build for the canonical
+   serialized form)
+3. Verify: `curl -I https://pdfcraftai.com/ | grep -i content-sec`
+   — confirm it includes `cloudflareinsights.com` + Paddle origins
+4. Re-run Phase 1 homepage spec — `homepage no console errors`
+   test should now pass
+
+**Better long-term fix (engineering ticket):** either
+(a) add the .htaccess to the git repo as a tracked file so CSP changes
+stay in sync, or
+(b) investigate the LSAPI/Passenger CSP-stripping issue that
+necessitated the workaround in the first place — if it's been fixed
+upstream, the .htaccess override can be removed entirely and Node's
+CSP will land cleanly.
+
+**Stale-worker note:** `pkick` was performed once at 01:50 UTC per
+CLAUDE.md §5 "Stale-worker hold" diagnostic. The `next-server` workers
+were running from 00:52-00:55 (before the 01:12 rebuild). After
+pkick, fresh worker spawned with `commit:1f98a6d` and `uptimeSec:0`.
+The .htaccess override is what's keeping the OLD CSP visible, NOT a
+runtime cache.
+
 **Tests:** 3246 passed, 0 failed across 38 suites (unchanged — pure implementation move).
 
 Full handoff in `docs/SESSION_2026-04-29.md` post-cascade-batch section.
