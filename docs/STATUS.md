@@ -3,7 +3,77 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-04-29 EOD (**post-cascade batch — 4 commits pushed in single batch, low cascade risk vs the earlier 25-commit run**). User directive: "Proceed with M 21, M23, M5 part 5, M22 part 2." All four addressed:
+**Last updated:** 2026-04-30 EOD (auto-mode arc, 31 commits since `29daf91`).
+**Live commit:** `2eab606` (verified 200 OK on /api/health).
+**Aggregator:** 3392 passed across 51 suites in 3.5s.
+
+---
+
+## 2026-04-30 auto-mode arc — close-out summary
+
+A continuous 10-hour autonomous run that started with a 5-tool E2E
+suite, surfaced 12 distinct findings ranging from SEO catastrophes
+to perf regressions, and shipped 13 sub-second CI guards to prevent
+the same classes of bug from re-occurring.
+
+### Findings closed this arc (12)
+
+| # | Finding | Resolution | Commit |
+|---|---|---|---|
+| 1 | Cloudflare Web Insights CSP violation | added `cloudflareinsights` to script-src + connect-src | `29daf91` |
+| 2 | .htaccess CSP override drift | rewrote via SSH from `routes-manifest.json` canonical | `c88d732` |
+| 3 | PDFium WASM served as `text/plain` | route handler at `/api/pdfium-wasm` with explicit MIME | `7395e02` |
+| 4 | Phase 1 spec selector drift (3 specs) | updated for 2-step download flow + actual DOM | `baa948c` |
+| 5 | axe a11y `link-in-text-block` (18 instances, 14 files) | added `textDecoration: underline` everywhere | `caf0c5a`, `fe97049`, `2f51d72` |
+| 6 | ContactForm inputs missing label association | threaded `useId()` through FormInput/FormSelect/FormTextarea | `caf0c5a` |
+| 7 | Cookie-page badge color contrast (4.1:1 vs 4.5:1) | lifted to 500-tier hues (clears 6:1) | `caf0c5a` |
+| 8 | 30% of sitemap.xml returning 404 (35 routes) | 308 redirects to canonical destinations | `89cd1e8` |
+| 9 | 2 pre-existing dead redirect destinations | re-pointed `/tool/protect` → `/tool/unlock` | `0a1ded2` |
+| 10 | 5 broken-render SEO landings (200 with 404-body) | 308 redirects to closest live tools | `cadf27c` |
+| 11 | Sitemap not canonicalized (40 redirect sources advertised) | filtered via `REDIRECTED_SEO_SLUGS` | `1b4b693` |
+| 12 | Dead WASM preload `<link rel="preload" href="/pdfium.wasm">` | repointed to `/api/pdfium-wasm` after `7395e02` moved runtime | `2eab606` |
+
+### CI guards shipped (13 sub-second static checks)
+
+**SEO domain (8):**
+1. `seo-pages-tool-mapping` — every `tool:` ref resolves in `lib/tools.ts`
+2. `sitemap-routes-exist` — every `SEO_SLUGS` entry has `app/<slug>/page.tsx` (or is in `KNOWN_MISSING_SEO_ROUTES` allowlist)
+3. `redirect-destinations` — every redirect destination resolves to a real route
+4. `sitemap-redirect-sync` — `REDIRECTED_SEO_SLUGS` matches single-segment 308 sources in `next.config.mjs`
+5. `dynamic-route-coverage` — 6 dynamic-route surfaces (blog/help/alternatives/authors/use-cases/tools) have data + route files
+6. `robots-config` — `/admin/`, `/api/`, etc. stay disallowed; `/tools`, `/pricing` stay crawlable
+7. `internal-links` — every literal `<Link/a href="/...">` resolves to a live route
+8. `public-asset-refs` — every `/foo.png|wasm|mjs` reference exists under `/public/`
+
+**Quality + security (5):**
+9. `inline-link-a11y` — accent-color links inside body text need underline
+10. `bundle-budget` — chunk-size limits (skips on dev builds)
+11. `tool-runner-coverage` — `TOOLS` ↔ `ToolRunner` consistency
+12. `csv-helper` — RFC-4180 CSV invariants
+13. `target-blank-rel` — security: reverse-tabnabbing protection
+
+### E2E coverage on prod (Chromium)
+
+- **Phase 1** (writable-tool flows): 6 specs + 1 correctly skipped
+- **Phase 3** (axe-core a11y): 16 pages
+- **all-tools smoke**: 94 tools
+- **SEO-landings smoke**: 86 landings (use-cases + static landings)
+- **Total verified post-deploy:** ~203 prod E2E test runs, all green
+
+### Open backlog (tracked, allowlisted)
+
+- **35 dead SEO landing routes** in `KNOWN_MISSING_SEO_ROUTES` (`scripts/test-sitemap-routes-exist.mjs`) — currently 308-redirected to `/tool/<id>` or `/tools`. Long-term: ship real `app/<slug>/page.tsx` landings for keyword equity.
+- **19 dead `tool:` refs** in `KNOWN_DEAD_REFS` (`scripts/test-seo-pages-tool-mapping.mjs`) — 5 active ("shipped ahead of tooling"), 14 unrouted (registry-only). Same long-term play: ship the missing tools.
+- **Hostinger thread-cap cascade** during deploys (CLAUDE.md §5) — well-documented operational pattern, not a code defect.
+
+### Operational learnings codified in CLAUDE.md §5
+
+- Stale `next-server` zombie workers — SSH cleanup recipe
+- Thread-cap cascade — DO NOT pkick repeatedly
+- **Worst-case recovery — when even SSH bash forks fail, STOP TRYING and wait 5–10 min for the kernel to drain pending threads.** Empirically derived: every reconnect creates more pending forks that the cgroup queues, prolonging the hang.
+- LiteSpeed/Passenger `/public/*.wasm` serves text/plain regardless of `headers()` or `.htaccess` — route handlers are the workaround.
+
+--- User directive: "Proceed with M 21, M23, M5 part 5, M22 part 2." All four addressed:
 - **M5 part 3** (`2c9c575`) — `AbortController` extended to merge + split apply phase; per-input/per-chunk signal check; independent `applyAbortRef` in PdfMergeTool + PdfSplitTool
 - **M22 part 2** (closure documented in `2c9c575`) — closed as vacuous; investigation found no consumer of `lib/client/csv.ts` reads CSVs, only exports
 - **M23** (`fb4b48c`) — single-purpose Service Worker for PDFium WASM caching. `public/pdfium-sw.js` intercepts ONLY `/pdfium.wasm` (cache-first, versioned `pdfium-wasm-v1`). `components/PdfiumServiceWorker.tsx` defers registration to `requestIdleCallback`. Single-purpose scope avoids classic SW staleness trap
