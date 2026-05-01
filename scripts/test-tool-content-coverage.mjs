@@ -177,12 +177,17 @@ const GRANDFATHERED_NO_CONTENT = new Map([
   ["pdf-to-html", ["longform"]],
   ["extract-pages", ["longform"]],
   ["delete-pages", ["longform"]],
-  ["page-numbers", ["longform"]],
   ["extract-images", ["longform"]],
-  ["merge", ["longform"]],
-  ["split", ["longform"]],
-  ["rotate", ["longform"]],
-  ["unlock", ["longform"]],
+  // 2026-05-01: merge, split, rotate, page-numbers, unlock REMOVED.
+  // Audit found these were CI-guard false positives — all 5 ALREADY
+  // had full ToolLongformData entries in lib/tool-longforms.ts but
+  // used unquoted JS object keys (`merge: {` not `"merge": {`),
+  // which the test's record-key regex initially missed. The
+  // earlier-this-session fix to parseRecordIds() (accepting both
+  // quoted and unquoted forms) resolves the parser bug so the
+  // grandfather entries are now stale.
+  // Grandfather list shrinks 5 entries (35 → 30); cap-on-grandfather
+  // forces this to keep shrinking over time.
 ]);
 
 // ---------------------------------------------------------------------
