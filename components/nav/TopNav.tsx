@@ -18,6 +18,13 @@ const NAV: NavLink[] = [
   // (saved configs on each /tool/* runner) still work via the separate
   // lib/macro-actions.ts code path.
   { href: "/tools", label: "Tools" },
+  // 2026-05-01 — "Chat" promoted to a first-class nav slot instead of
+  // being shoehorned into /tools as a catalog card. Reasoning: chat is
+  // a multi-turn product (chat history, archive, multi-message UI)
+  // that doesn't fit the single-shot /tool/[id] shape every other
+  // catalog entry uses. /chat-with-pdf is the public marketing landing;
+  // from there logged-in users click "Start chatting" → /app/chat.
+  { href: "/chat-with-pdf", label: "Chat" },
   { href: "/pricing", label: "Pricing" },
   { href: "/blog", label: "Blog" },
   { href: "/help", label: "Help" },

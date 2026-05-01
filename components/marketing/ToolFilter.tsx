@@ -13,6 +13,15 @@ export function ToolFilter() {
 
   const filtered = useMemo(() => {
     return TOOLS.filter((t) => {
+      // 2026-05-01 — ai-chat is intentionally excluded from the /tools
+      // catalog. Chat is a multi-turn product (lives at /app/chat for
+      // logged-in users; /chat-with-pdf for public discovery) and
+      // doesn't fit the single-shot /tool/[id] shape every other
+      // catalog entry uses. It now has its own first-class nav slot
+      // alongside "Tools" / "Pricing" in components/nav/TopNav.tsx.
+      // The TOOL_STATS.ai count still includes it (chat IS an AI
+      // feature) — only the catalog UI hides the card.
+      if (t.id === "ai-chat") return false;
       if (filter === "free" && !t.free) return false;
       if (filter === "ai" && t.free) return false;
       if (!q) return true;
