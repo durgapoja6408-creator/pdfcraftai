@@ -77,6 +77,17 @@ export const TOOL_SUGGESTIONS: Record<string, readonly string[]> = {
   // Booklet → users often add page numbers AFTER imposition (page
   // numbers stamped on each half of each sheet) and a fold guide.
   "booklet-pdf": ["page-numbers", "stamp-pdf", "merge"],
+
+  // 2026-05-01 Tier 2 batch.
+  // Bates → typical legal workflow: stamp Bates → redact PII →
+  // merge into production volume.
+  "bates-numbers": ["redact-free", "merge", "remove-metadata"],
+  // Odd/even → users typically merge with the other parity result
+  // (re-scan use case), then add pagination on the merged file.
+  "odd-even-pages": ["merge", "page-numbers", "sort-pages"],
+  // CSV → table is rendered; common follow-ups are pagination
+  // (page numbers) and combining with a cover page (merge).
+  "csv-to-pdf": ["page-numbers", "merge", "stamp-pdf"],
 };
 
 /** Look up suggestions, defaulting to empty if no entry. */

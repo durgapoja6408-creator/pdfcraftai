@@ -117,6 +117,10 @@ const LIVE_TOOL_IDS = new Set<string>([
   "markdown-to-pdf",
   "grayscale-pdf",
   "booklet-pdf",
+  // 2026-05-01 Tier 2 batch:
+  "bates-numbers",
+  "odd-even-pages",
+  "csv-to-pdf",
   // AI tools.
   "ai-summarize",
   "ai-tldr",

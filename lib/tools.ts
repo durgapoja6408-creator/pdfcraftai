@@ -72,6 +72,10 @@ export const TOOLS: readonly Tool[] = [
   { id: "markdown-to-pdf", name: "Markdown to PDF", desc: "Render markdown (headings, lists, code blocks, blockquotes, inline bold/italic/code) into a styled, paginated PDF. Output is text-selectable + searchable.", icon: "Convert", free: true, cost: "free", group: "Convert" },
   { id: "grayscale-pdf", name: "PDF to Grayscale", desc: "Convert any PDF to grayscale via PDFium-rasterize + BT.709 luminance. Ideal for printing on monochrome printers; output is rasterized so text becomes part of the image.", icon: "Edit", free: true, cost: "free", group: "Optimize" },
   { id: "booklet-pdf", name: "Booklet PDF", desc: "Saddle-stitch imposition — reorder pages so you can print double-sided, fold the stack in half, and staple along the fold to make a booklet.", icon: "Pages", free: true, cost: "free", group: "Edit" },
+  // 2026-05-01 Tier 2 batch:
+  { id: "bates-numbers", name: "Bates Numbering", desc: "Stamp legal-style sequential identifiers (LAW000001, LAW000002, …) on every page. Configurable prefix, digit count, start number, position. For litigation discovery and document production.", icon: "Edit", free: true, cost: "free", group: "Edit" },
+  { id: "odd-even-pages", name: "Odd / Even Pages", desc: "Extract just the odd-numbered or just the even-numbered pages of a PDF — useful for re-scanning duplex documents where only one side captured.", icon: "Pages", free: true, cost: "free", group: "Organize" },
+  { id: "csv-to-pdf", name: "CSV to PDF", desc: "Render CSV / TSV data as a paginated PDF table — RFC 4180 quoted fields supported, header repeats on every page, output is text-selectable + searchable.", icon: "Convert", free: true, cost: "free", group: "Convert" },
 
   // Build 2 Wave 3 (2026-04-27): Search + Extract Images. Both
   // PDFium-backed read-only ops.

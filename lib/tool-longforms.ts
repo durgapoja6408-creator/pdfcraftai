@@ -2888,6 +2888,255 @@ export const TOOL_LONGFORMS: Record<string, ToolLongformData> = {
     },
   },
 
+  "bates-numbers": {
+    useCasesTitle: "Why people use Bates numbering",
+    useCasesIntro:
+      "Bates numbering — sequential identifiers stamped on every page of a document — is the backbone of legal discovery and document production. When you produce 10,000 pages to opposing counsel, every page has a unique label so any deposition reference can pinpoint the exact source.",
+    useCases: [
+      {
+        icon: "Shield",
+        title: "Litigation discovery",
+        text: "When responding to a discovery request, every produced page gets a Bates label. The labels make it possible for attorneys to cite specific pages (&ldquo;LAW012458, line 14&rdquo;) months later in deposition or trial.",
+      },
+      {
+        icon: "Pages",
+        title: "Multi-batch productions",
+        text: "Discovery production typically runs in batches over weeks or months. Configurable start number means batch 2 picks up where batch 1 left off — no overlapping or skipped IDs across the entire production.",
+      },
+      {
+        icon: "Book",
+        title: "Internal compliance reviews",
+        text: "Audit committees, internal investigations, and regulatory inspections all need stable per-page identifiers so reviewers can flag specific pages and other team members find the same content.",
+      },
+      {
+        icon: "Edit",
+        title: "Insurance &amp; medical records",
+        text: "Personal injury, workers&rsquo; comp, and medical malpractice cases produce huge medical record sets. Bates labels turn the binder of records into something searchable and citable in court.",
+      },
+      {
+        icon: "Convert",
+        title: "Contract management",
+        text: "Large M&amp;A or commercial deals collect hundreds of supporting documents. Bates labels create a single namespace across the entire deal binder so any clause can be referenced without ambiguity.",
+      },
+    ],
+    howWorksTitle: "How Bates Numbering works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your PDF &amp; configure prefix",
+        text: "Set a prefix (LAW / DEF / PROD / SMITH001-), digit count (default 6 → six zero-padded digits), start number (default 1, or pick up where the last batch ended).",
+      },
+      {
+        step: "2",
+        title: "Pick position &amp; size",
+        text: "Six positions (bottom-right is the most common). Font size 8-14pt — smaller is more typical for unobtrusive labeling.",
+      },
+      {
+        step: "3",
+        title: "Stamp &amp; download",
+        text: "Pure pdf-lib drawText overlay — non-destructive, preserves original content. The success card shows the last label stamped so you know where to start the next batch.",
+      },
+    ],
+    faqs: [
+      {
+        q: "What's the difference between Bates numbering and page numbers?",
+        a: "Page numbers are generic pagination — &ldquo;1 of 10&rdquo;, &ldquo;Page 5&rdquo;. They reset for every document and don&rsquo;t carry context. Bates numbers are namespaced sequential identifiers — &ldquo;LAW012458&rdquo; — that persist across an entire production. The label tells anyone who sees it (a) which production it&rsquo;s from (LAW prefix) and (b) the unique position within that production. You can reference a single Bates page months later and find exactly that page. You can&rsquo;t do that with generic pagination.",
+      },
+      {
+        q: "How wide should the digit count be?",
+        a: "Big enough to cover your largest expected production, plus headroom. For a 5,000-page case, 5 digits (00001-99999) is enough. For million-page e-discovery productions, 7 digits is the standard. Six is the safe default — covers up to 999,999 pages. The tool throws an error before stamping if your configured digit count is too small for the page count + start number, so you can&rsquo;t accidentally produce labels like &ldquo;LAW01000&rdquo; alongside &ldquo;LAW000999&rdquo;.",
+      },
+      {
+        q: "What if my PDF has 100 pages but I want to start at 250?",
+        a: "Set the start number to 250. Page 1 of your input becomes LAW000250, page 2 is LAW000251, … page 100 is LAW000349. The success card&rsquo;s &ldquo;continue your next batch from #350&rdquo; hint tells you where to set start number for the next batch.",
+      },
+      {
+        q: "Can I use a different prefix on different page ranges?",
+        a: "Not in a single pass. Run the tool twice on different page ranges (use Extract Pages first to split, then run Bates with different prefix on each half). For most discovery workflows, one prefix per case is the convention anyway.",
+      },
+      {
+        q: "Does this affect the original document content?",
+        a: "No. The label is a non-destructive overlay drawn on top of existing content. The PDF&rsquo;s text streams, images, and structure are untouched. If you re-extract text from the output, the original content is intact and the Bates label appears as a small text run at the corner.",
+      },
+      {
+        q: "Is anything uploaded?",
+        a: "No. pdf-lib runs locally — your discovery files never touch our servers. Especially important for litigation where attorney-client privilege and confidentiality matter. Verifiable in DevTools → Network.",
+      },
+    ],
+    cta: {
+      title: "Need to redact PII before producing?",
+      text: "Redact PDF lets you draw rectangles over names, account numbers, and other privileged content. Use it BEFORE stamping Bates labels so the redactions are baked in to the produced version.",
+      linkHref: "/tool/redact-free",
+      linkLabel: "Try Redact PDF",
+    },
+  },
+
+  "odd-even-pages": {
+    useCasesTitle: "Why people extract odd or even pages",
+    useCasesIntro:
+      "Most odd/even-pages workflows come from a duplex (two-sided) document where things didn&rsquo;t go as planned. Other use cases: comparing facing pages, cleaning up scans, splitting interleaved content. The operation itself is simple, but it solves a surprising number of pain points.",
+    useCases: [
+      {
+        icon: "Pages",
+        title: "Duplex re-scanning",
+        text: "Your scanner&rsquo;s duplex feeder failed and only captured one side. Each side now lives in a separate PDF. Extract odd from one + even from the other, merge them in alternating order, and reassemble the original.",
+      },
+      {
+        icon: "Book",
+        title: "Single-sided printing prep",
+        text: "Some print shops only do single-sided. Extract just odd pages, print, then flip the stack and run even pages. Cheaper than duplex on some workflows.",
+      },
+      {
+        icon: "Edit",
+        title: "Content cleanup",
+        text: "Lecture slide PDFs sometimes have blank verso pages between content (every other page is intentionally blank). Pull out just the odd pages to get a tight, content-only deck.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Side-by-side comparison",
+        text: "Compare every left page (odd) vs right page (even) of a two-up document — useful for proofreading layouts or comparing translated columns.",
+      },
+      {
+        icon: "Convert",
+        title: "Layout debugging",
+        text: "When a print run looks wrong, splitting odd/even isolates which side carries the issue (front-vs-back registration problems show up only in one parity).",
+      },
+    ],
+    howWorksTitle: "How Odd / Even Pages works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your PDF",
+        text: "Up to 100 MB. Files stay in your browser — nothing uploaded.",
+      },
+      {
+        step: "2",
+        title: "Pick parity",
+        text: "Odd: pages 1, 3, 5, 7, … (1-based, matches what you see in any PDF viewer). Even: pages 2, 4, 6, 8, …",
+      },
+      {
+        step: "3",
+        title: "Extract &amp; download",
+        text: "pdf-lib copyPages copies the selected pages into a fresh PDF. Lossless, no rasterization, original page dimensions preserved.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Are pages numbered 1-based or 0-based?",
+        a: "1-based — page 1 (the first page) is odd. Page 2 is even. This matches what you see in PDF viewers and what users intuitively mean by &ldquo;odd&rdquo; / &ldquo;even&rdquo; pages.",
+      },
+      {
+        q: "How do I reassemble odd + even back into the original?",
+        a: "Use Merge PDF with the &ldquo;interleave&rdquo; pattern — alternate one page from each input. For most duplex re-scanning workflows: extract odd from scan A, extract even (in REVERSE order — the duplex feeder captures even pages last-to-first) from scan B, then interleave-merge. Some scanners differ; check the actual page order before merging.",
+      },
+      {
+        q: "What if my PDF has 0 odd pages or 0 even pages?",
+        a: "A 1-page PDF has 1 odd page and 0 even pages — extracting even fails with a clear error. We don&rsquo;t produce empty output. (A real corner case but it does happen.)",
+      },
+      {
+        q: "Does this preserve bookmarks / outline?",
+        a: "Bookmarks are NOT preserved — pdf-lib&rsquo;s copyPages doesn&rsquo;t carry over the document outline. The page content (text, images, vectors) is fully preserved. If bookmarks matter, run pdf-lib&rsquo;s deeper copy and re-anchor manually — beyond this tool&rsquo;s scope.",
+      },
+      {
+        q: "Is anything uploaded?",
+        a: "No. pdf-lib runs entirely in your browser. Verifiable in DevTools → Network.",
+      },
+      {
+        q: "Why is this faster than Extract Pages?",
+        a: "Extract Pages renders thumbnail previews of every page so you can click which to keep — that&rsquo;s perfect for arbitrary picks but slower and memory-heavy on big PDFs. This tool skips the thumbnail step entirely (the parity rule doesn&rsquo;t need visual confirmation), so it runs in a fraction of the time on documents with hundreds of pages.",
+      },
+    ],
+    cta: {
+      title: "Need to merge them back together?",
+      text: "Merge PDF combines multiple PDFs into one — drag to reorder, perfect for re-interleaving extracted odd + even halves into the original sequence.",
+      linkHref: "/tool/merge",
+      linkLabel: "Try Merge PDF",
+    },
+  },
+
+  "csv-to-pdf": {
+    useCasesTitle: "Why people convert CSV to PDF",
+    useCasesIntro:
+      "CSV is the universal data format. PDF is the universal sharing format. CSV-to-PDF turns a spreadsheet export into a paginated, formatted table you can send to anyone — printable, signable, archivable, and free of the formatting drift that creeps in when CSVs open differently in different applications.",
+    useCases: [
+      {
+        icon: "Receipt",
+        title: "Financial reports &amp; ledgers",
+        text: "Export a transaction log, account ledger, or P&amp;L from your accounting software. Convert to a clean PDF for monthly distribution to stakeholders, compliance archives, or audit trails.",
+      },
+      {
+        icon: "Pages",
+        title: "Inventory &amp; product lists",
+        text: "Catalog data, stock counts, SKU lists. PDF table is more shareable than a CSV that opens differently in Excel vs. Google Sheets vs. Numbers.",
+      },
+      {
+        icon: "Convert",
+        title: "Data exports for review",
+        text: "Database query results, API exports, log dumps. Convert to PDF before emailing — recipients without database tooling can still read the data.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Compliance &amp; audit logs",
+        text: "Audit trails, access logs, change records. Pagination + repeating headers + RFC 4180 quote handling means the PDF is the canonical archived record of the data state.",
+      },
+      {
+        icon: "Book",
+        title: "Tabular reports for stakeholders",
+        text: "Performance dashboards, KPI summaries, project status tables. PDF format pairs better with email and document workflows than CSV attachments that some recipients can&rsquo;t open natively.",
+      },
+    ],
+    howWorksTitle: "How CSV to PDF works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Paste or drop a CSV / TSV",
+        text: "Type / paste into the textarea, or drop a .csv / .tsv / .txt file (up to 5 MB). All processing stays in your browser.",
+      },
+      {
+        step: "2",
+        title: "Pick delimiter, paper, header",
+        text: "Comma / tab / semicolon delimiter (auto-detected from .tsv extension). Paper size (Letter / A4 in portrait or landscape — landscape is recommended for wider tables). Header toggle (treats row 1 as styled header).",
+      },
+      {
+        step: "3",
+        title: "Build &amp; download",
+        text: "RFC 4180 parser handles quoted fields + escaped quotes + embedded delimiters. Column widths auto-fit, long cells truncate with ellipsis. Headers repeat on every page. Output is text-selectable + searchable.",
+      },
+    ],
+    faqs: [
+      {
+        q: "What's the file size / row limit?",
+        a: "5 MB of CSV text (~50,000-200,000 rows of typical data). For larger datasets, split the CSV into volumes and combine the resulting PDFs with our Merge tool. The PDF generation pipeline can handle large outputs but browser memory degrades around the 5 MB input mark on most devices.",
+      },
+      {
+        q: "Are quoted fields with commas inside handled correctly?",
+        a: "Yes. The parser is RFC 4180 compliant: `&quot;Smith, John&quot;` parses as one field (`Smith, John`). Embedded quotes are escaped via doubling: `&quot;She said &quot;&quot;hi&quot;&quot;&quot;` parses as `She said &quot;hi&quot;`. Embedded newlines inside quoted fields are also supported.",
+      },
+      {
+        q: "Why are my long cells truncated with an ellipsis?",
+        a: "When column widths are tight, we truncate cell content with &ldquo;…&rdquo; rather than letting it bleed into adjacent columns or run off the page. For datasets with very long cells, pick landscape paper or a smaller font size to give columns more room. Truncation is visual only — the underlying CSV data is unchanged in the source.",
+      },
+      {
+        q: "Does the header repeat on each page?",
+        a: "Yes, when &ldquo;First row is header&rdquo; is enabled (the default). The header gets a light gray background and bold font, and is redrawn at the top of every page so a multi-page table is readable when printed and stapled.",
+      },
+      {
+        q: "What about TSV (tab-separated)?",
+        a: "Pick &ldquo;\\t (tab)&rdquo; from the delimiter dropdown. Files with .tsv extension auto-set the delimiter. Most database export tools and `cut`-style Unix utilities produce TSV; both formats are first-class.",
+      },
+      {
+        q: "Is anything uploaded?",
+        a: "No. CSV parsing and PDF generation both run in your browser via pdf-lib. Verifiable in DevTools → Network.",
+      },
+    ],
+    cta: {
+      title: "Need plain text rendering?",
+      text: "Text to PDF skips the table layout and renders any text input as monospaced flowed text — useful for code listings, logs, and unstructured notes.",
+      linkHref: "/tool/text-to-pdf",
+      linkLabel: "Try Text to PDF",
+    },
+  },
+
   "text-to-pdf": {
     useCasesTitle: "Why people convert text to PDF",
     useCasesIntro:

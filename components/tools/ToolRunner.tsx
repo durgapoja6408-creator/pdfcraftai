@@ -157,6 +157,22 @@ const PdfBookletTool = dyn(() =>
     default: m.PdfBookletTool,
   })),
 );
+// 2026-05-01 Tier 2 batch:
+const PdfBatesNumbersTool = dyn(() =>
+  import("@/components/tools/PdfBatesNumbersTool").then((m) => ({
+    default: m.PdfBatesNumbersTool,
+  })),
+);
+const PdfOddEvenPagesTool = dyn(() =>
+  import("@/components/tools/PdfOddEvenPagesTool").then((m) => ({
+    default: m.PdfOddEvenPagesTool,
+  })),
+);
+const CsvToPdfTool = dyn(() =>
+  import("@/components/tools/CsvToPdfTool").then((m) => ({
+    default: m.CsvToPdfTool,
+  })),
+);
 
 const SearchPdfTool = dyn(() =>
   import("@/components/tools/SearchPdfTool").then((m) => ({
@@ -622,6 +638,12 @@ export function ToolRunner({ id }: { id: string }) {
       return <PdfGrayscaleTool />;
     case "booklet-pdf":
       return <PdfBookletTool />;
+    case "bates-numbers":
+      return <PdfBatesNumbersTool />;
+    case "odd-even-pages":
+      return <PdfOddEvenPagesTool />;
+    case "csv-to-pdf":
+      return <CsvToPdfTool />;
     case "pdf-search":
       return <SearchPdfTool />;
     case "extract-images":

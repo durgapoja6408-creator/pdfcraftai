@@ -498,4 +498,18 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
     text: "What you'll get: a saddle-stitch imposed PDF — print double-sided, fold the stack in half, staple along the fold to make a booklet. Pages auto-padded to a multiple of 4.",
     related: { id: "n-up-pdf", label: "N-up PDF (multi-up tiling)" },
   },
+
+  // --------- 2026-05-01 Tier 2 batch ---------
+  "bates-numbers": {
+    text: "What you'll get: a PDF with sequential Bates labels (LAW000001, LAW000002, …) stamped on every page — prefix + digit count + start number all configurable. For litigation discovery and document production.",
+    related: { id: "page-numbers", label: "Page Numbers (generic pagination)" },
+  },
+  "odd-even-pages": {
+    text: "What you'll get: a copy of your PDF containing just the odd-numbered or just the even-numbered pages — useful when a duplex scan only captured one side.",
+    related: { id: "extract-pages", label: "Extract Pages (visual picker)" },
+  },
+  "csv-to-pdf": {
+    text: "What you'll get: a paginated PDF table from CSV / TSV input — RFC 4180 quoted fields, header repeats on every page, column widths auto-fit, output is text-selectable + searchable.",
+    related: { id: "text-to-pdf", label: "Text to PDF (plain text)" },
+  },
 };

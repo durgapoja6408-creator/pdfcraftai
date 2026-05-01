@@ -177,6 +177,7 @@ const NON_PDF_INPUT_TOOLS = new Map([
   ["png-to-pdf", "input is image bytes; handoff registry is PDF-only"],
   ["text-to-pdf", "input is plain text; ?file= consumer is PDF-only"],
   ["markdown-to-pdf", "input is markdown text; ?file= consumer is PDF-only"],
+  ["csv-to-pdf", "input is CSV text; ?file= consumer is PDF-only"],
 ]);
 
 // Tools that pre-date this guard and have partial standardization.
