@@ -39,7 +39,7 @@
 //               classifies globalDefaultSource as "env" vs "compiled-in"
 //               based on USER_DAILY_COST_MICROS_CAP env parse.
 //   SECTION D — static constants content: SUBPROCESSORS covers the 7
-//               known providers (Paddle / Razorpay / GA4 / Clarity /
+//               known providers (Razorpay / GA4 / Clarity /
 //               Cloudflare / Hostinger / Google OAuth), DPDP_COVERAGE
 //               covers all 8 DPDP sections wired into Task #24 (s. 6(3)
 //               / 8(10) / 9 / 11 / 12 / 13 / 14 / 16), GDPR_COVERAGE
@@ -356,9 +356,9 @@ assert(
 
 console.log("\n[SECTION D] static constants content");
 
-// Subprocessors: 7 known providers.
+// Subprocessors: 6 known providers (Paddle was retired 2026-05-01;
+// add the next international gateway here when wired).
 const REQUIRED_SUBPROCESSORS = [
-  "Paddle",
   "Razorpay",
   "Google LLC (Analytics 4)",
   "Microsoft Corporation (Clarity)",
@@ -374,8 +374,8 @@ for (const s of REQUIRED_SUBPROCESSORS) {
 // the DPDP s. 16 / GDPR Chapter V compliance hook.
 const subCount = (qSrc.match(/transferMechanism:\s*"/g) || []).length;
 assert(
-  subCount >= 7,
-  `SUBPROCESSORS has at least 7 transferMechanism entries (found ${subCount})`
+  subCount >= 6,
+  `SUBPROCESSORS has at least 6 transferMechanism entries (found ${subCount})`
 );
 
 // DPDP Act sections wired into Task #24.

@@ -205,8 +205,7 @@ export async function requestRefundAction(
 
   // Is this a full refund? If the refundable amount equals the captured
   // amount, omit the amount field — some providers prefer that shape for
-  // full refunds (Razorpay behaves the same either way; Paddle resolves
-  // full refunds at item-level via POST /adjustments with action=refund).
+  // full refunds (Razorpay behaves the same either way).
   const isFullRefund =
     eligibility.refundAmount.amountMinor === payment.amountMinor;
 

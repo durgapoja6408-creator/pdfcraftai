@@ -28,7 +28,7 @@ import type { LedgerFinancials, NormalizedPaymentEvent } from "./types";
 /**
  * Re-exported from ./types so existing callers that import
  * `LedgerFinancials` from "@/lib/payments/ledger" continue to work.
- * The type now lives in types.ts (Phase B / Task #16) so the Paddle
+ * The type now lives in types.ts (Phase B / Task #16) so any
  * adapter can build the payload without pulling in the ledger module
  * and so `NormalizedPaymentEvent` can embed it on the event.
  */
@@ -516,7 +516,7 @@ async function handleRefund(
       // debit row with "refund_reversal" so /admin/margin can
       // distinguish a refund reversal from the original charge even
       // though both rows reference the same paymentId. If the adapter
-      // didn't populate financials (non-Paddle adapters, or future
+      // didn't populate financials (manual entries, or future
       // adapters that can't reconstruct the breakdown) we still land
       // the provenance tag so the row isn't classified as "not
       // categorized" — a refund with no financial detail is still
@@ -575,7 +575,7 @@ async function handleRefund(
  *      A future migration can promote this to a dedicated enum value.
  *
  * Idempotent via `${paymentId}:chargeback:${providerChargebackRef}`, so
- * replayed webhook events and the Paddle chargeback_warning → chargeback
+ * replayed webhook events and any chargeback_warning → chargeback
  * progression (two distinct adjustment ids for what may feel like "the
  * same" dispute) each land their own row correctly.
  */

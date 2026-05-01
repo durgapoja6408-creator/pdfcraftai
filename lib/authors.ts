@@ -54,12 +54,12 @@ export const AUTHORS: Record<AuthorSlug, Author> = {
     shortBio:
       "Founder and operator of pdfcraft ai. Builds and ships every PDF tool on this site — 95 of them and counting. Based in Chennai, India.",
     longBio:
-      "Rajasekar Selvam founded pdfcraft ai in 2026 with a single bet: most online PDF tools either lock useful features behind expensive subscriptions or stuff free tiers with ads and watermarks. The third option — genuinely free in-browser tools alongside honestly-priced AI features — was an open lane. He has since shipped 95 distinct PDF tools (43 client-side WASM tools that run entirely in your browser, 52 AI-powered tools that pay-as-you-go) and the supporting infrastructure: a Razorpay/Paddle billing stack, a credit ledger with reconciliation, an admin observability surface, and a 268-URL SEO architecture. He writes the longform content on the head-term landing pages himself, owns the API design, runs incident response on the Hostinger / Cloudflare stack, and answers every support email from support@pdfcraftai.com personally. The pdfcraft ai office is at No. 311, 3rd Cross Street, Eswari Nagar, Chromepet, Chennai, Tamil Nadu 600044, India. Reachable on +91 94984 98011.",
+      "Rajasekar Selvam founded pdfcraft ai in 2026 with a single bet: most online PDF tools either lock useful features behind expensive subscriptions or stuff free tiers with ads and watermarks. The third option — genuinely free in-browser tools alongside honestly-priced AI features — was an open lane. He has since shipped 95 distinct PDF tools (43 client-side WASM tools that run entirely in your browser, 52 AI-powered tools that pay-as-you-go) and the supporting infrastructure: a Razorpay billing stack, a credit ledger with reconciliation, an admin observability surface, and a 268-URL SEO architecture. He writes the longform content on the head-term landing pages himself, owns the API design, runs incident response on the Hostinger / Cloudflare stack, and answers every support email from support@pdfcraftai.com personally. The pdfcraft ai office is at No. 311, 3rd Cross Street, Eswari Nagar, Chromepet, Chennai, Tamil Nadu 600044, India. Reachable on +91 94984 98011.",
     expertise: [
       "PDF tooling",
       "Next.js / React",
       "Web AI integration (OpenAI, Anthropic)",
-      "Payment systems (Razorpay, Paddle)",
+      "Payment systems (Razorpay)",
       "Technical SEO",
       "Privacy-first product design",
     ],

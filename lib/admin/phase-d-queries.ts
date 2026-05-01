@@ -363,13 +363,6 @@ export type SubprocessorRow = {
  */
 export const SUBPROCESSORS: readonly SubprocessorRow[] = [
   {
-    name: "Paddle.com Market Ltd.",
-    purpose: "Merchant of Record — international billing, tax, invoicing.",
-    category: "payments",
-    dataRegion: "UK/EU, US fallback",
-    transferMechanism: "SCCs + UK IDTA + DPA",
-  },
-  {
     name: "Razorpay Software Pvt. Ltd.",
     purpose: "Payment gateway for India-routed purchases.",
     category: "payments",

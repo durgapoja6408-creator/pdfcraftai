@@ -10,8 +10,8 @@
 //
 // What dunning is, in one paragraph
 // ---------------------------------
-// When a recurring payment attempt fails, the provider (Paddle or
-// Razorpay) will usually retry on its own schedule. While those
+// When a recurring payment attempt fails, the provider will usually
+// retry on its own schedule. While those
 // retries happen, our side has a choice: do we keep the subscription
 // entitled (AI credits topped up, plan features on) in the hope the
 // retry succeeds, or do we instantly cut the user off? The
@@ -24,8 +24,8 @@
 // --------------------------------------
 // Two reasons:
 //   1. Webhook shapes for billing.subscription.payment_failed /
-//      subscription.past_due already exist on both Paddle and
-//      Razorpay. Our webhook handler (lib/payments/webhook-handler.ts)
+//      subscription.past_due exist on Razorpay (and on most
+//      international gateways). Our webhook handler (lib/payments/webhook-handler.ts)
 //      would panic-log or silently drop those events today. Even with
 //      zero live subscribers, a test event in sandbox produces noise.
 //      Having a no-op `handleDunningEvent` gives the ingest a safe
@@ -73,7 +73,7 @@ export type DunningState =
 
 /**
  * One provider-side billing lifecycle event that might move the
- * dunning state. Normalised across Paddle and Razorpay.
+ * dunning state. Normalised across all supported providers.
  */
 export type DunningEvent =
   | {
@@ -124,7 +124,7 @@ export type DunningRow = {
  * them mid-flight is a policy decision, not a deploy toggle.
  */
 export const DUNNING_POLICY = {
-  /** How long to stay entitled after the first failed charge. 3 days matches Paddle's default retry window. */
+  /** How long to stay entitled after the first failed charge. 3 days matches typical processor default retry windows. */
   gracePastDueMs: 3 * 24 * 60 * 60 * 1000,
   /** How long to hold `suspended` state before declaring the sub cancelled. */
   suspendedBeforeCancelMs: 7 * 24 * 60 * 60 * 1000,
@@ -235,8 +235,8 @@ export function isEntitled(row: DunningRow): boolean {
 
 // TODO(Phase E): persist DunningRow to a `subscription_dunning` table
 // keyed by subscriptionId. Wire from webhook-handler.ts on:
-//   Paddle:   subscription.payment_failed, subscription.payment_succeeded,
-//             subscription.canceled
 //   Razorpay: subscription.charged, subscription.pending, subscription.halted,
 //             subscription.cancelled
+// (When the next international gateway is added, map its subscription
+// lifecycle events to the same DunningEvent shape.)
 // Expose in /admin/dunning (new page) with a StatCard per state.

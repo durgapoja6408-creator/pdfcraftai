@@ -93,7 +93,7 @@ export async function getProvider(id: ProviderId): Promise<PaymentProvider | nul
 
 /**
  * All currently configured providers. Used by the checkout UI to render
- * "Pay with Razorpay / Paddle" buttons — only configured options appear.
+ * a "Pay with X" button per provider — only configured options appear.
  * Order matches ADAPTERS declaration order.
  */
 export async function listConfiguredProviders(): Promise<PaymentProvider[]> {
@@ -116,9 +116,10 @@ export function listConfiguredProviderIds(): ProviderId[] {
  * currency AND the mode. `preferredId` lets the caller honor a user
  * choice (the UI passes whichever button was clicked).
  *
- * We intentionally don't encode smart routing (Paddle for USD, Razorpay
- * for INR) here — the UI renders both buttons and the user picks. If we
- * ever want to auto-route, this is the single function to change.
+ * We intentionally don't encode smart routing (e.g. one rail for USD,
+ * another for INR) here — the UI renders the buttons and the user
+ * picks. If we ever want to auto-route, this is the single function
+ * to change.
  */
 export async function selectProvider(opts: {
   currency: Currency;

@@ -78,7 +78,7 @@
 // 2024 guidance specifically flagged Consent Mode v2 as insufficient
 // for EU consent unless "denied" mode also strips the `cid` client
 // ID, which Google does NOT do by default; (b) fewer moving parts =
-// fewer audit questions during Paddle MoR's privacy review.
+// fewer audit questions during any future MoR's privacy review.
 //
 // Module boundary:
 // ----------------

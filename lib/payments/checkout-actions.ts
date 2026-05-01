@@ -29,8 +29,9 @@
 //   - Every call consults `routeCheckoutByCountry(CF-IPCountry)` before
 //     picking a provider. Tier 3 sanctioned → block. Tier 2 deferred →
 //     defer (UI shows launch-notify signup). Tier 1 → route through the
-//     rail the policy doc names (razorpay for IN, paddle for everyone
-//     else). CF "XX"/"T1"/missing → unknown (UI asks user to pick their
+//     rail the policy doc names (razorpay for IN; international rail
+//     currently empty, all non-IN traffic falls through to "defer").
+//     CF "XX"/"T1"/missing → unknown (UI asks user to pick their
 //     country manually).
 //   - `preferredProviderId` remains honored — an explicit user click on
 //     "Pay with X" or a test harness override wins over auto-route. The
@@ -299,7 +300,7 @@ export async function createCheckoutAction(args: {
   const internalPaymentId = randomUUID();
 
   // Task #27: resolve variant + promo BEFORE amount calc so the
-  // discount lands in the Paddle/Razorpay order and the receipt
+  // discount lands in the provider's order and the receipt
   // shows the correct line items. Sequence matters:
   //   1. compute the pre-promo subtotal for the chosen variant (so
   //      the resolver's subtotalMinor matches what the provider sees

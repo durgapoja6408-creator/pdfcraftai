@@ -1,5 +1,5 @@
-// Shared webhook handler — the per-provider route files (app/api/webhooks/
-// razorpay/route.ts and .../paddle/route.ts) are thin wrappers that call
+// Shared webhook handler — the per-provider route files (e.g.
+// app/api/webhooks/razorpay/route.ts) are thin wrappers that call
 // `handleWebhook` with a providerId + a function that extracts the
 // provider-specific event ID from headers/body.
 //
@@ -20,13 +20,14 @@ import type { ProviderId } from "./types";
 export type WebhookHandlerOptions = {
   /**
    * Provider to route the request through. Matches the `id` field on
-   * the PaymentProvider instance (e.g. "razorpay", "paddle").
+   * the PaymentProvider instance (e.g. "razorpay").
    */
   providerId: ProviderId;
   /**
    * Extract the provider's event id so we can dedupe in `webhook_events`.
-   * Razorpay reads from headers; Paddle embeds the event_id in the body
-   * (so the extractor receives both). Return null if no usable id is
+   * Razorpay reads from headers; some providers embed the event id in
+   * the body (so the extractor receives both). Return null if no
+   * usable id is
    * present — the handler will synthesize one from signature + timestamp
    * so the audit row still lands.
    */
@@ -95,7 +96,7 @@ export async function handleWebhook(
     opts.extractEventId({ headers, parsedBody }) ??
     // Fallback: synthesize from signature header + timestamp so we at
     // least have *something* unique for the audit dedupe.
-    `${headers["x-razorpay-signature"] ?? headers["paddle-signature"] ?? "unknown"}:${Math.floor(event.occurredAt.getTime() / 1000)}`;
+    `${headers["x-razorpay-signature"] ?? "unknown"}:${Math.floor(event.occurredAt.getTime() / 1000)}`;
 
   const eventTypeLabel =
     event.kind === "ignored"

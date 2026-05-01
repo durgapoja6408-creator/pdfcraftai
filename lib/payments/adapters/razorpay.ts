@@ -103,7 +103,7 @@ export class RazorpayProvider implements PaymentProvider {
         // initialization" — the order was created server-side but the
         // browser couldn't open the modal. publicConfig is typed as
         // Record<string, string> so TypeScript can't catch this drift;
-        // tests in scripts/test-paddle-webhook-financials.mjs pin it.
+        // tests in scripts/test-razorpay-handoff.mjs pin it.
         publicConfig: {
           key: this.config.keyId,
           amount: String(input.amount.amountMinor),

@@ -38,8 +38,8 @@
 //     requests, so TIER_3_COUNTRIES is intentionally the 4 country-level
 //     sanctioned entries only.
 //   - Card-country vs IP-country mismatch — `CF-IPCountry` is IP; the
-//     adapters (Razorpay / Paddle) use card BIN for currency inference.
-//     Policy doc §6.2 documents this is a non-conflict.
+//     adapter (Razorpay) uses card BIN for currency inference. Policy
+//     doc §6.2 documents this is a non-conflict.
 //   - Currency selection — that's still the registry's job via
 //     `selectProvider({ currency, mode })`. The router only picks a rail.
 
@@ -48,8 +48,9 @@ import type { Currency, ProviderId } from "./types";
 // --- Policy sets (mirror docs/GEO_LAUNCH_POLICY.md §2) ---------------------
 
 /**
- * Tier 1 — countries we serve at launch. Every country here resolves to
- * either `razorpay` (India only) or `paddle` (everyone else in this set).
+ * Tier 1 — countries we serve at launch. India resolves to `razorpay`;
+ * other Tier 1 countries currently route to "defer" (no international
+ * rail configured) until the next gateway is approved.
  *
  * Order matches the policy doc's rows for readability during audit reviews.
  */

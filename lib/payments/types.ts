@@ -43,7 +43,7 @@ export type Money = {
 /**
  * What a provider can do in *this* installation. Capabilities may be the
  * same across installs (e.g. Razorpay always supports refunds) or gated
- * (e.g. Paddle partial refunds are off until sandbox-validated).
+ * (e.g. some providers gate partial refunds behind sandbox-validation).
  * The registry decides what to expose.
  */
 export type ProviderCapabilities = {
@@ -94,11 +94,10 @@ export type CheckoutInput =
 
 /**
  * How the client should hand off to the provider. Two shapes:
- *   - "redirect": we navigate the browser to `url` (Paddle hosted
- *     checkout, some subscription flows).
+ *   - "redirect": we navigate the browser to `url` (some subscription
+ *     flows that prefer a hosted checkout page).
  *   - "client": we hand the browser a token/order-id to feed into the
- *     provider's hosted iframe SDK (Razorpay Checkout modal, Paddle.js
- *     overlay checkout).
+ *     provider's hosted iframe SDK (Razorpay Checkout modal, etc.).
  *
  * Both shapes keep card data entirely on the provider side — SAQ-A.
  */
@@ -118,7 +117,7 @@ export type CheckoutSession =
     };
 
 export type CheckoutResult = {
-  /** Provider-side reference (order id, Paddle transaction id, ...). */
+  /** Provider-side reference (order id, transaction id, etc.). */
   providerRef: string;
   session: CheckoutSession;
 };
@@ -145,9 +144,12 @@ export type CheckoutResult = {
  *   - `provider` of "refund_reversal" is how we book a refund debit row:
  *     deltas are negative (credits going out), but the column-level
  *     provenance points back at which rail originated the debit.
- *   - `taxTreatment` of "mor" (Paddle absorbs remittance) / "forward"
- *     (Razorpay collects, we remit) / "rcm" (foreign-buyer reverse
- *     charge) / "none" drives the admin-side tax dashboard's segmentation.
+ *   - `taxTreatment` of "mor" (MoR provider absorbs remittance) /
+ *     "forward" (Razorpay collects, we remit) / "rcm" (foreign-buyer
+ *     reverse charge) / "none" drives the admin-side tax dashboard's
+ *     segmentation. (No "mor" rows are written today — kept for the
+ *     case where the next international gateway is a Merchant of
+ *     Record.)
  *   - `dataSource` is the audit switch. "webhook" = real, authoritative;
  *     "backfill_api" = fetched from provider history REST; "estimate" =
  *     synthesized from defaults (only used by the backfill script for
@@ -186,9 +188,10 @@ export type LedgerFinancials = {
  * that's what makes us migration-safe.
  *
  * Phase B / Task #16: `payment_captured` and `refund` carry an optional
- * `financials` payload. Adapters that have rich fee/tax/FX data (Paddle
- * webhooks, Razorpay reconciliation fetches) populate it; adapters that
- * don't leave it undefined and the ledger columns stay NULL.
+ * `financials` payload. Adapters that have rich fee/tax/FX data
+ * (Razorpay reconciliation fetches; future MoR adapters via webhook)
+ * populate it; adapters that don't leave it undefined and the ledger
+ * columns stay NULL.
  */
 export type NormalizedPaymentEvent =
   | {
@@ -200,7 +203,7 @@ export type NormalizedPaymentEvent =
       occurredAt: Date;
       /** Raw provider payload, scrubbed of PAN/CVV. Stored for audit. */
       providerRaw: unknown;
-      /** Phase B / Task #16 — fee/tax/FX/net breakdown (Paddle: always set). */
+      /** Phase B / Task #16 — fee/tax/FX/net breakdown (provider-dependent). */
       financials?: LedgerFinancials;
     }
   | {
@@ -236,13 +239,15 @@ export type NormalizedPaymentEvent =
        * Phase D / Task #22 — chargeback (card-scheme dispute the issuer
        * pulled back funds on). Materially different from `refund`:
        *   - the user didn't ask; the card-issuing bank initiated
-       *   - we typically incur a dispute fee ($15–$25 on Paddle / 2,000–
-       *     4,000 INR on Razorpay) whether or not we contest
-       *   - on Paddle (MoR) Paddle fights the dispute on our behalf;
-       *     win rates hover around 40% industry-wide
-       *   - funds move out of Paddle's account → back to the issuer;
-       *     our credit_ledger mirrors that with a negative-signed row
-       *     tagged `provider: "chargeback_reversal"`
+       *   - we typically incur a dispute fee (2,000–4,000 INR on
+       *     Razorpay; international processors charge similar in USD)
+       *     whether or not we contest
+       *   - if a future rail is a Merchant of Record, the MoR fights
+       *     the dispute on our behalf; win rates hover around 40%
+       *     industry-wide
+       *   - funds move out of the processor's account → back to the
+       *     issuer; our credit_ledger mirrors that with a negative-
+       *     signed row tagged `provider: "chargeback_reversal"`
        *
        * Why a distinct `kind` from `refund`:
        * Both reduce revenue and credits, but the operational response
@@ -257,9 +262,10 @@ export type NormalizedPaymentEvent =
       providerRef: string;
       internalPaymentId: string;
       /**
-       * Chargeback-side reference (for Paddle this is the adjustment id,
-       * same wire shape as refund's providerRefundRef but semantically
-       * distinct; we keep the field name narrower to avoid collision).
+       * Chargeback-side reference (provider-specific id for the
+       * dispute event; same wire shape as refund's providerRefundRef
+       * but semantically distinct; we keep the field name narrower to
+       * avoid collision).
        */
       providerChargebackRef: string;
       amount: Money;
@@ -274,8 +280,8 @@ export type NormalizedPaymentEvent =
        */
       financials?: LedgerFinancials;
       /**
-       * Free-form reason string from the provider (e.g. Paddle's
-       * `reason_code` or the card-scheme chargeback reason). Stored on
+       * Free-form reason string from the provider (e.g. the card-
+       * scheme chargeback reason code). Stored on
        * the ledger row's `note` for downstream dispute prep.
        */
       reason?: string;

@@ -308,7 +308,7 @@ function synthesizeEvent(
  * `reconcileOne` so synthesis is idempotent with the forward sweep.
  *
  * Skips gracefully when:
- * - The adapter doesn't implement `fetchPaymentStatus` (Paddle today).
+ * - The adapter doesn't implement `fetchPaymentStatus`.
  * - The row has no providerRef yet (checkout was created server-side
  *   but the order id never made it back — separate failure mode, not
  *   recoverable from the provider).
