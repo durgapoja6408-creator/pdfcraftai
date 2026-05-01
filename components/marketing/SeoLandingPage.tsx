@@ -179,17 +179,30 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
           >
             {/* Left copy */}
             <div>
+              {/*
+                2026-05-01 — eyebrow chip prominence bump. Was 12px/500
+                with 6px 12px padding, which read as "small auxiliary
+                metadata" next to a 56px H1. The catalog tool cards
+                (components/marketing/ToolFilter.tsx) show the same
+                Free/AI distinction as a 13px/600 chip with stronger
+                presence — bumping the SEO landing eyebrow to match
+                makes the AI/Free signal scannable at a glance, which
+                is what users coming from search snippets need.
+                Same colour tokens as before (chip-free / chip-ai
+                semantic colours via var(--blue) / var(--accent)).
+              */}
               <div
                 className="row"
                 style={{
                   gap: 8,
-                  padding: "6px 12px",
+                  padding: "7px 14px",
                   borderRadius: 999,
                   background: tool.free ? "var(--blue-soft)" : "var(--accent-soft)",
                   color: tool.free ? "var(--blue)" : "var(--accent)",
                   display: "inline-flex",
-                  fontSize: 12,
-                  fontWeight: 500,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  letterSpacing: "0.01em",
                   marginBottom: 20,
                 }}
               >
@@ -217,6 +230,17 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
                   How it works
                 </a>
               </div>
+              {/*
+                2026-05-01 — trust row branches on tool.free. Free tools
+                genuinely don't need signup ("No signup" is honest), but
+                AI tools require an account and credits — the previous
+                shared trust row promised "No signup" on AI landings,
+                which was misleading. Replaced for AI tools with what's
+                actually true and valuable: cited answers (the chat USP)
+                + 25 free credits on signup (the actual onboarding hook,
+                used in the same wording on /pricing FAQs and the
+                /explain-pdf landing's H1).
+              */}
               <div
                 className="row"
                 style={{
@@ -226,15 +250,31 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
                   flexWrap: "wrap",
                 }}
               >
-                <span className="row" style={{ gap: 6 }}>
-                  <I.Check size={14} /> No watermarks
-                </span>
-                <span className="row" style={{ gap: 6 }}>
-                  <I.Check size={14} /> No signup
-                </span>
-                <span className="row" style={{ gap: 6 }}>
-                  <I.Check size={14} /> Files deleted in 60 min
-                </span>
+                {tool.free ? (
+                  <>
+                    <span className="row" style={{ gap: 6 }}>
+                      <I.Check size={14} /> No watermarks
+                    </span>
+                    <span className="row" style={{ gap: 6 }}>
+                      <I.Check size={14} /> No signup
+                    </span>
+                    <span className="row" style={{ gap: 6 }}>
+                      <I.Check size={14} /> Files deleted in 60 min
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="row" style={{ gap: 6 }}>
+                      <I.Check size={14} /> Cited answers
+                    </span>
+                    <span className="row" style={{ gap: 6 }}>
+                      <I.Check size={14} /> 25 free credits
+                    </span>
+                    <span className="row" style={{ gap: 6 }}>
+                      <I.Check size={14} /> Files deleted in 60 min
+                    </span>
+                  </>
+                )}
               </div>
             </div>
 
@@ -261,13 +301,46 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
               >
                 <Ic size={24} />
               </div>
-              <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 6 }}>Drop your PDF here</div>
-              <div className="muted" style={{ fontSize: 13, marginBottom: 20 }}>
-                or choose a file
-              </div>
-              <Link href={primaryHref} className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }}>
-                Choose file
-              </Link>
+              {/*
+                2026-05-01 — drop card branches on tool.free.
+
+                Free tools: keep "Drop your PDF here / Choose file". The
+                tool runner accepts anonymous uploads, so the drop
+                affordance is honest — clicking actually takes you to a
+                page where you can drop a PDF and use the tool.
+
+                AI tools: replaced with an honest sign-up CTA. The
+                previous shared copy promised drag-and-drop usage that
+                wasn't deliverable — anon click went /tool/[id] →
+                "Sign in to run" wall (or /app/chat → /login for ai-chat).
+                The bait-and-switch felt dishonest. Now the card up-front
+                says what's needed (sign up) and what's offered in return
+                (25 free credits) and the button label matches the action
+                (no fake "Choose file"). Destination is /register because
+                /login defaults the visitor to the sign-in form, while
+                this is unambiguously a new-account funnel.
+              */}
+              {tool.free ? (
+                <>
+                  <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 6 }}>Drop your PDF here</div>
+                  <div className="muted" style={{ fontSize: 13, marginBottom: 20 }}>
+                    or choose a file
+                  </div>
+                  <Link href={primaryHref} className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }}>
+                    Choose file
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 6 }}>Try {tool.name} free</div>
+                  <div className="muted" style={{ fontSize: 13, marginBottom: 20 }}>
+                    25 credits on signup · no card required
+                  </div>
+                  <Link href="/register" className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }}>
+                    Sign up free
+                  </Link>
+                </>
+              )}
               <div
                 className="mono subtle"
                 style={{
@@ -547,8 +620,18 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
           <h2 style={{ fontSize: 40, letterSpacing: "-0.02em", marginBottom: 12 }}>
             Ready to {firstWord} your first PDF?
           </h2>
+          {/*
+            2026-05-01 — final-CTA subtitle branches on tool.free for the
+            same reason as the hero trust row above. "No signup" is true
+            for free tools (you can really drop a PDF and use them anon)
+            and false for AI tools (auth + credits required). The AI
+            variant leads with the actual hook — 25 free credits — which
+            is what converts.
+          */}
           <p className="muted" style={{ fontSize: 16, marginBottom: 28 }}>
-            No signup. No watermarks. Your file stays private.
+            {tool.free
+              ? "No signup. No watermarks. Your file stays private."
+              : "25 free credits on signup. No card required. Files deleted in 60 min."}
           </p>
           <Link href={primaryHref} className="btn btn-lg btn-primary">
             Open {tool.name} <I.ArrowRight size={16} />
