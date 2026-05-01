@@ -2382,7 +2382,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Is the signature legally binding?", a: "Indian Information Technology Act 2000 recognizes electronic signatures for most uses. Some specific contexts (real estate registration, certain corporate actions) require physical signatures or DSC. Consult the receiving party about their requirements." },
       { q: "What's the credit cost?", a: "10 credits per doc. Higher than analysis tools because the workflow combines form-detection + field-fill + signature-overlay." },
     ],
-    related: ["ai-sign", "ai-generate", "sign", "fill-form"],
+    related: ["ai-sign", "ai-generate", "sign-pdf-free", "pdf-form-fill"],
   },
 
 

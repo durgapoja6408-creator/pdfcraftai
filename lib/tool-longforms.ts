@@ -727,8 +727,8 @@ export const TOOL_LONGFORMS: Record<string, ToolLongformData> = {
     cta: {
       title: "Want to fill the form, not just inspect it?",
       text: "Fill PDF Forms lets you click into each field, type your values, and download the filled PDF.",
-      linkHref: "/tool/fill-forms",
-      linkLabel: "Try Fill PDF Forms",
+      linkHref: "/tool/pdf-form-fill",
+      linkLabel: "Try Fill PDF Form",
     },
   },
 

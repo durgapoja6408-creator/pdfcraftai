@@ -884,6 +884,22 @@ const SUITES = [
   // callback from /app/usage — guard fails with the exact
   // diagnostic and restoration brings it back to 21/21.
   { name: "auth-callback-preservation", file: "test-auth-callback-preservation.mjs" },
+  // 2026-05-01 tool-id-references: every CTA linkHref + related[] tool
+  // id must exist in the canonical TOOLS array (lib/tools.ts). Today
+  // caught two real bugs: a /tool/fill-forms typo (should be
+  // pdf-form-fill, plural→singular) AND a related[] entry referencing
+  // "sign"/"fill-form" which aren't tool ids. Both rendered 404
+  // links from the related-tools section of SEO landings.
+  //
+  // Surfaced 22 unique pre-existing broken ids in seo-pages.ts
+  // related[] arrays (~70 reference points). All grandfathered into
+  // KNOWN_BROKEN_RELATED_IDS with cap=22 and per-category rationale
+  // (renames, aspirational tools, deferred Indian-context AI tools,
+  // SEO slugs misplaced in related[], early-scheme catch-all names).
+  // Cap is monotonic-shrinkage — any NEW invalid id (not in the
+  // allowlist) fails the build immediately; pre-existing entries
+  // stay accepted until Phase 3 cleanup repairs them.
+  { name: "tool-id-references", file: "test-tool-id-references.mjs" },
   // 2026-04-30 aggregator-coverage guard: every scripts/test-*.mjs
   // and scripts/test-*.ts must be wired into the SUITES array
   // above. Catches orphan test files that silently never run in
