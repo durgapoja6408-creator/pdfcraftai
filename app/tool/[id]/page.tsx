@@ -124,6 +124,7 @@ const LIVE_TOOL_IDS = new Set<string>([
   "pdf-overlay",
   "pdf-form-fill",
   "pdf-batch",
+  "pdf-diff",
   // AI tools.
   "ai-summarize",
   "ai-tldr",

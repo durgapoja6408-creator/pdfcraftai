@@ -98,6 +98,10 @@ export const TOOL_SUGGESTIONS: Record<string, readonly string[]> = {
   // suggestions surface the underlying ops users may want to apply
   // individually to specific files in the batch (after extracting).
   "pdf-batch": ["merge", "page-numbers", "stamp-pdf"],
+  // pdf-diff → after seeing the visual diff, users typically want
+  // semantic AI compare for content-level details, or to extract
+  // pages of interest, or to highlight further regions manually.
+  "pdf-diff": ["ai-compare", "extract-pages", "highlight-pdf"],
 };
 
 /** Look up suggestions, defaulting to empty if no entry. */

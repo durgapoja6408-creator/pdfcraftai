@@ -17,8 +17,10 @@
 //
 // Skipped ops (need browser/PDFium runtime):
 //   inspect, page-count, rasterize, search-text, text-export,
-//   extract-images, grayscale (PDFium-rasterize + canvas). Those
-//   have their own coverage in the Playwright suite (Phase 1).
+//   extract-images, grayscale (PDFium-rasterize + canvas), diff
+//   (same — both inputs go through PDFium render + canvas pixel
+//   compare). Those have their own coverage in the Playwright
+//   suite (Phase 1).
 //
 // Run: node --experimental-strip-types scripts/test-pdf-ops.mts
 // Or:  npm test  (auto-included via the aggregator)

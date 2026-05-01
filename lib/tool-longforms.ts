@@ -3054,6 +3054,89 @@ export const TOOL_LONGFORMS: Record<string, ToolLongformData> = {
     },
   },
 
+  "pdf-diff": {
+    useCasesTitle: "Why people compare PDFs visually",
+    useCasesIntro:
+      "Pixel-level diff is the simplest, most language-agnostic way to spot what changed between two versions of a document. Layout shifts, removed images, edited tables, even small color changes — they all show up as red highlights without needing to read either document. Pairs with content-level diff (AI Compare) when you want to know what the text says.",
+    useCases: [
+      {
+        icon: "Edit",
+        title: "Document version review",
+        text: "Two revisions of a contract, proposal, or report. Run the diff to see at a glance what changed visually — additions, deletions, and layout shifts all light up. Faster than reading both documents end-to-end.",
+      },
+      {
+        icon: "Shield",
+        title: "Compliance &amp; audit verification",
+        text: "Verify that a sealed copy hasn&rsquo;t been tampered with, or that a regulator&rsquo;s &ldquo;final&rdquo; version matches what you submitted. Pixel diff catches modifications a human eye would miss in side-by-side review.",
+      },
+      {
+        icon: "Pages",
+        title: "Print-prep proofing",
+        text: "Compare a draft proof against the press-ready file. Color shifts, font substitutions, missing artwork — all show up as red. Catches problems before they reach the printer.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Translation QA",
+        text: "Compare a translated PDF against the source layout. Even though text is different, the diff highlights layout drift — text that overflows, images that moved, captions that grew or shrank.",
+      },
+      {
+        icon: "Convert",
+        title: "Accessibility &amp; rendering checks",
+        text: "Compare a PDF rendered in two different viewers (Acrobat vs. Preview vs. browser). Differences indicate rendering inconsistencies that may affect screen-reader users or print-output quality.",
+      },
+    ],
+    howWorksTitle: "How Compare PDFs works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop two PDFs",
+        text: "PDF A (original / before) and PDF B (revised / after). Both stay in your browser; nothing uploaded.",
+      },
+      {
+        step: "2",
+        title: "Pick sensitivity",
+        text: "Per-channel pixel-delta threshold (4–64). Default 16 catches meaningful changes while ignoring rendering noise like anti-aliasing differences. Lower = more sensitive (catches subtle color shifts).",
+      },
+      {
+        step: "3",
+        title: "Compare &amp; download",
+        text: "PDFium renders both PDFs at matching scale. Pixel-by-pixel BT.709 luminance comparison; red highlight on regions that differ over a grayscale base. Per-page diff percentage in the success card.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Why visual diff instead of text diff?",
+        a: "Both have their place. Visual diff (this tool) catches layout, color, font, and image changes that text diff misses entirely — a moved paragraph, a swapped logo, a different font weight. Text diff (use AI Compare for that) catches semantic content changes that visual diff misses — a single word changed in a sea of identical text might be 0.1% of pixels but completely changes meaning. For thorough QA, run both.",
+      },
+      {
+        q: "What does the red highlighting mean exactly?",
+        a: "A pixel is flagged &ldquo;different&rdquo; when the maximum delta across R, G, or B channels exceeds the threshold. Below threshold = treated as identical (anti-aliasing noise, JPEG artefacts, etc.). Above threshold = the pixel renders with a red overlay (60% red mixed with 40% grayscale of the original A pixel). Result: you see WHERE differences are, with enough context to know WHAT region of the page changed.",
+      },
+      {
+        q: "What if A and B have different page counts?",
+        a: "Pages present in only one document render with a tinted overlay — blue tint for &ldquo;only in A&rdquo;, green tint for &ldquo;only in B&rdquo; — over a grayscale base of that side&rsquo;s content. So a 5-page A and 7-page B produces 7 output pages: 5 normal diff pages + 2 green-tinted &ldquo;only in B&rdquo; pages. The per-page stats table calls out which is which.",
+      },
+      {
+        q: "Why is the output rasterized?",
+        a: "Visual pixel diff requires rasterizing both inputs to RGBA at matching scale before comparison. The output is the diff visualization, which is inherently a raster image (the red overlay is computed in pixel space). Text in the original PDFs is no longer searchable in the diff output — that&rsquo;s the trade-off. For content-level diffs that preserve text, use AI Compare.",
+      },
+      {
+        q: "What's the practical limit on document size?",
+        a: "Memory-bound. Each rendered page at 1.5× scale is roughly 5 MB of RGBA pixels in browser memory; we keep both documents&rsquo; pixel buffers in memory during the comparison loop. ~50 pages per side is comfortable on a typical laptop; 200+ pages may slow or freeze the tab. Lower the scale for larger documents.",
+      },
+      {
+        q: "Is anything uploaded?",
+        a: "No. Both PDFs render via PDFium WASM in your browser; pixel comparison is a local canvas operation; the diff output is built locally via pdf-lib. Verifiable in DevTools → Network — the only request you should see is the PDFium WASM module fetch (one time).",
+      },
+    ],
+    cta: {
+      title: "Need to compare what the documents SAY?",
+      text: "AI Compare reads both documents and produces a structured semantic diff — added paragraphs, removed clauses, changed wording — instead of pixel-level visual changes. Pairs naturally with this tool.",
+      linkHref: "/tool/ai-compare",
+      linkLabel: "Try AI Compare",
+    },
+  },
+
   "pdf-batch": {
     useCasesTitle: "Why people use batch PDF processing",
     useCasesIntro:

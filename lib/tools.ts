@@ -79,6 +79,7 @@ export const TOOLS: readonly Tool[] = [
   { id: "pdf-overlay", name: "PDF Overlay", desc: "Stamp the first page of one PDF (letterhead / template / watermark) onto every page of another PDF. Front-or-behind layer, configurable opacity, fit-or-stretch, optional page subset.", icon: "Edit", free: true, cost: "free", group: "Edit" },
   { id: "pdf-form-fill", name: "Fill PDF Form", desc: "Visually fill PDF AcroForm fields — text, checkboxes, radio buttons, dropdowns, multi-select. Optional flatten to bake values so recipients can&apos;t edit.", icon: "Edit", free: true, cost: "free", group: "Edit" },
   { id: "pdf-batch", name: "Batch Process PDFs", desc: "Apply one operation (rotate, page numbers, watermark, remove metadata, flatten, strip links) across many PDFs at once. Output bundles into a downloadable zip.", icon: "Pages", free: true, cost: "free", group: "Edit" },
+  { id: "pdf-diff", name: "Compare PDFs", desc: "Pixel-level visual diff between two PDFs — output a comparison PDF with red highlighting on regions that differ + per-page diff percentage. Pairs with AI Compare for content-level diffs.", icon: "Search", free: true, cost: "free", group: "Organize" },
 
   // Build 2 Wave 3 (2026-04-27): Search + Extract Images. Both
   // PDFium-backed read-only ops.
