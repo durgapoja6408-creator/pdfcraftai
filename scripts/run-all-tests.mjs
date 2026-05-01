@@ -864,6 +864,26 @@ const SUITES = [
   // any of those eight invariants fails the build before the same
   // dishonest claim can resurface on production.
   { name: "tool-runner-longform-ai-parity", file: "test-tool-runner-longform-ai-parity.mjs" },
+  // 2026-05-01 auth-callback-preservation: locks in the sitewide
+  // callbackUrl fix. Until commit (this one), every layer of the
+  // auth funnel hardcoded /app/dashboard as the post-sign-in
+  // destination, silently dropping any callback context. Three
+  // layers, all bugged:
+  //   • LoginForm.tsx:69 + RegisterForm.tsx:46 hardcoded
+  //     `signIn("google", { callbackUrl: "/app/dashboard" })`
+  //   • lib/auth-actions.ts both actions hardcoded
+  //     `redirectTo: "/app/dashboard"`
+  //   • 11 server-side redirect("/login") sites in app/app/*/page.tsx
+  //     dropped any callback intent
+  // This guard locks all three layers: it asserts the sanitizer
+  // exists with security-critical rejections (//, /api/, /login,
+  // /register), the forms read from URL params + propagate via
+  // hidden input, the actions read from form data and don't
+  // hardcode redirectTo, and every /app/* page-level redirect
+  // includes ?callbackUrl=. Mutation-tested by removing the
+  // callback from /app/usage — guard fails with the exact
+  // diagnostic and restoration brings it back to 21/21.
+  { name: "auth-callback-preservation", file: "test-auth-callback-preservation.mjs" },
   // 2026-04-30 aggregator-coverage guard: every scripts/test-*.mjs
   // and scripts/test-*.ts must be wired into the SUITES array
   // above. Catches orphan test files that silently never run in

@@ -46,7 +46,7 @@ const DEFAULT_LIMIT = 50;
 export default async function ReceiptsPage() {
   const session = await auth();
   const userId = session?.user ? (session.user as { id?: string }).id : undefined;
-  if (!userId) redirect("/login");
+  if (!userId) redirect("/login?callbackUrl=%2Fapp%2Freceipts");
 
   const { data: rows, error } = await getReceipts(userId, DEFAULT_LIMIT);
 

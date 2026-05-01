@@ -271,10 +271,21 @@ for (const { path, deps } of PAGES) {
     );
   }
 
-  // Must redirect to /login if no userId (auth gate redundancy with layout)
+  // Must redirect to /login if no userId (auth gate redundancy with layout).
+  //
+  // 2026-05-01: relaxed the regex to accept the new callback-preserving form
+  // `redirect("/login?callbackUrl=...")`. Until today these pages used
+  // `redirect("/login")` (no callback), which silently dropped the user's
+  // intended destination. The auth-callback-preservation guard
+  // (scripts/test-auth-callback-preservation.mjs) now ENFORCES the
+  // callback-preserving form at every /app/* page; this guard must accept
+  // either form to avoid contradictory invariants between the two suites.
+  // The auth-callback guard handles enforcement of the better form.
   assert(
     `${tag}: redirects to /login when userId is missing`,
-    /redirect\(\s*["']\/login["']\s*\)/.test(src)
+    /redirect\(\s*["`']\/login(\?[^"`']*)?["`']\s*\)/.test(src) ||
+      // Template-literal form: redirect(`/login?callbackUrl=${...}`)
+      /redirect\(\s*`\/login\?callbackUrl=\$\{[^`]+\}`\s*\)/.test(src)
   );
 
   // Must NOT import admin primitives

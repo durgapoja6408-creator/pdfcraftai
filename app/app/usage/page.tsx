@@ -47,7 +47,7 @@ export default async function UsagePage({
 }) {
   const session = await auth();
   const userId = session?.user ? (session.user as { id?: string }).id : undefined;
-  if (!userId) redirect("/login");
+  if (!userId) redirect("/login?callbackUrl=%2Fapp%2Fusage");
 
   const days = clampUserDays(searchParams?.days);
 

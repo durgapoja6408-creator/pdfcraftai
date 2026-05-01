@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   const session = await auth();
   const userId = session?.user ? (session.user as { id?: string }).id : undefined;
-  if (!userId) redirect("/login");
+  if (!userId) redirect("/login?callbackUrl=%2Fapp%2Fsettings");
 
   const [user] = await db
     .select({
@@ -39,7 +39,7 @@ export default async function SettingsPage() {
     .where(eq(schema.users.id, userId))
     .limit(1);
 
-  if (!user) redirect("/login");
+  if (!user) redirect("/login?callbackUrl=%2Fapp%2Fsettings");
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28, maxWidth: 680 }}>

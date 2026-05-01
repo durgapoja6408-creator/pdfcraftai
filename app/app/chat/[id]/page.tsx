@@ -28,7 +28,7 @@ export default async function ChatSessionPage({
 }) {
   const session = await auth();
   const userId = session?.user ? (session.user as { id?: string }).id : undefined;
-  if (!userId) redirect("/login");
+  if (!userId) redirect(`/login?callbackUrl=${encodeURIComponent(`/app/chat/${params.id}`)}`);
 
   const [row] = await db
     .select({

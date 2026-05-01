@@ -38,7 +38,7 @@ const DEFAULT_LIMIT = 100;
 export default async function CreditsPage() {
   const session = await auth();
   const userId = session?.user ? (session.user as { id?: string }).id : undefined;
-  if (!userId) redirect("/login");
+  if (!userId) redirect("/login?callbackUrl=%2Fapp%2Fcredits");
 
   const [{ data: rows, error: rowsError }, { data: bal, error: balError }] =
     await Promise.all([

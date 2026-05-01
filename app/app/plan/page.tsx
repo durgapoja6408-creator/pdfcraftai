@@ -38,7 +38,7 @@ export const runtime = "nodejs";
 export default async function PlanPage() {
   const session = await auth();
   const userId = session?.user ? (session.user as { id?: string }).id : undefined;
-  if (!userId) redirect("/login");
+  if (!userId) redirect("/login?callbackUrl=%2Fapp%2Fplan");
 
   const { data: sub, error } = await getActiveSubscription(userId);
 

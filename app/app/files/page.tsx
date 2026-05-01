@@ -37,7 +37,7 @@ function humanSize(bytes: number): string {
 export default async function FilesPage() {
   const session = await auth();
   const userId = session?.user ? (session.user as { id?: string }).id : undefined;
-  if (!userId) redirect("/login");
+  if (!userId) redirect("/login?callbackUrl=%2Fapp%2Ffiles");
 
   const rows = await db
     .select({

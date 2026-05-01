@@ -72,7 +72,7 @@ type AiOutputMeta = {
 export default async function FilePreviewPage({ params }: Params) {
   const session = await auth();
   const userId = session?.user ? (session.user as { id?: string }).id : undefined;
-  if (!userId) redirect("/login");
+  if (!userId) redirect(`/login?callbackUrl=${encodeURIComponent(`/app/files/${params.id}/preview`)}`);
 
   // One round trip — join files → ai_outputs on file_id. Filter by the
   // authed user's id so a guessed fileId for someone else's file just

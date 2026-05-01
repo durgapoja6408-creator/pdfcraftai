@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
+import { useSearchParams } from "next/navigation";
 import { registerAction, type RegisterState } from "@/lib/auth-actions";
+import { sanitizeCallbackUrl } from "@/lib/auth-callback";
 import { signIn } from "next-auth/react";
 import { I } from "@/components/icons/Icons";
 import {
@@ -36,6 +38,13 @@ export function RegisterForm() {
   const fe = state.fieldErrors ?? {};
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
+  // 2026-05-01 — read callbackUrl from the URL the visitor arrived on.
+  // /chat-with-pdf and other AI SEO landings now route their primary
+  // CTAs to /register, so a registering user gets returned to the
+  // tool they came from after signup. Default /app/dashboard via
+  // sanitizeCallbackUrl() if missing or fails open-redirect validation.
+  const search = useSearchParams();
+  const callbackUrl = sanitizeCallbackUrl(search?.get("callbackUrl"));
 
   return (
     <>
@@ -43,7 +52,7 @@ export function RegisterForm() {
         type="button"
         className="btn btn-outline"
         style={{ width: "100%", marginBottom: 4, justifyContent: "center", height: 44 }}
-        onClick={() => signIn("google", { callbackUrl: "/app/dashboard" })}
+        onClick={() => signIn("google", { callbackUrl })}
       >
         <GoogleMark />
         <span style={{ marginLeft: 10 }}>Sign up with Google</span>
@@ -52,6 +61,9 @@ export function RegisterForm() {
       <Divider label="OR SIGN UP WITH EMAIL" />
 
       <form action={formAction} noValidate>
+        {/* 2026-05-01 — hidden callbackUrl input so registerAction (server)
+            knows where to redirect after credentials sign-up. */}
+        <input type="hidden" name="callbackUrl" value={callbackUrl} />
         <Field
           label="Full name"
           name="name"

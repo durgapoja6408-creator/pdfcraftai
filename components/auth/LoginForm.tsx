@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import { loginAction, type LoginState } from "@/lib/auth-actions";
+import { sanitizeCallbackUrl } from "@/lib/auth-callback";
 import { signIn } from "next-auth/react";
 import { I } from "@/components/icons/Icons";
 import { GoogleMark, Divider, Field, PasswordField } from "@/components/auth/AuthBits";
@@ -34,6 +35,12 @@ export function LoginForm() {
   //   ?reset=1      → password successfully reset, tell them to sign in
   //   ?verified=1   → reserved for future email-verify flow
   const resetFlash = search?.get("reset") === "1";
+  // 2026-05-01 — read callbackUrl from the URL the visitor arrived on.
+  // Anonymous users redirected here from /app/* or AI tool runners
+  // get a `?callbackUrl=...` param so we can return them after sign-in.
+  // sanitizeCallbackUrl() defaults to /app/dashboard if missing OR if
+  // the value fails open-redirect validation (see lib/auth-callback.ts).
+  const callbackUrl = sanitizeCallbackUrl(search?.get("callbackUrl"));
 
   return (
     <>
@@ -66,7 +73,7 @@ export function LoginForm() {
         type="button"
         className="btn btn-outline"
         style={{ width: "100%", marginBottom: 4, justifyContent: "center", height: 44 }}
-        onClick={() => signIn("google", { callbackUrl: "/app/dashboard" })}
+        onClick={() => signIn("google", { callbackUrl })}
       >
         <GoogleMark />
         <span style={{ marginLeft: 10 }}>Continue with Google</span>
@@ -75,6 +82,11 @@ export function LoginForm() {
       <Divider label="OR CONTINUE WITH EMAIL" />
 
       <form action={formAction} noValidate>
+        {/* 2026-05-01 — hidden callbackUrl input so loginAction (server)
+            can read where to redirect after credentials sign-in. The
+            value was already sanitized client-side; loginAction
+            re-sanitizes server-side as defense in depth. */}
+        <input type="hidden" name="callbackUrl" value={callbackUrl} />
         <Field
           label="Email"
           name="email"

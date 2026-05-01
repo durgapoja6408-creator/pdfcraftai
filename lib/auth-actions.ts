@@ -9,6 +9,7 @@ import { AuthError } from "next-auth";
 
 import { db, schema } from "@/db/client";
 import { signIn } from "@/auth";
+import { sanitizeCallbackUrl } from "@/lib/auth-callback";
 
 // ---------------- Register ----------------
 
@@ -88,12 +89,20 @@ export async function registerAction(
     return { ok: false, error: "Something went wrong. Please try again." };
   }
 
+  // 2026-05-01 — preserve the callbackUrl from form data, sanitized
+  // server-side as defense-in-depth (the client already sanitized).
+  // Empty / invalid values fall back to /app/dashboard via the helper.
+  const cbInput = formData.get("callbackUrl");
+  const redirectTo = sanitizeCallbackUrl(
+    typeof cbInput === "string" ? cbInput : null,
+  );
+
   // Sign the new user in via Credentials; this redirects on success.
   try {
     await signIn("credentials", {
       email: normalizedEmail,
       password,
-      redirectTo: "/app/dashboard",
+      redirectTo,
     });
   } catch (err) {
     // NextAuth throws a magic "redirect" error on success — rethrow so Next handles it.
@@ -132,11 +141,18 @@ export async function loginAction(
     return { ok: false, error: "Enter a valid email and password." };
   }
 
+  // 2026-05-01 — preserve the callbackUrl from form data; same
+  // server-side sanitization as registerAction above.
+  const cbInput = formData.get("callbackUrl");
+  const redirectTo = sanitizeCallbackUrl(
+    typeof cbInput === "string" ? cbInput : null,
+  );
+
   try {
     await signIn("credentials", {
       email: parsed.data.email.toLowerCase(),
       password: parsed.data.password,
-      redirectTo: "/app/dashboard",
+      redirectTo,
     });
   } catch (err) {
     if (err && typeof err === "object" && "digest" in err) throw err;
