@@ -121,6 +121,7 @@ const LIVE_TOOL_IDS = new Set<string>([
   "bates-numbers",
   "odd-even-pages",
   "csv-to-pdf",
+  "pdf-overlay",
   // AI tools.
   "ai-summarize",
   "ai-tldr",

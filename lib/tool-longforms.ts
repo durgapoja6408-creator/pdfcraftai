@@ -3054,6 +3054,89 @@ export const TOOL_LONGFORMS: Record<string, ToolLongformData> = {
     },
   },
 
+  "pdf-overlay": {
+    useCasesTitle: "Why people use PDF overlay",
+    useCasesIntro:
+      "Stamping one PDF onto another preserves the FULL vector quality of the overlay — typography, signatures, decorative elements, anything. Distinct from image-based watermarks (which lose vector crispness) and text-based stamps (which can&rsquo;t carry layout). The classic uses are letterhead and watermarking, but the pattern fits any &ldquo;shared template + variable content&rdquo; workflow.",
+    useCases: [
+      {
+        icon: "Pages",
+        title: "Letterhead / branded templates",
+        text: "Your firm&rsquo;s letterhead lives as a designed PDF (logo, contact block, footer, brand colors). Drop it as the overlay, drop the document content as the base, get the final on-letterhead version — without rebuilding the design in Word every time.",
+      },
+      {
+        icon: "Shield",
+        title: "DRAFT / CONFIDENTIAL watermarks",
+        text: "Designed watermark with custom typography, transparency, and rotation can&rsquo;t be expressed via a simple text stamp. Build it once as a PDF; apply with this tool. Perfect translucent watermark on every page.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Repeating decorative elements",
+        text: "Page borders, header bars, gradient backgrounds. Anything that should appear consistently on every page of a document but isn&rsquo;t worth re-typesetting in the source app.",
+      },
+      {
+        icon: "Edit",
+        title: "Form templates + variable content",
+        text: "Pre-printed form layout (boxes, labels, instructions) as the overlay; user-typed responses as the base. Result: filled form on the official template — useful when the original form-fill app doesn&rsquo;t carry the design.",
+      },
+      {
+        icon: "Receipt",
+        title: "Page borders &amp; certificates",
+        text: "Award certificates, diplomas, official memos that need a designed border around recipient-specific content. Overlay carries the border + ornaments; base carries the personalized text.",
+      },
+    ],
+    howWorksTitle: "How PDF Overlay works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop two PDFs",
+        text: "&ldquo;Base&rdquo; = the document content. &ldquo;Overlay&rdquo; = the template / letterhead / watermark (first page used as the stamp).",
+      },
+      {
+        step: "2",
+        title: "Pick layer + fit + opacity",
+        text: "Layer: &ldquo;Behind&rdquo; for letterhead (overlay sits below content), &ldquo;On top&rdquo; for watermark (overlay sits above). Fit: preserve aspect ratio (centered) or stretch to fill. Opacity 0–100%.",
+      },
+      {
+        step: "3",
+        title: "Apply &amp; download",
+        text: "pdf-lib embeds the overlay&rsquo;s first page once and re-uses it via drawPage on every base page. Vector quality preserved end-to-end.",
+      },
+    ],
+    faqs: [
+      {
+        q: "What's the difference between &ldquo;On top&rdquo; and &ldquo;Behind&rdquo;?",
+        a: "On top (default) draws the overlay AFTER the base content — overlay is the visible top layer. Use for watermarks where the overlay should be the dominant visual (DRAFT, CONFIDENTIAL, your logo). Behind draws the overlay FIRST, then the base content on top — use for letterhead where the document text should remain readable while the design (logo, footer) sits underneath.",
+      },
+      {
+        q: "Why only the first page of the overlay?",
+        a: "Multi-page overlays add UX complexity: do you cycle through them? Repeat the last? Match by page number? Most overlay use cases (letterhead, watermark, template) use a single template page, so we picked the simple default. If you have a multi-page overlay, extract the page you want with our Extract Pages tool first.",
+      },
+      {
+        q: "What if the overlay and base have different page sizes?",
+        a: "&ldquo;Fit&rdquo; mode preserves the overlay&rsquo;s aspect ratio and centers it on each base page (with white space on the edges where ratios differ). &ldquo;Stretch&rdquo; mode forces the overlay to fill the base page edge-to-edge — useful when overlay was designed for the same paper size and you don&rsquo;t mind a tiny stretch artifact in non-matching cases.",
+      },
+      {
+        q: "Does this work on encrypted PDFs?",
+        a: "Owner-restricted PDFs work via pdf-lib&rsquo;s ignoreEncryption flag. User-password-encrypted PDFs (where the file won&rsquo;t open without a password) require unlock first — try the Unlock PDF tool, then run overlay on the unlocked output.",
+      },
+      {
+        q: "Does this preserve the base PDF's text searchability?",
+        a: "Yes. Overlay is drawn as a vector composite — base content (text, images, vectors) flows through to the output unchanged. Ctrl+F still works on all the original text. Same for hyperlinks and form fields when in &ldquo;On top&rdquo; mode.",
+      },
+      {
+        q: "Is anything uploaded?",
+        a: "No. pdf-lib's embedPdf + drawPage runs entirely in your browser. Both PDFs stay on your device. Verifiable in DevTools → Network.",
+      },
+    ],
+    cta: {
+      title: "Need a simpler text watermark?",
+      text: "Watermark PDF stamps configurable text (DRAFT, CONFIDENTIAL, your company name) on every page. No second PDF needed; faster for simple text-only overlays.",
+      linkHref: "/tool/stamp-pdf",
+      linkLabel: "Try Watermark PDF",
+    },
+  },
+
   "csv-to-pdf": {
     useCasesTitle: "Why people convert CSV to PDF",
     useCasesIntro:

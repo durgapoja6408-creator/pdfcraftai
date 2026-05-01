@@ -512,4 +512,8 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
     text: "What you'll get: a paginated PDF table from CSV / TSV input — RFC 4180 quoted fields, header repeats on every page, column widths auto-fit, output is text-selectable + searchable.",
     related: { id: "text-to-pdf", label: "Text to PDF (plain text)" },
   },
+  "pdf-overlay": {
+    text: "What you'll get: your base PDF with the first page of an overlay PDF stamped onto every page — front or behind layer, configurable opacity. Common use: applying letterhead, watermarks, or template overlays.",
+    related: { id: "image-watermark", label: "Image Watermark (PNG/JPG instead)" },
+  },
 };

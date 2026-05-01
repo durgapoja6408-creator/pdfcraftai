@@ -173,6 +173,11 @@ const CsvToPdfTool = dyn(() =>
     default: m.CsvToPdfTool,
   })),
 );
+const PdfOverlayTool = dyn(() =>
+  import("@/components/tools/PdfOverlayTool").then((m) => ({
+    default: m.PdfOverlayTool,
+  })),
+);
 
 const SearchPdfTool = dyn(() =>
   import("@/components/tools/SearchPdfTool").then((m) => ({
@@ -644,6 +649,8 @@ export function ToolRunner({ id }: { id: string }) {
       return <PdfOddEvenPagesTool />;
     case "csv-to-pdf":
       return <CsvToPdfTool />;
+    case "pdf-overlay":
+      return <PdfOverlayTool />;
     case "pdf-search":
       return <SearchPdfTool />;
     case "extract-images":

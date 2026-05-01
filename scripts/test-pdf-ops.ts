@@ -805,6 +805,137 @@ await test("booklet-pdf: foldLineGuide=false produces valid PDF", async () => {
   assertPdfMagic(result.bytes, "no-fold-guide booklet bytes");
 });
 
+// ===========================================================================
+// SECTION (new) — bates-numbers + odd-even-pages + pdf-overlay
+// ===========================================================================
+
+await test("bates-numbers: stamps every page with sequential labels", async () => {
+  const { batesNumbersPdf } = await import("../lib/pdf/ops/bates-numbers");
+  const src = await makeSyntheticPdf(3);
+  const result = await batesNumbersPdf(src, {
+    prefix: "LAW",
+    digits: 6,
+    startNumber: 1,
+  });
+  assertEq(result.pageCount, 3, "page count preserved");
+  assertEq(result.lastLabel, "LAW000003", "last label = LAW000003");
+  assertPdfMagic(result.bytes, "bates-stamped bytes");
+});
+
+await test("bates-numbers: respects custom prefix + start number", async () => {
+  const { batesNumbersPdf } = await import("../lib/pdf/ops/bates-numbers");
+  const src = await makeSyntheticPdf(2);
+  const result = await batesNumbersPdf(src, {
+    prefix: "DEF",
+    digits: 4,
+    startNumber: 250,
+  });
+  assertEq(result.lastLabel, "DEF0251", "DEF prefix, 4 digits, start=250");
+});
+
+await test("bates-numbers: throws when digit count too narrow", async () => {
+  const { batesNumbersPdf } = await import("../lib/pdf/ops/bates-numbers");
+  const src = await makeSyntheticPdf(3);
+  let threw = false;
+  try {
+    await batesNumbersPdf(src, {
+      prefix: "X",
+      digits: 1,
+      startNumber: 9, // last would be 11 → 2 digits, exceeds 1
+    });
+  } catch {
+    threw = true;
+  }
+  if (!threw) {
+    throw new Error("expected digit overflow to throw, got success");
+  }
+});
+
+await test("odd-even-pages: extracts odd pages from 5-page PDF", async () => {
+  const { oddEvenPagesPdf } = await import("../lib/pdf/ops/odd-even-pages");
+  const src = await makeSyntheticPdf(5);
+  const result = await oddEvenPagesPdf(src, { parity: "odd" });
+  assertEq(result.sourcePageCount, 5, "source pages = 5");
+  assertEq(result.pageCount, 3, "odd pages from 5 = 3 (1,3,5)");
+  assertPdfMagic(result.bytes, "odd-extracted bytes");
+});
+
+await test("odd-even-pages: extracts even pages from 5-page PDF", async () => {
+  const { oddEvenPagesPdf } = await import("../lib/pdf/ops/odd-even-pages");
+  const src = await makeSyntheticPdf(5);
+  const result = await oddEvenPagesPdf(src, { parity: "even" });
+  assertEq(result.pageCount, 2, "even pages from 5 = 2 (2,4)");
+  assertPdfMagic(result.bytes, "even-extracted bytes");
+});
+
+await test("odd-even-pages: 1-page input + parity=even throws (no even pages)", async () => {
+  const { oddEvenPagesPdf } = await import("../lib/pdf/ops/odd-even-pages");
+  let threw = false;
+  try {
+    await oddEvenPagesPdf(SINGLE, { parity: "even" });
+  } catch {
+    threw = true;
+  }
+  if (!threw) {
+    throw new Error("expected empty result to throw, got success");
+  }
+});
+
+await test("pdf-overlay: front layer applies overlay to every base page", async () => {
+  const { overlayPdf } = await import("../lib/pdf/ops/overlay");
+  const base = await makeSyntheticPdf(3);
+  const overlay = await makeSyntheticPdf(1); // single-page overlay
+  const result = await overlayPdf(base, overlay, {
+    layer: "front",
+    fit: "fit",
+    opacity: 1,
+  });
+  assertEq(result.pageCount, 3, "page count preserved");
+  assertEq(result.appliedCount, 3, "overlay applied to all 3 pages");
+  assertPdfMagic(result.bytes, "front-overlay bytes");
+});
+
+await test("pdf-overlay: behind layer rebuilds document", async () => {
+  const { overlayPdf } = await import("../lib/pdf/ops/overlay");
+  const base = await makeSyntheticPdf(2);
+  const overlay = await makeSyntheticPdf(1);
+  const result = await overlayPdf(base, overlay, {
+    layer: "behind",
+    fit: "stretch",
+  });
+  assertEq(result.pageCount, 2, "page count preserved in behind mode");
+  assertEq(result.appliedCount, 2, "overlay applied to both pages");
+  assertPdfMagic(result.bytes, "behind-overlay bytes");
+});
+
+await test("pdf-overlay: applyToPages restricts overlay to specific pages", async () => {
+  const { overlayPdf } = await import("../lib/pdf/ops/overlay");
+  const base = await makeSyntheticPdf(5);
+  const overlay = await makeSyntheticPdf(1);
+  const result = await overlayPdf(base, overlay, {
+    layer: "front",
+    applyToPages: [1, 3, 5],
+  });
+  assertEq(result.pageCount, 5, "page count preserved");
+  assertEq(result.appliedCount, 3, "overlay applied to 3 specific pages");
+});
+
+await test("pdf-overlay: opacity option threads through to drawPage", async () => {
+  // Behavioral check: opacity=0.5 still produces valid output bytes
+  // (drawPage accepts the opacity parameter without throwing on
+  // numeric values in [0,1]).
+  const { overlayPdf } = await import("../lib/pdf/ops/overlay");
+  const base = await makeSyntheticPdf(2);
+  const overlay = await makeSyntheticPdf(1);
+  const r1 = await overlayPdf(base, overlay, { opacity: 0.3 });
+  const r2 = await overlayPdf(base, overlay, { opacity: 0.9 });
+  assertPdfMagic(r1.bytes, "opacity=0.3 bytes");
+  assertPdfMagic(r2.bytes, "opacity=0.9 bytes");
+  // Both should apply to all 2 pages.
+  assertEq(r1.appliedCount, 2, "0.3 opacity applies all");
+  assertEq(r2.appliedCount, 2, "0.9 opacity applies all");
+});
+
 // ---------------------------------------------------------------------------
 // Report — final-line format MUST match aggregator's tail parser:
 //   `test-pdf-ops: N passed, M failed (of TOTAL)`

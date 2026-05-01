@@ -88,6 +88,9 @@ export const TOOL_SUGGESTIONS: Record<string, readonly string[]> = {
   // CSV → table is rendered; common follow-ups are pagination
   // (page numbers) and combining with a cover page (merge).
   "csv-to-pdf": ["page-numbers", "merge", "stamp-pdf"],
+  // pdf-overlay → letterhead / watermark workflow; users typically
+  // add page numbers AFTER overlay, or sign the result.
+  "pdf-overlay": ["page-numbers", "sign-pdf-free", "merge"],
 };
 
 /** Look up suggestions, defaulting to empty if no entry. */
