@@ -371,6 +371,13 @@ const nextConfig = {
       // GSC + any inbound links transfer their authority to the new URLs.
       { source: "/tool/ai-plagiarism", destination: "/tool/ai-detector", permanent: true },
       { source: "/pdf-plagiarism-check", destination: "/ai-content-detector", permanent: true },
+      // 2026-05-01 — ai-chat lives at /app/chat (multi-turn surface, not a
+      // single-page /tool/[id] runner). The /tool/ai-chat URL was rendering
+      // the generic "COMING SOON · TOOL RUNNER LANDS IN PHASE 5" placeholder
+      // instead of routing to the actual chat experience. Permanent redirect
+      // so anyone who arrives via the in-app navigation, an SEO snippet, or
+      // a stale bookmark lands on the working surface.
+      { source: "/tool/ai-chat", destination: "/app/chat", permanent: true },
       // 2026-04-26 — /categories/* deleted. Originally redirected to
       // /tools (preserve link equity), then removed because the pages
       // were live for ~1 hour total: zero external links, zero Google

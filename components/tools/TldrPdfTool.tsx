@@ -183,12 +183,13 @@ export function TldrPdfTool() {
         </div>
       )}
 
-      <div className="card" style={{ padding: 14, fontSize: 13, lineHeight: 1.5, background: "var(--bg-2)" }}>
-        <strong>What you'll get:</strong> a tight 2–4 sentence executive summary.
-        Catalog price: <strong>2 credits</strong> per PDF. For richer output with
-        section headings and bullet points, use{" "}
-        <Link href="/tool/ai-summarize" style={{ color: "var(--accent)" }}>AI · Summarize PDF</Link>.
-      </div>
+      {/* 2026-05-01: legacy "What you'll get" panel removed.
+          Same content is now rendered ONCE at the top of /tool/[id]/page.tsx
+          via ToolIntroPanel + TOOL_INTROS["ai-tldr"], matching how every
+          other free + AI tool ships its description. Keeping the panel
+          here was producing a duplicate display. The Link import below
+          is intentionally retained — it's used by the related-tool block
+          higher in this component. */}
 
       {error && (
         <p role="alert" style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>
