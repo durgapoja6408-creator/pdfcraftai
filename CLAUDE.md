@@ -86,8 +86,33 @@ HOSTINGER_SSH_PRIVATE_KEY_PATH=/sessions/gifted-funny-franklin/mnt/pdfcraftai.co
 - **Zombie next-server cleanup (2026-04-30 follow-up to thread-cap cascade)**: during the commit `7395e02` deploy, 10 stale `next-server` processes from earlier deploys had accumulated under one Passenger HelperAgent (PPID 2725344) and saturated the LVE thread limit (`uv_thread_create` assertion in `nodejs/stderr.log` — same family as the cascade above but caused by accumulated zombies, not by repeated pkicks). Recovery via SSH (use sparingly, treat as the LAST resort after one pkick + waiting): `ps -fu u692382124 | grep next-server | awk '{print $2}' | xargs -r kill -KILL && touch ~/domains/pdfcraftai.com/nodejs/tmp/restart.txt`. App typically recovers within 30s. Mass-kill is safe ONLY when there are no fresh in-flight requests — it WILL drop any user mid-upload. Prefer hPanel "Stop running process" when reachable.
 - **Worst-case thread-cap recovery (2026-04-30, commit `2f51d72` deploy)**: if the cascade has saturated the cgroup so deeply that **even SSH bash cannot fork** (`bash: fork: retry: Resource temporarily unavailable`), STOP TRYING. Every reconnect attempt creates more pending forks that the cgroup is rejecting and prolongs the hang. The ONLY recovery from this state without hPanel access is to wait 5-10 minutes for the kernel to drain pending threads. Verified: commit `2f51d72` deploy went into 503 at ~09:42 UTC, SSH unreachable from ~09:45 onward, recovered automatically at ~10:12 UTC (~30 min total, ~7 min after I stopped poking). DO NOT add fresh ssh / pkick / curl loops in this window — those compound the cgroup pressure even though they look like they're "doing something."
 
-## 6. Current integration status (as of 2026-04-22)
+## 5a. Phase 2 standardization gotchas (2026-05-01)
 
+- **`KNOWN_AI_LONGFORM_PENDING` is now empty** (cap = 0). Adding a NEW AI tool to `lib/tools.ts` REQUIRES shipping a longform entry in `lib/tool-longforms.ts` in the same commit. The CI guard `scripts/test-tool-content-coverage.mjs` will fail otherwise. To explicitly grandfather a new tool (rare; only when the longform is genuinely deferred to a later sprint), bump the cap in that script with rationale.
+- **`KNOWN_BROKEN_RELATED_IDS` cap = 22** in `scripts/test-tool-id-references.mjs`. 22 unique broken tool-id references in `lib/seo-pages.ts` related[] arrays are grandfathered (Phase 3 cleanup). Adding a NEW invalid tool id to a related[] fails the build. To repair one: replace every reference site, then remove the id from the allowlist + lower the cap. The allowlist also rejects stale entries (ids fully repaired) to keep the cap meaningful.
+- **AI tool runners use `ToolRunnerLongform` with `isAI={!tool.free}`** — see `app/tool/[id]/page.tsx`. Without that prop, AI tools render the (false) free-tool differentiators ("100% local processing", "no signup, no daily limit"). The `tool-runner-longform-ai-parity` guard catches this if the prop is dropped.
+- **Auth callback preservation** lives in `lib/auth-callback.ts` (`sanitizeCallbackUrl()`). Used by:
+  - `LoginForm.tsx` + `RegisterForm.tsx` (read `?callbackUrl=` from URL, propagate to Google OAuth + hidden form input for credentials)
+  - `loginAction` + `registerAction` in `lib/auth-actions.ts` (read from formData, sanitize server-side as defense-in-depth)
+  - 10 `/app/*` page-level redirects (preserve callback in `redirect("/login?callbackUrl=...")`)
+  - The single `app/app/layout.tsx` redirect is intentionally exempt (defense-in-depth fallback only fires for unguarded NEW pages; documented inline)
+  Adding a new `/app/*` page → MUST include `?callbackUrl=` in its auth redirect. CI guard `auth-callback-preservation` catches this.
+- **`/tool/ai-chat` is a 308 redirect to `/chat-with-pdf`**, NOT a runner page. Chat is multi-turn and lives at `/app/chat` (history dashboard) + `/app/chat/[id]` (active session). The top-nav "Chat" link is auth-conditional via `buildNav(loggedIn)` in `components/nav/TopNav.tsx`: anon → `/chat-with-pdf` (marketing), logged-in → `/app/chat` (history dashboard).
+
+## 6. Current integration status (as of 2026-05-01)
+
+- **Phase 2 AI standardization COMPLETE** (2026-05-01, commits `e5a9aa8..3d32d6e` — 12 commits this arc):
+  - 39 AI tools backfilled with full longforms (ai-faq, ai-action-items, ai-mindmap, ai-blood-test, ai-jd-match, ai-paraphrase, ai-detector, ai-rewrite, ai-study-notes, ai-syllabus, ai-discharge, ai-blog, ai-readability, ai-newsletter, ai-video-script, ai-improve-writing, ai-proofread, ai-nda, ai-employment, ai-partnership-deed, ai-loan-bundle, ai-insurance, ai-research-paper, ai-salary-slip, ai-ats-resume, ai-condense, ai-expand, ai-tone-analyze, ai-citations, ai-sentiment, ai-bias, ai-entities, ai-social-thread, ai-semantic-search, ai-searchable-pdf, ai-chart-to-table, ai-table, ai-generate, ai-sign).
+  - 13 new SEO landings closing AI acquisition gap (`/condense-pdf`, `/expand-pdf`, `/analyze-pdf-tone`, `/extract-pdf-citations`, `/pdf-sentiment-analysis`, `/inclusive-language-audit`, `/proofread-pdf`, `/pdf-to-newsletter`, `/pdf-to-video-script`, `/semantic-search-pdf`, `/extract-action-items`, `/generate-pdf-from-prompt`, `/ai-fill-pdf-form`).
+  - Final scoreboard: 52/52 TOOL_INTROS / 51/52 TOOL_LONGFORMS (ai-chat correctly excluded — lives at `/app/chat`) / 52/52 SEO landings.
+  - 5 new CI guards: `tool-runner-longform-ai-parity` / `auth-callback-preservation` / `tool-id-references` (with KNOWN_BROKEN_RELATED_IDS allowlist + cap=22 for Phase 3 cleanup) / shrinkage cap on KNOWN_AI_LONGFORM_PENDING stepped 39 → 0 / dashboard-v2 regex relaxed to coexist with auth-callback guard.
+  - Aggregator: **4013/4013 across 59 suites in 6.4s** (up from 3404/54 at 2026-04-30 EOD).
+- **Sitewide auth-callback fix** (2026-05-01, commit `471dc8b`): every layer of auth funnel previously hardcoded `/app/dashboard` as post-sign-in destination. Now preserved end-to-end:
+  - `lib/auth-callback.ts` — `sanitizeCallbackUrl()` open-redirect-prevention sanitizer (rejects `//evil`, `/api/*`, `/login`, `/register`, > 512 chars).
+  - `LoginForm.tsx` + `RegisterForm.tsx` read `?callbackUrl=` from URL, propagate to Google OAuth + hidden form input for credentials.
+  - `loginAction` + `registerAction` read from formData, sanitize server-side as defense-in-depth.
+  - 10 `/app/*` page-level redirects preserve callback. The single `app/app/layout.tsx` redirect is intentionally exempt (defense-in-depth fallback only fires for unguarded NEW pages; documented inline).
+  - CI guard `auth-callback-preservation` (21 assertions) locks all 4 layers.
 - Cloudflare proxy: ACTIVE
 - Sitemap (`/sitemap.xml`): serving 200 — **but old submissions in GSC + Bing point at stale URLs; needs re-submission after latest redeploy**
 - Google OAuth: env vars deployed, consent verified (branding page, 2026-04-19) — **end-to-end sign-in test still pending**
