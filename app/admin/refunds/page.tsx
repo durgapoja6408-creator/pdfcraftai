@@ -16,7 +16,7 @@
 //
 // Refund-rate denominator choice: captured gross (not net). Card-scheme
 // dashboards quote rates against gross, so parity with what the
-// operator already sees on the Paddle/Razorpay vendor UIs wins over
+// operator already sees on the Razorpay vendor UI wins over
 // "net-revenue-relative" which would be mathematically cleaner but
 // harder to cross-check.
 

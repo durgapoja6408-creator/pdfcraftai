@@ -183,7 +183,7 @@ export default function AdminPlansPage() {
         >
           Margin column is AI-cost-only under cheap routing. It does NOT
           subtract processor fees, support amortisation, refund drag, FX
-          spread, or tax. Net margin after Paddle on realistic mix lives at{" "}
+          spread, or tax. Net margin on realistic mix lives at{" "}
           <a href="/admin/margin" style={{ color: "inherit" }}>
             /admin/margin
           </a>

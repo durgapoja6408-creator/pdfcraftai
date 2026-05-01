@@ -8,13 +8,16 @@
 // Treatment meanings (from lib/payments/tax.ts and the schema comment
 // on credit_ledger.tax_treatment):
 //
-//   - "mor" (Merchant-of-Record): Paddle collects + remits on our
-//     behalf. INVARIANT: tax_remittable_micros = 0. The "kept" column
-//     for MoR rows equals the full collected amount because from OUR
-//     books nothing is owed to a tax authority — Paddle invoices the
-//     customer on their own name. (We still see `tax_collected_micros`
-//     populated because it's the tax Paddle computed on the sale;
-//     storing it lets us reconcile against Paddle's vendor reports.)
+//   - "mor" (Merchant-of-Record): the MoR provider collects + remits
+//     on our behalf. INVARIANT: tax_remittable_micros = 0. The "kept"
+//     column for MoR rows equals the full collected amount because
+//     from OUR books nothing is owed to a tax authority — the MoR
+//     invoices the customer on their own name. (We still see
+//     `tax_collected_micros` populated because it's the tax the MoR
+//     computed on the sale; storing it lets us reconcile against
+//     vendor reports.) No "mor" rows are written today (Razorpay
+//     rail is "forward"); kept as a supported case for the future
+//     international rail.
 //
 //   - "forward": we collected tax and owe it to the authority (Razorpay
 //     IN rail: 18% IGST forwarded to GST Council). INVARIANT:
@@ -96,9 +99,10 @@ export default async function AdminTaxPage({
       <header style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>Tax</h1>
         <p className="muted" style={{ marginTop: 4 }}>
-          Past {days} days. Source: credit_ledger tax columns. MoR rows
-          (Paddle) — collected but remittable = 0. Forward rows (Razorpay IN)
-          — collected and fully owed to GST. Kept = collected − remittable.
+          Past {days} days. Source: credit_ledger tax columns. Forward rows
+          (Razorpay IN) — collected and fully owed to GST. MoR rows
+          (international rail TBD) — collected but remittable = 0. Kept =
+          collected − remittable.
         </p>
         <div
           style={{
@@ -135,7 +139,7 @@ export default async function AdminTaxPage({
       {error ? <ErrorBanner message={`Tax query failed: ${error}`} /> : null}
       {morInvariantViolated ? (
         <ErrorBanner
-          message={`MoR invariant violated: tax_treatment='mor' rows have non-zero tax_remittable_micros (${microsToUsd(morRow!.remittableMicros)}). Under Merchant-of-Record, Paddle owns remittance — remittable MUST be 0. Check lib/payments/adapters/paddle.ts classification.`}
+          message={`MoR invariant violated: tax_treatment='mor' rows have non-zero tax_remittable_micros (${microsToUsd(morRow!.remittableMicros)}). Under Merchant-of-Record, the MoR provider owns remittance — remittable MUST be 0. Check the responsible adapter's tax classification.`}
         />
       ) : null}
       {forwardInvariantViolated ? (

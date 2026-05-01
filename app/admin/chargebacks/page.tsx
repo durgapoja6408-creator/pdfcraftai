@@ -1,28 +1,28 @@
 // app/admin/chargebacks/page.tsx — Chargebacks surface.
 //
-// Phase D / Task #22 CLOSED the ingestion gap. The Paddle adapter at
-// lib/payments/adapters/paddle.ts now dispatches adjustment actions
-// three ways — "refund" → kind="refund", "chargeback" /
-// "chargeback_warning" / "chargeback_reverse" → kind="chargeback", and
-// everything else → kind="ignored". The ledger handler in
-// lib/payments/ledger.ts:handleChargeback writes a negative-signed
-// debit row tagged `provider = 'chargeback_reversal'` and flips the
-// payment into refunded / partial_refund (the payments.status enum
-// has no "chargeback" value yet — future migration).
+// Phase D / Task #22 CLOSED the ingestion gap. Adapters dispatch
+// adjustment actions three ways — "refund" → kind="refund",
+// "chargeback" / "chargeback_warning" / "chargeback_reverse" →
+// kind="chargeback", and everything else → kind="ignored". The
+// ledger handler in lib/payments/ledger.ts:handleChargeback writes
+// a negative-signed debit row tagged
+// `provider = 'chargeback_reversal'` and flips the payment into
+// refunded / partial_refund (the payments.status enum has no
+// "chargeback" value yet — future migration).
 //
-// This page does a DOUBLE-READ: webhook_events (what Paddle SENT us,
-// via the JSON path filter) and credit_ledger (what we ACTED on, via
-// the provider tag). Healthy state: the two counts agree. If they
-// drift — webhookCount > ledgerCount — we've got an ingestion bug
-// and the banner fires.
+// This page does a DOUBLE-READ: webhook_events (what the processor
+// SENT us, via the JSON path filter) and credit_ledger (what we
+// ACTED on, via the provider tag). Healthy state: the two counts
+// agree. If they drift — webhookCount > ledgerCount — we've got an
+// ingestion bug and the banner fires.
 //
 // Why keep the webhook-events JSON path filter even after ingestion
 // is wired?
 // -----------------------------------------------------------------
 // Two reasons:
 //   1. Ground truth. webhook_events is the raw audit log, so it's the
-//      authoritative "what Paddle says happened". credit_ledger is
-//      our downstream mirror.
+//      authoritative "what the processor says happened".
+//      credit_ledger is our downstream mirror.
 //   2. Drift detection. If the ingestion pipeline silently breaks
 //      (bad deploy, schema mismatch, SQL error swallowed), the
 //      webhook count will keep climbing while the ledger count
@@ -64,7 +64,7 @@ export default async function AdminChargebacksPage({
           Chargebacks
         </h1>
         <p className="muted" style={{ marginTop: 4 }}>
-          Past {days} days. Double-read: webhook_events (what Paddle sent)
+          Past {days} days. Double-read: webhook_events (what the processor sent)
           vs credit_ledger (what we booked, provider=
           <code style={{ margin: "0 4px" }}>chargeback_reversal</code>).
           Drift means ingestion is broken.
@@ -79,7 +79,7 @@ export default async function AdminChargebacksPage({
           the banner off so the page reads calm on quiet days. */}
       {data.ingestionGap ? (
         <ErrorBanner
-          message={`Ingestion drift: webhook_events contains ${data.webhookCount} chargeback event(s) but credit_ledger only shows ${data.ledgerCount} booked reversal(s). The ingestion pipeline may have silently broken — check /admin/logs for failed adapter runs and verify the Paddle adapter dispatch for chargeback/chargeback_warning/chargeback_reverse actions.`}
+          message={`Ingestion drift: webhook_events contains ${data.webhookCount} chargeback event(s) but credit_ledger only shows ${data.ledgerCount} booked reversal(s). The ingestion pipeline may have silently broken — check /admin/logs for failed adapter runs and verify the relevant adapter's dispatch for chargeback/chargeback_warning/chargeback_reverse actions.`}
         />
       ) : null}
 

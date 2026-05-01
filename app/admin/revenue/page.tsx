@@ -2,7 +2,7 @@
 //
 // Contract: daily revenue (gross/net/tax/fee), by processor, by
 // billing currency. Read from credit_ledger — the source-of-truth
-// table populated by the Paddle (and later Razorpay) webhook handlers.
+// table populated by the Razorpay webhook handler.
 
 import { getRevenueBreakdown } from "@/lib/admin/queries";
 import {

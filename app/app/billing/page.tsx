@@ -23,7 +23,9 @@ export const dynamic = "force-dynamic";
 
 const PROVIDER_DISPLAY: Record<string, string> = {
   razorpay: "Razorpay",
-  paddle: "Paddle",
+  // Historical-row labels kept so any pre-2026-05-01 ledger rows
+  // tagged with retired providers still render a recognizable name.
+  paddle: "Paddle (retired)",
 };
 
 const STATUS_LABEL: Record<string, string> = {

@@ -5,7 +5,7 @@
 // came in — did we receive the webhook?" without needing DB access.
 //
 // No reprocess button here on purpose. Webhook retries come from the
-// processor side (Paddle / Razorpay); our stored row is just the
+// processor side (Razorpay, etc.); our stored row is just the
 // audit-log endpoint.
 
 import Link from "next/link";

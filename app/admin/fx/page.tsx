@@ -2,8 +2,9 @@
 //
 // Contract: one row per ledger entry where `fx_rate_used IS NOT NULL`
 // — i.e. the row went through a USD<>INR conversion at capture time.
-// Today that's exclusively the Razorpay (IN) rail; Paddle (USD) rows
-// have NULL fx_rate_used because no conversion happened.
+// Today that's exclusively the Razorpay (IN) rail. Same-currency
+// captures (and rows from before Task #15's schema landed) leave
+// fx_rate_used NULL because no conversion happened.
 //
 // Why a dedicated page instead of a column on /admin/revenue?
 // -----------------------------------------------------------
