@@ -1585,7 +1585,15 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "How long is the chat memory?", a: "20 questions per session for 5 credits. After that, we charge 5 credits per additional 20 questions to keep the conversation going. The PDF stays loaded across the whole session." },
       { q: "Can I chat with multiple PDFs at once?", a: "Single PDF for now. Multi-PDF chat (e.g. 'compare the termination clauses across these 3 vendor contracts') is on the roadmap." },
     ],
-    related: ["ai-chat", "ai-summarize", "ai-tldr", "ai-semantic-search"],
+    // 2026-05-01 — dropped self-referential "ai-chat" entry. Every related
+    // card on this template renders as <Link href={`/tool/${id}`}/>; for
+    // ai-chat that 308-redirects right back to /chat-with-pdf (the page
+    // you're already on). Listing yourself as a related tool is also bad
+    // SEO — the related block exists to expose adjacent capabilities, not
+    // to recurse. Replaced with ai-key-points which is the natural next
+    // step after a Q&A session ("now show me the key points across the
+    // whole doc") and rounds the related-tools block back to four entries.
+    related: ["ai-summarize", "ai-tldr", "ai-key-points", "ai-semantic-search"],
   },
 
   "summarize-pdf": {

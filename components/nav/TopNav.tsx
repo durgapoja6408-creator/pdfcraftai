@@ -10,7 +10,23 @@ import { ThemeToggle } from "@/components/nav/ThemeToggle";
 
 type NavLink = { href: string; label: string; accent?: boolean; eyebrow?: React.ReactNode };
 
-const NAV: NavLink[] = [
+// 2026-05-01 (follow-up to e5a9aa8) — the Chat slot is now auth-conditional.
+// Anonymous visitors land on /chat-with-pdf (public marketing surface,
+// indexable, FAQs + JSON-LD); logged-in visitors land directly on
+// /app/chat (their chat history dashboard).
+//
+// Why the conditional: sending a logged-in user from inside the app to a
+// marketing page is jarring — they want to find their conversations, not
+// re-read the value prop. The original e5a9aa8 commit promoted Chat to
+// the top-nav but routed everyone to /chat-with-pdf, which created a
+// "the marketing page is in my way" experience for returning users.
+//
+// All other slots are the same for both audiences, so we keep them in
+// the static arrays below and inject the Chat slot at render time via
+// buildNav(). Centralising the build keeps the desktop nav and the
+// mobile nav in sync — drift between the two surfaces has been the
+// recurring TopNav bug class since H8.
+const NAV_BEFORE_CHAT: NavLink[] = [
   // H8: removed Agent + Macros (and the /studio editor those routed to).
   // The agent surface didn't earn its keep — most workflow features it
   // promised (file uploads, scheduling, sharing) weren't shipped, and
@@ -18,18 +34,22 @@ const NAV: NavLink[] = [
   // (saved configs on each /tool/* runner) still work via the separate
   // lib/macro-actions.ts code path.
   { href: "/tools", label: "Tools" },
-  // 2026-05-01 — "Chat" promoted to a first-class nav slot instead of
-  // being shoehorned into /tools as a catalog card. Reasoning: chat is
-  // a multi-turn product (chat history, archive, multi-message UI)
-  // that doesn't fit the single-shot /tool/[id] shape every other
-  // catalog entry uses. /chat-with-pdf is the public marketing landing;
-  // from there logged-in users click "Start chatting" → /app/chat.
-  { href: "/chat-with-pdf", label: "Chat" },
+];
+
+const NAV_AFTER_CHAT: NavLink[] = [
   { href: "/pricing", label: "Pricing" },
   { href: "/blog", label: "Blog" },
   { href: "/help", label: "Help" },
   { href: "/api", label: "API" },
 ];
+
+function buildNav(loggedIn: boolean): NavLink[] {
+  return [
+    ...NAV_BEFORE_CHAT,
+    { href: loggedIn ? "/app/chat" : "/chat-with-pdf", label: "Chat" },
+    ...NAV_AFTER_CHAT,
+  ];
+}
 
 /**
  * Marketing top nav with full session awareness:
@@ -82,6 +102,12 @@ export function TopNav() {
   const user = session?.user;
   const loggedIn = status === "authenticated" && !!user;
   const initial = (user?.name?.[0] ?? user?.email?.[0] ?? "?").toUpperCase();
+  // Build the NAV array fresh per render so the Chat slot's href tracks
+  // the live auth state. While `status === "loading"` we route Chat to
+  // the public marketing page — same destination as anonymous visitors,
+  // which is the safer default than briefly flashing a logged-in URL
+  // that would 401-bounce if the session ultimately resolves anonymous.
+  const nav = buildNav(loggedIn);
 
   return (
     <header className="topnav">
@@ -93,7 +119,7 @@ export function TopNav() {
       </Link>
 
       <nav className="topnav-links">
-        {NAV.map((item) => (
+        {nav.map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -262,7 +288,7 @@ export function TopNav() {
       {mobileOpen && (
         <div ref={mobileRef} className="topnav-mobile">
           <nav className="col" style={{ gap: 2 }}>
-            {NAV.map((item) => (
+            {nav.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

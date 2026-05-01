@@ -13,6 +13,24 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
 
   const firstWord = tool.name.split(" ")[0].toLowerCase();
 
+  // 2026-05-01 — ai-chat is the one tool whose /tool/[id] runner doesn't
+  // exist (chat is multi-turn, lives at /app/chat — see commit e5a9aa8).
+  // The /tool/ai-chat URL 308-redirects to /chat-with-pdf for legacy SEO
+  // arrivals (commit add9175). That redirect creates a bounce when the
+  // primary CTA on /chat-with-pdf itself links to /tool/ai-chat — clicking
+  // "Open Chat with PDF" sends you back to the page you're already on.
+  //
+  // Fix: special-case the CTA href for ai-chat to skip the indirection
+  // and link directly to /app/chat. The /app/chat page handles the auth
+  // gate cleanly: logged-in users see their history dashboard; anonymous
+  // users get server-side redirected to /login with callback to /app/chat,
+  // matching the conversion funnel used by every other AI tool's runner.
+  //
+  // Every other tool (free or AI) has a real /tool/[id] runner, so the
+  // default keeps using the tool-id pattern that all 60+ SEO landings
+  // share — no widening of this special-case beyond ai-chat.
+  const primaryHref = tool.id === "ai-chat" ? "/app/chat" : `/tool/${tool.id}`;
+
   // ---------- JSON-LD structured data (Task #72) -------------------
   //
   // Two schemas per landing — both eligible for rich results in
@@ -192,7 +210,7 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
                 {data.sub}
               </p>
               <div className="row" style={{ gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
-                <Link href={`/tool/${tool.id}`} className="btn btn-lg btn-primary">
+                <Link href={primaryHref} className="btn btn-lg btn-primary">
                   <Ic size={16} /> Open {tool.name} <I.ArrowRight size={16} />
                 </Link>
                 <a href="#how-it-works" className="btn btn-lg btn-ghost">
@@ -247,7 +265,7 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
               <div className="muted" style={{ fontSize: 13, marginBottom: 20 }}>
                 or choose a file
               </div>
-              <Link href={`/tool/${tool.id}`} className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }}>
+              <Link href={primaryHref} className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }}>
                 Choose file
               </Link>
               <div
@@ -532,7 +550,7 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
           <p className="muted" style={{ fontSize: 16, marginBottom: 28 }}>
             No signup. No watermarks. Your file stays private.
           </p>
-          <Link href={`/tool/${tool.id}`} className="btn btn-lg btn-primary">
+          <Link href={primaryHref} className="btn btn-lg btn-primary">
             Open {tool.name} <I.ArrowRight size={16} />
           </Link>
         </div>
