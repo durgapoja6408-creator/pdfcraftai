@@ -3551,4 +3551,1016 @@ export const TOOL_LONGFORMS: Record<string, ToolLongformData> = {
       linkLabel: "Try PDF to Text",
     },
   },
+
+  // =====================================================================
+  // AI tool longforms (Phase 1 of the AI standardization parity backfill,
+  // 2026-05-01). 12 high-traffic AI tools at full parity with free-tool
+  // longforms. The remaining ~37 AI tools are tracked in
+  // KNOWN_AI_LONGFORM_PENDING in scripts/test-tool-content-coverage.mjs
+  // with a per-tool TODO and a shrinkage cap. Adding a longform here +
+  // removing the corresponding entry from that map is how the backfill
+  // progresses.
+  //
+  // Editorial bar: each AI tool's longform must reflect the tool's
+  // actual behavior (not generic AI marketing), acknowledge limitations
+  // honestly (heuristic vs deterministic, what the model can/can't
+  // verify), distinguish from variant tools, and use the existing
+  // copy tone (direct, no hyperbole).
+  // =====================================================================
+
+  "ai-summarize": {
+    useCasesTitle: "Why people use AI summarize",
+    useCasesIntro:
+      "When a document is long enough that reading it cover-to-cover isn&rsquo;t practical, a summary is the difference between &ldquo;I read it&rdquo; and &ldquo;I meant to read it.&rdquo; AI summarize generates a structured digest that surfaces the document&rsquo;s actual claims, decisions, and findings — with page citations so you can jump back for verification.",
+    useCases: [
+      {
+        icon: "Book",
+        title: "Long-form report digest",
+        text: "Annual reports, market research, white papers — content where the executive summary is fine but you need a level deeper than the abstract. Summary lands at ~1/10th the length and keeps the section-by-section structure.",
+      },
+      {
+        icon: "Pages",
+        title: "Meeting transcript distillation",
+        text: "Drop the auto-generated transcript from your call recording, get a recap with decisions, action items, and unresolved questions. Useful for catching attendees up; pairs with AI Action Items for the to-do extraction.",
+      },
+      {
+        icon: "Shield",
+        title: "Contract / legal overview",
+        text: "Get the gist of a 40-page MSA before sending it to counsel. Summary won&rsquo;t replace legal review, but it tells you which clauses to ask about. Liability caps, term length, payment terms, and termination triggers all surface.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Article / paper triage",
+        text: "Decide whether a research paper or industry article deserves your full read. Summary covers method + findings + caveats so you can route to a deep read, a skim, or a delete.",
+      },
+      {
+        icon: "Edit",
+        title: "Email-thread / chat-export distillation",
+        text: "A 30-message email thread or 200-message Slack export becomes a 6-bullet recap of decisions made and parties involved. Especially useful for joining a project mid-stream.",
+      },
+    ],
+    howWorksTitle: "How AI Summarize works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your PDF + pick depth",
+        text: "Upload a PDF up to 100 MB. Pick &ldquo;summary&rdquo; depth (default) or one of the variants — TL;DR, key points, study notes, ELI5, FAQ — each tuned for a different reading goal.",
+      },
+      {
+        step: "2",
+        title: "We extract + chunk + summarize",
+        text: "Server-side text extraction (no rasterization), chunking when the PDF exceeds the model&rsquo;s context window, then a map-reduce pass to keep section structure. The model used is selected by the routing layer for cost-vs-quality fit.",
+      },
+      {
+        step: "3",
+        title: "Get markdown back with page cites",
+        text: "Output is markdown with section headings + page references. Download as .md or copy. The document and the summary land in /app/files for re-access without re-spending credits.",
+      },
+    ],
+    faqs: [
+      {
+        q: "How long is the output, and is it deterministic?",
+        a: "Length scales with input — for typical 10–40 page docs, the summary is ~500–1500 words. Output is NOT byte-identical across runs (LLM nondeterminism + temperature), but the structure and major points are stable. If you re-summarize the same PDF you&rsquo;ll get the cached result for free (idempotent via internal idempotency key).",
+      },
+      {
+        q: "Does it cite specific pages?",
+        a: "Yes — claims that originate in a specific page or section are followed by a page-number reference. This is the key feature that distinguishes pdfcraft summary from a generic chatbot summary: every assertion is verifiable in the source.",
+      },
+      {
+        q: "What about confidential documents?",
+        a: "The PDF is sent to the AI provider for inference (no client-side LLM today). It&rsquo;s NOT stored by the provider beyond the inference window (we use no-train endpoints where available). For maximum privacy on truly sensitive documents, redact first — Redact PDF is in-browser and sensitive content never reaches a server.",
+      },
+      {
+        q: "How is this different from AI TL;DR / Key Points?",
+        a: "Same backend op, different presentation. Summary is the default 1/10th-length structured digest. TL;DR is a 2–3 sentence elevator pitch. Key Points is bullet-list-only. ELI5 explains like you&rsquo;re a layperson. Study Notes is exam-prep oriented. Pick the variant that matches how you&rsquo;ll use the output.",
+      },
+      {
+        q: "What's the credit cost?",
+        a: "3 credits per summary by default. Cost is fixed per submission regardless of PDF size — no surprises. Credit balance + remaining quota is visible on /app/billing.",
+      },
+      {
+        q: "What if the summary is wrong?",
+        a: "It happens. LLMs occasionally fabricate (hallucinate) details, especially on technical content. Use the page citations to verify any claim before relying on it. For high-stakes work (legal, medical, financial), treat the summary as a navigation aid, not a substitute for reading the source.",
+      },
+    ],
+    cta: {
+      title: "Need a tighter version?",
+      text: "AI TL;DR returns a 2–3 sentence elevator-pitch version of the same content — useful for the executive forwarding the doc to a busy stakeholder.",
+      linkHref: "/tool/ai-tldr",
+      linkLabel: "Try AI TL;DR",
+    },
+  },
+
+  "ai-tldr": {
+    useCasesTitle: "Why people use AI TL;DR",
+    useCasesIntro:
+      "Sometimes you don&rsquo;t need a structured summary — you need the 30-second version you&rsquo;d say to someone over coffee. TL;DR returns a 2–3 sentence distillation of the document&rsquo;s headline argument, decision, or finding. No bullets, no sections — just the takeaway.",
+    useCases: [
+      {
+        icon: "Sparkle",
+        title: "Slack / chat forwarding",
+        text: "Drop a TL;DR into a Slack channel as the lead-in when sharing a long doc. Saves teammates the &ldquo;TL;DR pls&rdquo; reply and gets the doc actually read.",
+      },
+      {
+        icon: "Pages",
+        title: "Pre-meeting briefing",
+        text: "30 seconds of pre-read for a 60-minute meeting. Read the TL;DR while walking to the room — you arrive informed enough to ask questions.",
+      },
+      {
+        icon: "Edit",
+        title: "Reading-list triage",
+        text: "20 articles in the to-read pile. TL;DR each one to decide which deserve a full read, a skim, or a delete. Faster than 20 abstracts.",
+      },
+      {
+        icon: "Receipt",
+        title: "Email subject lines",
+        text: "Use the TL;DR as the elevator pitch when forwarding a doc by email. Recipients see the takeaway in the subject and decide whether to open.",
+      },
+      {
+        icon: "Convert",
+        title: "Note-taking shorthand",
+        text: "Personal knowledge management — store the TL;DR alongside a doc reference in your notes app. When you re-encounter the doc 6 months later, the TL;DR jogs your memory faster than re-skimming.",
+      },
+    ],
+    howWorksTitle: "How AI TL;DR works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your PDF",
+        text: "Up to 100 MB. Same backend as AI Summarize but tuned for extreme brevity.",
+      },
+      {
+        step: "2",
+        title: "We extract the headline finding",
+        text: "Server-side text extraction → map-reduce pass tuned for a 2–3 sentence output. The prompt explicitly forbids preamble (&ldquo;This document discusses...&rdquo;) so what you get is the substance, not framing.",
+      },
+      {
+        step: "3",
+        title: "Get a 2–3 sentence takeaway",
+        text: "Plain text output. Copy + paste anywhere. Stored in /app/files alongside the source PDF for re-access.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Why is the output so short — am I losing information?",
+        a: "Yes, deliberately. TL;DR is the 30-second version. If 2–3 sentences isn&rsquo;t enough for your purpose, use AI Summarize (1/10th-length structured digest) or AI Key Points (bullet list). Pick the level of compression that matches your reading goal.",
+      },
+      {
+        q: "How accurate is a 2-sentence summary?",
+        a: "Accurate enough for triage, not accurate enough for decision-making. The compression is brutal — nuance disappears. Treat TL;DR as &ldquo;should I read this?&rdquo; not as &ldquo;what does this say?&rdquo;",
+      },
+      {
+        q: "Does it work on multi-topic documents?",
+        a: "Less well. Documents with several distinct sections or competing arguments compress poorly into 2 sentences. For those, AI Key Points or AI Summarize keeps the structure intact.",
+      },
+      {
+        q: "What if my doc has charts or images?",
+        a: "TL;DR is text-only. Charts / figures are noted but not interpreted (that&rsquo;s AI Chart-to-Table&rsquo;s scope). For image-heavy docs, AI OCR first to surface the text content, then TL;DR.",
+      },
+      {
+        q: "What's the credit cost?",
+        a: "3 credits per TL;DR. Same as AI Summarize because the backend work is the same — the difference is in output formatting.",
+      },
+      {
+        q: "Can I send a PDF with confidential information?",
+        a: "Same posture as AI Summarize — sent to the inference provider, not stored. For high-confidentiality content, redact first via the in-browser Redact PDF tool, then TL;DR the redacted version.",
+      },
+    ],
+    cta: {
+      title: "Need more than 2 sentences?",
+      text: "AI Summarize returns a 1/10th-length structured digest with section headings and page citations — when the takeaway needs more than the elevator pitch.",
+      linkHref: "/tool/ai-summarize",
+      linkLabel: "Try AI Summarize",
+    },
+  },
+
+  "ai-key-points": {
+    useCasesTitle: "Why people use AI Key Points",
+    useCasesIntro:
+      "Bullet lists trade prose for parallelism — every key point sits at the same level of importance, scannable, copyable, easy to share. AI Key Points extracts the document&rsquo;s major claims, findings, or decisions as a clean list of bullets.",
+    useCases: [
+      {
+        icon: "Edit",
+        title: "Lecture / seminar notes",
+        text: "Transcript or slide-deck PDF in, bullet-list takeaways out. Faster than re-watching the recording; structured enough to study from.",
+      },
+      {
+        icon: "Receipt",
+        title: "Meeting recap bullets",
+        text: "After-the-meeting recap email becomes 8 bullets you can paste directly into the email. Pairs with AI Action Items for the follow-up to-dos.",
+      },
+      {
+        icon: "Book",
+        title: "Research highlights",
+        text: "Pull the methodology + findings + caveats from a paper as bullets. Useful for lit-review notes or for the &ldquo;background&rdquo; section of your own writing.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Decision-doc actions",
+        text: "Strategy docs, RFC-style proposals, board memos — extract the explicit decisions or recommendations as bullets so they&rsquo;re easy to track and reference.",
+      },
+      {
+        icon: "Convert",
+        title: "Study card prep",
+        text: "First step in turning textbook chapters into review material. Pairs with AI Flashcards (which generates Q&amp;A pairs from the same source).",
+      },
+    ],
+    howWorksTitle: "How AI Key Points works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your PDF",
+        text: "Up to 100 MB. Output is markdown bullet list — every bullet a single point.",
+      },
+      {
+        step: "2",
+        title: "We extract structural points",
+        text: "The prompt is tuned to extract claims, decisions, or findings — not subjective &ldquo;the author thinks&rdquo; framing. Page citations included.",
+      },
+      {
+        step: "3",
+        title: "Get a markdown bullet list",
+        text: "Typically 5–15 bullets depending on document length. Copy + paste into Notion, Slack, email, etc. with formatting preserved.",
+      },
+    ],
+    faqs: [
+      {
+        q: "How is this different from AI Summarize?",
+        a: "Summary preserves narrative structure (section headings + paragraphs); Key Points strips it to bullets. Summary is for &ldquo;tell me what this says&rdquo;; Key Points is for &ldquo;give me the takeaways I can paste somewhere.&rdquo;",
+      },
+      {
+        q: "What's the bullet count?",
+        a: "Aimed at 5–15 bullets — long enough to cover the main content, short enough to skim. The prompt won&rsquo;t pad the list to hit a target count; if a doc only has 6 distinct key points, you get 6 bullets.",
+      },
+      {
+        q: "Does it preserve hierarchy or sub-points?",
+        a: "Top-level only. Nested bullets aren&rsquo;t emitted by default — they hurt scannability. For hierarchical study material, AI Mindmap is the better fit.",
+      },
+      {
+        q: "Can I get the bullets as flashcards instead?",
+        a: "Yes — AI Flashcards generates Q&amp;A pairs from the same kind of source content. Use Key Points when you need bullets for a recap; use Flashcards when you need self-test material.",
+      },
+      {
+        q: "What's the credit cost?",
+        a: "3 credits per extraction. Same as Summarize / TL;DR — same backend, different output framing.",
+      },
+      {
+        q: "What if my document has nothing extractable?",
+        a: "Pure prose / narrative content (memoir, fiction) doesn&rsquo;t map well to bullets. The model will produce an output, but it will read forced. Use AI Summarize for narrative content; AI Key Points works best on documents with explicit structure (papers, reports, decision docs).",
+      },
+    ],
+    cta: {
+      title: "Need self-test material?",
+      text: "AI Flashcards generates Q&A pairs from the same kind of source content — Anki-compatible CSV export so you can drill the material later.",
+      linkHref: "/tool/ai-flashcards",
+      linkLabel: "Try AI Flashcards",
+    },
+  },
+
+  "ai-eli5": {
+    useCasesTitle: "Why people use AI ELI5",
+    useCasesIntro:
+      "ELI5 (&ldquo;explain like I&rsquo;m 5&rdquo;) trades technical precision for plain-language clarity — useful when the reader doesn&rsquo;t share the document&rsquo;s domain expertise. The output explains the document&rsquo;s content as if to a smart non-specialist.",
+    useCases: [
+      {
+        icon: "Book",
+        title: "Cross-discipline explanation",
+        text: "Engineer reading a marketing strategy doc, accountant reading a research paper, designer reading a legal contract — ELI5 bridges the vocabulary gap so the reader gets the substance without the jargon.",
+      },
+      {
+        icon: "Pages",
+        title: "Customer-facing technical content",
+        text: "Internal whitepaper too dense for the customer-facing landing page? ELI5 it as a starting draft. The plain-language version becomes input for marketing or support content.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Family member medical / legal explainer",
+        text: "Explain a lab result, a medical procedure consent form, or a legal notice to someone outside the field. ELI5 won&rsquo;t replace a professional consultation but it bridges the gap between &ldquo;I have no idea what this says&rdquo; and asking the right follow-up questions.",
+      },
+      {
+        icon: "Edit",
+        title: "K–12 / undergrad study aid",
+        text: "A textbook chapter or research paper that&rsquo;s above the student&rsquo;s level becomes a starting-point explanation. Use to build intuition before reading the source.",
+      },
+      {
+        icon: "Convert",
+        title: "Onboarding new team members",
+        text: "New hire reading the design doc for a system they don&rsquo;t yet understand — ELI5 provides a plain-language entry point. Pairs with AI Summarize for the structured version once concepts are clear.",
+      },
+    ],
+    howWorksTitle: "How AI ELI5 works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your PDF",
+        text: "Up to 100 MB. Works on any technical document — papers, contracts, lab results, RFCs.",
+      },
+      {
+        step: "2",
+        title: "We translate jargon to plain language",
+        text: "The prompt is tuned to swap domain-specific terms for everyday equivalents and to explain why each major concept matters. Analogies are used liberally; technical precision is sacrificed when needed.",
+      },
+      {
+        step: "3",
+        title: "Get a plain-language explanation",
+        text: "Markdown output, ~300–800 words depending on document complexity. Page citations included so the reader can verify against the source after building intuition.",
+      },
+    ],
+    faqs: [
+      {
+        q: "How simplified is the output — actually for a 5-year-old?",
+        a: "No, the &ldquo;5&rdquo; is figurative — the audience is &ldquo;smart layperson outside the field.&rdquo; The output is calibrated to a high school / general-public reading level. For actual children, you&rsquo;d want a different tool with kid-specific tone tuning.",
+      },
+      {
+        q: "Won't simplification introduce inaccuracies?",
+        a: "Yes — that&rsquo;s the trade-off. ELI5 prioritizes accessibility over precision. For high-stakes content (medical, legal, financial decisions), use ELI5 to BUILD INTUITION before the careful read, not as a substitute for it. Page cites are included so you can verify.",
+      },
+      {
+        q: "Is it useful for non-technical content?",
+        a: "Less so. ELI5 shines when the source contains domain jargon that needs translating. A novel or memoir already speaks to a general audience — ELI5 won&rsquo;t add much. Use AI Summarize for non-technical content.",
+      },
+      {
+        q: "What about non-English documents?",
+        a: "ELI5 outputs in the language of the input by default. For cross-language plain-language explanation (e.g. German technical doc → English ELI5), run AI Translate first, then ELI5 the translated version.",
+      },
+      {
+        q: "What's the credit cost?",
+        a: "3 credits per explanation.",
+      },
+      {
+        q: "Can I customize the audience level?",
+        a: "Not yet — the prompt is fixed at &ldquo;smart layperson.&rdquo; If you need a more technical or more elementary level, AI Summarize (more technical) or AI Study Notes (exam-prep oriented) are alternative variants tuned for different audiences.",
+      },
+    ],
+    cta: {
+      title: "Need the structured version?",
+      text: "AI Summarize keeps the document&rsquo;s structure intact — section headings, claims, citations — for readers who already share the domain vocabulary.",
+      linkHref: "/tool/ai-summarize",
+      linkLabel: "Try AI Summarize",
+    },
+  },
+
+  "ai-translate": {
+    useCasesTitle: "Why people translate PDFs",
+    useCasesIntro:
+      "PDFs travel internationally — research papers, legal documents, customer-support manuals, immigration paperwork. AI Translate produces page-faithful translation across 50+ languages, preserving paragraph structure so the output reads like the original would in the target language.",
+    useCases: [
+      {
+        icon: "Pages",
+        title: "Multilingual contract sharing",
+        text: "An English-language MSA needs to go to a partner who reads Spanish. Translate produces a working draft for review — translation memory note: this is a draft, not legally certified, so use a sworn translator for binding documents.",
+      },
+      {
+        icon: "Book",
+        title: "Academic paper translation",
+        text: "Read a research paper published in Mandarin or German. The output preserves equations as text (LaTeX-friendly markup), keeps citations in original form, and translates only the prose.",
+      },
+      {
+        icon: "Shield",
+        title: "Legal documents for non-English speakers",
+        text: "Court notices, lease agreements, government forms — translate the body so the client can read along during the lawyer&rsquo;s explanation. NOT a substitute for a certified translation when one is legally required.",
+      },
+      {
+        icon: "Edit",
+        title: "Customer-support knowledge in local languages",
+        text: "An English knowledge base PDF gets translated for a Japanese support team. The output preserves headings, lists, and code blocks — drop into the team&rsquo;s wiki as a starting localization.",
+      },
+      {
+        icon: "Receipt",
+        title: "Travel docs &amp; immigration paperwork",
+        text: "I-94 instructions, visa application notes, travel-insurance terms — get the gist in your reading language before filling them out. Pair with AI Form Fill once the destination form is understood.",
+      },
+    ],
+    howWorksTitle: "How AI Translate works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your PDF + pick target language",
+        text: "Up to 100 MB. 50+ target languages including Spanish, French, German, Mandarin, Hindi, Arabic, Japanese, Portuguese. Source language auto-detected.",
+      },
+      {
+        step: "2",
+        title: "We chunk + translate + reassemble",
+        text: "Server-side text extraction → map-reduce translation pass (each chunk translated independently with shared glossary) → markdown output that preserves headings, lists, code blocks, and tables.",
+      },
+      {
+        step: "3",
+        title: "Get markdown back",
+        text: "Output is markdown. Copy into your CMS / wiki / doc tool. Pair with Markdown to PDF if you need a polished PDF in the target language.",
+      },
+    ],
+    faqs: [
+      {
+        q: "How accurate is the translation — can I rely on it for legal / medical use?",
+        a: "Accurate enough for understanding, NOT enough for legal or medical certification. For binding contracts, certified translations of medical records, or court filings, use a sworn human translator. AI Translate is for the &ldquo;draft for review&rdquo; tier — fast, cheap, good enough for understanding the document.",
+      },
+      {
+        q: "Does it handle PDFs with both text and scanned pages?",
+        a: "Text-first. If your PDF is image-only (scanned), run AI OCR first to get a text-bearing version, then Translate. Mixed-content PDFs (some text, some scanned) translate the text portions and skip the image portions with a placeholder.",
+      },
+      {
+        q: "Are formulas / equations preserved?",
+        a: "Yes — equations are detected and emitted as LaTeX-style math markup that survives the translation. Citations and bibliography references are kept in original form (no point translating &ldquo;et al.&rdquo;).",
+      },
+      {
+        q: "What's the credit cost?",
+        a: "5 credits per translation regardless of source/target language pair. Cost scales with document length only via the chunking — typical 10-page documents run as a single chunk.",
+      },
+      {
+        q: "How long does it take?",
+        a: "20 seconds to a few minutes depending on document length. We chunk to avoid context-window limits, but even large docs typically finish in under 3 minutes.",
+      },
+      {
+        q: "Can I translate confidential documents?",
+        a: "Same posture as AI Summarize — sent to the inference provider, not stored. For sensitive content (NDAs, medical records, immigration paperwork), redact PII first via Redact PDF (in-browser) so the redacted content is what reaches the inference provider.",
+      },
+    ],
+    cta: {
+      title: "Need a summary in the target language?",
+      text: "Run AI Translate first, then AI Summarize on the translated output. Or run Summarize first and Translate the summary — gets the same result with fewer tokens used.",
+      linkHref: "/tool/ai-summarize",
+      linkLabel: "Try AI Summarize",
+    },
+  },
+
+  "ai-compare": {
+    useCasesTitle: "Why people compare PDFs semantically",
+    useCasesIntro:
+      "Pixel-level diff (PDF Compare) shows you WHAT changed — the visual differences between two versions. Semantic compare goes deeper: it tells you what those changes MEAN. Added clauses, removed sections, reworded definitions, shifted commitments. The difference between &ldquo;something changed&rdquo; and &ldquo;here&rsquo;s what to flag for legal.&rdquo;",
+    useCases: [
+      {
+        icon: "Shield",
+        title: "Contract redline review",
+        text: "Counter-party returns a marked-up MSA. AI Compare summarizes what changed in plain language — e.g. &ldquo;liability cap increased from $500K to $2M; payment terms changed Net-30 to Net-60; new indemnity clause section 8.4.&rdquo; Use as the input for your &ldquo;is this acceptable?&rdquo; review.",
+      },
+      {
+        icon: "Pages",
+        title: "Document version reconciliation",
+        text: "Two purportedly-same PDFs from different sources — the &ldquo;executed&rdquo; vs the &ldquo;draft.&rdquo; Find the actual content differences, not just whitespace or formatting drift that pixel-diff would surface.",
+      },
+      {
+        icon: "Book",
+        title: "Research paper revision tracking",
+        text: "A journal asks for a revised version. Compare draft v1 vs v2 to summarize what was added in response to peer review. Useful as input for the cover letter to the editor.",
+      },
+      {
+        icon: "Edit",
+        title: "Translation back-check",
+        text: "Translate doc to language X, then back to source. Compare original vs back-translated to surface places where the translation drifted semantically. Good QA pass for high-stakes translations.",
+      },
+      {
+        icon: "Convert",
+        title: "Policy / handbook diff",
+        text: "Employee handbook v2024 vs v2025. AI Compare summarizes what changed in plain language — useful for the change-summary email to all employees.",
+      },
+    ],
+    howWorksTitle: "How AI Compare works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop two PDFs",
+        text: "Document A (original / before) and Document B (revised / after). Both up to 100 MB.",
+      },
+      {
+        step: "2",
+        title: "We extract + chunk-align + diff",
+        text: "Server-side text extraction from both, then a chunk-alignment pass to match corresponding sections, then a semantic-diff prompt that summarizes additions, removals, and modifications in plain language.",
+      },
+      {
+        step: "3",
+        title: "Get a structured diff report",
+        text: "Markdown output organized by section: &ldquo;Added in B,&rdquo; &ldquo;Removed from A,&rdquo; &ldquo;Modified.&rdquo; Page citations included so you can verify each finding against the source.",
+      },
+    ],
+    faqs: [
+      {
+        q: "How is this different from PDF Compare (pixel diff)?",
+        a: "Pixel diff (free tool /tool/pdf-diff) tells you WHERE pages look different — red highlights on changed regions. AI Compare tells you WHAT semantically changed — added clauses, reworded definitions, etc. They&rsquo;re complementary: pixel diff catches layout shifts; semantic diff catches content shifts. For thorough QA, run both.",
+      },
+      {
+        q: "Does it work on PDFs with very different formatting?",
+        a: "Better than pixel diff would — semantic compare normalizes formatting before alignment so a Word-export-A vs a Google-Docs-export-B with the same content produce a near-empty diff. Pixel diff would scream every page red.",
+      },
+      {
+        q: "What if the documents are mostly identical?",
+        a: "Output explicitly says so: &ldquo;No semantic differences detected.&rdquo; Trivial formatting diffs (whitespace, font choice) don&rsquo;t pollute the report.",
+      },
+      {
+        q: "What if they're completely different documents?",
+        a: "The output flags the alignment as failed and reports the inputs as unrelated. Tool isn&rsquo;t useful for unrelated content; that&rsquo;s a use case for AI Summarize on each separately.",
+      },
+      {
+        q: "What's the credit cost?",
+        a: "8 credits per compare (more than Summarize because two inputs are processed + aligned).",
+      },
+      {
+        q: "Can I rely on the diff for legal review?",
+        a: "Use as a navigation aid, not as the review itself. The diff tells you WHERE to look; a lawyer reads the actual clause changes. LLMs occasionally miss nuance in legal language; verify high-stakes findings against the source.",
+      },
+    ],
+    cta: {
+      title: "Need pixel-level visual diff too?",
+      text: "PDF Compare (visual) shows the regions of each page that look different — red highlights on changed pixels. Pairs naturally with AI Compare (semantic) for thorough document QA.",
+      linkHref: "/tool/pdf-diff",
+      linkLabel: "Try PDF Compare",
+    },
+  },
+
+  "ai-ocr": {
+    useCasesTitle: "Why people use AI OCR",
+    useCasesIntro:
+      "PDFs come in two flavors: text-bearing (selectable, searchable, copy-paste-able) and image-only (a scanned or photographed document where the &ldquo;text&rdquo; is just pixels). AI OCR converts the second kind into the first — searchable text behind every page so the rest of the catalog (search, translate, summarize) can work on the content.",
+    useCases: [
+      {
+        icon: "Pages",
+        title: "Scanned document indexing",
+        text: "10 years of filed paperwork that got scanned to PDF without OCR. Run OCR on the batch, get searchable archives. Suddenly Ctrl+F works.",
+      },
+      {
+        icon: "Receipt",
+        title: "Phone-photographed receipts → text",
+        text: "Receipts shot with a phone camera land as image-only PDFs. OCR them so expense-report tools can extract amounts/dates without manual transcription.",
+      },
+      {
+        icon: "Book",
+        title: "Old filing-cabinet digitization",
+        text: "Legal binders, medical records, family archives that were scanned years ago. OCR makes them searchable + screen-reader accessible — basic accessibility win.",
+      },
+      {
+        icon: "Shield",
+        title: "Compliance / audit prep",
+        text: "Auditors expect every document in scope to be searchable. OCR scanned production documents before the audit kickoff so reviewers can keyword-search rather than page-flip.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Pipeline preparation",
+        text: "Translation / summarization / Chat-with-PDF tools all need text-bearing input. OCR is the gateway op for image-only PDFs entering any downstream AI pipeline.",
+      },
+    ],
+    howWorksTitle: "How AI OCR works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your image-only PDF",
+        text: "Up to 100 MB. Detects whether OCR is actually needed — if the PDF already has selectable text, OCR is skipped (no credits charged).",
+      },
+      {
+        step: "2",
+        title: "We render + recognize each page",
+        text: "Server-side rasterization at OCR-friendly DPI, then a text-recognition pass per page. Output is a fresh PDF with the original images preserved + a hidden text layer behind each page that aligns word-by-word with the visible text.",
+      },
+      {
+        step: "3",
+        title: "Get a searchable PDF back",
+        text: "Visually identical to the input, but Ctrl+F works, screen readers can read it, and downstream tools (Translate, Summarize, Chat with PDF) can ingest it normally.",
+      },
+    ],
+    faqs: [
+      {
+        q: "How accurate is the OCR?",
+        a: "Depends heavily on input quality. Clean scans at 300+ DPI: 99%+ word accuracy. Phone photographs in poor lighting: 90–95%. Faded carbon-copy receipts: 80–90%. The output preserves the recognized text as a hidden layer; verify before trusting for high-stakes use (legal, medical, financial transcription).",
+      },
+      {
+        q: "Does it handle handwriting?",
+        a: "Limited — printed text only is the reliable case. Block-letter handwriting works in clean scans. Cursive or hurried handwriting recognition is unreliable. For dedicated handwriting recognition, specialized HTR (handwritten text recognition) tools outperform general OCR.",
+      },
+      {
+        q: "What languages are supported?",
+        a: "50+ languages including Latin, Cyrillic, CJK (Chinese/Japanese/Korean), Arabic, Hindi/Devanagari. Source language auto-detected. Mixed-language documents typically work but accuracy drops at language boundaries.",
+      },
+      {
+        q: "What's the difference between AI OCR and AI Searchable PDF?",
+        a: "Same backend. AI Searchable PDF is the same output presented with a different SEO landing — both produce the same searchable-PDF output. The variant exists for landing-page distinctness; pick whichever name matches what you searched for.",
+      },
+      {
+        q: "What's the credit cost?",
+        a: "5 credits per document. Cost is per-document, not per-page (fixed regardless of length).",
+      },
+      {
+        q: "Does it preserve the visual look?",
+        a: "Yes — the original page images are kept verbatim. The text layer is invisible (behind the image). Print the output and it looks the same as the input. The only difference is what tools can do with it.",
+      },
+    ],
+    cta: {
+      title: "Need to extract the text only?",
+      text: "After OCR, run PDF to Text to get a clean .txt file with the recognized content — useful for pipelines, search indexing, or pasting into other apps.",
+      linkHref: "/tool/pdf-to-text",
+      linkLabel: "Try PDF to Text",
+    },
+  },
+
+  "ai-flashcards": {
+    useCasesTitle: "Why people use AI Flashcards",
+    useCasesIntro:
+      "Flashcards are the gold standard for spaced-repetition study because they enforce active recall — you have to RETRIEVE the answer, not just RECOGNIZE it. AI Flashcards generates Q&amp;A pairs from any PDF: textbook chapters, lecture notes, training materials, language vocab.",
+    useCases: [
+      {
+        icon: "Book",
+        title: "Exam prep from textbook PDFs",
+        text: "Drop a textbook chapter, get 10–30 flashcards covering the key concepts. CSV export imports directly into Anki or Quizlet for spaced-repetition drilling.",
+      },
+      {
+        icon: "Shield",
+        title: "Compliance training",
+        text: "An employee handbook or policy doc becomes a self-test deck. Useful for &ldquo;did the team actually read the new code-of-conduct&rdquo; checks where a quiz format works better than a sign-off form.",
+      },
+      {
+        icon: "Pages",
+        title: "Onboarding knowledge transfer",
+        text: "Internal wiki page or ramp-up doc → flashcard deck for the new hire. Drilled over the first two weeks, the deck builds the recall pattern naturally.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Language vocab from articles",
+        text: "Reading a news article in your target language? Flashcards pulls vocabulary you don&rsquo;t know with definitions. Better than a vocabulary list because the words come WITH context from real reading.",
+      },
+      {
+        icon: "Edit",
+        title: "Medical / law board prep",
+        text: "USMLE / bar-exam practice from study guides. The Q&amp;A format matches how the actual exam questions are framed. Pair with AI Quiz for MCQ practice in addition to free-recall flashcards.",
+      },
+    ],
+    howWorksTitle: "How AI Flashcards works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your PDF",
+        text: "Up to 100 MB. Works on any text-bearing content — textbooks, lecture notes, articles, training materials.",
+      },
+      {
+        step: "2",
+        title: "We extract concepts + generate Q&amp;A",
+        text: "Server-side extraction → key-concept identification → Q&amp;A generation tuned for active recall (not yes/no questions, not vague prompts). Page citations embedded so you can verify each card against the source.",
+      },
+      {
+        step: "3",
+        title: "Download as Anki-ready CSV",
+        text: "10–30 cards per submission, CSV format with `front,back` columns. Import directly into Anki, Quizlet, RemNote, or any spaced-repetition tool. Page references included as a third column for verification.",
+      },
+    ],
+    faqs: [
+      {
+        q: "How many cards per PDF?",
+        a: "10–30 typically, scaled by content density. A 30-page paper produces ~15 cards. A 200-page textbook chapter produces ~30 (the cap). For more than 30, run on chapter subsections separately.",
+      },
+      {
+        q: "What's the question style?",
+        a: "Free-recall format — questions that require retrieval, not multiple choice. &ldquo;Define X.&rdquo; &ldquo;What is the function of Y?&rdquo; &ldquo;Why did the author argue Z?&rdquo; If you want MCQ format, use AI Quiz instead.",
+      },
+      {
+        q: "How do I import into Anki?",
+        a: "File → Import in Anki, point at the CSV, set the field separator to comma. The first column maps to Front, the second to Back. The page-reference column is optional — leave it as a tag or extra field.",
+      },
+      {
+        q: "Will it work on non-English PDFs?",
+        a: "Yes — flashcards generate in the language of the source. For cross-language drills (e.g. Spanish source, English questions), translate the source first, then generate flashcards.",
+      },
+      {
+        q: "What's the credit cost?",
+        a: "5 credits per deck.",
+      },
+      {
+        q: "How is this different from AI Quiz?",
+        a: "Flashcards = free-recall Q&amp;A pairs (you have to RETRIEVE the answer, then check). Quiz = multiple-choice questions with 4 options each + correct-answer key. Use Flashcards for studying-to-mastery; use Quiz for self-testing or assessment.",
+      },
+    ],
+    cta: {
+      title: "Need MCQ format instead?",
+      text: "AI Quiz generates 6–12 multiple-choice questions with 4 plausible distractors each — better for self-test or formal assessment compared to free-recall flashcards.",
+      linkHref: "/tool/ai-quiz",
+      linkLabel: "Try AI Quiz",
+    },
+  },
+
+  "ai-quiz": {
+    useCasesTitle: "Why people use AI Quiz",
+    useCasesIntro:
+      "Multiple-choice quizzes are the assessment format of choice for compliance training, certification prep, and reading-comprehension checks. AI Quiz generates 6–12 MCQs from any PDF, each with 4 plausible distractors, a correct answer, and a one-line explanation citing the source page.",
+    useCases: [
+      {
+        icon: "Shield",
+        title: "Compliance training quizzes",
+        text: "Annual security training, anti-harassment refresher, regulatory updates — quiz at the end of the doc to verify the team actually engaged. Better signal than &ldquo;I read it&rdquo; clickthrough.",
+      },
+      {
+        icon: "Book",
+        title: "Self-test before exams",
+        text: "Read the chapter, generate a quiz, take it, then go back and re-study where you missed. Spaced-repetition flashcards (AI Flashcards) drill recall; MCQ quizzes drill recognition + reasoning.",
+      },
+      {
+        icon: "Pages",
+        title: "Training assessment",
+        text: "Onboarding deck for new hires, sales-enablement docs, product-knowledge quizzes. Quiz format gives a measurable score; useful in cohort training where instructors want to identify struggling participants.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Reading comprehension check",
+        text: "Before discussing a research paper at journal club or assigning a doc to a junior team member, generate a quiz to spot-check whether the key claims came across.",
+      },
+      {
+        icon: "Edit",
+        title: "Distance-learning supplement",
+        text: "Pair video lectures with quiz-generated MCQs from accompanying PDFs. Students self-test between sessions; instructors get a question bank for the actual exam.",
+      },
+    ],
+    howWorksTitle: "How AI Quiz works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your PDF",
+        text: "Up to 100 MB. Works on any text-bearing content with extractable concepts.",
+      },
+      {
+        step: "2",
+        title: "We generate questions + plausible distractors",
+        text: "The prompt is tuned to write 4 distractors that are PLAUSIBLE — wrong-but-defensible — not obviously-wrong filler. The correct answer comes with a one-line explanation referencing the source page.",
+      },
+      {
+        step: "3",
+        title: "Download as JSON",
+        text: "6–12 questions in JSON format (question, options[], correctIndex, explanation, pageRef). Import into your LMS, quiz tool, or display directly via the in-app preview.",
+      },
+    ],
+    faqs: [
+      {
+        q: "How are the distractors chosen?",
+        a: "From neighboring concepts in the source — the question asks about X, distractors are facts about adjacent concepts X-prime, X-double-prime, etc. This makes them genuinely tempting (you have to know X specifically, not just &ldquo;something about X&rdquo;) without being misleading.",
+      },
+      {
+        q: "Why 6–12 questions, not more?",
+        a: "Quiz fatigue is real — beyond ~12 questions, attention drops and answers become noise. For longer self-test sessions, run quiz on chapter subsections separately and concatenate.",
+      },
+      {
+        q: "Are the questions reliable for high-stakes assessment?",
+        a: "Use as a study aid or formative-assessment, not as the SOLE basis for high-stakes decisions (board pass/fail, certification, hiring). LLMs occasionally generate questions where the &ldquo;correct&rdquo; answer is debatable; always have an instructor or domain expert review questions before using them in formal assessment.",
+      },
+      {
+        q: "What format is the export?",
+        a: "JSON. Each question has fields: question (string), options (string[4]), correctIndex (0-3), explanation (string), pageRef (number). Import into Canvas, Moodle, Brightspace, or any quiz tool that accepts JSON; the structure is flat and standard.",
+      },
+      {
+        q: "What's the credit cost?",
+        a: "5 credits per quiz.",
+      },
+      {
+        q: "How is this different from AI Flashcards?",
+        a: "Flashcards = free-recall Q&amp;A (no options shown; you have to RETRIEVE the answer). Quiz = recognition (4 options shown; you pick from them). Recall is harder and builds memory faster; recognition matches what real exams test. Use both — they're complementary.",
+      },
+    ],
+    cta: {
+      title: "Want free-recall practice instead?",
+      text: "AI Flashcards generates Q&amp;A pairs without multiple-choice options — better for active-recall drilling that builds long-term memory.",
+      linkHref: "/tool/ai-flashcards",
+      linkLabel: "Try AI Flashcards",
+    },
+  },
+
+  "ai-cover-letter": {
+    useCasesTitle: "Why people use AI Cover Letter",
+    useCasesIntro:
+      "Cover letters are formulaic enough that LLMs do them well, and personal enough that they need real input — not just &ldquo;generate a cover letter for a software engineer.&rdquo; AI Cover Letter takes your resume + the job description and writes a tailored 1-page draft you can edit, not a copy-paste template.",
+    useCases: [
+      {
+        icon: "Receipt",
+        title: "Job application",
+        text: "You&rsquo;re applying to 5 roles. Write 5 tailored cover letters in the time it used to take to write 1. Each one cites specific job-description requirements and matches them to specific resume bullet points.",
+      },
+      {
+        icon: "Book",
+        title: "Internship apps",
+        text: "Students with thin resumes benefit most — the tool surfaces transferable skills from coursework / projects / volunteer work that map to the JD. Better than the generic &ldquo;I am a hardworking student&rdquo; template.",
+      },
+      {
+        icon: "Convert",
+        title: "Career change",
+        text: "Pivot from software engineering to product management — the tool reframes your engineering experience as PM-relevant skills (cross-team coordination, customer empathy, technical judgment). Reduces the cover-letter rewriting tax of mid-career transitions.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Grad school applications",
+        text: "Statement-of-purpose drafts using your resume + the program&rsquo;s mission/curriculum as inputs. Treats it like a cover letter — connects what you&rsquo;ve done to what the program offers.",
+      },
+      {
+        icon: "Edit",
+        title: "Internal transfer",
+        text: "Applying to a different team within your company. The tool emphasizes the relevant subset of your current role and frames the move in terms of the new role&rsquo;s needs.",
+      },
+    ],
+    howWorksTitle: "How AI Cover Letter works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your resume + the job description",
+        text: "Both as PDFs (or paste the JD as text). Resume up to 100 MB; JD typically 1–3 pages.",
+      },
+      {
+        step: "2",
+        title: "We map JD requirements to resume bullets",
+        text: "The prompt extracts the JD&rsquo;s explicit requirements and preferred qualifications, then matches each one to specific evidence in your resume. Gaps (where the JD asks for something not on your resume) are flagged so you can address them in the letter.",
+      },
+      {
+        step: "3",
+        title: "Get a 1-page tailored draft",
+        text: "Markdown output — typically 250–400 words. Personal opening, 2 specific evidence paragraphs tied to JD requirements, brief closing. Edit before sending — this is a starting draft, not a final.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Is the output ready to send as-is?",
+        a: "No — treat it as a strong first draft, not a final. Edit for: (a) personal voice (the AI sounds professional but generic), (b) specifics the AI couldn&rsquo;t infer (why THIS company specifically), (c) any factual claims about your background that should be more precise. Skipping the edit pass produces noticeably-AI letters that hiring managers can spot.",
+      },
+      {
+        q: "What if the JD asks for something I don't have?",
+        a: "The tool flags this rather than fabricating qualifications. Output includes a &ldquo;gaps&rdquo; section: e.g. &ldquo;The JD requests 5+ years of Python experience; your resume shows 3 years.&rdquo; You decide how to address — acknowledge directly, emphasize transferable skills, or omit. The tool won&rsquo;t make up qualifications you don&rsquo;t have.",
+      },
+      {
+        q: "Will it work for non-tech roles?",
+        a: "Yes — the prompt is industry-agnostic. Tested on tech, healthcare, education, marketing, finance, government. The pattern is the same: JD requirements + resume evidence → tailored letter.",
+      },
+      {
+        q: "Can I generate multiple variants?",
+        a: "Run it again — output is non-deterministic, so you&rsquo;ll get a slightly different draft. Useful if you want to A/B different opening hooks or different evidence emphasis.",
+      },
+      {
+        q: "What's the credit cost?",
+        a: "5 credits per letter.",
+      },
+      {
+        q: "What about confidentiality?",
+        a: "Resume + JD sent to inference provider, not stored. For highly confidential job searches (e.g. you&rsquo;re currently employed and don&rsquo;t want a leak), redact the resume PDF first via Redact PDF (in-browser) — strip current employer name + dates if needed.",
+      },
+    ],
+    cta: {
+      title: "Need a JD-match score first?",
+      text: "AI JD Match scores how well your resume aligns with a job description — 0–100% with itemized evidence. Useful for prioritizing which apps to do first.",
+      linkHref: "/tool/ai-jd-match",
+      linkLabel: "Try AI JD Match",
+    },
+  },
+
+  "ai-redact": {
+    useCasesTitle: "Why people use AI Redact",
+    useCasesIntro:
+      "Redact PDF (free) gives you a click-and-drag tool to manually black out content. AI Redact does the auto-detection part — surfaces likely PII (names, emails, phones, SSNs, credit-card numbers, addresses) so the human review pass is faster. Together they make a sane redaction workflow: AI proposes, human verifies.",
+    useCases: [
+      {
+        icon: "Shield",
+        title: "HR document sharing",
+        text: "Employee personnel file gets requested for a transfer. Auto-redact detects names, social-security numbers, salary figures, home addresses; HR reviews + ships. Cuts the manual-redaction tax 5–10×.",
+      },
+      {
+        icon: "Pages",
+        title: "Legal discovery (sanitize before production)",
+        text: "Producing 10,000 pages? Auto-redact the obvious PII first (SSNs, credit-card numbers, kids&rsquo; names), then human review verifies. Privilege review still needs a lawyer; PII redaction is the layer below that.",
+      },
+      {
+        icon: "Edit",
+        title: "Customer-support log sharing",
+        text: "Sharing a debug session with engineering or a vendor — but the logs include user emails, IPs, and user-id strings. Auto-redact catches them; review + ship the sanitized version.",
+      },
+      {
+        icon: "Book",
+        title: "Research paper anonymization",
+        text: "Submitting a case study or qualitative-research paper for blind peer review. Auto-redact catches respondent names, organization names, geographic identifiers — anything that would compromise blindness.",
+      },
+      {
+        icon: "Receipt",
+        title: "Press release / public posting prep",
+        text: "Sharing a customer success story or case study externally? Auto-redact internal employee names, internal project codenames, customer-specific personal details. Faster than manual scrubbing of a 20-page case study.",
+      },
+    ],
+    howWorksTitle: "How AI Redact works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your PDF",
+        text: "Up to 100 MB. Works best on text-bearing PDFs (run AI OCR first for image-only).",
+      },
+      {
+        step: "2",
+        title: "We detect PII candidates",
+        text: "The prompt is tuned to flag classes of PII: names (proper nouns identified as people), email addresses, phone numbers, postal addresses, SSN-shaped strings, credit-card-shaped strings, IBAN-shaped strings, dates of birth. Each candidate is returned with confidence + page + bounding-box hint.",
+      },
+      {
+        step: "3",
+        title: "Review + apply",
+        text: "Output is a JSON list of candidates. The in-tool review UI lets you accept/reject each one, then applies the accepted redactions via the Redact PDF rendering pipeline. Final output is a redacted PDF — recipients can&rsquo;t recover the redacted content (it&rsquo;s baked into raster, not just visually overlaid).",
+      },
+    ],
+    faqs: [
+      {
+        q: "Is this a substitute for manual review?",
+        a: "No — it&rsquo;s a force-multiplier for it. AI catches the obvious patterns (90%+ recall on emails, phones, SSNs); humans catch the context-dependent ones (&ldquo;the partner&rdquo; in a discovery doc that the AI can&rsquo;t connect to a specific person). For high-stakes redaction (legal production, regulatory filings, classified material), human review is mandatory; AI Redact reduces the manual tax, doesn&rsquo;t eliminate it.",
+      },
+      {
+        q: "What about contextual / domain-specific PII?",
+        a: "Less reliable. Standard formats (SSN xxx-xx-xxxx, email user@domain.tld) get caught by pattern. Contextual identifiers — &ldquo;the patient born in 1957 in Cincinnati&rdquo; — require domain understanding. The tool flags such candidates with low confidence; reviewer should treat HIPAA/GDPR-grade redaction as needing dedicated tooling beyond AI Redact.",
+      },
+      {
+        q: "Are the redactions actually permanent?",
+        a: "Yes. Output PDF has the redacted regions baked in as raster — recipients can&rsquo;t copy-paste the underlying text or extract it via PDF tooling. Verify by opening the output and trying to select the redacted text — you should get nothing.",
+      },
+      {
+        q: "What's the credit cost?",
+        a: "8 credits per pass (more than Summarize because the pass requires per-page coordinate detection).",
+      },
+      {
+        q: "Can I run it on confidential documents?",
+        a: "The PDF is sent to the inference provider. For maximum privacy, do a manual first-pass redaction in Redact PDF (in-browser, no upload) for the sensitive portions, then run AI Redact on the partially-sanitized version to catch anything else.",
+      },
+      {
+        q: "How is this different from manual Redact PDF?",
+        a: "Manual Redact PDF (free, in-browser) gives you the click-and-drag tool to black out specific regions. AI Redact (paid, server-side) is the auto-detection layer that proposes WHAT to redact. Use them together: AI proposes → human verifies → manual tool applies the final selections.",
+      },
+    ],
+    cta: {
+      title: "Want manual control?",
+      text: "Redact PDF (free) is the click-and-drag tool — runs in your browser, no upload, no AI. Use for sensitive documents where you want full manual control or need to skip the inference-provider round-trip.",
+      linkHref: "/tool/redact-free",
+      linkLabel: "Try Redact PDF",
+    },
+  },
+
+  "ai-resume-parse": {
+    useCasesTitle: "Why people use AI Resume Parser",
+    useCasesIntro:
+      "Resumes are notoriously inconsistent — every applicant has a different format, layout, and section ordering. AI Resume Parser extracts the structured data you actually want (work history, education, skills, certifications, contact info) into a clean JSON format. Useful when you have many resumes and need consistent fields.",
+    useCases: [
+      {
+        icon: "Receipt",
+        title: "HR / recruiter data entry",
+        text: "Recruiter receives 50 resumes via email — manually transcribing each one into the ATS is a 2-hour job. Parse them all, get JSON for bulk-import. Saves hours per requisition.",
+      },
+      {
+        icon: "Sparkle",
+        title: "ATS pre-fill",
+        text: "Job-application portals that ask candidates to RE-ENTER their resume content into 30 form fields. Parse, get the JSON, paste field-by-field (or drive a browser extension if you build one). Better candidate experience.",
+      },
+      {
+        icon: "Pages",
+        title: "Recruiting database population",
+        text: "Building or seeding a candidate-search database. Each parsed resume becomes a row with normalized fields (years of experience, top skills, education level). Search/filter on structured data, not full-text grep.",
+      },
+      {
+        icon: "Convert",
+        title: "Resume comparison / scoring",
+        text: "Side-by-side comparison of 5 candidates for a senior role. Parse all 5; see structured fields aligned. Easier to spot &ldquo;all 5 are full-stack but only 2 have ML production experience&rdquo; than reading 5 PDFs.",
+      },
+      {
+        icon: "Edit",
+        title: "Recruiting agency intake",
+        text: "Agency takes a candidate&rsquo;s resume, parses it, then enriches the structured data with their recruiter notes. Sends a uniform &ldquo;profile&rdquo; format to client companies regardless of how the original resume was structured.",
+      },
+    ],
+    howWorksTitle: "How AI Resume Parser works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop the resume PDF",
+        text: "Up to 100 MB. Works on standard resume PDFs (Word-export, Google Docs, Canva, etc.). Plain-text resumes also accepted.",
+      },
+      {
+        step: "2",
+        title: "We extract + normalize fields",
+        text: "Server-side extraction → field-by-field parsing tuned for resumes. Output schema: contact (name, email, phone, location, links), workHistory[] (company, title, dates, bullets[]), education[] (school, degree, dates), skills[] (categorized), certifications[], languages[], summary.",
+      },
+      {
+        step: "3",
+        title: "Get structured JSON",
+        text: "Standard JSON output. Import into your ATS, candidate database, or spreadsheet. Schema is documented + stable; if a field is missing in the resume, that JSON key is set to null (not omitted).",
+      },
+    ],
+    faqs: [
+      {
+        q: "How accurate is the parsing?",
+        a: "Contact info: 95%+ for well-formatted resumes. Work history: 85–90% (date ranges occasionally drop a month-resolution; bullet extraction occasionally misses one bullet on dense layouts). Skills: 90%+ for explicitly-listed skills sections; lower for skills inferred from job descriptions. Always spot-check before bulk-importing.",
+      },
+      {
+        q: "What if the resume has a non-standard layout?",
+        a: "Handles most reasonable layouts — single-column, two-column, sidebar-style. Highly designed Canva/InDesign resumes with unconventional flow can degrade accuracy; for those, supplement with manual review.",
+      },
+      {
+        q: "Can it handle multi-page resumes?",
+        a: "Yes — most candidates with 5+ years of experience have 2-page resumes. Parser handles multi-page natively. The extracted work history will include all roles, not just the first page.",
+      },
+      {
+        q: "What about non-English resumes?",
+        a: "Best results in English. Other Latin-script languages (Spanish, French, Portuguese, German) work reasonably. CJK / Arabic / Hindi-script resumes will return parsed JSON but accuracy on date formats and field detection drops. For multilingual hiring funnels, consider running through AI Translate first.",
+      },
+      {
+        q: "What's the credit cost?",
+        a: "3 credits per resume.",
+      },
+      {
+        q: "Privacy?",
+        a: "Resume sent to inference provider, not stored. For confidential job searches (e.g. headhunter who shouldn&rsquo;t leak candidate identity to the model provider), redact the candidate&rsquo;s name + employer first via Redact PDF, then parse the redacted version.",
+      },
+    ],
+    cta: {
+      title: "Need to score against a job description?",
+      text: "AI ATS Resume scores how an ATS would rank your resume against a JD — keyword matches, format compatibility, optimization suggestions. Pairs naturally with parser for end-to-end ATS workflows.",
+      linkHref: "/tool/ai-ats-resume",
+      linkLabel: "Try AI ATS Resume",
+    },
+  },
 };

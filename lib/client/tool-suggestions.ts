@@ -102,6 +102,84 @@ export const TOOL_SUGGESTIONS: Record<string, readonly string[]> = {
   // semantic AI compare for content-level details, or to extract
   // pages of interest, or to highlight further regions manually.
   "pdf-diff": ["ai-compare", "extract-pages", "highlight-pdf"],
+
+  // -----------------------------------------------------------------
+  // 2026-05-01 — AI tool cross-funnel suggestions.
+  //
+  // Curated by what users actually do AFTER each AI op. Same shape
+  // as free-tool suggestions: source tool ID → ranked array of
+  // target tool IDs. Targets must exist in lib/tools.ts.
+  //
+  // Patterns:
+  //   - Summary-family tools (output = markdown) → text-to-pdf to
+  //     archive, ai-translate to localize, ai-key-points to extract
+  //     bullets if the user wants something tighter than a summary.
+  //   - Document-type tools (resume / cover-letter / blood-test) →
+  //     adjacent tools in the same workflow.
+  //   - Structured-output tools (flashcards / quiz / mindmap) →
+  //     other study-aid tools.
+  //   - Document operations (translate / compare / ocr / redact) →
+  //     follow-on AI ops or downstream archival.
+  // -----------------------------------------------------------------
+
+  // --- Summary family (output = markdown) ---
+  "ai-summarize": ["ai-tldr", "ai-key-points", "text-to-pdf"],
+  "ai-tldr": ["ai-summarize", "ai-key-points", "ai-translate"],
+  "ai-key-points": ["ai-flashcards", "ai-quiz", "ai-summarize"],
+  "ai-study-notes": ["ai-flashcards", "ai-quiz", "ai-key-points"],
+  "ai-eli5": ["ai-summarize", "ai-key-points", "text-to-pdf"],
+  "ai-faq": ["ai-key-points", "ai-summarize", "text-to-pdf"],
+  "ai-blog": ["text-to-pdf", "ai-translate", "ai-key-points"],
+  "ai-readability": ["ai-improve-writing", "ai-summarize", "ai-key-points"],
+  "ai-entities": ["ai-redact", "ai-key-points", "ai-summarize"],
+  "ai-social-thread": ["ai-tldr", "ai-translate", "text-to-pdf"],
+  "ai-condense": ["ai-tldr", "ai-summarize", "ai-key-points"],
+  "ai-expand": ["ai-improve-writing", "ai-summarize", "ai-translate"],
+  "ai-tone-analyze": ["ai-improve-writing", "ai-rewrite", "ai-summarize"],
+  "ai-citations": ["ai-key-points", "ai-research-paper", "text-to-pdf"],
+  "ai-sentiment": ["ai-tone-analyze", "ai-key-points", "ai-summarize"],
+  "ai-bias": ["ai-improve-writing", "ai-rewrite", "ai-summarize"],
+  "ai-proofread": ["ai-improve-writing", "ai-rewrite", "ai-paraphrase"],
+  "ai-newsletter": ["text-to-pdf", "ai-translate", "ai-key-points"],
+  "ai-video-script": ["text-to-pdf", "ai-translate", "ai-tldr"],
+
+  // --- Document-type family (resume / cover-letter / medical / legal) ---
+  "ai-ats-resume": ["ai-jd-match", "ai-cover-letter", "ai-resume-parse"],
+  "ai-resume-parse": ["ai-ats-resume", "ai-cover-letter", "ai-jd-match"],
+  "ai-cover-letter": ["ai-jd-match", "ai-improve-writing", "ai-resume-parse"],
+  "ai-jd-match": ["ai-cover-letter", "ai-resume-parse", "ai-ats-resume"],
+  "ai-blood-test": ["ai-discharge", "ai-summarize", "text-to-pdf"],
+  "ai-discharge": ["ai-blood-test", "ai-summarize", "ai-key-points"],
+  "ai-syllabus": ["ai-flashcards", "ai-quiz", "ai-key-points"],
+  "ai-action-items": ["ai-key-points", "ai-summarize", "text-to-pdf"],
+  "ai-nda": ["ai-employment", "ai-partnership-deed", "ai-redact"],
+  "ai-employment": ["ai-nda", "ai-cover-letter", "ai-redact"],
+  "ai-salary-slip": ["ai-blood-test", "ai-redact", "text-to-pdf"],
+  "ai-research-paper": ["ai-citations", "ai-summarize", "ai-key-points"],
+  "ai-insurance": ["ai-blood-test", "ai-summarize", "ai-key-points"],
+  "ai-loan-bundle": ["ai-summarize", "ai-redact", "merge"],
+  "ai-partnership-deed": ["ai-nda", "ai-employment", "ai-redact"],
+
+  // --- Structured output (study aids + extraction) ---
+  "ai-flashcards": ["ai-quiz", "ai-mindmap", "ai-key-points"],
+  "ai-quiz": ["ai-flashcards", "ai-key-points", "ai-summarize"],
+  "ai-mindmap": ["ai-flashcards", "ai-quiz", "ai-key-points"],
+  "ai-semantic-search": ["ai-summarize", "ai-key-points", "pdf-search"],
+
+  // --- Document operations ---
+  "ai-translate": ["ai-summarize", "pdf-to-text", "ai-improve-writing"],
+  "ai-compare": ["pdf-diff", "highlight-pdf", "ai-summarize"],
+  "ai-ocr": ["pdf-to-text", "ai-translate", "ai-summarize"],
+  "ai-searchable-pdf": ["pdf-search", "ai-summarize", "ai-translate"],
+  "ai-redact": ["redact-free", "strip-links", "remove-metadata"],
+  "ai-rewrite": ["ai-improve-writing", "ai-paraphrase", "ai-detector"],
+  "ai-improve-writing": ["ai-rewrite", "ai-paraphrase", "ai-proofread"],
+  "ai-paraphrase": ["ai-rewrite", "ai-improve-writing", "ai-detector"],
+  "ai-detector": ["ai-improve-writing", "ai-rewrite", "ai-paraphrase"],
+  "ai-table": ["ai-chart-to-table", "pdf-to-text", "ai-summarize"],
+  "ai-chart-to-table": ["ai-table", "ai-summarize", "ai-key-points"],
+  "ai-generate": ["text-to-pdf", "ai-improve-writing", "merge"],
+  "ai-sign": ["sign-pdf-free", "flatten-pdf", "merge"],
 };
 
 /** Look up suggestions, defaulting to empty if no entry. */
