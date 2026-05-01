@@ -20,7 +20,7 @@ export type CreditPackId = "starter" | "creator" | "pro" | "studio";
  *       on 12× credits lands us at Starter 86.5% / Creator 89.0% /
  *       Pro 87.8% / Studio 87.1% net margin (vs the monthly claims
  *       of 88% / 83% / 78% / 73%), verified in
- *       docs/ai/MARGIN_VERIFICATION.md §12.3 S1 Paddle-variant table.
+ *       docs/ai/MARGIN_VERIFICATION.md §12.3 S1 margin table.
  *
  * Keeping this an explicit union (not a boolean flag) lets the UI,
  * checkout action, admin rollup, and DB row all speak the same
@@ -41,7 +41,7 @@ export type PackVariant = "monthly" | "annual";
  *     is the typical band (Basecamp 16%, Notion 20%, Linear 25%).
  *     Landing in the middle of that band keeps us competitive without
  *     pricing ourselves into a margin hole.
- *   - Our post-Paddle margin headroom under cheap routing can absorb
+ *   - Our margin headroom under cheap routing can absorb
  *     a 20% discount across all four packs and still clear the 85%
  *     floor on Creator/Pro/Studio (see §12.3 S1). Starter dips to
  *     ~86.5% — still the healthiest credit pack in SaaS we know of.
@@ -86,14 +86,15 @@ export type CreditPack = {
    * chat+rewrite, Haiku for mid-tier, Sonnet for deep-tier). It does
    * NOT yet subtract:
    *   - processor fees (Razorpay INR 2%×1.18 on IN volume;
-   *     Paddle MoR 5% + $0.50 on intl volume — per D4, 2026-04-20,
-   *     see docs/payments/MOR_EVALUATION.md)
+   *     international rail TBD — Paddle was retired 2026-05-01 and
+   *     the next gateway's processor-fee structure will land here
+   *     when wired)
    *   - support cost amortisation (~$0.50–$1.50/paid-user/month)
    *   - refund / chargeback drag
    *   - FX spread on USD→INR payout
    *   - GST or income tax (pass-through, not cost)
    *
-   * Actual net margin post-Paddle under realistic ops mix
+   * Actual net margin (Razorpay rail) under realistic ops mix
    * (docs/ai/MARGIN_VERIFICATION.md §12.3 S1):
    *   Starter: 88.5% / Creator: 90.8% / Pro: 90.2% / Studio: 89.3%
    *
@@ -121,8 +122,8 @@ export const CREDIT_PACKS: readonly CreditPack[] = [
     margin: 88,
     // Task #27: anchor Starter at ₹399 — below the raw USD×84 = ₹420
     // conversion. Indian market norm is sub-₹500 for a try-it SKU,
-    // and the 5% nominal gap is absorbed by the better INR checkout
-    // conversion (Razorpay 2% flat beats Paddle's 5% + $0.50).
+    // and the better INR checkout conversion (Razorpay 2% flat) keeps
+    // unit economics healthy.
     inrPrice: 399,
     features: ["100 credits", "Never expire", "All AI tools", "Email support"],
   },
@@ -218,7 +219,8 @@ export const USD_TO_INR_RATE = 84;
 /**
  * Pack price in the smallest currency unit for the rail's billing currency.
  *
- *   - "USD" → cents (pack.price × 100) — the Paddle path.
+ *   - "USD" → cents (pack.price × 100) — the international rail path
+ *             (currently unused; reserved for the next gateway).
  *   - "INR" → paise (pack.inrPrice × 100) if the pack has a dedicated
  *             INR anchor (Task #27), else the legacy
  *             pack.price × USD_TO_INR_RATE × 100 fallback — Razorpay path.
@@ -243,8 +245,8 @@ export const USD_TO_INR_RATE = 84;
  * adapter at the provider side).
  *
  * A Currency this module doesn't recognize falls back to USD cents so
- * callers fail closed to the existing Paddle-rail math rather than
- * throwing mid-checkout.
+ * callers fail closed to deterministic math rather than throwing
+ * mid-checkout.
  */
 export function packAmountMinor(
   pack: CreditPack,

@@ -1196,7 +1196,7 @@ export async function getWebhookLogs(opts: {
 // the webhook handler processes writes a row with `reason = 'refund'`
 // and `provider = 'refund_reversal'` (see lib/payments/ledger.ts §397
 // and types.ts LedgerFinancials provider-tag rule). Monetary columns
-// on the refund row are negative (Paddle adapter's `neg()` closure),
+// on the refund row are negative (adapter `neg()` closure pattern),
 // so SUM() yields negative numbers; the page flips sign for display
 // because "refunded $42" reads better than "refunded -$42".
 //
@@ -1395,25 +1395,23 @@ export async function getRefundsSummary(opts: {
 // --- /admin/chargebacks ----------------------------------------------
 //
 // Phase D / Task #22 CLOSED the ingestion gap that existed through
-// Phase C. The Paddle adapter now emits kind="chargeback" for
-// adjustments with action in {"chargeback", "chargeback_warning",
-// "chargeback_reverse"}, and lib/payments/ledger.ts:handleChargeback
-// writes a negative-signed debit row tagged `provider =
-// 'chargeback_reversal'`.
+// Phase C. Adapters emit kind="chargeback" for relevant adjustment
+// actions, and lib/payments/ledger.ts:handleChargeback writes a
+// negative-signed debit row tagged `provider = 'chargeback_reversal'`.
 //
-// This page now does a double-read: `webhook_events` (what Paddle
-// SENT us, via the JSON path filter) and `credit_ledger` (what we
-// ACTED on, via the provider tag). Healthy state: the two counts
-// agree. If they drift, we've got an ingestion bug and the banner
-// fires — the roles are reversed from the Phase C posture.
+// This page now does a double-read: `webhook_events` (what the
+// processor SENT us, via the JSON path filter) and `credit_ledger`
+// (what we ACTED on, via the provider tag). Healthy state: the two
+// counts agree. If they drift, we've got an ingestion bug and the
+// banner fires.
 //
 // Why keep the webhook-events JSON path filter even after ingestion
 // is wired?
 // -----------------------------------------------------------------
 // Two reasons:
 //   1. Ground truth: webhook_events is the raw audit log, so it's
-//      the authoritative "what Paddle says happened". credit_ledger
-//      is our downstream mirror.
+//      the authoritative "what the processor says happened".
+//      credit_ledger is our downstream mirror.
 //   2. Drift detection: if the ingestion pipeline silently breaks
 //      (bad deploy, schema mismatch, SQL error swallowed), the JSON
 //      path count will keep climbing while the ledger count flatlines.
@@ -1430,7 +1428,7 @@ export type ChargebackRow = {
 };
 
 export type ChargebacksSummary = {
-  /** Count from webhook_events — what Paddle sent us. Ground truth. */
+  /** Count from webhook_events — what the processor sent us. Ground truth. */
   webhookCount: number;
   /** Count from credit_ledger with provider='chargeback_reversal' — what we booked. */
   ledgerCount: number;
@@ -1545,9 +1543,10 @@ export async function getChargebacksSummary(opts: {
 //
 // Phase C / Task #21. Surfaces only rows that actually performed a
 // cross-currency conversion — i.e. `fx_rate_used IS NOT NULL`. INR
-// payments on the Razorpay rail will populate this; USD-on-Paddle
-// will leave it NULL (no conversion happened), and legacy rows from
-// before Task #15's schema landed will also be NULL.
+// payments on the Razorpay rail will populate this when an FX
+// conversion is performed; same-currency captures leave it NULL,
+// and legacy rows from before Task #15's schema landed will also be
+// NULL.
 //
 // `fx_rate_used` is stored as `decimal(18, 8)` — drizzle returns it
 // as a string (see schema comment at db/schema/app.ts:147). We keep
@@ -1666,17 +1665,16 @@ export async function getFxSnapshot(opts: {
 
 // --- /admin/tax ------------------------------------------------------
 //
-// Phase C / Task #21. Tax on Paddle rows lands with
-// `tax_treatment = 'mor'` and `tax_remittable_micros = 0` (the
-// Merchant-of-Record invariant — Paddle absorbs remittance, we never
-// owe tax authorities on that rail). Tax on Razorpay rows lands with
+// Phase C / Task #21. Tax on Razorpay rows lands with
 // `tax_treatment = 'forward'` and `tax_remittable_micros = tax_collected_micros`
 // (we're the merchant, we forward IGST to the Indian government).
+// MoR (Merchant-of-Record) rows would land with `tax_treatment = 'mor'`
+// and `tax_remittable_micros = 0` (the MoR provider absorbs
+// remittance, we never owe tax authorities on that rail) — kept as a
+// supported case in the data model for the future international rail.
 // The "our-to-keep" column is `collected - remittable` — under MoR it
-// equals the full collected amount (we keep nothing of the tax Paddle
-// computed on our behalf because Paddle invoices the customer on
-// their own name), under forward it equals zero (every paisa is
-// owed to GST).
+// equals the full collected amount, under forward it equals zero
+// (every paisa is owed to GST).
 //
 // This page is the feed for the CA's GSTR-1 / GSTR-3B reconciliation
 // workflow — eventually (Task #23) it sprouts a CSV export. For
