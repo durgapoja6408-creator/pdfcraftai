@@ -6682,4 +6682,1179 @@ export const TOOL_LONGFORMS: Record<string, ToolLongformData> = {
       linkLabel: "Try Resume ↔ JD Matcher",
     },
   },
+
+  // =====================================================================
+  // 2026-05-01 — Phase 2 AI longform Tier 4 (14 tools — final batch)
+  //
+  // Variants of summarization / structured-extraction / transformation,
+  // plus three special-cost ops (ai-generate at 20 credits, ai-sign at
+  // 10, ai-searchable-pdf at 2 credits/page). Each entry maintains the
+  // editorial bar set by Tiers 1-3 and the original 12.
+  //
+  // After this commit, KNOWN_AI_LONGFORM_PENDING shrinks from 14 → 0
+  // and Phase 2 longform standardization is complete: all 39 grand-
+  // fathered AI tools now have full longform marketing blocks.
+  // =====================================================================
+
+  "ai-condense": {
+    useCasesTitle: "Why people use Condense PDF",
+    useCasesIntro:
+      "Condense PDF cuts 40&ndash;60% of a document&rsquo;s length while keeping every fact and conclusion intact. Different from summarize (which restructures into a digest) or improve-writing (which tightens 20&ndash;30%): condense is aggressive shortening that preserves the doc&rsquo;s shape and substance.",
+    useCases: [
+      {
+        icon: "Pages",
+        title: "Length-constrained submission",
+        text: "Op-eds with 1500-word limits, conference papers with strict page caps, application essays with character limits. Drop the over-length draft, get a tighter version that respects the constraint while preserving the argument.",
+      },
+      {
+        icon: "Edit",
+        title: "Email-thread digest from long doc",
+        text: "Long internal docs (project briefs, post-mortems, RFC drafts) shared as email summaries. Condense produces the 40% version that fits in an email body without losing the substance.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Verbose draft tightening",
+        text: "Drafts that sprawled past their useful length &mdash; common with first-pass writing. Condense brings the doc back to a publishable length without you needing to do the painful self-editing pass.",
+      },
+      {
+        icon: "Book",
+        title: "Lecture notes &rarr; revision sheet",
+        text: "Detailed lecture notes condensed to revision-sheet length (one page per topic). Useful for exam prep where the full notes are too long to scan during revision.",
+      },
+      {
+        icon: "Shield",
+        title: "Verbose policy doc shortening",
+        text: "Internal policy docs that ballooned over revisions. Condense produces the version that&rsquo;s actually readable without losing the policy specifics.",
+      },
+    ],
+    howWorksTitle: "How Condense PDF works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop the doc",
+        text: "PDF up to 100 MB. Works on prose-heavy content; structured tables / code blocks pass through unchanged.",
+      },
+      {
+        step: "2",
+        title: "We rewrite shorter",
+        text: "Server-side extraction, then a constrained rewrite that targets 40&ndash;60% length reduction. Every numeric value, named entity, and factual claim preserved verbatim. Repetition collapsed, transitions tightened, examples consolidated. Routing layer picks the model best at preservation-during-aggressive-cut.",
+      },
+      {
+        step: "3",
+        title: "Get the shorter version",
+        text: "Markdown output, typically 50% of input length. Page citations link each condensed section back to the source for verification.",
+      },
+    ],
+    faqs: [
+      {
+        q: "How is this different from AI Summarize or Improve Writing?",
+        a: "Summarize restructures into a digest format (different shape than source). Improve Writing tightens 20&ndash;30% while preserving everything. Condense is aggressive 40&ndash;60% shortening preserving doc shape. Pick based on output goal: digest = summarize, polish = improve writing, aggressive cut = condense.",
+      },
+      {
+        q: "Are numbers and names preserved?",
+        a: "Yes &mdash; explicitly. Every numeric value, percentage, date, currency amount, name, and proper noun preserved verbatim. Aggressive shortening creates risk of meaning drift; we prioritize preservation of factual anchors.",
+      },
+      {
+        q: "What if 60% feels too aggressive?",
+        a: "Re-run; the model is non-deterministic so re-runs vary length within the 40&ndash;60% target band. For explicit length control (&ldquo;exactly 1500 words&rdquo;), trim manually after &mdash; the condensed output is a 60-90% complete starting point, not the final cut.",
+      },
+      {
+        q: "Will it preserve structure?",
+        a: "Headings + list structure preserved. Within sections, paragraphs may consolidate (two short paragraphs &rarr; one tighter one) but the doc&rsquo;s skeleton stays.",
+      },
+      {
+        q: "What&rsquo;s the credit cost?",
+        a: "3 credits per doc. Cost is fixed regardless of doc size.",
+      },
+      {
+        q: "What if the condense changes meaning?",
+        a: "Possible with aggressive cuts. Read the output before relying on it &mdash; page citations make spot-checking easy. For high-stakes content (legal, medical, technical specs), treat as a draft for human review, not a final cut.",
+      },
+    ],
+    cta: {
+      title: "Need the opposite (more depth)?",
+      text: "Expand PDF elaborates each bullet / sentence into fuller paragraphs with source-grounded context. Useful for converting a tight draft into a longer-form treatment.",
+      linkHref: "/tool/ai-expand",
+      linkLabel: "Try Expand PDF",
+    },
+  },
+
+  "ai-expand": {
+    useCasesTitle: "Why people use Expand PDF",
+    useCasesIntro:
+      "Expand PDF turns concise material (bullets, outlines, terse drafts) into fuller prose with source-grounded context. Each idea gets the elaboration it needs without inventing claims that aren&rsquo;t in the source. Useful when the goal is converting a skeleton into a full draft.",
+    useCases: [
+      {
+        icon: "Pages",
+        title: "Outline &rarr; full draft",
+        text: "Article / chapter / report outlines (bullets with sub-bullets) become full prose drafts. Each outline point gets context, examples, and transitions &mdash; faster than the &ldquo;sit down and write&rdquo; phase that&rsquo;s the slowest part of long-form writing.",
+      },
+      {
+        icon: "Edit",
+        title: "Bullet-list expansion for stakeholder-facing docs",
+        text: "Internal bullet-list briefs (engineering design docs, status updates) get expanded into stakeholder-friendly prose. Stakeholders find prose more digestible than dense bullet lists.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Slide deck &rarr; speaker-notes script",
+        text: "Slides with bullet content + speaker notes get the speaker-notes filled out into spoken prose. Useful for talk prep where you have the structure but haven&rsquo;t written what you&rsquo;ll actually say.",
+      },
+      {
+        icon: "Book",
+        title: "Skeleton spec &rarr; full PRD",
+        text: "Engineering skeleton (problem / proposed solution bullet list) expanded into a full PRD with rationale, alternatives considered, and risk discussion. The expansion grounds in source material rather than fabricating.",
+      },
+      {
+        icon: "Shield",
+        title: "Brief &rarr; full proposal",
+        text: "Sales / RFP responses where you have a brief and need to expand into a 10-page formal proposal. Expand provides the structural draft to refine.",
+      },
+    ],
+    howWorksTitle: "How Expand PDF works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop the doc",
+        text: "PDF up to 100 MB. Works on bullet-heavy outlines, terse drafts, skeleton documents. Prose-heavy content already at full length expands less.",
+      },
+      {
+        step: "2",
+        title: "We elaborate per item",
+        text: "Server-side extraction, then a generation pass that elaborates each bullet / point into fuller prose. Constrained to source-grounded content &mdash; no fabricated claims, just contextualization of what&rsquo;s already there. Routing layer picks the model best at constrained generation.",
+      },
+      {
+        step: "3",
+        title: "Get the expanded draft",
+        text: "Markdown output, typically 1.5&ndash;2.5x input length. Page citations link each expanded section back to the source so you can verify the expansion stayed grounded.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Will it fabricate claims?",
+        a: "Constrained against fabrication &mdash; the expansion is supposed to elaborate what&rsquo;s in the source, not invent new claims. Spot-check the output anyway: page citations make verification fast, and for high-stakes content (legal, regulatory) treat the expansion as a draft for source-grounding review.",
+      },
+      {
+        q: "How much longer is the output?",
+        a: "Typically 1.5&ndash;2.5x input length. Highly compressed input (one-line bullets) can expand 3x; already-expanded prose may grow only 1.2x. For explicit length targeting, expand then condense to your target.",
+      },
+      {
+        q: "Will it preserve my voice?",
+        a: "The expansion uses register-matching: if your bullets are casual, the prose stays casual; if they&rsquo;re formal, expansion is formal. Brand-specific voice is partial &mdash; provide example expansions as context for closer brand match (feature on roadmap).",
+      },
+      {
+        q: "Does it add examples?",
+        a: "Adds illustrative context where the source implies it (e.g. &ldquo;various stakeholders&rdquo; &rarr; &ldquo;various stakeholders such as engineering, product, and customer success&rdquo;). Doesn&rsquo;t fabricate specific company / product examples that aren&rsquo;t in the source.",
+      },
+      {
+        q: "What&rsquo;s the credit cost?",
+        a: "3 credits per doc. Cost is fixed regardless of doc size.",
+      },
+      {
+        q: "What if the expansion is too verbose?",
+        a: "Run AI Improve Writing or AI Condense on the output &mdash; that&rsquo;s the explicit length-tightening tool. Expand-then-condense is a valid 2-step workflow when the goal is &ldquo;more thorough than my outline but tighter than the raw expansion.&rdquo;",
+      },
+    ],
+    cta: {
+      title: "Need the opposite (less length)?",
+      text: "Condense PDF cuts 40&ndash;60% while preserving facts. The natural counterpart to Expand for length adjustment in either direction.",
+      linkHref: "/tool/ai-condense",
+      linkLabel: "Try Condense PDF",
+    },
+  },
+
+  "ai-tone-analyze": {
+    useCasesTitle: "Why people use Tone & Style Analyzer",
+    useCasesIntro:
+      "Tone & Style Analyzer reports a doc&rsquo;s voice (authoritative / collaborative / didactic / etc.), intended audience, and 6&ndash;10 style attributes (sentence-length distribution, use of jargon, register, emphasis style). Useful for the &ldquo;does this sound right?&rdquo; pre-publication audit. The analyzer reports &mdash; it doesn&rsquo;t rewrite.",
+    useCases: [
+      {
+        icon: "Compare",
+        title: "Brand voice consistency check",
+        text: "Run multiple pieces of content through the analyzer to verify consistent voice across the team. Useful for content teams scaling output where voice drift is a real risk.",
+      },
+      {
+        icon: "Edit",
+        title: "Pre-rewrite tone audit",
+        text: "Before running AI Rewrite to shift tone, the analyzer surfaces what the current tone IS. Useful for the &ldquo;is this too formal? Too casual? Both?&rdquo; question that&rsquo;s easier to answer with structured data than gut check.",
+      },
+      {
+        icon: "Pages",
+        title: "Multi-author harmonization audit",
+        text: "When several authors contribute to one doc, voice drifts. The analyzer surfaces the inconsistency (Section 1 = formal-authoritative, Section 3 = casual-collaborative) so the editor knows what to harmonize.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Audience-fit verification",
+        text: "Drafts aimed at a specific audience (technical decision-maker, casual end-user, regulatory reviewer) audited for register fit. Surfaces mismatches the writer didn&rsquo;t notice.",
+      },
+      {
+        icon: "Shield",
+        title: "Brand-voice training corpus building",
+        text: "When building a brand-voice style guide, run your best examples through the analyzer to articulate (in concrete attributes) what makes them on-brand. The output is the descriptive baseline for the guide.",
+      },
+    ],
+    howWorksTitle: "How Tone & Style Analyzer works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop the doc",
+        text: "PDF up to 100 MB. Works on prose &mdash; reports, articles, marketing copy, internal docs.",
+      },
+      {
+        step: "2",
+        title: "We measure + describe",
+        text: "Server-side text extraction, then attribute analysis: voice classification, audience inference, sentence-length distribution, jargon density, formality score, emphasis style (italics / bold / caps usage), passive-vs-active ratio, sentence-opening variety.",
+      },
+      {
+        step: "3",
+        title: "Get a structured report",
+        text: "Markdown output: overall voice / audience / 6&ndash;10 style attributes with values + observations. NOT a rewrite &mdash; the report tells you what the doc IS, not what it should be. Use AI Rewrite or Improve Writing for the actual rewriting.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Why doesn&rsquo;t it rewrite the doc?",
+        a: "Separation of concerns: the analyzer measures, the rewriter changes. Combined tools tend to produce confused output where the user can&rsquo;t tell what was diagnostic vs prescriptive. The 2-tool workflow (analyze, then optionally rewrite) is more controllable.",
+      },
+      {
+        q: "What attributes does it measure?",
+        a: "6&ndash;10 attributes including: voice (authoritative / collaborative / instructional / journalistic etc.), audience inference, sentence-length distribution, jargon density, formality, emphasis style, passive-vs-active ratio, sentence-opening variety, contractions usage, second-person address frequency.",
+      },
+      {
+        q: "Will it identify my brand voice?",
+        a: "Generic tone categorization, not brand-specific. To match against your brand voice, run multiple on-brand examples and observe the consistent attribute pattern &mdash; that pattern is your operational definition of brand voice.",
+      },
+      {
+        q: "Can it tell tone shift mid-document?",
+        a: "Surfaces register-shift observations (&ldquo;Section 1-3 are formal-authoritative; Section 4 shifts to casual-conversational&rdquo;). Useful for catching unintentional voice drift in long docs.",
+      },
+      {
+        q: "What&rsquo;s the credit cost?",
+        a: "3 credits per doc. Cost is fixed regardless of doc size.",
+      },
+      {
+        q: "Will it suggest a target tone?",
+        a: "Reports current state &mdash; doesn&rsquo;t prescribe target. For target voice, you (or your style guide) define what fits the audience. The analyzer pairs with AI Rewrite (which DOES take a target voice) for the analyze-then-rewrite workflow.",
+      },
+    ],
+    cta: {
+      title: "Want to actually shift the tone?",
+      text: "AI Rewrite changes tone (formal &harr; casual), register (technical &harr; layperson), or length while preserving facts. The natural next step after the tone audit identifies what to shift.",
+      linkHref: "/tool/ai-rewrite",
+      linkLabel: "Try AI Rewrite",
+    },
+  },
+
+  "ai-citations": {
+    useCasesTitle: "Why people use Extract Citations (BibTeX)",
+    useCasesIntro:
+      "Citation extraction surfaces every reference in a PDF as a BibTeX block (importable into LaTeX / Zotero / Mendeley) plus a readable reference list. Useful for literature review, bibliography building, and verification of cited sources.",
+    useCases: [
+      {
+        icon: "Book",
+        title: "Literature review reference compilation",
+        text: "Run each paper in your reading list through the extractor, accumulate citations into a single BibTeX file. Faster than manual entry and avoids the typo-in-DOI errors that plague hand-built bibliographies.",
+      },
+      {
+        icon: "Pages",
+        title: "Thesis bibliography building",
+        text: "Theses cite hundreds of sources. The extractor pulls citations from each cited PDF&rsquo;s own reference list, building a candidate bibliography for your own thesis. You still curate which to actually cite, but the data-entry step is automated.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Citation verification",
+        text: "Verify the citations in your own draft by comparing the extracted list with what you actually cited. Surfaces missing references or formatting errors before submission.",
+      },
+      {
+        icon: "Edit",
+        title: "Format conversion (e.g. APA &rarr; BibTeX)",
+        text: "Documents with reference lists in non-BibTeX format (APA, MLA, Chicago, Vancouver) get extracted into BibTeX. Useful when migrating an old paper&rsquo;s bibliography into a new project.",
+      },
+      {
+        icon: "Compare",
+        title: "Reference overlap analysis",
+        text: "Run two papers&rsquo; extractors, compare the BibTeX outputs to surface citation overlap. Useful for understanding intellectual lineage and shared sources across related work.",
+      },
+    ],
+    howWorksTitle: "How Extract Citations works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop the source PDF",
+        text: "PDF up to 100 MB. Works on academic papers, theses, books, and any doc with a structured reference list.",
+      },
+      {
+        step: "2",
+        title: "We extract + format",
+        text: "Server-side text extraction (with reference-list section detection), then per-citation parsing into BibTeX entries. Author / year / title / journal / volume / issue / pages / DOI populated from the reference text plus any embedded metadata.",
+      },
+      {
+        step: "3",
+        title: "Get BibTeX + readable list",
+        text: "Output: BibTeX block (paste into your .bib file directly) AND a human-readable reference list (paste into a Notion / Markdown doc). Page citation indicates where each reference appeared in the source.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Are the BibTeX entries correct?",
+        a: "Strong on standard journal-article references with embedded DOIs. Weaker on books / preprints / non-English sources / older formats with non-standard structure. Verify the BibTeX before submission &mdash; common errors are author-order swaps and journal name abbreviations.",
+      },
+      {
+        q: "Will it work for non-academic citations?",
+        a: "Best on academic-style references (Author, Year, Title, Journal/Publisher). Trade-press citations / blog citations / web citations parse but the BibTeX entry types map imperfectly (everything becomes &ldquo;@misc&rdquo; if structure is unclear). For grey-literature heavy bibliographies, expect manual cleanup.",
+      },
+      {
+        q: "Does it dedupe references across multiple PDFs?",
+        a: "Per-PDF extraction by default. For cross-doc deduplication, run each extractor and merge the BibTeX outputs in your reference manager (Zotero / Mendeley both deduplicate on import).",
+      },
+      {
+        q: "Will it output in styles other than BibTeX?",
+        a: "BibTeX (most universal for LaTeX) plus a readable reference list. Other styles (RIS for EndNote, APA / MLA / Chicago formatted) on the roadmap. For now, import the BibTeX into Zotero / Mendeley and export to your target format.",
+      },
+      {
+        q: "What&rsquo;s the credit cost?",
+        a: "3 credits per doc. Cost is fixed regardless of reference count.",
+      },
+      {
+        q: "What if a citation is missing from the output?",
+        a: "Common causes: footnote-style citations (not in a reference list), in-line URL references, citations to personal communication. The extractor focuses on structured reference lists; non-list citations may not be captured. Manually add those as needed.",
+      },
+    ],
+    cta: {
+      title: "Researching multiple papers?",
+      text: "Research Paper Summarizer generates structured summaries with embedded BibTeX from each paper &mdash; useful when you need both the citation AND the content distilled.",
+      linkHref: "/tool/ai-research-paper",
+      linkLabel: "Try Research Paper Summarizer",
+    },
+  },
+
+  "ai-sentiment": {
+    useCasesTitle: "Why people use Sentiment Analysis",
+    useCasesIntro:
+      "Sentiment Analysis reports overall sentiment (positive / negative / neutral / mixed) plus per-section sentiment with evidence and shifts. Useful for analyzing reviews, customer feedback, internal communication tone, and document emotional arc.",
+    useCases: [
+      {
+        icon: "Compare",
+        title: "Customer review / NPS analysis",
+        text: "Drop a stack of customer feedback (compiled into one PDF), get per-section sentiment with evidence quotes. Faster than reading every review, and the section-by-section breakdown surfaces patterns hand-coding would miss.",
+      },
+      {
+        icon: "Pages",
+        title: "Internal email / chat thread tone",
+        text: "When a thread escalates or de-escalates, sentiment-by-section surfaces the inflection points. Useful for HR / management reviewing communication patterns in conflict situations.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Press / coverage sentiment",
+        text: "Industry coverage (analyst reports, press releases, social media archives) analyzed for sentiment toward your company / product. Useful for the &ldquo;how are we landing?&rdquo; communication audit.",
+      },
+      {
+        icon: "Book",
+        title: "Document emotional arc",
+        text: "Long-form content (memoirs, narrative non-fiction, reports) mapped for sentiment progression. Useful for editorial review where pacing matters &mdash; if sentiment is monotone for 200 pages, the reader experience flatlines.",
+      },
+      {
+        icon: "Shield",
+        title: "Survey / interview qualitative coding",
+        text: "Open-ended survey responses or interview transcripts compiled and analyzed. Replaces manual sentiment-coding for first-pass analysis; researchers verify a sample for confidence.",
+      },
+    ],
+    howWorksTitle: "How Sentiment Analysis works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop the doc",
+        text: "PDF up to 100 MB. Works on prose &mdash; reviews, threads, feedback compilations, narrative content.",
+      },
+      {
+        step: "2",
+        title: "We score + locate evidence",
+        text: "Server-side extraction, then per-paragraph and per-section sentiment scoring. Evidence quotes pulled for each sentiment verdict. Sentiment shifts (positive &rarr; negative inflections) surfaced with the trigger sentence.",
+      },
+      {
+        step: "3",
+        title: "Get a structured report",
+        text: "Markdown output with: overall verdict / per-section verdicts / evidence quotes / sentiment shifts / trigger phrases. Page citations on every finding.",
+      },
+    ],
+    faqs: [
+      {
+        q: "How accurate is sentiment classification?",
+        a: "Strong on clearly polarized content (reviews, opinions). Weaker on neutral / ambiguous content (technical docs, factual reporting) where sentiment isn&rsquo;t the doc&rsquo;s point. Sarcasm / irony are detection challenges &mdash; treat the score as directional.",
+      },
+      {
+        q: "Will it work for non-English content?",
+        a: "Best results in English. Indian-language sentiment (Hindi, Tamil, Bengali) works at lower accuracy &mdash; sentiment lexicons are English-trained and translated. For multilingual feedback analysis, run AI Translate first, then sentiment.",
+      },
+      {
+        q: "Does it understand context-dependent sentiment?",
+        a: "Tries &mdash; e.g. &ldquo;the queue was long but the food was great&rdquo; surfaces both negative (queue) and positive (food) sentiment with the right targets. Mixed sentiment is reported as such, not flattened to neutral.",
+      },
+      {
+        q: "Can it identify what&rsquo;s causing the sentiment?",
+        a: "Surfaces evidence quotes with each sentiment verdict, so you can see WHY the model called it positive / negative. The cause analysis isn&rsquo;t formal aspect-based sentiment (which would need topic clustering) &mdash; for that, pair with Extract Entities for who-is-mentioned.",
+      },
+      {
+        q: "What&rsquo;s the credit cost?",
+        a: "3 credits per doc. Cost is fixed regardless of doc size.",
+      },
+      {
+        q: "What about doc length limits?",
+        a: "Long docs (200+ pages) chunk and process per-chunk. Each chunk gets its own sentiment scoring; the final report aggregates with the section structure preserved.",
+      },
+    ],
+    cta: {
+      title: "Need the entities mentioned too?",
+      text: "Extract Entities surfaces people / organizations / places / dates from the same doc. Pairs with sentiment analysis for the &ldquo;what&rsquo;s being said about whom&rdquo; analysis.",
+      linkHref: "/tool/ai-entities",
+      linkLabel: "Try Extract Entities",
+    },
+  },
+
+  "ai-bias": {
+    useCasesTitle: "Why people use Inclusive Language Audit",
+    useCasesIntro:
+      "Inclusive Language Audit flags gendered language (mankind, manpower, chairman), outdated terminology (master/slave, blacklist/whitelist), and stereotyping language with concrete suggested fixes. Heuristic only &mdash; the audit catches obvious patterns, not all bias. Useful as a pre-publication pass for inclusive-language standards.",
+    useCases: [
+      {
+        icon: "Shield",
+        title: "Pre-publication content audit",
+        text: "Articles, marketing copy, internal docs audited for inclusive language standards before publication. Catches the obvious gendered defaults (&ldquo;chairman&rdquo;, &ldquo;manpower&rdquo;) that have neutral alternatives (&ldquo;chair&rdquo;, &ldquo;workforce&rdquo;).",
+      },
+      {
+        icon: "Edit",
+        title: "Legacy doc modernization",
+        text: "Older docs (style guides, internal handbooks, technical specs) frequently use outdated terminology. The audit surfaces what to update during a refresh pass.",
+      },
+      {
+        icon: "Pages",
+        title: "Hiring / job-description review",
+        text: "Job descriptions are a known site for biased language (&ldquo;rockstar&rdquo;, &ldquo;ninja&rdquo;, &ldquo;competitive&rdquo; vs &ldquo;collaborative&rdquo; signals). Audit before posting to widen candidate pool.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Educational content review",
+        text: "Course materials, textbooks, training docs audited for inclusive language &mdash; especially important for content that reaches diverse student populations.",
+      },
+      {
+        icon: "Book",
+        title: "Brand-voice inclusion check",
+        text: "When evolving a brand voice, the audit verifies updates didn&rsquo;t miss the harder-to-spot patterns (gendered metaphors, ability-based metaphors like &ldquo;crippled&rdquo; / &ldquo;blind to&rdquo;).",
+      },
+    ],
+    howWorksTitle: "How Inclusive Language Audit works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop the doc",
+        text: "PDF up to 100 MB. Works on any prose &mdash; articles, JDs, course materials, internal docs, marketing copy.",
+      },
+      {
+        step: "2",
+        title: "We scan + classify",
+        text: "Server-side extraction, then a multi-pattern scan: gendered language (he-default, gendered role nouns), outdated terminology (problematic metaphors, slurs in older texts), stereotyping (gendered profession defaults), accessibility-aware language. Each flag classified by category and severity.",
+      },
+      {
+        step: "3",
+        title: "Get a structured fix list",
+        text: "Markdown table: page / quote / issue category / suggested fix. Each fix has rationale (&ldquo;'manpower' &rarr; 'workforce' or 'staff' &mdash; gender-neutral alternative is widely used&rdquo;). Sorted by page for linear review.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Is this comprehensive?",
+        a: "No. The audit catches obvious patterns (lexical / template-based). It does NOT catch subtle bias (rhetorical framing, what&rsquo;s included vs excluded, who&rsquo;s named vs anonymized). For comprehensive inclusion review, treat the audit as a baseline catch and supplement with human reviewer.",
+      },
+      {
+        q: "Will it work in Indian-English context?",
+        a: "Yes &mdash; Indian-English specific patterns recognized (caste-coded language, region-coded stereotyping, English-with-Indian-conventions). Note: Indian-language content (Hindi, Tamil, etc.) has its own bias-language patterns we don&rsquo;t audit yet &mdash; English content only for now.",
+      },
+      {
+        q: "What categories of issues does it cover?",
+        a: "Gendered language (he-default, role-noun gendering), outdated technical terminology (master/slave, blacklist/whitelist, sanity-check &mdash; all flagged with suggested replacements that have industry adoption), ability-based metaphors, age-coded language. Full taxonomy on the roadmap to publish.",
+      },
+      {
+        q: "Should I accept every fix?",
+        a: "No. Some flags are false positives (e.g. &ldquo;mankind&rdquo; in a quote vs in your own writing &mdash; the audit may not distinguish). Some suggestions don&rsquo;t fit the doc&rsquo;s register. Treat the table as a list of things to consider, not a list of things to apply.",
+      },
+      {
+        q: "What&rsquo;s the credit cost?",
+        a: "3 credits per doc. Cost is fixed regardless of doc size.",
+      },
+      {
+        q: "Privacy?",
+        a: "Doc sent to inference provider for the scan, not stored. For confidential drafts, redact author names and project codenames via Redact PDF first if needed.",
+      },
+    ],
+    cta: {
+      title: "Want to fix the writing too?",
+      text: "AI Improve Writing tightens prose for clarity and concision &mdash; useful as the next pass after the inclusive-language audit, for an overall polish.",
+      linkHref: "/tool/ai-improve-writing",
+      linkLabel: "Try AI Improve Writing",
+    },
+  },
+
+  "ai-entities": {
+    useCasesTitle: "Why people use Extract Entities",
+    useCasesIntro:
+      "Extract Entities surfaces every named person / organization / place / date from a PDF as four structured tables with page citations. Useful for due diligence, legal discovery, news article analysis, research paper coverage maps, and contract review.",
+    useCases: [
+      {
+        icon: "Search",
+        title: "Due diligence on a company / individual",
+        text: "Drop a stack of docs (annual reports, news clips, court filings) for a person / company under DD. Get every named connection extracted &mdash; faster than manual highlighting and the structured tables surface relationship patterns.",
+      },
+      {
+        icon: "Shield",
+        title: "Legal discovery / e-discovery",
+        text: "Litigation docs (emails, contracts, memos) entity-extracted for relationship mapping. Useful for the &ldquo;who knew what when&rdquo; analysis where dates + named individuals matter.",
+      },
+      {
+        icon: "Pages",
+        title: "News / media coverage map",
+        text: "When a news story develops over weeks (multiple articles compiled into one PDF), entity extraction surfaces who&rsquo;s appeared in coverage, where, and when. Useful for journalists and analysts tracking complex stories.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Research paper coverage map",
+        text: "What organizations / institutions / authors are cited / acknowledged in a paper. Surfaces collaboration networks and funding relationships beyond the formal author list.",
+      },
+      {
+        icon: "Edit",
+        title: "Contract / commitment tracking",
+        text: "Long contracts mention multiple parties, dates, and locations. The structured extraction makes it scannable &mdash; useful for the &ldquo;when does X happen&rdquo; / &ldquo;who&rsquo;s liable for Y&rdquo; questions during contract administration.",
+      },
+    ],
+    howWorksTitle: "How Extract Entities works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop the doc",
+        text: "PDF up to 100 MB. Works on any prose &mdash; reports, articles, contracts, emails, transcripts.",
+      },
+      {
+        step: "2",
+        title: "We classify + dedupe",
+        text: "Server-side extraction, then named-entity-recognition pass classifying mentions into four categories: people, organizations, places, dates. Mentions deduplicated (Mr Sharma / Sharma / Sushil Sharma collapsed when context confirms identity). Page citation on every mention.",
+      },
+      {
+        step: "3",
+        title: "Get four tables",
+        text: "Markdown tables: PEOPLE / ORGANIZATIONS / PLACES / DATES. Each row: canonical name / mention count / first-page / last-page / sample-context. CSV export for further analysis (Excel, Power BI, etc.).",
+      },
+    ],
+    faqs: [
+      {
+        q: "How accurate is the dedup?",
+        a: "Strong on unambiguous names (Mr Sharma + first reference to Sushil Sharma in same paragraph &rarr; same person). Weaker when names overlap (two people named Sharma in different contexts). Manual review of the dedupe column catches false merges.",
+      },
+      {
+        q: "Will it work for Indian names?",
+        a: "Yes &mdash; Indian naming conventions (single names, multi-part regional names, surname-first vs surname-last patterns) recognized. Typical Indian organizations (Reliance, TCS, Infosys, Tata, Adani, HDFC, ICICI etc.) pre-recognized to improve dedup.",
+      },
+      {
+        q: "Does it identify relationships between entities?",
+        a: "Surfaces co-occurrence (X and Y mentioned in same context) but doesn&rsquo;t formally classify the relationship (employer / partner / counterparty). For relationship classification, supplement with manual analysis or a graph-database tool.",
+      },
+      {
+        q: "What about places &mdash; will it handle Indian regions?",
+        a: "Indian states, cities, and regions recognized. Smaller localities (towns, neighborhoods) may be classified imperfectly &mdash; the model&rsquo;s knowledge of Indian micro-geography degrades below the city level.",
+      },
+      {
+        q: "What&rsquo;s the credit cost?",
+        a: "3 credits per doc. Cost is fixed regardless of doc size.",
+      },
+      {
+        q: "Privacy?",
+        a: "Doc sent to inference provider for entity extraction, not stored. For sensitive entity-rich docs (DD reports, legal filings), redact metadata via Redact PDF first if needed; structural extraction works on the redacted version.",
+      },
+    ],
+    cta: {
+      title: "Want to know how the entities are talked about?",
+      text: "Sentiment Analysis classifies sentiment per-section with evidence quotes. Pairs naturally with entity extraction for the &ldquo;who&rsquo;s being talked about and how&rdquo; analysis.",
+      linkHref: "/tool/ai-sentiment",
+      linkLabel: "Try Sentiment Analysis",
+    },
+  },
+
+  "ai-social-thread": {
+    useCasesTitle: "Why people use PDF to Social Thread",
+    useCasesIntro:
+      "Social threads (X / LinkedIn / Threads) have specific conventions: hook in post 1, ideas in posts 2&ndash;9, takeaway in the closer. PDF to Social Thread generates a 5&ndash;10-post thread from any source PDF respecting per-platform character limits and the hook-ideas-close arc.",
+    useCases: [
+      {
+        icon: "Chat",
+        title: "Research paper &rarr; X thread",
+        text: "Researchers / analysts converting their published paper into a thread for distribution. The thread format reaches audiences who won&rsquo;t click through to read the paper &mdash; lossy but worth it for awareness.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Internal report &rarr; LinkedIn post series",
+        text: "Quarterly internal reports become LinkedIn thought-leadership content. Distillation from formal-internal to casual-public is the work the thread tool does.",
+      },
+      {
+        icon: "Pages",
+        title: "Talk / podcast notes &rarr; promo thread",
+        text: "Conference talks and podcast appearances need promotion threads. The thread version of the content drives clicks to the talk recording.",
+      },
+      {
+        icon: "Edit",
+        title: "Long-form blog &rarr; thread teaser",
+        text: "Blog posts get distilled to a thread that drives clicks back to the full post. Effective when the thread teases the takeaway without giving everything away.",
+      },
+      {
+        icon: "Book",
+        title: "Curated content compilation",
+        text: "Round-ups of multiple sources (top 10 lists, industry digests) become threads where each post is a summarized item. Faster than writing each post manually.",
+      },
+    ],
+    howWorksTitle: "How PDF to Social Thread works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop the source PDF",
+        text: "PDF up to 100 MB. Works on research papers, blog posts, reports, talk notes, briefs.",
+      },
+      {
+        step: "2",
+        title: "We structure + character-limit",
+        text: "Server-side extraction, then thread-shape generation: hook (first post optimized for engagement), 5&ndash;9 idea posts, takeaway closer. Each post sized for the target platform (X = 280 chars, LinkedIn = 3000 chars, Threads = 500 chars). Default targets X.",
+      },
+      {
+        step: "3",
+        title: "Get a copy-ready thread",
+        text: "Numbered post list with character counts. Copy-paste each post into your scheduler (Buffer / Hootsuite / native composer) or post manually. Page citations link each post back to the source for the &ldquo;where did this come from&rdquo; verification.",
+      },
+    ],
+    faqs: [
+      {
+        q: "How long is the thread?",
+        a: "5&ndash;10 posts by default. Source length influences count: a 3-page brief gets a 5-post thread; a 20-page paper gets 10. For longer threads, run multiple times with different focus areas; for shorter, manually trim.",
+      },
+      {
+        q: "Will the hook actually drive engagement?",
+        a: "Generated for clarity + curiosity by default. For aggressive engagement optimization (clickbait conventions), the hook serves as a baseline to refine. The output won&rsquo;t out-perform a skilled growth-hacker&rsquo;s manually-tuned hook, but it&rsquo;s a competent starting point.",
+      },
+      {
+        q: "Does it suggest hashtags?",
+        a: "Surfaces 3&ndash;5 relevant hashtags at the end of the closer post. Hashtag effectiveness is platform-dependent (LinkedIn rewards them more than X today); use or skip per platform norms.",
+      },
+      {
+        q: "What about images / media?",
+        a: "Text-only output. Each post may reference where an image would help (&ldquo;[chart of X]&rdquo;) so you know what visuals to add manually. Image generation is a separate workflow.",
+      },
+      {
+        q: "What&rsquo;s the credit cost?",
+        a: "3 credits per thread. Cost is fixed regardless of doc size.",
+      },
+      {
+        q: "Should I post as-is?",
+        a: "No &mdash; treat it as a draft. Adjust the voice to your usual tone, verify facts (page citations make this easy), and double-check character counts after any edits. The thread does ~80% of the work; the last 20% (voice + fact check) is yours.",
+      },
+    ],
+    cta: {
+      title: "Want a blog version too?",
+      text: "PDF to Blog Post generates a 800&ndash;1500 word post from the same source &mdash; useful for the &ldquo;cross-post on Twitter AND blog&rdquo; multi-channel workflow.",
+      linkHref: "/tool/ai-blog",
+      linkLabel: "Try PDF to Blog Post",
+    },
+  },
+
+  "ai-semantic-search": {
+    useCasesTitle: "Why people use Semantic Search in PDF",
+    useCasesIntro:
+      "Ctrl-F finds exact matches but misses paraphrases. Semantic Search in PDF accepts a natural-language question, retrieves relevant passages from the PDF (regardless of phrasing), and returns them verbatim with page references and relevance notes. Useful when you know what you&rsquo;re looking for but don&rsquo;t know the exact words the source used.",
+    useCases: [
+      {
+        icon: "Search",
+        title: "Find a clause in a long contract",
+        text: "Search &ldquo;what happens if the partnership ends?&rdquo; in a 60-page partnership deed and get the dissolution clauses verbatim with page numbers. Faster than skimming for &ldquo;dissolution&rdquo; / &ldquo;termination&rdquo; / &ldquo;exit&rdquo; manually.",
+      },
+      {
+        icon: "Pages",
+        title: "Locate a fact in a research paper",
+        text: "Search &ldquo;what was the sample size?&rdquo; or &ldquo;how was bias controlled?&rdquo; in a 30-page paper. Returns the relevant paragraph regardless of how the paper phrased it.",
+      },
+      {
+        icon: "Book",
+        title: "Lookup in a textbook / handbook",
+        text: "&ldquo;How do I revoke a power of attorney?&rdquo; in a 200-page legal handbook. Returns the relevant section with surrounding context, faster than scanning the index.",
+      },
+      {
+        icon: "Edit",
+        title: "Spec / docs question-answering",
+        text: "When working with technical specs you don&rsquo;t know cover-to-cover, semantic search lets you ask the doc directly. Different from chat-with-pdf because output is verbatim passages, not generated responses.",
+      },
+      {
+        icon: "Compare",
+        title: "Across-doc passage retrieval",
+        text: "When you have multiple PDFs and a question, run the search on each and aggregate. Returns where each doc addresses your question, useful for the &ldquo;synthesize across sources&rdquo; workflow.",
+      },
+    ],
+    howWorksTitle: "How Semantic Search in PDF works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop the PDF + ask the question",
+        text: "PDF up to 100 MB. Question in natural language &mdash; &ldquo;what does X mean&rdquo;, &ldquo;how do I do Y&rdquo;, &ldquo;when did Z happen&rdquo;.",
+      },
+      {
+        step: "2",
+        title: "We embed + retrieve",
+        text: "Server-side text extraction + chunking + vector embedding. Question embedded; retrieved passages ranked by semantic similarity (not keyword match). Top 3&ndash;5 passages returned with relevance scores.",
+      },
+      {
+        step: "3",
+        title: "Get verbatim passages with cites",
+        text: "Markdown output with: question echoed back / 3&ndash;5 verbatim passages with page references / relevance score / context note. Verbatim means we DIDN&rsquo;T rewrite &mdash; you see exactly what the source said.",
+      },
+    ],
+    faqs: [
+      {
+        q: "How is this different from chat-with-pdf?",
+        a: "Chat generates an ANSWER (synthesized from the doc, model-paraphrased). Semantic Search returns PASSAGES (verbatim from the doc). Use chat when you want a direct answer; use search when you want to read the source material yourself with the LLM&rsquo;s help finding the right pages.",
+      },
+      {
+        q: "What&rsquo;s the difference from Ctrl-F?",
+        a: "Ctrl-F is exact lexical match &mdash; misses paraphrases. Semantic search matches meaning regardless of wording. Search &ldquo;dog&rdquo; and Ctrl-F won&rsquo;t find &ldquo;canine&rdquo;; semantic search will.",
+      },
+      {
+        q: "What if my question has no answer in the doc?",
+        a: "The tool surfaces the closest-matching passages with low relevance scores and a note like &ldquo;this passage discusses related but not the exact topic.&rdquo; Better than &ldquo;no results&rdquo; because near-misses are often informative.",
+      },
+      {
+        q: "Can I search multiple PDFs at once?",
+        a: "Single PDF per call. For multi-PDF semantic search across a corpus, AI Chat (multi-doc mode is on the roadmap) is the closer fit. Today&rsquo;s workaround: run the search on each PDF separately, aggregate the top results.",
+      },
+      {
+        q: "What&rsquo;s the credit cost?",
+        a: "3 credits per search. Cost is fixed regardless of doc size or query count (one query per call today; multi-query batching on the roadmap).",
+      },
+      {
+        q: "Privacy?",
+        a: "PDF + query sent to inference provider for embedding + retrieval, not stored. For maximum confidentiality, redact PII via Redact PDF before running search; the structural search works on the redacted version.",
+      },
+    ],
+    cta: {
+      title: "Want a synthesized answer instead?",
+      text: "AI Chat reads your PDF and answers questions in natural language with page citations. Pairs with semantic search: search to find passages, chat to discuss them.",
+      linkHref: "/chat-with-pdf",
+      linkLabel: "Try AI Chat",
+    },
+  },
+
+  "ai-searchable-pdf": {
+    useCasesTitle: "Why people use Make PDF Searchable",
+    useCasesIntro:
+      "Scanned PDFs look like text but are images &mdash; Ctrl-F doesn&rsquo;t work, copy-paste returns nothing. Make PDF Searchable runs OCR on each page and overlays the recognized text invisibly so the original visual layout is preserved AND text search / copy-paste both work. Different from AI OCR (which extracts text as a separate output) &mdash; this updates the PDF in place.",
+    useCases: [
+      {
+        icon: "Scan",
+        title: "Legacy document archive search",
+        text: "Old scanned legal / corporate / academic archives become searchable. Useful when you have years of PDF accumulation and need to find a specific clause / paragraph / name across the archive.",
+      },
+      {
+        icon: "Shield",
+        title: "Compliance / audit trail",
+        text: "Compliance archives (KYC, AML, regulatory filings) often arrive as scans. Making them searchable is a prerequisite for any audit involving full-text search of the archive.",
+      },
+      {
+        icon: "Pages",
+        title: "Research lit-review reading list",
+        text: "Older research papers (pre-digital era, photocopied / scanned) need OCR before you can highlight, copy-paste, or text-search. The searchable version preserves the original layout but unlocks all the modern text affordances.",
+      },
+      {
+        icon: "Book",
+        title: "Academic / institutional digitization",
+        text: "Universities digitizing thesis archives, libraries digitizing rare-book collections. Making the scans searchable is the difference between &ldquo;digital archive&rdquo; and &ldquo;searchable digital archive.&rdquo;",
+      },
+      {
+        icon: "Edit",
+        title: "Personal document organization",
+        text: "Receipts, contracts, certificates, lab reports accumulated as scans become searchable across your file archive. Pairs with cloud-storage search (Google Drive, Dropbox) for one-search-finds-everything across years of saved docs.",
+      },
+    ],
+    howWorksTitle: "How Make PDF Searchable works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop the scanned PDF",
+        text: "PDF up to 50 pages. Scanned and image-based PDFs are the target; clean digital PDFs already have searchable text (no need to run this).",
+      },
+      {
+        step: "2",
+        title: "We OCR + overlay",
+        text: "AI Vision model OCRs each page (handles handwriting, multilingual scripts, low-resolution scans better than legacy Tesseract). Recognized text overlaid invisibly behind the original image so visual layout stays unchanged.",
+      },
+      {
+        step: "3",
+        title: "Download the searchable PDF",
+        text: "Output is a PDF that LOOKS identical to the source (same layout, same images) but Ctrl-F finds matches and copy-paste returns the recognized text. Drop into your document management system and search across the archive.",
+      },
+    ],
+    faqs: [
+      {
+        q: "How is this different from AI PDF OCR?",
+        a: "AI OCR returns the recognized text as markdown / plaintext output (separate from the PDF). Make PDF Searchable returns the same PDF with text invisibly overlaid &mdash; the visual stays exactly the same, but you can search and copy. Pick OCR when you want the text; pick Searchable when you want the searchable PDF.",
+      },
+      {
+        q: "Will it work for handwritten content?",
+        a: "Handles handwriting better than legacy OCR (we use AI Vision, not Tesseract). Quality depends on handwriting clarity and DPI &mdash; readable handwriting works; messy or low-resolution handwriting degrades. For low-confidence pages, the search results may have OCR errors &mdash; verify against the visual when accuracy matters.",
+      },
+      {
+        q: "What about multilingual content?",
+        a: "Strong on Latin scripts (English, Spanish, French, Portuguese). Indian-language support (Devanagari, Tamil, Telugu, Bengali) works well for printed text; handwritten Indic is harder. Multi-script pages (English + Hindi mixed) handled.",
+      },
+      {
+        q: "Is the original layout preserved?",
+        a: "Yes &mdash; explicitly. The original page image is unchanged; recognized text is overlaid in a transparent layer. Visual identity preserved; text functionality added.",
+      },
+      {
+        q: "What&rsquo;s the credit cost?",
+        a: "2 credits per page. So a 20-page scanned doc costs 40 credits. Cost is page-based because OCR work scales with page count.",
+      },
+      {
+        q: "What&rsquo;s the page limit?",
+        a: "50 pages per call. For longer archives, split first via Split PDF (free), make each chunk searchable, then merge back via Merge PDF (free).",
+      },
+    ],
+    cta: {
+      title: "Just need the text without the searchable PDF?",
+      text: "AI PDF OCR returns recognized text as markdown / plaintext &mdash; cheaper if you only need the text and don&rsquo;t need to keep the visual layout.",
+      linkHref: "/tool/ai-ocr",
+      linkLabel: "Try AI PDF OCR",
+    },
+  },
+
+  "ai-chart-to-table": {
+    useCasesTitle: "Why people use Chart &rarr; Data Table",
+    useCasesIntro:
+      "Charts in PDFs hide their data &mdash; you can see the trend but can&rsquo;t copy the numbers. Chart &rarr; Data Table reads charts visually, extracts the data points (with axis labels and units preserved), and returns CSV-ready output. Bar / line / pie / scatter / stacked all supported.",
+    useCases: [
+      {
+        icon: "Pages",
+        title: "Research paper data recovery",
+        text: "When a paper&rsquo;s underlying data isn&rsquo;t shared and the chart is the only artifact, the extractor recovers approximate data points for re-analysis or comparison with your own work.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Annual report numeric extraction",
+        text: "Investor decks and annual reports rely on charts more than tables. Extraction makes the data points re-usable for your own analysis without manual point-clicking.",
+      },
+      {
+        icon: "Compare",
+        title: "Competitor benchmarking",
+        text: "Public competitor metrics (revenue charts, growth charts, market-share charts) extracted into tables for side-by-side comparison with your own internal numbers.",
+      },
+      {
+        icon: "Book",
+        title: "Educational textbook data",
+        text: "Textbooks present data in charts for explanation. The extractor lets students recreate the chart in their own software for learning by doing.",
+      },
+      {
+        icon: "Edit",
+        title: "Presentation slide data recovery",
+        text: "Slide decks where the chart was built but the underlying spreadsheet was lost. The extractor reverse-engineers approximate data so you can rebuild the chart from scratch.",
+      },
+    ],
+    howWorksTitle: "How Chart &rarr; Data Table works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop the PDF with charts",
+        text: "PDF up to 50 MB. Works on charts in research papers, annual reports, presentations, articles. Bar / line / pie / scatter / stacked-bar / stacked-area all supported.",
+      },
+      {
+        step: "2",
+        title: "We read the chart visually",
+        text: "AI Vision model identifies axes (labels, scales, units), reads data points (per bar / per line vertex / per pie slice), classifies confidence per point. Multi-chart PDFs processed page-by-page with one table per chart.",
+      },
+      {
+        step: "3",
+        title: "Get CSV-ready tables",
+        text: "Markdown output: one table per chart, with columns for each axis variable. CSV export available for direct spreadsheet import. Page citation indicates source chart.",
+      },
+    ],
+    faqs: [
+      {
+        q: "How accurate are the extracted numbers?",
+        a: "Approximate. Bar charts with clear gridlines &rarr; ~5% accuracy. Line charts &rarr; ~10% on inflection points. Pie charts &rarr; ~5% on percentages. Heavily styled / 3D / artistic charts &rarr; lower accuracy. Treat extracted numbers as starting estimates, not authoritative source data.",
+      },
+      {
+        q: "What if the chart has no axis labels?",
+        a: "Output indicates &ldquo;axis labels missing &mdash; numbers are relative not absolute.&rdquo; Useful for trend analysis even without absolute values; useless for absolute comparison.",
+      },
+      {
+        q: "Can it handle multi-series charts?",
+        a: "Yes &mdash; each series becomes a column in the table. Stacked bars / stacked areas decomposed into per-series columns. Legend matching ensures the right series gets the right name.",
+      },
+      {
+        q: "What about exotic chart types (radar, treemap, Sankey)?",
+        a: "Less reliable. Standard chart types (bar / line / pie / scatter / column) are the strong cases. Exotic types may extract approximately but verify before using. For specialized chart types where accuracy matters, manual data entry is more reliable.",
+      },
+      {
+        q: "What&rsquo;s the credit cost?",
+        a: "3 credits per doc. Cost is fixed regardless of chart count.",
+      },
+      {
+        q: "Privacy?",
+        a: "PDF sent to inference provider for chart-vision extraction, not stored. For confidential charts (internal financials, unreleased competitor intel), redact surrounding text via Redact PDF first &mdash; the chart extraction works on the redacted version.",
+      },
+    ],
+    cta: {
+      title: "Need to extract regular tables too?",
+      text: "AI Table Extract pulls structured tables from PDFs as CSV / Excel &mdash; the natural counterpart to chart extraction for the &ldquo;extract everything quantitative&rdquo; workflow.",
+      linkHref: "/tool/ai-table",
+      linkLabel: "Try AI Table Extract",
+    },
+  },
+
+  "ai-table": {
+    useCasesTitle: "Why people use AI Table Extract",
+    useCasesIntro:
+      "AI Table Extract pulls structured tables from PDFs as CSV or Excel &mdash; even multi-page tables. Different from generic text extraction (which loses table structure) and from manual copy-paste (which is tedious and error-prone). Useful for any quantitative analysis where the source data is locked in PDFs.",
+    useCases: [
+      {
+        icon: "Pages",
+        title: "Annual report / 10-K table extraction",
+        text: "Annual reports have dozens of tables (financials, segment data, risk factors). Extract them as CSV for spreadsheet analysis &mdash; faster than the &ldquo;copy-paste &amp; clean up&rdquo; loop that breaks on multi-page tables.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Government / regulatory data",
+        text: "Government reports (RBI / SEBI / IRDAI publications, census data, statistical releases) heavily use tables. Extraction makes the data analyzable in Excel / Tableau / Power BI without manual re-entry.",
+      },
+      {
+        icon: "Edit",
+        title: "Research paper data tables",
+        text: "Research paper tables (results, demographics, comparison) extracted for re-analysis. Pairs with Research Paper Summarizer for the &ldquo;summary + raw data&rdquo; analysis workflow.",
+      },
+      {
+        icon: "Compare",
+        title: "Bank statement / transaction tables",
+        text: "Multi-page transaction tables in bank statements extracted for spending analysis, budgeting, or loan applications. Indian bank statements (HDFC / ICICI / SBI / Axis) supported.",
+      },
+      {
+        icon: "Book",
+        title: "Textbook / handbook data tables",
+        text: "Reference tables in textbooks (constants, conversion factors, lookup tables) extracted for use in calculation workflows. Faster than copy-typing and more accurate.",
+      },
+    ],
+    howWorksTitle: "How AI Table Extract works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop the PDF",
+        text: "PDF up to 100 MB. Works on any PDF with tabular content &mdash; reports, statements, papers, government data.",
+      },
+      {
+        step: "2",
+        title: "We detect + structure",
+        text: "Server-side extraction with table-detection: identifies table boundaries, header rows, multi-page continuations. Each table&rsquo;s structure preserved (rows / columns / merged cells / nested headers). AI Vision used when text-extraction alone fails (e.g. scanned tables).",
+      },
+      {
+        step: "3",
+        title: "Get CSV + Excel output",
+        text: "Output: each table as separate CSV (importable into Excel / Sheets / database) plus an Excel file with one sheet per table. Page citation links each extracted table to source.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Will it handle multi-page tables?",
+        a: "Yes &mdash; tables that continue across page breaks are detected and concatenated into one logical table. Header repetition (the same header repeated on each page) deduplicated.",
+      },
+      {
+        q: "What about merged cells / nested headers?",
+        a: "Multi-row headers (where a top-level header spans multiple sub-columns) preserved with proper hierarchy. Merged data cells (rare in well-formed tables) flagged for manual review &mdash; CSV doesn&rsquo;t natively express merged cells, so we duplicate the value across cells.",
+      },
+      {
+        q: "Will it work on scanned PDFs?",
+        a: "Yes &mdash; AI Vision OCR runs first, then table-structure detection on the recognized text. Quality on scans depends on resolution and table line clarity. Clean printed scans work well; faded / hand-drawn tables may need manual cleanup.",
+      },
+      {
+        q: "How does it handle Indian-format tables?",
+        a: "Indian conventions (lakh / crore in numbers, comma vs period decimal separators, multilingual headers) recognized. Bank statement formats from major Indian banks (HDFC / ICICI / SBI / Axis / Kotak) pre-tested.",
+      },
+      {
+        q: "What&rsquo;s the credit cost?",
+        a: "3 credits per doc. Cost is fixed regardless of table count.",
+      },
+      {
+        q: "What if a table is wrong?",
+        a: "Common issues: wrong column boundaries, header detection drift, multi-line cell handling. The output preserves the page citation so you can verify each table against the source. For high-accuracy extraction (financial filings, regulatory submissions), spot-check before downstream use.",
+      },
+    ],
+    cta: {
+      title: "Need to extract chart data too?",
+      text: "Chart &rarr; Data Table reads charts visually and extracts data points with axis labels. Pairs with table extraction for the &ldquo;extract everything quantitative from the PDF&rdquo; workflow.",
+      linkHref: "/tool/ai-chart-to-table",
+      linkLabel: "Try Chart → Data Table",
+    },
+  },
+
+  "ai-generate": {
+    useCasesTitle: "Why people use Generate PDF from Prompt",
+    useCasesIntro:
+      "Generate PDF from Prompt drafts reports, contracts, briefs, and proposals from a text description &mdash; useful when you need a starting structural draft fast. The output is a draft, not a final &mdash; verification + brand-voice tuning are still your job.",
+    useCases: [
+      {
+        icon: "Generate",
+        title: "Contract first draft",
+        text: "Describe the deal (parties, term, scope, payment terms, IP ownership) and get a structural draft contract. Faster than starting from scratch; reviewer-friendly format. NOT legal advice &mdash; have a lawyer finalize.",
+      },
+      {
+        icon: "Edit",
+        title: "Report skeleton",
+        text: "Internal reports (status, post-mortem, project review) drafted from a description. The generated structure (executive summary / context / findings / recommendations / next steps) saves the &ldquo;what should the sections be?&rdquo; phase.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Brief / RFP response draft",
+        text: "Sales briefs and RFP responses drafted from the requirements. The output is a starting structural draft your team customizes &mdash; faster than blank-page authoring.",
+      },
+      {
+        icon: "Pages",
+        title: "Policy doc draft",
+        text: "Internal policy documents (data handling, expense policy, work-from-home policy) drafted from a description of the rules. Provides the structural skeleton; legal / HR review finalizes.",
+      },
+      {
+        icon: "Book",
+        title: "Educational module draft",
+        text: "Course module drafts from a topic description and learning objectives. The output is a teaching-skeleton (objectives / content / activities / assessment) the instructor refines.",
+      },
+    ],
+    howWorksTitle: "How Generate PDF from Prompt works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Describe what you need",
+        text: "Plain-English description of the document: type (contract / report / brief), parties / context / key points, length target. More detail in the prompt &rarr; better fit in the output.",
+      },
+      {
+        step: "2",
+        title: "We draft + format",
+        text: "LLM generates the document with appropriate structure (sections, headings, formal register for legal / academic; conversational for marketing). Output formatted as PDF with sensible defaults (Times New Roman / 11pt / 1-inch margins).",
+      },
+      {
+        step: "3",
+        title: "Get a downloadable PDF draft",
+        text: "PDF download. Edit-source markdown also provided for further iteration in Word / Docs / your preferred editor.",
+      },
+    ],
+    faqs: [
+      {
+        q: "How good is the output?",
+        a: "Structural draft quality is high (section organization, header hierarchy, register matching). Substantive content quality depends on prompt specificity &mdash; vague prompt &rarr; generic output. Treat the output as ~70% of the work, with 30% remaining for fact-check / brand-tune / domain-expert review.",
+      },
+      {
+        q: "Will it generate Indian legal / contract documents accurately?",
+        a: "Generates Indian-formatted contracts (Indian Contract Act format, stamp paper conventions noted, governing law clauses) when prompted. Quality of legal substance is lower than a lawyer&rsquo;s draft &mdash; this is for skeleton / review-prep use, not final filing.",
+      },
+      {
+        q: "Can I provide examples for style matching?",
+        a: "Provide examples in the prompt (&ldquo;match the style of [pasted example]&rdquo;). Brand voice replication is partial &mdash; surface signals match well, deeper voice patterns are imperfect. Treat as draft-with-direction, not finished output.",
+      },
+      {
+        q: "What about layout customization (logos, custom formatting)?",
+        a: "Output uses sensible defaults. For branded layouts (company letterhead, custom fonts, design system), do post-generation editing in Word / InDesign / Canva. The generation focuses on content + structure, not visual identity.",
+      },
+      {
+        q: "What&rsquo;s the credit cost?",
+        a: "20 credits per doc. Higher than other AI tools because generation is more compute-intensive than analysis. Cost is fixed regardless of length.",
+      },
+      {
+        q: "Should I publish the output as-is?",
+        a: "No, especially for high-stakes documents (contracts, policies, regulatory filings). Treat the output as a starting structural draft. The 30% remaining work (fact-check, brand voice, domain-expert review) is what makes the doc usable; skipping it produces obvious-AI-generated artifacts that read poorly.",
+      },
+    ],
+    cta: {
+      title: "Have a doc to fill / sign?",
+      text: "Sign &amp; Fill Forms uses AI to fill PDF form fields, then lets you sign and send. Useful as the next step after generating a contract from prompt &mdash; generate, fill in party-specific details, sign, send.",
+      linkHref: "/tool/ai-sign",
+      linkLabel: "Try Sign & Fill Forms",
+    },
+  },
+
+  "ai-sign": {
+    useCasesTitle: "Why people use Sign & Fill Forms",
+    useCasesIntro:
+      "Most PDF forms (loan applications, contracts, claim forms, government forms) need filling field-by-field plus a signature. Sign & Fill Forms lets the AI auto-fill recognized fields from a description (or another doc you provide as context), then you sign and send. Combined workflow.",
+    useCases: [
+      {
+        icon: "Pen",
+        title: "Loan application forms",
+        text: "Indian bank loan forms have ~50&ndash;100 fields. AI fills the recognizable ones from your provided context (KYC info, employment details). You verify, sign, send. Faster than manual field-by-field filling.",
+      },
+      {
+        icon: "Edit",
+        title: "Insurance claim forms",
+        text: "TPA claim forms have detailed fields (hospital info, diagnosis codes, expense breakdown). AI fills from the discharge summary + bill provided as context; you verify, add what&rsquo;s missing, sign, submit.",
+      },
+      {
+        icon: "Pages",
+        title: "Employment / HR forms",
+        text: "Onboarding paperwork (provident fund, group insurance enrollment, tax declarations). AI fills from your employment offer + ID docs; you sign and submit through HR.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Visa / immigration forms",
+        text: "DS-160 (US visa), Schengen, VFS forms. AI fills repeating fields (name / address / passport details) from your context docs; you verify carefully (visa form errors have consequences) and sign.",
+      },
+      {
+        icon: "Shield",
+        title: "Contract execution",
+        text: "Standard contracts (NDAs, MSAs, SoWs) where party-specific fields need filling. AI fills from your party-info doc; you review the contract, sign in the right spot, send.",
+      },
+    ],
+    howWorksTitle: "How Sign & Fill Forms works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Upload form + context",
+        text: "PDF form (up to 50 MB) plus optional context docs (resume / KYC / discharge summary &mdash; whatever has the data the form needs). Up to 3 context docs supported.",
+      },
+      {
+        step: "2",
+        title: "AI fills recognized fields",
+        text: "Form fields detected, types classified (text / date / checkbox / signature). AI matches fields against your context docs and fills with confidence scores. Low-confidence fields flagged for manual review.",
+      },
+      {
+        step: "3",
+        title: "You verify + sign + download",
+        text: "Side-by-side view: form with AI-filled fields highlighted, your signature drawn or uploaded into signature fields. Verify each field, correct any mistakes, then download the completed PDF for submission.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Will it know my signature?",
+        a: "You provide it &mdash; either drawn on screen (mouse / trackpad / stylus) or uploaded as an image. AI doesn&rsquo;t generate or fabricate signatures. The signature you provide is what gets placed in the signature fields.",
+      },
+      {
+        q: "What if the AI fills a field wrong?",
+        a: "Side-by-side review surfaces every filled field with confidence score. Click any field to edit. Low-confidence fields highlighted for explicit review. The workflow assumes verification &mdash; never submit without checking.",
+      },
+      {
+        q: "Will it work for Indian government forms?",
+        a: "Common forms (PAN, Aadhaar update, passport, voter ID) recognized. State / DM-level forms may have less reliable field detection. For high-stakes government submissions, verify every field before signing.",
+      },
+      {
+        q: "Is the signature legally binding?",
+        a: "Indian Information Technology Act 2000 recognizes electronic signatures for most uses. Some specific contexts (real estate registration, certain corporate actions) require physical signatures or DSC (Digital Signature Certificate). When in doubt, consult the receiving party about their signature requirements.",
+      },
+      {
+        q: "What&rsquo;s the credit cost?",
+        a: "10 credits per doc. Higher than analysis tools because the workflow combines form-detection + field-fill + signature-overlay. Cost is fixed regardless of form length.",
+      },
+      {
+        q: "Privacy?",
+        a: "Form + context docs sent to inference provider for field-filling, not stored. For maximum confidentiality (especially KYC docs with PAN / Aadhaar), use the in-browser flow only and avoid sharing the completed form before review.",
+      },
+    ],
+    cta: {
+      title: "Need to draft the form first?",
+      text: "Generate PDF from Prompt drafts contracts, briefs, and reports from a description &mdash; useful as the upstream step when you need to create a form / contract before filling and signing.",
+      linkHref: "/tool/ai-generate",
+      linkLabel: "Try Generate PDF from Prompt",
+    },
+  },
 };

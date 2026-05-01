@@ -223,39 +223,31 @@ const GRANDFATHERED_NO_CONTENT = new Map([
 // rank for each variant; entries are grouped by family for review
 // purposes only.
 const KNOWN_AI_LONGFORM_PENDING = new Map([
-  // 2026-05-01 — Phase 2 Tier 1 SHIPPED (8 entries removed):
-  //   ai-faq, ai-action-items, ai-mindmap, ai-blood-test, ai-jd-match,
-  //   ai-paraphrase, ai-detector, ai-rewrite
-  // 2026-05-01 — Phase 2 Tier 2 SHIPPED (9 entries removed):
-  //   ai-study-notes, ai-syllabus, ai-discharge, ai-blog, ai-readability,
-  //   ai-newsletter, ai-video-script, ai-improve-writing, ai-proofread
-  // 2026-05-01 — Phase 2 Tier 3 SHIPPED (8 entries removed):
-  //   ai-nda, ai-employment, ai-partnership-deed, ai-loan-bundle,
-  //   ai-insurance, ai-research-paper, ai-salary-slip, ai-ats-resume
-  // Remaining list = 14 entries (cap 22 → 14, monotonic shrinkage).
-  // Tier 4 (last batch) covers the variants below.
+  // 2026-05-01 — Phase 2 COMPLETE. All 39 grandfathered AI tools now
+  // have full longform entries in lib/tool-longforms.ts:
   //
-  // --- Remaining summarize variants ---
-  ["ai-entities", "Phase 2 — named-entity extraction variant"],
-  ["ai-social-thread", "Phase 2 — social-media thread generation variant"],
-  ["ai-condense", "Phase 2 — extreme-shortening variant"],
-  ["ai-expand", "Phase 2 — content-expansion variant"],
-  ["ai-tone-analyze", "Phase 2 — tone analysis variant"],
-  ["ai-citations", "Phase 2 — citation-extraction variant"],
-  ["ai-sentiment", "Phase 2 — sentiment analysis variant"],
-  ["ai-bias", "Phase 2 — bias-detection variant (heuristic only)"],
-
-  // --- Writing/transformation variants ---
-  ["ai-chart-to-table", "Phase 2 — chart→table extraction"],
-
-  // --- Structured-output variants ---
-  ["ai-semantic-search", "Phase 2 — semantic search variant"],
-  ["ai-table", "Phase 2 — table extraction variant"],
-
-  // --- Other ops ---
-  ["ai-generate", "Phase 2 — text→PDF generation variant"],
-  ["ai-sign", "Phase 2 — AI-assisted signature placement"],
-  ["ai-searchable-pdf", "Phase 2 — variant of ai-ocr; same SEO landing"],
+  //   Tier 1 (8 highest-traffic): ai-faq, ai-action-items, ai-mindmap,
+  //     ai-blood-test, ai-jd-match, ai-paraphrase, ai-detector, ai-rewrite
+  //   Tier 2 (9 content-focused): ai-study-notes, ai-syllabus, ai-discharge,
+  //     ai-blog, ai-readability, ai-newsletter, ai-video-script,
+  //     ai-improve-writing, ai-proofread
+  //   Tier 3 (8 legal/specialist): ai-nda, ai-employment, ai-partnership-deed,
+  //     ai-loan-bundle, ai-insurance, ai-research-paper, ai-salary-slip,
+  //     ai-ats-resume
+  //   Tier 4 (14 variants): ai-condense, ai-expand, ai-tone-analyze,
+  //     ai-citations, ai-sentiment, ai-bias, ai-entities, ai-social-thread,
+  //     ai-semantic-search, ai-searchable-pdf, ai-chart-to-table, ai-table,
+  //     ai-generate, ai-sign
+  //
+  // Cap is now 0 — every AI tool runner has full editorial parity with
+  // the free tools. Future AI tools must ship with a longform entry on
+  // creation; the grandfather list is intentionally empty so it can't
+  // be quietly resurrected.
+  //
+  // To add a NEW grandfather entry (only when truly necessary), bump
+  // the cap below to 1+ and add the entry — but the strong default is
+  // "ship with longform" because we now have proof the editorial
+  // discipline is sustainable.
 ]);
 
 // ---------------------------------------------------------------------
@@ -391,11 +383,11 @@ assert(
         `.\n  Remove them from KNOWN_AI_LONGFORM_PENDING — the longform exists so the grandfather is stale.`,
 );
 assert(
-  "KNOWN_AI_LONGFORM_PENDING stays bounded (≤ 14 entries)",
-  KNOWN_AI_LONGFORM_PENDING.size <= 14,
-  `KNOWN_AI_LONGFORM_PENDING has ${KNOWN_AI_LONGFORM_PENDING.size} entries; cap is 14. ` +
-    `Either ship a longform for one of the listed tools (preferred), or if a NEW AI tool genuinely needs ` +
-    `to be grandfathered, ship a longform for an existing pending tool first to keep the cap monotonic.`,
+  "KNOWN_AI_LONGFORM_PENDING stays bounded (≤ 0 entries — Phase 2 complete)",
+  KNOWN_AI_LONGFORM_PENDING.size <= 0,
+  `KNOWN_AI_LONGFORM_PENDING has ${KNOWN_AI_LONGFORM_PENDING.size} entries; cap is 0. ` +
+    `Phase 2 closed the AI longform backlog. New AI tools must ship with a longform entry. ` +
+    `If you genuinely need to grandfather a new tool (rare), bump this cap to 1 with rationale.`,
 );
 
 // ---------------------------------------------------------------------
