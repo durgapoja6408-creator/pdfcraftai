@@ -460,7 +460,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Free?", a: "Yes, unlimited. No watermarks, no signup." },
       { q: "Is metadata stripped?", a: "EXIF/GPS metadata is dropped when the image becomes a PDF page. Use the Metadata tool to also strip PDF-level fields." },
     ],
-    related: ["to-pdf", "compress", "merge", "pdf-metadata"],
+    related: ["to-pdf", "compress", "merge", "remove-metadata"],
   },
 
   "png-to-pdf": {
@@ -612,7 +612,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Is it free?", a: "Yes, unlimited." },
       { q: "Privacy?", a: "Entirely browser-side. Your PDF is never uploaded." },
     ],
-    related: ["page-count", "ai-summarize", "pdf-metadata", "ai-ocr"],
+    related: ["page-count", "ai-summarize", "remove-metadata", "ai-ocr"],
   },
 
   // Inspector P2 (2026-04-27): brand alias landing for "PDF inspector".
@@ -641,7 +641,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Is anything uploaded?", a: "No. PDFium runs as WebAssembly inside your browser tab. Your file never touches our servers. You can verify in the Network tab — there is no upload request." },
       { q: "Does it work for scanned PDFs?", a: "Page count, dimensions, and the mixed-size warning all work on scans. Word count will read 0 because there's no extractable text — run AI · OCR first to make the scan searchable, then come back here." },
     ],
-    related: ["page-count", "pdf-metadata", "ai-summarize", "ai-ocr"],
+    related: ["page-count", "remove-metadata", "ai-summarize", "ai-ocr"],
   },
 
   // Build 2 Wave 3+4 (2026-04-27): SEO landings for the new tools.
@@ -719,7 +719,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Why are some fields blank?", a: "Either they haven't been filled in (form was not submitted), or the value is in a non-string format we don't yet decode (e.g. complex dictionaries). Required + readonly flags still show correctly even if the value is empty." },
       { q: "Is anything uploaded?", a: "No. Byte-stream parser runs in your browser." },
     ],
-    related: ["pdf-forms", "fill-forms", "pdf-inspector", "extract-form-data"],
+    related: ["pdf-forms", "pdf-form-fill", "pdf-inspector", "extract-form-data"],
   },
 
   "pdf-attachments-viewer": {
@@ -814,7 +814,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Annotations and form fields?", a: "Those can carry their own author metadata. For a truly clean document, flatten first (Flatten PDF tool), then scrub metadata." },
       { q: "Privacy?", a: "Your PDF is processed entirely in your browser — nothing is uploaded or stored." },
     ],
-    related: ["remove-metadata", "pdf-metadata", "flatten-pdf", "ai-redact"],
+    related: ["remove-metadata", "flatten-pdf", "ai-redact", "ai-bias"],
   },
 
   "add-logo-to-pdf": {
@@ -835,7 +835,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Will it work on scanned PDFs?", a: "Yes — the watermark draws on top of whatever's already on each page, including scanned images." },
       { q: "Is it really free?", a: "Yes, unlimited. No signup, no output watermarks, no per-file limits." },
     ],
-    related: ["image-watermark", "page-numbers", "flatten-pdf", "protect"],
+    related: ["image-watermark", "page-numbers", "flatten-pdf", "redact-free"],
   },
 
   "add-text-to-pdf": {
@@ -856,7 +856,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Privacy?", a: "100% client-side. The PDF never leaves your browser." },
       { q: "Is it really free?", a: "Yes, unlimited. No watermarks, no signup." },
     ],
-    related: ["add-text-box", "page-numbers", "image-watermark", "fill-forms"],
+    related: ["add-text-box", "page-numbers", "image-watermark", "pdf-form-fill"],
   },
 
   "highlight-pdf": {
@@ -914,7 +914,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Does it include images on the pages?", a: "No — this is for files embedded via /EmbeddedFiles, not images drawn on the page. For image extraction, use Extract Images." },
       { q: "Privacy?", a: "Everything is parsed and saved in your browser — nothing is uploaded." },
     ],
-    related: ["extract-attachments", "extract-images", "pdf-metadata", "page-count"],
+    related: ["extract-attachments", "extract-images", "remove-metadata", "page-count"],
   },
 
 
@@ -959,7 +959,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Can I sign multiple documents at once?", a: "Not yet — one PDF at a time in v1. Batch signing is planned for the paid tier." },
       { q: "Privacy?", a: "100% client-side. Your PDF and your signature never leave your browser." },
     ],
-    related: ["sign-pdf-free", "ai-sign", "fill-forms", "protect"],
+    related: ["sign-pdf-free", "ai-sign", "pdf-form-fill", "flatten-pdf"],
   },
 
   "repair-pdf": {
@@ -980,7 +980,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Does it make the file smaller?", a: "Usually yes. Orphaned objects and stale xref entries accumulate in heavily-edited PDFs. The repair report shows the before/after sizes so you know how much was reclaimed." },
       { q: "Privacy?", a: "100% client-side. pdf-lib parses and re-saves in your browser — nothing uploaded." },
     ],
-    related: ["repair-pdf", "compress", "flatten-pdf", "pdf-metadata"],
+    related: ["repair-pdf", "compress", "flatten-pdf", "remove-metadata"],
   },
 
   "flatten-pdf": {
@@ -1022,7 +1022,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Can I upload a .txt file?", a: "Yes — plain text is rendered as a single paragraph. For formatting use actual Markdown syntax." },
       { q: "Privacy?", a: "100% client-side. Your markdown and PDF never leave the browser." },
     ],
-    related: ["markdown-to-pdf", "to-pdf", "ai-generate", "invoice-generator"],
+    related: ["markdown-to-pdf", "to-pdf", "ai-generate", "csv-to-pdf"],
   },
 
   "text-to-pdf": {
@@ -1097,7 +1097,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "What about XFA / dynamic forms?", a: "Only classic AcroForm fields are extracted. XFA is Adobe-proprietary and not supported by pdf-lib." },
       { q: "Privacy?", a: "100% client-side — no data leaves your browser." },
     ],
-    related: ["extract-form-data", "fill-forms", "ai-table"],
+    related: ["extract-form-data", "pdf-form-fill", "ai-table"],
   },
 
   "reorder-pdf-pages": {
@@ -1352,7 +1352,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Accuracy vs Google Translate?", a: "We use Gemini Flash 2.5 — comparable on everyday prose, better on legal / tax / medical registers because we prompt the model to match the source document's tone." },
       { q: "Does it work for government forms (PAN, Aadhaar, TNPSC papers)?", a: "Yes — scanned forms go through AI OCR first, then translation. Output is a searchable PDF you can fill or share." },
     ],
-    related: ["ai-translate", "ai-ocr", "tamil-pdf-translator", "ai-summarize"],
+    related: ["ai-translate", "ai-ocr", "ai-summarize", "ai-tldr"],
   },
 
   "tamil-pdf-translator": {
@@ -1371,7 +1371,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Will legal Tamil be translated correctly?", a: "Court judgments, rental agreements, and sale deeds use a specialised register (neethimandram, vaadhi, pratividhi). Gemini Flash 2.5 handles this well; we prompt the model to preserve the formal register." },
       { q: "What about Tamil-English code-mixed text?", a: "Common in emails and WhatsApp exports. We keep English as-is when it reads naturally to a Tamil speaker and translate only the Tamil body." },
     ],
-    related: ["ai-translate", "ai-ocr", "hindi-pdf-translator", "ai-tnpsc"],
+    related: ["ai-translate", "ai-ocr", "ai-summarize", "ai-tldr"],
   },
 
   "cover-letter-generator": {
@@ -1431,7 +1431,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "What happens to blank pages?", a: "Skipped silently. The page stays in the output but no overlay is added. Your credit cost is based on TOTAL pages OCR'd, including blanks (the OCR pass still touches every page)." },
       { q: "Is this faster than Acrobat OCR?", a: "Comparable. Acrobat does word-bbox positioning which gives perfect copy/paste alignment but takes ~5-10 seconds per page. Our pass is ~2-3s per page and gives perfect search." },
     ],
-    related: ["ai-searchable-pdf", "ai-ocr", "ai-translate", "split-pdf"],
+    related: ["ai-searchable-pdf", "ai-ocr", "ai-translate", "split"],
   },
 
   // ---------------------------------------------------------------
@@ -1457,7 +1457,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Is this legal advice?", a: "No. It's an audit aid. We highlight what to discuss with counsel. For high-stakes NDAs (acquisition discussions, large vendor relationships, IP-licensing) you should still review with a lawyer." },
       { q: "Can I redline directly in the output?", a: "The negotiation-points section gives you suggested replacement language you can paste back into the NDA. Tracked-change redlining inside the original document is on the roadmap (would need pdf-lib annotation work)." },
     ],
-    related: ["ai-nda", "ai-employment", "ai-rental", "ai-partnership-deed"],
+    related: ["ai-nda", "ai-employment", "ai-partnership-deed", "ai-loan-bundle"],
   },
 
   "employment-contract-review": {
@@ -1688,7 +1688,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "What about photos / signatures?", a: "Embedded images aren't auto-redacted. Use our manual Free Redact tool to draw rectangles over images. Auto-detection of faces / signatures is on the roadmap." },
       { q: "Can I keep some PII visible?", a: "Yes — confirmation step lets you uncheck specific PII types or specific instances before applying. E.g., keep the company name visible while redacting individual employee names." },
     ],
-    related: ["ai-redact", "redact-free", "protect", "ai-summarize"],
+    related: ["ai-redact", "redact-free", "remove-metadata", "ai-summarize"],
   },
 
 
@@ -1769,7 +1769,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Will it handle judgments in vernacular Indian languages?", a: "English best. Most reportable judgments are in English. For state-court vernacular judgments (Tamil Nadu HC sometimes publishes Tamil), AI Translate first, then summarise." },
       { q: "Is this legal advice?", a: "No. It's a research aid for lawyers, paralegals, and law students. For citation work, always read the full judgment." },
     ],
-    related: ["ai-court-order", "ai-nda", "ai-employment", "ai-rental"],
+    related: ["ai-court-order", "ai-nda", "ai-employment", "ai-partnership-deed"],
   },
 
   "partnership-deed-analyzer": {
@@ -1870,7 +1870,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Will it adapt to my pace?", a: "The default plan assumes ~8 hrs/week. If you have more or less time, scale the Hours column proportionally — the topic-priority order stays the same." },
       { q: "Does it know exam-specific weighting?", a: "For TNPSC / UPSC / JEE / NEET / SSC / Banking / GATE — yes, we weight high-yield topics heavier. For generic course syllabi, we treat topics as roughly equal-weight unless the syllabus document specifies otherwise." },
     ],
-    related: ["ai-syllabus", "ai-tnpsc", "ai-upsc", "ai-jee-neet"],
+    related: ["ai-syllabus", "ai-study-notes", "ai-flashcards", "ai-quiz"],
   },
 
   "extract-tables-from-pdf": {

@@ -62,71 +62,76 @@ const SEO_SRC = fs.readFileSync(path.join(ROOT, "lib/seo-pages.ts"), "utf8");
 // ---------------------------------------------------------------------
 // Pre-existing broken tool ids in lib/seo-pages.ts related[] arrays.
 //
-// 22 unique ids across ~70 reference points across the SEO catalog.
-// Each renders as a /tool/<id> link that 404s. None are from today's
-// shipped work — all are pre-existing editorial drift from when the
-// catalog evolved (tools renamed, deprecated, or never built).
+// 2026-05-01 (Phase 3 cleanup, commit pending): repaired 11 of the
+// original 22 IDs by replacing references in seo-pages.ts with valid
+// tool ids OR removing references that pointed at tools that were
+// never planned. Remaining 11 entries below are aligned with the
+// KNOWN_DEAD_REFS allowlist in scripts/test-seo-pages-tool-mapping.mjs
+// — those tools are PLANNED to ship per product strategy of seeding
+// SEO landings ahead of tool launches. References will resolve once
+// the underlying tools ship.
 //
-// Pattern categories:
+// Repaired (no longer in this set):
+//   "fill-forms" → pdf-form-fill (5 references replaced)
+//   "split-pdf" → split (1 reference replaced)
+//   "pdf-metadata" → remove-metadata (6 references replaced)
+//   "tamil-pdf-translator" → ai-translate (with dedup substitutes)
+//   "hindi-pdf-translator" → ai-translate (with dedup substitutes)
+//   "protect" → flatten-pdf / redact-free / remove-metadata (3 removed)
+//   "invoice-generator" → csv-to-pdf (1 removed)
+//   "ai-tnpsc" → ai-study-notes (2 removed)
+//   "ai-upsc" → ai-flashcards (1 removed)
+//   "ai-jee-neet" → ai-quiz (1 removed)
+//   "ai-rental" → ai-loan-bundle / ai-partnership-deed (2 removed)
 //
-//   • Renamed tools where related[] still references the old id:
-//     "fill-forms" → actual id is "pdf-form-fill"
-//     "extract-attachments" → actual id is "pdf-attachments"
+// Pattern categories of the remaining 11:
 //
-//   • Aspirational references to tools that were planned but never
-//     shipped (no client-side equivalent in pdf-lib):
-//     "compress" — no client-side PDF compression
-//     "protect"  — no client-side encryption (needs server qpdf)
-//     "edit-pdf" — no text editing capability
+//   • Renamed tool where the planned new id is itself an allowlist
+//     entry (KNOWN_DEAD_REFS aligned):
+//     "extract-attachments" — planned tool, will resolve when shipped
 //
-//   • Indian-context AI tools deferred / not shipped:
-//     "ai-tnpsc", "ai-upsc", "ai-jee-neet", "ai-rental",
+//   • Aspirational references to tools planned per KNOWN_DEAD_REFS
+//     (will resolve when the tool ships):
+//     "compress" — multi-rail tool gated behind backend infrastructure
+//     "edit-pdf" — generic text-editing surface, not built
+//     "extract-form-data", "extract-contacts", "extract-dates" —
+//       advertised as their own actions, planned subsets of inspectors
+//
+//   • SEO slug name accidentally placed in related[] but the planned
+//     migration target is itself in KNOWN_DEAD_REFS:
+//     "pdf-to-excel" → planned target is pdf-to-office (server-side
+//       LibreOffice rail, Phase 2 backlog)
+//     "extract-pdf-attachments" → planned target is extract-attachments
+//       (which is itself a deferred tool)
+//
+//   • Catch-all category names from KNOWN_DEAD_REFS (planned tools):
+//     "to-pdf" — server-side LibreOffice rail
+//     "pdf-to-office" — server-side LibreOffice rail
+//
+//   • Indian-context AI tool deferred per KNOWN_DEAD_REFS:
 //     "ai-court-order"
 //
-//   • SEO slug names accidentally placed in related[] (which expects
-//     tool ids, not slugs):
-//     "tamil-pdf-translator", "hindi-pdf-translator", "pdf-to-excel",
-//     "split-pdf", "extract-pdf-attachments"
-//
-//   • Catch-all category names from an early catalog scheme:
-//     "to-pdf", "pdf-to-office", "pdf-metadata", "invoice-generator",
-//     "extract-form-data", "extract-contacts", "extract-dates"
-//
-// Phase 3 cleanup task: triage each id, replace with a valid tool id
-// in every related[] that uses it (or remove the entry entirely if no
-// equivalent exists), then remove from this set and lower the cap.
-//
-// The cap = 22 is the current set size. Only shrinkage allowed —
-// adding a NEW broken id (not in the allowlist) fails the build. To
-// intentionally add a known-broken reference (rare; only when the
-// related[] genuinely should point at a not-yet-shipped tool with
-// known migration plan), reuse one of the existing entries rather
-// than expanding the set.
+// The cap = 11 is the new (post-repair) set size. Only shrinkage
+// allowed — adding a NEW broken id (not in the allowlist) fails the
+// build. To intentionally add a known-broken reference (rare; only
+// when the related[] genuinely should point at a not-yet-shipped tool
+// with known migration plan in KNOWN_DEAD_REFS), reuse one of the
+// existing entries rather than expanding the set.
 const KNOWN_BROKEN_RELATED_IDS = new Set([
-  // Renames
-  "fill-forms",
+  // Aligned with KNOWN_DEAD_REFS — planned tools that haven't shipped.
+  // Each will resolve to a real /tool/<id> page once the corresponding
+  // tool is built.
   "extract-attachments",
-  // Aspirational / not built
   "compress",
-  "protect",
   "edit-pdf",
-  // Indian-context AI tools deferred
-  "ai-tnpsc",
-  "ai-upsc",
-  "ai-jee-neet",
-  "ai-rental",
   "ai-court-order",
-  // SEO slugs misplaced in related[]
-  "tamil-pdf-translator",
-  "hindi-pdf-translator",
+  // SEO slugs whose planned tool target is itself a KNOWN_DEAD_REF.
   "pdf-to-excel",
-  "split-pdf",
   "extract-pdf-attachments",
-  // Catch-all category names from early scheme
+  // Catch-all category names mapped to planned tools in KNOWN_DEAD_REFS.
   "to-pdf",
   "pdf-to-office",
-  "pdf-metadata",
-  "invoice-generator",
+  // Extract-X tools planned as separate actions (KNOWN_DEAD_REF).
   "extract-form-data",
   "extract-contacts",
   "extract-dates",
@@ -235,12 +240,14 @@ assert(
 // (instead of fixing the underlying reference) bumps the size; this
 // assertion forces a deliberate cap bump in the same PR for visibility.
 assert(
-  KNOWN_BROKEN_RELATED_IDS.size <= 22,
+  KNOWN_BROKEN_RELATED_IDS.size <= 11,
   `KNOWN_BROKEN_RELATED_IDS has ${KNOWN_BROKEN_RELATED_IDS.size} entries; ` +
-    `cap is 22. Either fix one of the listed ids to repair its references ` +
-    `(preferred — repair the real tool reference in seo-pages.ts), or if a ` +
-    `new id genuinely needs grandfathering, fix one existing entry first ` +
-    `to keep the cap monotonic.`,
+    `cap is 11 (down from 22 after Phase 3 cleanup, 2026-05-01). Either fix ` +
+    `one of the listed ids to repair its references (preferred — repair the ` +
+    `real tool reference in seo-pages.ts), or if a new id genuinely needs ` +
+    `grandfathering, fix one existing entry first to keep the cap monotonic. ` +
+    `The remaining 11 are aligned with KNOWN_DEAD_REFS in test-seo-pages-tool-mapping.mjs ` +
+    `— they will resolve naturally when the planned tools ship.`,
 );
 
 // ---------------------------------------------------------------------
