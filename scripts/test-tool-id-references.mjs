@@ -134,7 +134,9 @@ const KNOWN_BROKEN_RELATED_IDS = new Set([
   // Extract-X tools planned as separate actions (KNOWN_DEAD_REF).
   // 2026-05-01 — "extract-contacts" SHIPPED, removed from allowlist.
   // 2026-05-01 — "extract-dates" SHIPPED, removed from allowlist.
-  "extract-form-data",
+  // 2026-05-01 — "extract-form-data" REPOINTED to existing pdf-forms
+  // tool (no longer referenced anywhere in seo-pages.ts), removed
+  // from allowlist. See comment in seo-pages.ts for context.
 ]);
 
 // ---------------------------------------------------------------------
@@ -240,15 +242,17 @@ assert(
 // (instead of fixing the underlying reference) bumps the size; this
 // assertion forces a deliberate cap bump in the same PR for visibility.
 assert(
-  KNOWN_BROKEN_RELATED_IDS.size <= 9,
+  KNOWN_BROKEN_RELATED_IDS.size <= 8,
   `KNOWN_BROKEN_RELATED_IDS has ${KNOWN_BROKEN_RELATED_IDS.size} entries; ` +
-    `cap is 9 (down from 22 → 11 → 10 → 9 over 2026-05-01: Phase 3 cleanup ` +
-    `repaired 11 ids; extract-contacts + extract-dates SHIPPED). Either fix ` +
-    `one of the listed ids to repair its references (preferred — repair the ` +
-    `real tool reference in seo-pages.ts), or if a new id genuinely needs ` +
-    `grandfathering, fix one existing entry first to keep the cap monotonic. ` +
-    `The remaining 9 are aligned with KNOWN_DEAD_REFS in test-seo-pages-tool-mapping.mjs ` +
-    `— they will resolve naturally when the planned tools ship.`,
+    `cap is 8 (down from 22 → 11 → 10 → 9 → 8 over 2026-05-01: Phase 3 ` +
+    `cleanup repaired 11 ids; extract-contacts + extract-dates SHIPPED; ` +
+    `extract-form-data SEO landing repointed to existing pdf-forms tool). ` +
+    `Either fix one of the listed ids to repair its references (preferred — ` +
+    `repair the real tool reference in seo-pages.ts), or if a new id ` +
+    `genuinely needs grandfathering, fix one existing entry first to keep ` +
+    `the cap monotonic. The remaining 8 are aligned with KNOWN_DEAD_REFS in ` +
+    `test-seo-pages-tool-mapping.mjs — they will resolve naturally when the ` +
+    `planned tools ship.`,
 );
 
 // ---------------------------------------------------------------------

@@ -719,7 +719,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Why are some fields blank?", a: "Either they haven't been filled in (form was not submitted), or the value is in a non-string format we don't yet decode (e.g. complex dictionaries). Required + readonly flags still show correctly even if the value is empty." },
       { q: "Is anything uploaded?", a: "No. Byte-stream parser runs in your browser." },
     ],
-    related: ["pdf-forms", "pdf-form-fill", "pdf-inspector", "extract-form-data"],
+    related: ["pdf-forms", "pdf-form-fill", "pdf-inspector", "ai-table"],
   },
 
   "pdf-attachments-viewer": {
@@ -1082,8 +1082,18 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
     related: ["pdf-to-html", "pdf-to-markdown", "pdf-to-text", "ai-rewrite"],
   },
 
+  // 2026-05-01 — repointed `tool` from the never-built "extract-form-data"
+  // to the existing "pdf-forms" tool, which already does exactly what
+  // this SEO landing promises (name + type + value + CSV/JSON export).
+  // The two SEO landings (this one and /pdf-form-fields) now both surface
+  // the same underlying tool with different keyword targeting:
+  //   • /pdf-form-fields → "pdf form field inspector" (technical query)
+  //   • /extract-pdf-form-data → "extract pdf form data" (action query)
+  // Avoids duplicating ~150 LOC of identical inspection code under a
+  // different name. Building a bespoke `extract-form-data` tool would
+  // have been editorial differentiation only.
   "extract-pdf-form-data": {
-    tool: "extract-form-data",
+    tool: "pdf-forms",
     h1: "Extract PDF form data — CSV or JSON, free",
     sub: "Pull the values out of every AcroForm field (text, checkbox, radio, dropdown, list) and download as CSV or JSON.",
     canonical: "/extract-pdf-form-data",
@@ -1097,7 +1107,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "What about XFA / dynamic forms?", a: "Only classic AcroForm fields are extracted. XFA is Adobe-proprietary and not supported by pdf-lib." },
       { q: "Privacy?", a: "100% client-side — no data leaves your browser." },
     ],
-    related: ["extract-form-data", "pdf-form-fill", "ai-table"],
+    related: ["pdf-forms", "pdf-form-fill", "ai-table"],
   },
 
   "reorder-pdf-pages": {

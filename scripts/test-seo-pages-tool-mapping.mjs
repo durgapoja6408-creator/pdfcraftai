@@ -145,11 +145,13 @@ const KNOWN_DEAD_REFS = new Map([
   // Extract-X tools that are subset of inspectors but advertised as
   // their own action.
   ["extract-pdf-attachments", "extract-attachments"],
-  ["extract-pdf-form-data", "extract-form-data"],
   // 2026-05-01 — extract-contacts SHIPPED (commit c56705e). Removed.
-  // 2026-05-01 — extract-dates SHIPPED (commit pending). The
-  // /pdf-to-ics-calendar SEO landing now resolves to a real tool with
-  // .ics export. Removed (was: ["pdf-to-ics-calendar", "extract-dates"]).
+  // 2026-05-01 — extract-dates SHIPPED (commit c586d63). Removed.
+  // 2026-05-01 — extract-pdf-form-data REPOINTED to existing pdf-forms
+  // tool (was: ["extract-pdf-form-data", "extract-form-data"]). The
+  // bespoke extract-form-data tool would have duplicated pdf-forms;
+  // both SEO landings now surface the same underlying tool with
+  // different keyword targeting.
   // "Edit PDF" generic surface — would aggregate add-text + highlight
   // + redact + draw into one canvas; not built.
   ["edit-pdf", "edit-pdf"],
