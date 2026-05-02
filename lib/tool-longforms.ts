@@ -8197,4 +8197,80 @@ export const TOOL_LONGFORMS: Record<string, ToolLongformData> = {
       linkLabel: "Try Generate PDF from Prompt",
     },
   },
+
+  // 2026-05-02 Tier 3a — closing the longform parity gap. Both tools
+  // existed with intros + SEO routes but no longform editorial. These
+  // are head-term diagnostic tools (page-count is "how many pages does
+  // this PDF have", pdf-inspector is the multi-section dashboard
+  // surfacing every metadata + structural property). Adding longforms
+  // brings TOOL_LONGFORMS coverage to 100% of non-carve-out tools
+  // (only ai-chat remains intentionally excluded — it lives at
+  // /app/chat, not /tool/ai-chat).
+
+  "page-count": {
+    useCasesTitle: "Why people count pages in a PDF",
+    useCasesIntro:
+      "It sounds trivial until you need it for invoicing, printing quotes, citation databases, legal page-number references, or split-sizing decisions. Knowing the page count of a PDF before opening it saves time when you're triaging a folder of dozens of files.",
+    useCases: [
+      { icon: "Receipt", title: "Print-shop pricing", text: "Quote a print job by per-page rate. Counting pages of every uploaded PDF in a single batch lets you price the order before opening each one." },
+      { icon: "File", title: "Document-management triage", text: "Identify the largest documents in a shared folder. Page count is the cheapest signal of \"this one needs a second look\" — far cheaper than rendering thumbnails." },
+      { icon: "Book", title: "Citation precision", text: "Academic citations sometimes need the total page count of a referenced PDF (especially for ebooks or institutional repositories). One-click answer." },
+      { icon: "Shield", title: "Legal discovery prep", text: "Before bates-stamping a discovery production, count pages across every input PDF to estimate the bates range and total volume." },
+      { icon: "Convert", title: "Split-size estimation", text: "Decide how to split a 200-page PDF into chunks for page-by-page review. Count first, plan splits second." },
+      { icon: "Pages", title: "OCR-cost forecasting", text: "Cloud OCR services charge per page. Knowing the page count of a scanned PDF before submitting tells you the bill in advance." },
+    ],
+    howWorksTitle: "How Page Count works",
+    howWorks: [
+      { step: "1", title: "Drop your PDF", text: "Up to 100 MB. We don't render the pages — just parse the PDF cross-reference table to read the page-tree count, which is one of the fastest things a PDF parser does." },
+      { step: "2", title: "Get the count instantly", text: "Page count, file size, PDF version, encryption status, and basic metadata (title / author / created / modified) all surface in milliseconds. No upload — everything happens in your browser via PDFium." },
+      { step: "3", title: "Optional: deeper inspection", text: "Click through to PDF Inspector for the full multi-section dashboard — fonts, links, attachments, form fields, annotations, JavaScript, and accessibility audit results." },
+    ],
+    faqs: [
+      { q: "Does this work on encrypted PDFs?", a: "Page count is readable from a PDF's cross-reference table without decrypting the content streams, so even owner-password-protected PDFs return their page count. User-password (open-password) encrypted PDFs need the password before any structural data is visible." },
+      { q: "Why is my count different from what Acrobat shows?", a: "Should never differ — both read /Type/Pages /Count from the same PDF dictionary. If you see a difference, the PDF likely has a non-standard structure (e.g. page-tree branches with mismatched /Count values) which is technically a malformed PDF. Run our Repair PDF tool, which rebuilds the page tree." },
+      { q: "Can I count pages across many PDFs at once?", a: "Use our Batch Process tool — drop a folder of PDFs, pick \"Count pages\" as the operation, get a CSV with per-file counts plus the total across the whole batch." },
+      { q: "Does this count form fields or annotations?", a: "No — those are tracked separately in PDF Inspector. Page count is just the number of physical pages (the /Pages tree's /Count attribute)." },
+      { q: "Privacy?", a: "100% client-side. PDFs are parsed in your browser — nothing uploaded." },
+    ],
+    cta: {
+      title: "Want every metadata field at once?",
+      text: "PDF Inspector surfaces page count alongside fonts, links, attachments, form fields, annotations, embedded JavaScript, and an accessibility audit &mdash; the full dashboard view of any PDF.",
+      linkHref: "/tool/pdf-inspector",
+      linkLabel: "Open PDF Inspector",
+    },
+  },
+
+  "pdf-inspector": {
+    useCasesTitle: "Why people inspect a PDF in detail",
+    useCasesIntro:
+      "Sometimes you need more than \"how many pages\" — you need to know what's actually inside the PDF. PDF Inspector pulls every structural and metadata property into a single dashboard so you can audit a file before sharing, archiving, or processing it downstream.",
+    useCases: [
+      { icon: "Shield", title: "Pre-share security audit", text: "Before sending a PDF to a client / counterparty / regulator, check what metadata it carries — author name, creator software, embedded JavaScript, attached files, hyperlink destinations. Strip anything sensitive with our Remove Metadata or Strip Links tools." },
+      { icon: "Edit", title: "Pre-archive compliance", text: "PDF/A archive submission requires no JavaScript, no encryption, embedded fonts, and limited annotations. PDF Inspector surfaces every one of those properties so you know the file's PDF/A readiness before running our PDF/A Validator." },
+      { icon: "File", title: "Form-fill diagnostics", text: "When a form-fill workflow fails, the first question is \"does this PDF actually have AcroForm fields?\". PDF Inspector lists every field, its type, and which page it's on." },
+      { icon: "Book", title: "Print-shop pre-flight", text: "Print shops need to confirm fonts are embedded (so output matches preview), no hyperlinks (so the printed page stays clean), and color-space details. One dashboard, all answers." },
+      { icon: "Convert", title: "Reverse-engineering legacy PDFs", text: "When a vendor sends a PDF with broken pagination or weird scaling, PDF Inspector shows the page-box structure (MediaBox, CropBox, BleedBox) and the producer software so you can guess the upstream issue." },
+      { icon: "Receipt", title: "Forensic / accident-investigation use", text: "Metadata sometimes reveals creation date, last-modified date, and creator app — useful for verifying when a document was actually generated vs. when it was claimed to be." },
+    ],
+    howWorksTitle: "How PDF Inspector works",
+    howWorks: [
+      { step: "1", title: "Drop your PDF", text: "Up to 100 MB. We parse the PDF cross-reference table + walk every named-tree (/Names, /Outlines, /AcroForm, /OCProperties, etc.) to surface every structural property in one pass." },
+      { step: "2", title: "Browse the dashboard", text: "Sections: page count, file size, PDF version, encryption, fonts, links, attachments, form fields, annotations, JavaScript, accessibility. Each section expands to show every entry with the source page number when applicable." },
+      { step: "3", title: "Drill into any section", text: "Click any section to navigate to the dedicated tool for that property: Font Inspector, Link Inspector, Attachments Viewer, Form Field Inspector, etc. Each dedicated tool exports CSV / JSON of just that property type." },
+    ],
+    faqs: [
+      { q: "What's the difference between this and Page Count?", a: "Page Count is a one-line answer (just the number). PDF Inspector is the multi-section dashboard — it includes page count plus every other structural and metadata property. Use Page Count when you just need the number; use PDF Inspector when you need the full picture." },
+      { q: "Does this detect malicious JavaScript?", a: "We surface every embedded JavaScript with the action it's bound to (page-load / form-submit / link-click / etc.) and the script source for inspection. Determining MALICIOUS intent requires reading the script — there's no automated malware-detection beyond \"does it have JavaScript at all\". Treat any JavaScript in a PDF from an untrusted source as suspicious by default." },
+      { q: "Will this work on encrypted PDFs?", a: "Owner-password (permissions-only) encrypted PDFs work fully — structural metadata is readable. User-password (open-password) encrypted PDFs need the password to expose anything beyond the basic PDF version. Provide the password if you have it, otherwise use our Unlock PDF tool first if it's owner-password only." },
+      { q: "Can I export the inspector report?", a: "Each section has a \"Copy JSON\" button that copies the section's full data structure to your clipboard. The dedicated per-property tools (Fonts, Links, Forms, etc.) also offer CSV export with all the columns." },
+      { q: "Does inspection modify the PDF?", a: "No — read-only. PDF Inspector only parses; it never writes. To CHANGE a property (e.g. strip metadata, remove JavaScript, flatten annotations), use our dedicated tools: Remove Metadata, Strip Links, Flatten." },
+      { q: "Privacy?", a: "100% client-side. PDFs are parsed in your browser via PDFium + byte-level parsers; nothing uploaded." },
+    ],
+    cta: {
+      title: "Found something to clean up?",
+      text: "Strip metadata to clear author / creator / modification dates, or Strip Links to remove every hyperlink before sharing &mdash; both run in your browser, surgically modifying just the property you target.",
+      linkHref: "/tool/remove-metadata",
+      linkLabel: "Try Remove Metadata",
+    },
+  },
 };
