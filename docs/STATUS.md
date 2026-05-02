@@ -3,9 +3,9 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-05-02 EOD (Phase 3 cleanup + 4 new tool builds + SEO de-staling arc, 19 commits since `3d32d6e`).
-**Live commit:** `94df7ec` (verified via `/api/health`, two stale-worker recoveries via SSH pkick during the arc).
-**Aggregator:** 4059 passed across 61 suites in 5.8s (+46 from yesterday's 4013/59 — 2 new CI guards `ai-tool-preview` + `redirect-direction` and ~25 extension assertions on `page-editor-consumers`).
+**Last updated:** 2026-05-02 EOD (Phase 3 cleanup + 4 new tool builds + SEO de-staling + Tier 1-4 SEO landings + Tier A-C cleanup arc, 32 commits since `3d32d6e`).
+**Live commit:** `95d8d38` (queued through Hostinger auto-deploy).
+**Aggregator:** 4095 passed across 63 suites in 5.9s (+82 from yesterday's 4013/59 — 4 new CI guards `ai-tool-preview` + `redirect-direction` + `download-helper-adoption` + `spelling-uk-in`, plus ~30 extension assertions on existing guards).
 **Phase 4 baselines:** still ACTIVE.
 **Phase 6 synthetic monitor:** still active.
 
@@ -77,6 +77,50 @@ A 14-commit autonomous arc that closed Phase 3 (broken-related-id cleanup), ship
 **Sitemap re-submitted to Google Search Console** (2026-05-02 EOD): existing submission was stuck at "Couldn't fetch" status, last-read 25 Apr 2026 — predating today's 12 new pages and the .htaccess CSP fix. Re-submitted via Chrome MCP through the user's connected GSC account; status flipped to "Success" with discovered-pages count jumping from 184 → 275 in real-time. Re-crawl typically takes 3-14 days for full coverage; today's 8 reclaimed SEO landings + 4 new tool runners should start ranking once the crawl completes.
 
 **Bing Webmaster Tools sitemap submission deferred** (2026-05-02 EOD): tried twice via Chrome MCP. Bing WMT's React/Fluent-UI SPA refuses to mount in this MCP browser context — bundle.min.js loads + icons register (per console warnings about icon re-registration), but the `#root` div stays empty after multiple reloads. Likely Bing-side anti-automation or context-detection. Mitigated automatically: `robots.txt` already declares `Sitemap: https://pdfcraftai.com/sitemap.xml`, which BingBot reads on normal crawl cycle so new content gets discovered without explicit WMT submission. Manual submission via the user's standard (non-MCP) browser would just expedite the crawl by a few days; not strictly required for indexing.
+
+### 2026-05-02 EOD addendum (continued) — Tier 1-4 SEO landings + Tier A-C cleanup arc
+
+After today's audit-driven sweep (12 commits), shipped two more tier-batches based on the comprehensive standardization analysis:
+
+**Tier 1-4 (13 commits) — 100% SEO landing coverage:**
+- Tier 1: 5 head-term landings (rotate / unlock / page-numbers / crop / form-fill)
+- Tier 2a: 6 TOOL_SUGGESTIONS entries (n-up-pdf + 5 PDF→non-PDF round-trip handoffs)
+- Tier 2b: TableExtractTool migrated to canonical `downloadCsvString` helper (fixed Excel-on-Windows mojibake on ₹ etc.)
+- Tier 3a: 2 longforms (page-count + pdf-inspector — closes longform parity)
+- Tier 3b: 7 mid-traffic landings + fix wrong-tool on `/pdf-to-png` (was pointing at `pdf-to-jpg`)
+- Tier 4: 6 audit-tool landings (PDF/A, PDF/X, accessibility, annotations, JavaScript, links)
+
+**Tier A-C (5 commits) — engineering hygiene:**
+- Tier A1: Migrated 30 tools to canonical `downloadBytes` helper. 14 of those gained auto-deduplication via `suffixedFilename` (was previously skipped). Eliminated ~250 LOC of duplicated dance.
+- Tier A2: New `download-helper-adoption` CI guard pins the migration. Also deleted dead-code duplicate `downloadBytes` from `lib/client/pdf-utils.ts` (zero consumers, name collision risk).
+- Tier B1: Documented AI-specific error shapes in UI_COPY.md (3 patterns: document-shape mismatch / transient AI failure / empty result). Audit confirmed all 14 AI tools already follow these shapes — pin as canonical for future tools.
+- Tier B2: Pinned British/Indian spelling for verbs that have both forms (Analysing not Analyzing). Caught + fixed 3 drifts (CourtOrderTool busy spinner, 2 SEO landing strings). New `spelling-uk-in` CI guard prevents regression.
+- Tier C: Final docs sync (this update).
+
+**Final SEO scoreboard:**
+
+| Layer | Coverage |
+|---|---|
+| Catalog | 111/111 (100%) |
+| Intro | 111/111 (100%) |
+| Longform | 110/111 (99% — only ai-chat carved out) |
+| ToolRunner dispatch | 110/111 (99% — ai-chat carved out) |
+| TOOL_SUGGESTIONS | 93/111 (83% — rest are intentional carve-outs for read-only inspectors with no PDF handoff target) |
+| SEO landing | 111/111 (100%) |
+
+**Total commit count for 2026-05-02:** 50 commits across 5 phases (yesterday's main arc + audit-driven extension + Tier 1-4 SEO landings + Tier A-C cleanup + this docs sync). Aggregator went from 4013 → 4095 assertions (+82) and 59 → 63 suites (+4 new CI guards: ai-tool-preview, redirect-direction, download-helper-adoption, spelling-uk-in).
+
+**Real bugs caught + fixed today via the analysis-driven sweep:**
+1. 8 SEO landings 308-bouncing past their canonical content
+2. Wrong-direction redirect on /markdown-to-pdf (Markdown→PDF user landed on PDF→Markdown extractor)
+3. `/pdf-to-png` SEO landing had `tool: "pdf-to-jpg"` (wrong tool)
+4. 5 sitewide CTAs (4 ad slots + footer) doing unnecessary 308 hops
+5. Homepage tool grid showing a 308-bouncing card (Option B drift)
+6. Server `.htaccess` CSP carrying retired Paddle origins (15 references across 3 directives)
+7. TableExtractTool emitting CSVs without UTF-8 BOM (mojibake on ₹ in Indian financial PDFs)
+8. CourtOrderTool busy spinner using American "Analyzing…" amid 8 tools using British "Analysing…"
+9. Duplicate `downloadBytes` in pdf-utils.ts (dead code, zero consumers, name collision risk)
+10. 14 tools skipping `suffixedFilename` (silent download overwrite on repeats)
 
 **Carryover items deferred per user directive** ("concentrate on Client side tools and AI tools"):
 - Server-side compress (Ghostscript / pdf-lib reflow rail)
