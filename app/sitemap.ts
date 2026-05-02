@@ -78,16 +78,27 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "extract-pdf-pages", "delete-pdf-pages", "pdf-page-count",
     "resize-pdf", "remove-pdf-metadata", "add-logo-to-pdf",
     "add-text-to-pdf", "highlight-pdf", "redact-pdf-free",
-    "extract-pdf-attachments", "edit-pdf", "sign-pdf-free",
+    // 2026-05-02: extract-pdf-attachments + edit-pdf REMOVED — real
+    // SEO landings shipped today. Slugs now render via app/<slug>/
+    // page.tsx and belong in sitemap as canonical URLs.
+    "sign-pdf-free",
     "repair-pdf", "flatten-pdf", "markdown-to-pdf", "text-to-pdf",
     "extract-pdf-form-data", "reorder-pdf-pages",
-    "extract-emails-from-pdf", "extract-entities-from-pdf",
-    "stamp-pdf", "n-up-pdf", "grayscale-pdf", "strip-links",
-    "booklet-pdf", "free-draw-pdf", "add-links",
+    // 2026-05-02: extract-emails-from-pdf REMOVED — real landing
+    // shipped today (extract-contacts tool wired through SEO landing).
+    "extract-entities-from-pdf",
+    "stamp-pdf", "n-up-pdf",
+    // 2026-05-02: grayscale-pdf REMOVED — real landing shipped today.
+    "strip-links",
+    // 2026-05-02: booklet-pdf REMOVED — real landing shipped today.
+    "free-draw-pdf", "add-links",
     // Second-pass redirects (commit cadf27c) — slugs with
     // app/<slug>/page.tsx but broken-render via dead tool: ref.
     "pdf-to-word", "pdf-to-excel", "pdf-to-powerpoint",
-    "pdf-to-ics-calendar", "court-judgment-summarizer",
+    // 2026-05-02: pdf-to-ics-calendar + court-judgment-summarizer
+    // REMOVED — real tools shipped today (extract-dates, ai-court-
+    // order); existing app/<slug>/page.tsx files now render the
+    // canonical landings instead of being intercepted by 308s.
   ]);
   const seoRoutes: MetadataRoute.Sitemap = SEO_SLUGS
     .filter((slug) => !REDIRECTED_SEO_SLUGS.has(slug))

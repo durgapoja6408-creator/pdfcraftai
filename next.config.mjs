@@ -435,8 +435,13 @@ const nextConfig = {
       { source: "/add-text-to-pdf", destination: "/tool/add-text-box", permanent: true },
       { source: "/highlight-pdf", destination: "/tool/highlight-pdf", permanent: true },
       { source: "/redact-pdf-free", destination: "/tool/redact-free", permanent: true },
-      { source: "/extract-pdf-attachments", destination: "/tool/pdf-attachments", permanent: true },
-      { source: "/edit-pdf", destination: "/tools", permanent: true },
+      // 2026-05-02: /extract-pdf-attachments REDIRECT REMOVED — real
+      // tool (extract-attachments) shipped today (commit 4bb60f7) and
+      // app/extract-pdf-attachments/page.tsx now renders the SEO
+      // landing. Redirect was a stopgap when the tool didn't exist.
+      // 2026-05-02: /edit-pdf REDIRECT REMOVED — SEO landing repointed
+      // today (commit 205697c) at add-text-box with honest copy
+      // downgrade and app/edit-pdf/page.tsx now renders the landing.
       { source: "/sign-pdf-free", destination: "/tool/sign-pdf-free", permanent: true },
       { source: "/repair-pdf", destination: "/tool/repair-pdf", permanent: true },
       { source: "/flatten-pdf", destination: "/tool/flatten-pdf", permanent: true },
@@ -446,13 +451,20 @@ const nextConfig = {
       { source: "/text-to-pdf", destination: "/tool/text-to-pdf", permanent: true },
       { source: "/extract-pdf-form-data", destination: "/tool/pdf-forms", permanent: true },
       { source: "/reorder-pdf-pages", destination: "/tool/sort-pages", permanent: true },
-      { source: "/extract-emails-from-pdf", destination: "/tool/pdf-search", permanent: true },
+      // 2026-05-02: /extract-emails-from-pdf REDIRECT REMOVED — real
+      // tool (extract-contacts) shipped today (commit c56705e) and
+      // app/extract-emails-from-pdf/page.tsx now renders the SEO
+      // landing.
       { source: "/extract-entities-from-pdf", destination: "/tool/ai-entities", permanent: true },
       { source: "/stamp-pdf", destination: "/tool/stamp-pdf", permanent: true },
       { source: "/n-up-pdf", destination: "/tool/n-up-pdf", permanent: true },
-      { source: "/grayscale-pdf", destination: "/tools", permanent: true },
+      // 2026-05-02: /grayscale-pdf REDIRECT REMOVED — real tool
+      // shipped earlier in this commit-arc and app/grayscale-pdf/
+      // page.tsx now renders the SEO landing.
       { source: "/strip-links", destination: "/tool/strip-links", permanent: true },
-      { source: "/booklet-pdf", destination: "/tools", permanent: true },
+      // 2026-05-02: /booklet-pdf REDIRECT REMOVED — real tool shipped
+      // earlier in this commit-arc and app/booklet-pdf/page.tsx now
+      // renders the SEO landing.
       { source: "/free-draw-pdf", destination: "/tool/free-draw-pdf", permanent: true },
       { source: "/add-links", destination: "/tool/add-links", permanent: true },
       //
@@ -485,8 +497,14 @@ const nextConfig = {
       { source: "/pdf-to-word", destination: "/tool/pdf-to-text", permanent: true },
       { source: "/pdf-to-excel", destination: "/tool/pdf-to-text", permanent: true },
       { source: "/pdf-to-powerpoint", destination: "/tool/pdf-to-text", permanent: true },
-      { source: "/pdf-to-ics-calendar", destination: "/tool/pdf-search", permanent: true },
-      { source: "/court-judgment-summarizer", destination: "/tool/ai-summarize", permanent: true },
+      // 2026-05-02: /pdf-to-ics-calendar REDIRECT REMOVED — real tool
+      // (extract-dates) shipped today (commit c586d63) and the
+      // existing app/pdf-to-ics-calendar/page.tsx now renders the
+      // SEO landing instead of being intercepted.
+      // 2026-05-02: /court-judgment-summarizer REDIRECT REMOVED —
+      // real tool (ai-court-order) shipped today (commit 84cb9a9)
+      // and the existing app/court-judgment-summarizer/page.tsx now
+      // renders the SEO landing.
     ];
   },
 };

@@ -127,8 +127,8 @@ const KNOWN_MISSING_SEO_ROUTES = new Set([
   "add-text-to-pdf",
   "highlight-pdf",
   "redact-pdf-free",
-  "extract-pdf-attachments",
-  "edit-pdf",
+  // 2026-05-02 — extract-pdf-attachments + edit-pdf landings shipped
+  // (real tools wired, app/<slug>/page.tsx files now exist).
   "sign-pdf-free",
   "repair-pdf",
   "flatten-pdf",
@@ -136,13 +136,16 @@ const KNOWN_MISSING_SEO_ROUTES = new Set([
   "text-to-pdf",
   "extract-pdf-form-data",
   "reorder-pdf-pages",
-  "extract-emails-from-pdf",
+  // 2026-05-02 — extract-emails-from-pdf landing shipped (extract-
+  // contacts tool wired, app/extract-emails-from-pdf/page.tsx exists).
   "extract-entities-from-pdf",
   "stamp-pdf",
   "n-up-pdf",
-  "grayscale-pdf",
+  // 2026-05-02 — grayscale-pdf landing shipped (real tool wired,
+  // app/grayscale-pdf/page.tsx exists).
   "strip-links",
-  "booklet-pdf",
+  // 2026-05-02 — booklet-pdf landing shipped (real tool wired,
+  // app/booklet-pdf/page.tsx exists).
   "free-draw-pdf",
   "add-links",
 ]);

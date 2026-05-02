@@ -93,10 +93,15 @@ while ((r = REDIRECT_RE.exec(NEXT_SRC)) !== null) {
 }
 
 // Sanity: should be ~40 entries after commits 89cd1e8 + cadf27c
-// (35 + 5 = 40).
+// (35 + 5 = 40). 2026-05-02: dropped to 33 after removing 7 stale
+// redirects (4 today's tools + 3 prior — extract-pdf-attachments,
+// extract-emails-from-pdf, grayscale-pdf, booklet-pdf, edit-pdf,
+// pdf-to-ics-calendar, court-judgment-summarizer). These all have
+// real SEO landing pages now, so the redirects were intercepting
+// canonical URLs.
 assert(
-  seoRedirectSources.size >= 35,
-  `next.config.mjs SEO redirects parse: expected >= 35 single-segment redirects whose source is in SEO_SLUGS, got ${seoRedirectSources.size}`,
+  seoRedirectSources.size >= 30,
+  `next.config.mjs SEO redirects parse: expected >= 30 single-segment redirects whose source is in SEO_SLUGS, got ${seoRedirectSources.size}`,
 );
 
 // ---------------------------------------------------------------------------
