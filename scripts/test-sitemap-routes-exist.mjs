@@ -132,7 +132,9 @@ const KNOWN_MISSING_SEO_ROUTES = new Set([
   "sign-pdf-free",
   "repair-pdf",
   "flatten-pdf",
-  "markdown-to-pdf",
+  // 2026-05-02 — markdown-to-pdf landing shipped (real tool wired,
+  // app/markdown-to-pdf/page.tsx exists; previous redirect was
+  // pointing at the OPPOSITE direction tool /tool/pdf-to-markdown).
   "text-to-pdf",
   "extract-pdf-form-data",
   "reorder-pdf-pages",

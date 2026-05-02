@@ -82,7 +82,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // SEO landings shipped today. Slugs now render via app/<slug>/
     // page.tsx and belong in sitemap as canonical URLs.
     "sign-pdf-free",
-    "repair-pdf", "flatten-pdf", "markdown-to-pdf", "text-to-pdf",
+    "repair-pdf", "flatten-pdf",
+    // 2026-05-02: markdown-to-pdf REMOVED — real landing shipped
+    // (the previous /markdown-to-pdf → /tool/pdf-to-markdown
+    // redirect was pointing at the OPPOSITE direction tool).
+    "text-to-pdf",
     "extract-pdf-form-data", "reorder-pdf-pages",
     // 2026-05-02: extract-emails-from-pdf REMOVED — real landing
     // shipped today (extract-contacts tool wired through SEO landing).

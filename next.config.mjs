@@ -445,7 +445,16 @@ const nextConfig = {
       { source: "/sign-pdf-free", destination: "/tool/sign-pdf-free", permanent: true },
       { source: "/repair-pdf", destination: "/tool/repair-pdf", permanent: true },
       { source: "/flatten-pdf", destination: "/tool/flatten-pdf", permanent: true },
-      { source: "/markdown-to-pdf", destination: "/tool/pdf-to-markdown", permanent: true },
+      // 2026-05-02: /markdown-to-pdf REDIRECT REMOVED — same bug
+      // pattern as text-to-pdf below (caught earlier). Was pointing
+      // at /tool/pdf-to-markdown which is the OPPOSITE direction
+      // (PDF → Markdown extractor, not Markdown → PDF generator).
+      // Real Markdown → PDF tool shipped earlier in the
+      // 2026-05-01 Tier 1 batch alongside grayscale + booklet, and
+      // an SEO landing for /markdown-to-pdf exists in lib/seo-pages.ts
+      // pointing at the correct `tool: "markdown-to-pdf"`. Created
+      // app/markdown-to-pdf/page.tsx so the landing renders instead
+      // of bouncing through the wrong-direction redirect.
       // 2026-05-01: text-to-pdf is its own tool now (was redirected
       // to /tool/pdf-to-text — the OPPOSITE direction. Bad pre-fix.)
       { source: "/text-to-pdf", destination: "/tool/text-to-pdf", permanent: true },
