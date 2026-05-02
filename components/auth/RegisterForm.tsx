@@ -95,8 +95,12 @@ export function RegisterForm() {
           name="password"
           autoComplete="new-password"
           required
-          minLength={8}
-          placeholder="At least 8 characters"
+          // 2026-05-02 plan §8a item 5 — bumped 8 → 10 to match
+          // the server-side registerSchema. Server-side rule is
+          // authoritative; this client hint just prevents an
+          // unnecessary round-trip on too-short input.
+          minLength={10}
+          placeholder="At least 10 characters, mix of cases + digits"
           show={showPassword}
           onToggle={() => setShowPassword((v) => !v)}
           error={fe.password}
