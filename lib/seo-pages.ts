@@ -140,7 +140,15 @@ export type SeoPageSlug =
   | "semantic-search-pdf"
   | "extract-action-items"
   | "generate-pdf-from-prompt"
-  | "ai-fill-pdf-form";
+  | "ai-fill-pdf-form"
+  // 2026-05-02 Tier 1 head-term batch — 5 landings closing the
+  // highest-SEO-value gaps in the catalog (rotate / unlock /
+  // page-numbers / crop / form-fill).
+  | "rotate-pdf"
+  | "unlock-pdf"
+  | "add-page-numbers"
+  | "crop-pdf"
+  | "fill-pdf-form";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -2408,9 +2416,113 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
     related: ["ai-sign", "ai-generate", "sign-pdf-free", "pdf-form-fill"],
   },
 
+  // 2026-05-02 Tier 1 head-term batch — 5 landings closing the highest-
+  // SEO-value gaps in the catalog. Each tool was already shipped + had
+  // a /tool/<id> runner, just no keyword-targeted landing page.
 
+  "rotate-pdf": {
+    tool: "rotate",
+    h1: "Rotate PDF — fix sideways pages, free and in your browser",
+    sub: "Rotate selected pages 90°, 180°, or 270° — lossless via pdf-lib's /Rotate adjustment. No re-rendering, runs in milliseconds. No signup, no watermark, your file never leaves your device.",
+    canonical: "/rotate-pdf",
+    howTo: [
+      { t: "Drop your PDF", d: "Up to 100 MB. We render thumbnails of every page in your browser so you can pick exactly which to rotate." },
+      { t: "Click pages to select", d: "Click any thumbnail to add or remove it from the rotation set. Shift-click to range-select. Or use \"Select all\" for whole-doc rotation." },
+      { t: "Pick a rotation amount", d: "90° clockwise, 180° (upside-down), or 270° (90° counter-clockwise). Mix-and-match across multiple apply passes if pages need different rotations." },
+      { t: "Apply and download", d: "Output PDF has every selected page rotated. Lossless — text stays selectable, file size barely changes." },
+    ],
+    faq: [
+      { q: "Why is this lossless?", a: "We don't re-render the page bitmap — we set the page's /Rotate attribute in the PDF dictionary. Every PDF viewer (Acrobat, Preview, Chrome, Firefox) honors /Rotate at display time. Output bytes are essentially the same as input minus a few hundred bytes per rotated page." },
+      { q: "Can I rotate just one page?", a: "Yes. Click only that page's thumbnail before applying. The rotation lands on exactly the pages you select; everything else passes through unchanged." },
+      { q: "What about scanned PDFs that are upside-down?", a: "Same workflow — /Rotate works on any PDF page regardless of whether the content is text, vector graphics, or scanned images. Scanned-PDF rotation is the most common use case." },
+      { q: "Does this fix scanner skew (slight angle)?", a: "No — /Rotate only handles 90° increments. Skew correction needs deskew filters which require re-rendering the page bitmap. That's roadmapped as a paid AI · Deskew tool." },
+      { q: "Privacy?", a: "100% client-side. Your PDF is rendered, modified, and saved entirely in the browser. Nothing uploaded to our servers." },
+    ],
+    related: ["sort-pages", "crop-pdf", "extract-pages", "delete-pages"],
+  },
 
+  "unlock-pdf": {
+    tool: "unlock",
+    h1: "Unlock PDF — remove owner restrictions in your browser",
+    sub: "Remove no-print / no-copy / no-edit restrictions from PDFs that don't require a password to open. Lossless, free, instant. Owner-password files only — user-password (open-password) PDFs need the password first.",
+    canonical: "/unlock-pdf",
+    howTo: [
+      { t: "Drop your PDF", d: "Up to 100 MB. Stays in your browser — never uploaded." },
+      { t: "We strip owner restrictions", d: "If the PDF has owner-password protection (printing / copying / editing disabled but no password to open), we remove those /Encrypt directives via pdf-lib." },
+      { t: "Download the unlocked file", d: "Output PDF opens, prints, copies, and edits normally in any viewer." },
+    ],
+    faq: [
+      { q: "Does this work on PDFs that need a password to open?", a: "No. If the PDF prompts for a password before showing content, that's a USER-password (open-password) and the file is genuinely encrypted. You need the password to decrypt it. Try AI · OCR if all you need is the text." },
+      { q: "What's the difference between owner-password and user-password?", a: "User-password (also called open-password) encrypts the entire file — you can't read it without the password. Owner-password (also called permissions-password) leaves the file readable but restricts what you can do (print, copy, edit). This tool removes owner-password restrictions." },
+      { q: "Is this legal?", a: "Removing owner restrictions on a PDF you legitimately own is generally legal in most jurisdictions. Removing protections on a copyrighted document you don't own is NOT — that's circumventing technological protection measures (DMCA Section 1201 in the US, similar laws elsewhere). Use this on your own files only." },
+      { q: "Will the unlocked file print at full quality?", a: "Yes. Removing the no-print restriction restores full-quality printing. The original PDF data is unchanged — only the encrypt-permissions dictionary is stripped." },
+      { q: "Privacy?", a: "100% client-side. Your PDF is processed in your browser and never sent to our servers." },
+    ],
+    related: ["flatten-pdf", "remove-metadata", "redact-free", "strip-links"],
+  },
 
+  "add-page-numbers": {
+    tool: "page-numbers",
+    h1: "Add page numbers to PDF — pick position, format, font size",
+    sub: "Stamp page numbers onto every page via pdf-lib drawText overlay. Pick position (6 corners + centered), format (1, Page 1, 1 of N, Page 1 of N), font, and size. Free, in-browser, no watermark.",
+    canonical: "/add-page-numbers",
+    howTo: [
+      { t: "Drop your PDF", d: "Up to 100 MB. Rendered in your browser for live preview." },
+      { t: "Pick position + format", d: "Six positions (top/bottom × left/center/right). Four format presets (\"1\" / \"Page 1\" / \"1 of N\" / \"Page 1 of N\"). Customize starting number, font, and size if needed." },
+      { t: "Optional page range", d: "Default is every page. Specify ranges (e.g. \"3-end\") if you want to skip a cover or table of contents." },
+      { t: "Apply and download", d: "Page numbers get baked into the page content stream as text — searchable, copy-able, and viewer-independent." },
+    ],
+    faq: [
+      { q: "What if the PDF already has page numbers?", a: "We add new ones on top — the original numbers stay. If you want to replace existing page numbers, redact them first with our free Redact tool, then run this." },
+      { q: "Can I number pages with letters or roman numerals?", a: "MVP is decimal numbers. Roman / alpha / custom prefixes are roadmapped — let us know which formats matter most." },
+      { q: "Will the numbers overlap content?", a: "Numbers go in the margin (top or bottom edge) at the position you pick. Most PDFs have enough margin space; if not, the position closest to the corner stays out of the way of body text." },
+      { q: "Can I skip the cover page?", a: "Yes — set the page range to start from page 2 (e.g. \"2-end\") and the starting number to 1. The cover stays unmarked, body pages number from 1." },
+      { q: "Privacy?", a: "100% client-side. PDF processed in your browser; nothing uploaded." },
+    ],
+    related: ["stamp-pdf", "image-watermark", "highlight-pdf", "rotate"],
+  },
+
+  "crop-pdf": {
+    tool: "crop-pdf",
+    h1: "Crop PDF — drag to set the visible area, free and lossless",
+    sub: "Drag a rectangle on page 1, applied uniformly to every page. Lossless via PDF /CropBox — no content removed, just hidden. Reversible via Acrobat or any PDF editor that exposes CropBox.",
+    canonical: "/crop-pdf",
+    howTo: [
+      { t: "Drop your PDF", d: "Up to 100 MB. Stays in your browser." },
+      { t: "Drag a crop rectangle on page 1", d: "Click-drag on the rendered preview to define the visible area. The same crop is applied to every page (consistent margins are the common case)." },
+      { t: "Verify position", d: "Live preview overlay shows exactly what stays visible. Adjust the rectangle until it looks right; then commit." },
+      { t: "Apply and download", d: "Output PDF has /CropBox set to your selection. Every viewer (Acrobat, Preview, Chrome) honors /CropBox at render time." },
+    ],
+    faq: [
+      { q: "Is this destructive?", a: "No. /CropBox HIDES content — the original page bytes are still there, just clipped at display time. Acrobat Pro or pdf-lib can reset CropBox to MediaBox to restore the full view. For TRUE destructive cropping (content actually removed), use Adobe Acrobat's \"Crop and Save\" with \"Remove cropped content\" option." },
+      { q: "Why apply the same crop to every page?", a: "Most cropping use cases are about consistent margins (removing scanned edges, normalizing print boundaries). Per-page cropping is rare and adds significant UI complexity. If your pages need different crops, run multiple passes with the relevant page ranges." },
+      { q: "Will the file get smaller?", a: "Slightly. /CropBox itself adds a few bytes per page. The original content stream is unchanged so the dominant size factor stays the same. For real size reduction, run Compress after Crop." },
+      { q: "What if the crop hides important content?", a: "Re-run the tool on the original (uncropped) file with a different rectangle. /CropBox is non-destructive so you can iterate freely. If you've lost the original, Acrobat can reset CropBox to MediaBox to restore the full page." },
+      { q: "Privacy?", a: "100% client-side. PDF processed in your browser; nothing uploaded." },
+    ],
+    related: ["resize-pdf", "rotate", "n-up-pdf", "page-numbers"],
+  },
+
+  "fill-pdf-form": {
+    tool: "pdf-form-fill",
+    h1: "Fill PDF form — type in any AcroForm, free, in your browser",
+    sub: "Visually fill text, checkboxes, radio buttons, dropdowns, and multi-select fields in any PDF AcroForm. Optional flatten on save so recipients can't edit. No signup, no watermark.",
+    canonical: "/fill-pdf-form",
+    howTo: [
+      { t: "Drop your PDF form", d: "Any PDF with AcroForm fields. Up to 100 MB. We enumerate every field and render an inline editor next to the page preview." },
+      { t: "Fill fields in any order", d: "Type into text fields. Click checkboxes / radios. Pick dropdown values. Field types are auto-detected — text widgets get text inputs, checkboxes get toggles, etc." },
+      { t: "Optional: flatten on save", d: "Toggle the \"flatten form\" option to bake the values into the page content. Flattened forms can't be edited by recipients — useful when you're submitting a filled form rather than passing it on for further filling." },
+      { t: "Download", d: "Output PDF has all your values populated. Open in any viewer to verify before sending." },
+    ],
+    faq: [
+      { q: "What if my PDF doesn't have form fields?", a: "Then it's not an AcroForm — it's a static PDF. You'd need a PDF authoring tool (Acrobat Pro, LibreOffice Draw, our roadmap-paid Form Builder) to add interactive fields. Or use our Add Text Box tool to overlay typed text without true form fields." },
+      { q: "What's the difference between filling and flattening?", a: "Filling sets each field's value but leaves the field interactive (recipient can change it). Flattening bakes the value into the page content as drawn text — the field stops being a field. Use flatten when you want the form to be \"done\" — e.g. you're submitting a filled application." },
+      { q: "Are signature fields supported?", a: "Text-based signature fields work (you type your name). For drawn or image signatures placed visually, use our Sign PDF tool — it lets you draw or upload a signature image and place it anywhere on the page." },
+      { q: "What about Indian government forms (PAN, Aadhaar, passport)?", a: "Most central-government forms are PDF AcroForms and work here. State and district-level forms vary — some are scanned PDFs without form fields, in which case use Add Text Box instead. Always preview before submitting." },
+      { q: "Privacy?", a: "100% client-side. Forms filled in your browser; nothing uploaded." },
+    ],
+    related: ["sign-pdf-free", "flatten-pdf", "ai-sign", "add-text-box"],
+  },
 
 };
 
