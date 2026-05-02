@@ -974,6 +974,13 @@ const SUITES = [
   // enumeration phrasing in registerAction errors, bcrypt.compare for
   // credentials authorize. 21 assertions across 5 sections.
   { name: "auth-hardening", file: "test-auth-hardening.mjs" },
+  // 2026-05-02 plan §8a DPDP gap 13 (Day 1.6) — DPDP endpoint contract.
+  // Static-parse guard for /api/account/export (DPDP right to export),
+  // /api/account/delete (right to erasure with email confirmation +
+  // cascade), and docs/runbooks/data-breach.md (72-hour notification
+  // protocol covering DPDP §8(6) + GDPR Art. 33-34). 34 assertions
+  // across 3 sections.
+  { name: "dpdp-endpoints", file: "test-dpdp-endpoints.mjs" },
   // 2026-04-30 aggregator-coverage guard: every scripts/test-*.mjs
   // and scripts/test-*.ts must be wired into the SUITES array
   // above. Catches orphan test files that silently never run in
