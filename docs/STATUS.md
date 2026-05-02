@@ -3,9 +3,42 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-05-02 EOD (Phase 3 cleanup + 4 new tool builds + SEO de-staling + Tier 1-4 SEO landings + Tier A-C cleanup arc, 32 commits since `3d32d6e`).
-**Live commit:** `95d8d38` (queued through Hostinger auto-deploy).
-**Aggregator:** 4095 passed across 63 suites in 5.9s (+82 from yesterday's 4013/59 — 4 new CI guards `ai-tool-preview` + `redirect-direction` + `download-helper-adoption` + `spelling-uk-in`, plus ~30 extension assertions on existing guards).
+**Last updated:** 2026-05-02 night (Pricing/Telemetry plan auto-mode arc — 5 commits, Days 1 + 1.5b + 1.6 + 2 + 5-partial).
+**Live commit:** `08c62fe` (Hostinger auto-deploy verified, recovered after zombie next-server cascade — 10 stale workers mass-killed at 20:06 UTC).
+**Aggregator:** 4219 passed across 69 suites in 7.0s (+124 from `4095/63` — 5 new CI guards `no-supply-chain-leaks` + `no-credit-number-hardcodes` + `estimate` + `auth-hardening` + `dpdp-endpoints` + `abuse-prevention`).
+
+### 2026-05-02 night — Pricing/Telemetry auto-mode arc (Days 1 + 1.5b + 1.6 + 2 + 5-partial)
+
+5 commits in the auto-mode session, executing the plan documented in `docs/PRICING_AND_TELEMETRY_PLAN.md`. User count at session start: 7 (per Day 0 SSH probe — falls into the "1-10 → no comms" bucket per gap 17).
+
+| Day | Commit | What |
+|---|---|---|
+| 0 | n/a | SSH user-count probe (7), SMTP creds saved, Turnstile keys saved (`0x4AAAAAADH0w8NFtw_mwWPx` + secret) |
+| **1** | `9f9c8fe` | Supply-chain scrub (9 tool components — stripped Provenance footer leaking provider+model). Credit-badge removal from tool titles (chip now just "AI"). Marketing copy sweep ("Purchased credits never expire" + dropped "few cents" rupee leak + dropped Anthropic/OpenAI naming). 30+ tool component pricing-blurb credit-number strips. Two new CI guards: `no-supply-chain-leaks` (281 files scanned) + `no-credit-number-hardcodes` (282 files scanned). Multiplier feature flag scaffold (`MULTIPLIER_PRICING_ENABLED` env var, default-on, Hostinger panel rollback path). |
+| **2** | `396a5c3` | `POST /api/ai/estimate` — pre-flight credit estimator. Pure function `lib/ai/estimate.ts:estimateCredits()` is the single source of truth. Per-page multiplier for ocr/redact/sign, per-chunk for translate (ceil(chars / 10K)), flat for chat/summarize/rewrite/table/compare/generate. Token-bucket rate-limit 30/user/min. Credits-only response (no multiplier leak). UI wiring deferred to follow-up. |
+| **1.5b** | `f96800c` | Bcrypt cost factor 10 → 12. Password strength: min(10) + 3 of 4 character classes (lowercase/uppercase/digit/symbol). Removed user-enumeration message ("An account with that email already exists" → generic "Couldn't create the account"). bcrypt.compare audit (auth.ts:64 already correct, constant-time). NextAuth v5 default cookie audit passes (Secure + HttpOnly + SameSite=Lax + 30d). |
+| **1.6** | `8dbfcbe` | DPDP Act 2023 compliance work. New `GET /api/account/export` (full JSON dump of every user-attributable record, parallel queries, ai_outputs joined via files). New `POST /api/account/delete` (email-confirmation defense, hard-delete + cascade, audit log captures domain+id+ts only). New `docs/runbooks/data-breach.md` (DPDP §8(6) + GDPR Art. 33-34, 4-tier classification, hour-by-hour playbook, cross-border transfer note). Privacy Policy unchanged (already covers DPDP §16/§9/§11 from earlier Task #24). |
+| **5-partial** | `08c62fe` | Abuse-prevention layers 1, 2, 4. Migration `0018_users_signup_security.sql` applied pre-push (3 new cols on users: signup_ip, device_fingerprint, email_normalized + UNIQUE INDEX). Layer 1 disposable email blocklist (~250 domains). Layer 2 Gmail+alias + dot normalization (`raja+1@gmail.com` collapses to `raja@gmail.com`). Layer 4 IP capture via Cloudflare cf-connecting-ip (full /24 throttle deferred to Day 5.5). registerAction wired to apply all three before DB write. Layer 3 (verification gate), 5 (FingerprintJS), 6 (expiry), 7 (Turnstile) deferred. |
+
+#### Zombie next-server cascade — recovered (this arc)
+
+The Day 5-partial deploy (`08c62fe`) hit the zombie-next-server cascade documented in CLAUDE.md (10 stale workers under one HelperAgent, total uptime ~50 min from launch to last spawn). Recovery: ONE pkick → no recovery → zombie mass-kill (`ps -fu u692382124 | grep next-server | awk '{print $2}' | xargs -r kill -KILL && touch nodejs/tmp/restart.txt`) → recovered in <60s. Health endpoint + db both green at 20:06 UTC. Total downtime: ~12 min, no user impact at 7-user scale.
+
+#### Deferred to next session
+
+| Plan ref | Item | Reason |
+|---|---|---|
+| §3 Day 1.7 | translate/redact/sign route refactor (move text extraction before spend, use multiplier) | 3-route refactor; landed feature flag scaffold today, route work deferred to its own commit for safer review |
+| §5 Day 2.5 | UI wiring of estimator into 10 AI tool components | Endpoint live + tested via curl; client-side wiring is independent work |
+| §3 Day 3 | `/app/usage` page (credits-only history, 90d cap, daily breakdown chart) | Independent of all other work; ~3h |
+| §3 Day 4 | Admin gap-fill (`/admin/users/[id]`, `/admin/abuse-signals`, `/admin/tools/[id]`) | ~5h, shares admin chrome |
+| §8a Day 1.5a | Email verification flow + password reset flow + credentials login rate limit | 6h; SMTP creds saved; needs Day 1.5a-specific commit |
+| §8 Day 5 layer 3 | Email verification gate (depends on Day 1.5a flow) | gated on Day 1.5a |
+| §8 Day 5.5 | Layers 5-7: device fingerprint + 7-day grant expiry + Turnstile widget | Migration 0019 + FingerprintJS open-core + Turnstile React component |
+| §9 Day 6 | Atomic deploy: marketing copy 25→5 + grantSignupBonus + 6-item pre-deploy probe | Depends on Days 1.5a + 5 + 5.5 |
+| §9 Day 6.5 | Personalized out-of-credits modal | After Day 6 |
+
+
 **Phase 4 baselines:** still ACTIVE.
 **Phase 6 synthetic monitor:** still active.
 
