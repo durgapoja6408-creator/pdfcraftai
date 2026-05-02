@@ -43,21 +43,12 @@ export async function sha256HexOfBytes(bytes: Uint8Array): Promise<string> {
     .join("");
 }
 
-/** Trigger a browser download for an in-memory byte array. */
-export function downloadBytes(bytes: Uint8Array, filename: string, mime = PDF_MIME) {
-  // Wrap the Uint8Array in a fresh buffer so Blob gets a regular ArrayBuffer.
-  const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-  const blob = new Blob([buf], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  // Give the browser a beat, then revoke.
-  setTimeout(() => URL.revokeObjectURL(url), 4_000);
-}
+// 2026-05-02 Tier A2 cleanup: a second `downloadBytes` lived here as
+// dead code (zero consumers — every tool imports the canonical version
+// from lib/client/download.ts which has filename-collision suffixing
+// via suffixedFilename). Removed to eliminate the name collision risk.
+// If you need to download bytes, use `downloadBytes` from
+// lib/client/download.ts.
 
 /** Parse a range spec like "1-3, 7, 9-12" into 1-based page arrays. */
 export function parsePageRanges(spec: string, totalPages: number): number[][] {

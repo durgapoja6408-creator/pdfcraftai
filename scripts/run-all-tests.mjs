@@ -775,6 +775,14 @@ const SUITES = [
   // test-seo-pages-tool-mapping for deliberate "shipping ahead of
   // tooling" cases (Office bidirectionals → /tool/pdf-to-text).
   { name: "redirect-direction", file: "test-redirect-direction.mjs" },
+  // 2026-05-02 Tier A2: download-helper adoption guard. After today's
+  // sweep migrated 30 tools from hand-rolled Blob+download dance to
+  // the canonical downloadBytes() helper, this guard locks the
+  // migration: any tool that hand-rolls the dance fails npm test.
+  // Floor on adoption count (>=30) catches the reverse regression
+  // (tool migrated back to hand-rolled or download functionality
+  // removed entirely).
+  { name: "download-helper-adoption", file: "test-download-helper-adoption.mjs" },
   // 2026-04-30 a11y guard: prevents `color: var(--accent),
   // textDecoration: "none"` from being reintroduced in body-text JSX
   // contexts. Pattern was the source of 18 serious axe
