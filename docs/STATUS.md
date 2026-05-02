@@ -3,8 +3,8 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-05-02 night (Pricing/Telemetry plan auto-mode arc — 5 commits, Days 1 + 1.5b + 1.6 + 2 + 5-partial).
-**Live commit:** `08c62fe` (Hostinger auto-deploy verified, recovered after zombie next-server cascade — 10 stale workers mass-killed at 20:06 UTC).
+**Last updated:** 2026-05-02 night (Pricing/Telemetry plan auto-mode arc — 7 commits, Days 1 + 1.5b + 1.6 + 2 + 5-partial + STATUS sync + client-pwd-min match).
+**Live commit:** `72ae160` (deploy queued; previous `85c7a3c` verified at HTTP 200, db ok, both new endpoints `/api/account/export` + `/api/ai/estimate` return 401 unauth = correct gate). Recovered from zombie-next-server cascade at 20:06 UTC via documented mass-kill playbook.
 **Aggregator:** 4219 passed across 69 suites in 7.0s (+124 from `4095/63` — 5 new CI guards `no-supply-chain-leaks` + `no-credit-number-hardcodes` + `estimate` + `auth-hardening` + `dpdp-endpoints` + `abuse-prevention`).
 
 ### 2026-05-02 night — Pricing/Telemetry auto-mode arc (Days 1 + 1.5b + 1.6 + 2 + 5-partial)
