@@ -251,10 +251,15 @@ export const GROUP_ORDER: readonly ToolGroup[] = ["AI", "Organize", "Convert", "
 
 export const toolById = (id: string): Tool | undefined => TOOLS.find((t) => t.id === id);
 
-export const toolsByGroup = (): Record<ToolGroup, Tool[]> => {
+export const toolsByGroup = (
+  filter?: (t: Tool) => boolean,
+): Record<ToolGroup, Tool[]> => {
   const out = {} as Record<ToolGroup, Tool[]>;
   for (const g of GROUP_ORDER) out[g] = [];
-  for (const t of TOOLS) out[t.group].push(t);
+  for (const t of TOOLS) {
+    if (filter && !filter(t)) continue;
+    out[t.group].push(t);
+  }
   return out;
 };
 

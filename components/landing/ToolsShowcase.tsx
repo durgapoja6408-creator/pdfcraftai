@@ -3,7 +3,13 @@ import { I } from "@/components/icons/Icons";
 import { GROUP_ORDER, toolsByGroup } from "@/lib/tools";
 
 export function ToolsShowcase() {
-  const grouped = toolsByGroup();
+  // 2026-05-02 — same ai-chat exclusion that ToolFilter.tsx applies to
+  // /tools (added 2026-05-01 with Option B). The homepage tool grid
+  // had been showing the ai-chat card linking to /tool/ai-chat which
+  // 308-redirects to /chat-with-pdf, wasting one redirect hop on
+  // every click. Chat has its own first-class top-nav slot now.
+  // Surfaced via end-to-end QA of /chat-with-pdf entry funnel.
+  const grouped = toolsByGroup((t) => t.id !== "ai-chat");
   return (
     <section className="section">
       <div className="container-x">
