@@ -154,6 +154,11 @@ export const TOOL_SUGGESTIONS: Record<string, readonly string[]> = {
   "ai-action-items": ["ai-key-points", "ai-summarize", "text-to-pdf"],
   "ai-nda": ["ai-employment", "ai-partnership-deed", "ai-redact"],
   "ai-employment": ["ai-nda", "ai-cover-letter", "ai-redact"],
+  // 2026-05-01 — ai-court-order shipped today (commit 84cb9a9).
+  // Suggestions route to the broader legal-toolkit (NDA / employment /
+  // partnership for counterparty docs; redact for sealed-content prep
+  // before sharing judgments where party identities matter).
+  "ai-court-order": ["ai-nda", "ai-employment", "ai-partnership-deed", "ai-redact"],
   "ai-salary-slip": ["ai-blood-test", "ai-redact", "text-to-pdf"],
   "ai-research-paper": ["ai-citations", "ai-summarize", "ai-key-points"],
   "ai-insurance": ["ai-blood-test", "ai-summarize", "ai-key-points"],
