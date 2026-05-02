@@ -13,7 +13,11 @@ import Link from "next/link";
 // braces — it lands in the page HTML so browser-side
 // interpretations (e.g. archive.org) treat the page correctly too.
 export const metadata: Metadata = {
-  title: "Page not found · pdfcraft ai",
+  // Just "Page not found" — root layout's title.template adds
+  // "· pdfcraft ai" automatically. Setting the full string here
+  // produces "Page not found · pdfcraft ai · pdfcraft ai" (double
+  // suffix). Verified via post-deploy probe.
+  title: "Page not found",
   description:
     "The page you're looking for doesn't exist. Head back to the tool catalog or homepage.",
   robots: { index: false, follow: false },
