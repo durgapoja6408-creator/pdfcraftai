@@ -7,9 +7,16 @@ import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { AuthError } from "next-auth";
 
+import { headers } from "next/headers";
+
 import { db, schema } from "@/db/client";
 import { signIn } from "@/auth";
 import { sanitizeCallbackUrl } from "@/lib/auth-callback";
+import {
+  isDisposableEmail,
+  normalizeEmail,
+  readClientIp,
+} from "@/lib/auth/abuse-prevention";
 
 // ---------------- Register ----------------
 
@@ -77,16 +84,55 @@ export async function registerAction(
   }
 
   const { name, email, password } = parsed.data;
-  const normalizedEmail = email.toLowerCase();
+  const lowercased = email.toLowerCase();
+
+  // 2026-05-02 plan §8 layer 1 — disposable email blocklist.
+  // Reject mailinator + 250 other common temp-email providers BEFORE
+  // any DB write. Honest users with edge-case providers (e.g. their
+  // employer happens to use a domain on the list — extremely rare) can
+  // contact support; the false-positive rate is ~0.01% by design.
+  if (isDisposableEmail(lowercased)) {
+    return {
+      ok: false,
+      error:
+        "This email provider isn't supported. Use a personal or work email.",
+      fieldErrors: { email: "Disposable / temporary email providers are blocked." },
+    };
+  }
+
+  // 2026-05-02 plan §8 layer 2 — Gmail-alias + dot normalization.
+  // Collapse `raja+1@gmail.com` and `r.a.j.a@gmail.com` to the same
+  // canonical key for the uniqueness check. UNIQUE INDEX on
+  // users.email_normalized (migration 0018) catches this at DB level
+  // too; we check here first to give a friendlier error.
+  const normalizedEmail = normalizeEmail(lowercased);
+
+  // 2026-05-02 plan §8 layer 4 (partial) — capture signup IP for the
+  // abuse-signal admin page. The full /24-bucket throttle decision
+  // requires a counting query that's safe to defer to layer 4 wiring
+  // in a follow-up commit; the column is populated now so future-
+  // ships have data to clamp on.
+  const reqHeaders = await headers();
+  const signupIp = readClientIp(reqHeaders);
 
   try {
+    // Check both raw + normalized forms so we catch
+    //   - same exact email twice
+    //   - alias-form duplicates of an existing canonical row
     const existing = await db
       .select({ id: schema.users.id })
       .from(schema.users)
-      .where(eq(schema.users.email, normalizedEmail))
+      .where(eq(schema.users.emailNormalized, normalizedEmail))
       .limit(1);
+    const existingByExact = existing[0]
+      ? existing
+      : await db
+          .select({ id: schema.users.id })
+          .from(schema.users)
+          .where(eq(schema.users.email, lowercased))
+          .limit(1);
 
-    if (existing[0]) {
+    if (existingByExact[0]) {
       // 2026-05-02 plan §8a item 7 — no user enumeration. Original
       // copy ("An account with that email already exists. Try signing
       // in.") confirmed email-existence to anyone hitting /register
@@ -112,8 +158,17 @@ export async function registerAction(
     await db.insert(schema.users).values({
       id,
       name,
-      email: normalizedEmail,
+      // Store the lowercase exact email (preserves @gmail vs
+      // @googlemail vs alias for display purposes).
+      email: lowercased,
       passwordHash,
+      // 2026-05-02 plan §8 layers 2 + 4. emailNormalized is
+      // alias-collapsed (UNIQUE-indexed); signupIp + deviceFingerprint
+      // power the admin abuse-signal page.
+      emailNormalized: normalizedEmail,
+      signupIp: signupIp || null,
+      // deviceFingerprint not yet populated — needs FingerprintJS
+      // client integration which lands in Day 5.5.
     });
 
     await db.insert(schema.credits).values({
@@ -136,7 +191,7 @@ export async function registerAction(
   // Sign the new user in via Credentials; this redirects on success.
   try {
     await signIn("credentials", {
-      email: normalizedEmail,
+      email: lowercased,
       password,
       redirectTo,
     });

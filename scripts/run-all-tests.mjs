@@ -981,6 +981,16 @@ const SUITES = [
   // protocol covering DPDP §8(6) + GDPR Art. 33-34). 34 assertions
   // across 3 sections.
   { name: "dpdp-endpoints", file: "test-dpdp-endpoints.mjs" },
+  // 2026-05-02 plan §8 layers 1, 2, 4 (Day 5 partial) — abuse-prevention
+  // helpers + registerAction wire-in. Verifies disposable email
+  // blocklist (~250 domains), Gmail+alias + dot normalization,
+  // IPv4/IPv6 bucket reduction, Cloudflare cf-connecting-ip preference,
+  // schema + migration parity, and that registerAction calls the
+  // disposable check BEFORE the DB lookup. 34 assertions / 5 sections.
+  // Layer 3 (email verification gate) requires the verification flow
+  // from Day 1.5a — deferred. Layer 5/6/7 (device fingerprint, expiry,
+  // Turnstile) deferred to Day 5.5.
+  { name: "abuse-prevention", file: "test-abuse-prevention.mjs" },
   // 2026-04-30 aggregator-coverage guard: every scripts/test-*.mjs
   // and scripts/test-*.ts must be wired into the SUITES array
   // above. Catches orphan test files that silently never run in

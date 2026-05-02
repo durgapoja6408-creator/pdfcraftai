@@ -13,6 +13,7 @@ import {
   timestamp,
   primaryKey,
   index,
+  uniqueIndex,
 } from "drizzle-orm/mysql-core";
 
 // Users — Auth.js requires id, name, email, emailVerified, image.
@@ -32,6 +33,19 @@ export const users = mysqlTable(
     emailVerified: timestamp("email_verified", { fsp: 3 }),
     image: varchar("image", { length: 1024 }),
     passwordHash: varchar("password_hash", { length: 255 }),
+    // 2026-05-02 plan §8 abuse-stack columns. See migration 0018.
+    //   signupIp: Cloudflare cf-connecting-ip at signup time. IPv6-safe
+    //     length (45 = IPv6 max). Used by abuse detector for /24-bucket
+    //     rate-limit check.
+    //   deviceFingerprint: FingerprintJS open-core 64-char hash.
+    //     Layer 5 of abuse stack — bot farms running on shared VM
+    //     images all produce the same fingerprint.
+    //   emailNormalized: Gmail-alias-collapsed + dot-stripped +
+    //     lowercased. UNIQUE so `raja+1@gmail.com` and
+    //     `r.a.j.a@gmail.com` both rejected as duplicates of `raja@gmail.com`.
+    signupIp: varchar("signup_ip", { length: 45 }),
+    deviceFingerprint: varchar("device_fingerprint", { length: 64 }),
+    emailNormalized: varchar("email_normalized", { length: 254 }),
     createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
     // Billing profile (Task #23 PART 2). See migration 0016.
     gstin: varchar("gstin", { length: 15 }),
@@ -51,6 +65,10 @@ export const users = mysqlTable(
   },
   (t) => ({
     emailIdx: index("users_email_idx").on(t.email),
+    // 2026-05-02 plan §8 — indexes for abuse-signal lookups.
+    emailNormalizedUq: uniqueIndex("users_email_normalized_uq").on(t.emailNormalized),
+    signupIpIdx: index("users_signup_ip_idx").on(t.signupIp),
+    deviceFingerprintIdx: index("users_device_fingerprint_idx").on(t.deviceFingerprint),
   })
 );
 
