@@ -310,6 +310,10 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
     text: "What you'll get: structured tables of your blood-test results with reference ranges, out-of-range flags, and plain-language explanations of what each marker means.",
     related: { id: "ai-summarize", label: "AI · Summarize PDF" },
   },
+  "ai-court-order": {
+    text: "What you'll get: structured summary of an Indian court judgment — case meta, parties, acts/sections cited, issues framed, holding, reasoning, remedy, plus a plain-English summary suitable for non-lawyers. Triage aid for legal research, not legal advice.",
+    related: { id: "ai-nda", label: "AI · NDA Analyzer" },
+  },
   "ai-resume-parse": {
     text: "What you'll get: structured JSON of your resume — name, contact, work history, education, skills, certifications. Ready to push into your ATS.",
     related: { id: "ai-ats-resume", label: "AI · ATS Resume Optimizer" },

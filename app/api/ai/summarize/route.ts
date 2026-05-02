@@ -114,6 +114,9 @@ const VALID_DEPTHS: readonly SummarizeDepth[] = [
   "loan-bundle",
   // Task #79 — five more Tier 3 wedges (§3.1 + §3.2 + §3.3):
   "partnership-deed",
+  // 2026-05-01 — Task #79 cont. — Indian court judgment summarizer
+  // (§3.2 P2). JSON output for the dedicated CourtOrderTool UI.
+  "court-order",
   // Task #80 — five more Tier 3 wedges (§3.4 + §3.10 + §3.5 + §3.1):
   // Task #81 — five more wedges (Tier 2 §2.5/§2.6/§2.8 + Tier 3 §3.3):
   "improve-writing",

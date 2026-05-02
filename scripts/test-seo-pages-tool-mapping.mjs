@@ -155,8 +155,11 @@ const KNOWN_DEAD_REFS = new Map([
   // "Edit PDF" generic surface — would aggregate add-text + highlight
   // + redact + draw into one canvas; not built.
   ["edit-pdf", "edit-pdf"],
-  // AI variants not yet in the registry.
-  ["court-judgment-summarizer", "ai-court-order"],
+  // 2026-05-01 — ai-court-order SHIPPED. The /court-judgment-summarizer
+  // SEO landing now resolves to a real AI tool (depth=court-order routing
+  // through /api/ai/summarize, with structured JSON output rendered by
+  // the dedicated CourtOrderTool UI). Removed (was:
+  // ["court-judgment-summarizer", "ai-court-order"]).
 ]);
 
 const deadRefs = [];

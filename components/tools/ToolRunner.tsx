@@ -502,6 +502,11 @@ const BloodTestTool = dyn(() =>
     default: m.BloodTestTool,
   })),
 );
+const CourtOrderTool = dyn(() =>
+  import("@/components/tools/CourtOrderTool").then((m) => ({
+    default: m.CourtOrderTool,
+  })),
+);
 const SearchablePdfTool = dyn(() =>
   import("@/components/tools/SearchablePdfTool").then((m) => ({
     default: m.SearchablePdfTool,
@@ -593,6 +598,8 @@ export function ToolRunner({ id }: { id: string }) {
       return <ActionItemsPdfTool />;
     case "ai-blood-test":
       return <BloodTestTool />;
+    case "ai-court-order":
+      return <CourtOrderTool />;
     case "ai-syllabus":
       return <SyllabusStudyPlanTool />;
     case "ai-discharge":

@@ -199,6 +199,13 @@ export type SummarizeDepth =
   //   ncert           §3.3 P1 — NCERT chapter summarizer with
   //   class-wise vocab (10c)
   | "partnership-deed"
+  // Task #79 (cont.) — court-order shipped 2026-05-01:
+  //   court-order §3.2 P2 — Indian court judgment / order summary
+  //   with parties + acts/sections cited + issues framed + holding +
+  //   reasoning + remedy. JSON output for the dedicated CourtOrderTool
+  //   UI. Triage aid for legal researchers / journalists / litigants;
+  //   "not legal advice" caveat surfaced prominently.
+  | "court-order"
   // Task #80 — five more Tier 3 wedges:
   //   scan-report      §3.4 P2 — MRI/CT/X-ray report explainer in
   //   plain Indian English. NOT a diagnosis. (20c)
@@ -1204,6 +1211,47 @@ function buildSystemPrompt(opts: {
           "ownership, succession on death). End with note this " +
           "is an audit aid, not legal advice."
         );
+      case "court-order":
+        // §3.2 Indian Court Order / Judgment Summarizer.
+        // Structured JSON for the dedicated CourtOrderTool UI.
+        // Triage aid — NOT legal advice. Surfaced in FAQ + tool copy.
+        return (
+          "Parse this Indian court judgment / order into structured " +
+          "JSON. Output ONLY a ```json fenced code block containing " +
+          "a single object shaped {\"meta\": {\"caseNumber\": " +
+          "string|null, \"court\": string|null (e.g. 'Supreme Court " +
+          "of India', 'Bombay High Court', 'Madras High Court'), " +
+          "\"bench\": string|null (e.g. 'Single Judge', 'Division " +
+          "Bench', 'Constitution Bench (5 Judges)'), \"judges\": " +
+          "[string] (full names with titles like 'Hon'ble Justice X'), " +
+          "\"dateOfJudgment\": string|null (ISO YYYY-MM-DD when " +
+          "possible), \"orderType\": string|null (e.g. 'judgment', " +
+          "'interim order', 'final order', 'review order')}, " +
+          "\"parties\": {\"petitioners\": [string], \"respondents\": " +
+          "[string], \"appearedFor\": [{\"party\": string, " +
+          "\"counsel\": string}]}, \"actsCited\": [{\"act\": string " +
+          "(e.g. 'Indian Penal Code, 1860'), \"sections\": [string] " +
+          "(e.g. ['302', '34'])}], \"issues\": [string] (the legal " +
+          "questions the court framed for itself, in their own " +
+          "words where possible), \"holding\": string (the court's " +
+          "decision in 1-3 sentences — what was actually decided), " +
+          "\"reasoning\": [string] (the court's main reasoning " +
+          "points, 3-7 bullets, NOT a paraphrase of every paragraph " +
+          "— the load-bearing logic only), \"remedy\": string|null " +
+          "(specific orders, directions, sentence, costs, or other " +
+          "operative parts), \"summary\": string (3-5 sentence plain-" +
+          "English summary suitable for a non-lawyer audience)}. " +
+          "Preserve Indian legal vocabulary in the structured fields " +
+          "(don't anglicise 'CrPC' to 'Criminal Procedure Code' — " +
+          "keep the abbreviation as it appears). The `summary` " +
+          "field IS plain English. Do NOT add commentary on whether " +
+          "the holding was correct or whether it can be appealed — " +
+          "that's interpretation. Extract what the court said, not " +
+          "what you think about it. If the document is not a court " +
+          "order (e.g. a contract, a notice, a writ petition before " +
+          "judgment), return JSON with `meta.orderType: \"not-a-court-" +
+          "order\"` and an empty `holding`."
+        );
       case "research-paper":
         // §3.3 Research Paper Summarizer with citations.
         return (
@@ -1421,6 +1469,8 @@ function buildUserPrompt(opts: {
         return "Extract the action items";
       case "blood-test":
         return "Parse this lab report";
+      case "court-order":
+        return "Summarize this court judgment";
       case "syllabus":
         return "Build a study plan from this syllabus";
       case "discharge":

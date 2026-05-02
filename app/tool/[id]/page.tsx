@@ -187,6 +187,7 @@ const LIVE_TOOL_IDS = new Set<string>([
   "ai-redact",
   "ai-generate",
   "ai-sign",
+  "ai-court-order",
 ]);
 
 // Free tools that run server-side rather than on-device. These still

@@ -224,6 +224,7 @@ export const OP_OUTPUT_CAP_TABLE: CapTable = {
     "loan-bundle": 2400, // Documents found + missing + income snapshot + next steps.
     // Task #79 — Tier 3 §3.1 + §3.2 + §3.3 wedges.
     "partnership-deed": 2400, // Partners table + capital + risk flags + missing clauses.
+    "court-order": 2800, // Indian court judgment JSON: meta + parties + acts/sections + reasoning bullets + holding + remedy.
     // Task #80 — Tier 3 §3.4 + §3.10 + §3.5 + §3.1 wedges.
     // Task #81 — Tier 2 §2.5/§2.6/§2.8 + Tier 3 §3.3 wedges.
     "improve-writing": 4000, // Rewritten doc may be ~80% of input length.

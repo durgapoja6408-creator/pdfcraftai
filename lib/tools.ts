@@ -229,6 +229,14 @@ export const TOOLS: readonly Tool[] = [
   { id: "ai-redact", name: "Redact Sensitive Info", desc: "Auto-detect PII and black it out.", icon: "Shield", free: false, cost: "5 credits per doc", group: "AI" },
   { id: "ai-generate", name: "Generate PDF from Prompt", desc: "Draft reports, contracts, briefs from text.", icon: "Generate", free: false, cost: "20 credits per doc", group: "AI" },
   { id: "ai-sign", name: "Sign & Fill Forms", desc: "AI fills fields, you sign and send.", icon: "Pen", free: false, cost: "10 credits per doc", group: "AI" },
+  // 2026-05-01 — ai-court-order: Indian court judgment/order summarizer.
+  // Closes the /court-judgment-summarizer SEO landing that was seeded
+  // pre-2026-04-30 but had no underlying tool. Routes through
+  // /api/ai/summarize with depth=court-order; structured JSON output
+  // (meta + parties + acts cited + issues + holding + reasoning +
+  // remedy + plain-English summary). Triage aid for legal research
+  // and journalists; "not legal advice" caveat surfaced at every layer.
+  { id: "ai-court-order", name: "Court Judgment Summarizer", desc: "Indian court judgments → structured summary: parties, acts/sections cited, issues framed, holding, reasoning, remedy. Plain-English summary suitable for non-lawyers. Triage aid, not legal advice.", icon: "Shield", free: false, cost: "3 credits per doc", group: "AI" },
   { id: "ai-table", name: "AI Table Extract", desc: "Extract tables as CSV or Excel — even multi-page.", icon: "Pages", free: false, cost: "3 credits per doc", group: "AI" },
   { id: "ai-compare", name: "Compare PDFs", desc: "Redline diff with AI severity analysis.", icon: "Compare", free: false, cost: "15 credits per diff", group: "AI" },
 ] as const;

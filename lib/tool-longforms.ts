@@ -6436,6 +6436,94 @@ export const TOOL_LONGFORMS: Record<string, ToolLongformData> = {
     },
   },
 
+  // 2026-05-01 — ai-court-order: Indian court judgment summarizer.
+  "ai-court-order": {
+    useCasesTitle: "Why people use Court Judgment Summarizer",
+    useCasesIntro:
+      "Indian court judgments run 20-200 pages of dense legal prose, citations to multiple Acts and case law, and complicated procedural history before the actual holding. The summarizer extracts the structure: parties, acts/sections cited, issues framed, holding, reasoning, remedy, plus a plain-English summary. Triage aid for legal research and reporting &mdash; not legal advice.",
+    useCases: [
+      {
+        icon: "Book",
+        title: "Legal research / brief prep",
+        text: "Litigators reading 50 cited judgments to build a brief use the summarizer to triage which ones reward a full read. Save the deep read for the 5 actually-on-point cases; the structured summaries for the other 45 are enough to know what the citation says without burning hours.",
+      },
+      {
+        icon: "Pages",
+        title: "Self-represented litigants understanding their case",
+        text: "Indian self-represented (in-person) litigants getting a copy of the judgment in their own case need to understand what the court actually decided. The plain-English summary is written for non-lawyers; the structured fields (acts, sections, holding) match the formal vocabulary they&rsquo;ll see in any filing they make next.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Journalist covering specific cases",
+        text: "Reporters covering Supreme Court / High Court judgments with deadline pressure use the summarizer to surface the holding + key reasoning + acts cited fast. The plain-English summary is the foundation for a reader-friendly story; the structured fields verify accuracy.",
+      },
+      {
+        icon: "Edit",
+        title: "Compliance / legal-team monitoring",
+        text: "In-house legal teams tracking judgments that affect their industry (data privacy, employment law, tax, regulatory) run new judgments through the summarizer to triage relevance. The structured output flags acts cited so a team monitoring DPDP Act / IT Act / Companies Act can filter to relevant cases programmatically.",
+      },
+      {
+        icon: "Shield",
+        title: "Law student case-brief preparation",
+        text: "Indian law students briefing cases for tutorials or moot court use the summarizer as a starting structure: facts, issues, holding, reasoning, ratio. Edit and verify against the original judgment, but the skeleton is the slow part the tool removes.",
+      },
+    ],
+    howWorksTitle: "How Court Judgment Summarizer works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop the judgment PDF",
+        text: "Indian court judgments from any court &mdash; Supreme Court, High Courts, Tribunals, District Courts. PDF up to 100 MB. Scanned judgments work too &mdash; we OCR before parsing.",
+      },
+      {
+        step: "2",
+        title: "We extract + structure",
+        text: "Server-side text extraction, then a structured pass that surfaces: meta (case number, court, bench, judges, date), parties (petitioners, respondents, counsel), acts cited (with sections), issues framed, holding, reasoning bullets, remedy. Indian legal vocabulary preserved (CrPC stays CrPC, not anglicised). Routing layer picks the model best at structured legal extraction.",
+      },
+      {
+        step: "3",
+        title: "Get a structured summary",
+        text: "Output: Plain-English summary (3-5 sentences for non-lawyers) at the top + Holding + Case meta table + Parties + Acts/Sections cited table + Issues framed + Reasoning + Remedy. JSON export for programmatic workflows.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Is this legal advice?",
+        a: "No, emphatically. The summarizer surfaces what the judgment SAYS &mdash; it doesn&rsquo;t interpret applicability, predict appeals, or recommend strategy. For precedent-grade analysis, read the full judgment and consult a qualified Indian advocate. The tool is a triage aid: it tells you what each cited case is about so you can spend time on the ones that matter.",
+      },
+      {
+        q: "Will it correctly identify ratio vs obiter?",
+        a: "Tries, but imperfectly. The reasoning bullets surface what the court explicitly relied on (load-bearing logic, closer to ratio) versus passing observations (closer to obiter), but the legal distinction is not always crisp even for human readers. Verify against the full judgment when ratio classification matters.",
+      },
+      {
+        q: "Does it work for non-English judgments?",
+        a: "Best results on English-language judgments (Supreme Court, most High Courts). Hindi judgments (e.g. some Allahabad High Court orders) and regional-language judgments work but accuracy drops &mdash; the model handles the structural extraction but legal-vocabulary preservation is weaker outside English. For Indic-script judgments, treat the output as a starting draft.",
+      },
+      {
+        q: "Does it cite-check the cases mentioned in the judgment?",
+        a: "No. The summarizer surfaces the citations as they appear in the judgment but doesn&rsquo;t verify the citations are accurate or look up the cited cases. For citation verification + downstream cited-case research, use Manupatra / SCC Online / CaseMine or similar Indian legal databases that have curated citation graphs.",
+      },
+      {
+        q: "What about confidential / sealed orders?",
+        a: "If you have a sealed order (e.g. matrimonial dispute, juvenile justice, sexual offences cases under POCSO/IT Act), DON&rsquo;T upload it &mdash; even though we don&rsquo;t store the PDF, it transits to the AI provider&rsquo;s inference servers. For sealed content, do the analysis manually or use an air-gapped tool. The privacy footer below the result reminds you of this.",
+      },
+      {
+        q: "What&rsquo;s the credit cost?",
+        a: "3 credits per judgment. Cost is fixed regardless of doc size.",
+      },
+      {
+        q: "Where does this fit relative to SCC Online / Manupatra?",
+        a: "Different category. SCC Online + Manupatra are paid databases with editor-curated head-notes, citation graphs, and historical archives spanning decades. This summarizer extracts structure from any judgment you have a PDF of &mdash; useful for one-off research, recent judgments not yet in the databases, or supplementing the paid tools&rsquo; head-notes with a plain-English summary for non-lawyer audiences.",
+      },
+    ],
+    cta: {
+      title: "Have an NDA or contract instead?",
+      text: "AI NDA Analyzer surfaces risk flags + missing clauses + embedded surprises in any NDA. Pairs with the court summarizer for the &ldquo;triage every legal doc that crosses my desk&rdquo; workflow.",
+      linkHref: "/tool/ai-nda",
+      linkLabel: "Try AI NDA Analyzer",
+    },
+  },
+
   "ai-loan-bundle": {
     useCasesTitle: "Why people use Loan Application Bundler Audit",
     useCasesIntro:
