@@ -62,6 +62,7 @@ const LIVE_TOOL_IDS = new Set<string>([
   "pdf-outline",
   "pdf-forms",
   "pdf-attachments",
+  "extract-contacts",
   "pdf-fonts",
   // Build 2 Wave 8 — 6 more byte-parser tools.
   "pdf-links",

@@ -217,6 +217,10 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
     text: "What you'll get: a list of every embedded file — filename, MIME, size, description.",
     related: { id: "pdf-forms", label: "PDF Form Inspector" },
   },
+  "extract-contacts": {
+    text: "What you'll get: every email address and phone number in the PDF as a deduped table — Indian + international phone formats, page references, CSV export.",
+    related: { id: "pdf-to-text", label: "PDF to Text" },
+  },
   "pdf-fonts": {
     text: "What you'll get: every font in the PDF, flagged embedded vs not, with the pages each appears on.",
     related: { id: "pdf-inspector", label: "PDF Inspector" },

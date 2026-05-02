@@ -93,6 +93,13 @@ export const TOOLS: readonly Tool[] = [
   // Build 2 Wave 4 (continued) — Form Fields + Attachments byte parsers.
   { id: "pdf-forms", name: "PDF Form Inspector", desc: "List every AcroForm field in a PDF — name, type, value, required/read-only flags. Export as CSV or JSON. Free, in-browser.", icon: "Pen", free: true, cost: "free", group: "Organize" },
   { id: "pdf-attachments", name: "PDF Attachments Lister", desc: "List every embedded file in a PDF — filename, description, MIME type, size. Useful for compliance audits and security review. Free, in-browser.", icon: "Shield", free: true, cost: "free", group: "Organize" },
+  // 2026-05-01 — Extract Contacts: regex-based emails + phone numbers
+  // from PDF text. Closes the /extract-emails-from-pdf SEO landing
+  // that was seeded ahead of the tool. Indian phone formats
+  // (+91 XXXXX XXXXX, 0XX-XXXXXXXX, bare 10-digit mobiles) are primary
+  // supported variants alongside US/Canadian and generic international
+  // (+CC) patterns. Runs entirely client-side.
+  { id: "extract-contacts", name: "Extract Emails & Phones", desc: "Pull every email address and phone number out of a PDF as a deduped table. Indian + international phone formats, page references, CSV export. Free, in-browser.", icon: "Search", free: true, cost: "free", group: "Organize" },
   // Build 2 Wave 4 (final): font inventory — completes the 11-tool list.
   { id: "pdf-fonts", name: "PDF Font Inspector", desc: "List every font in a PDF, flag embedded vs not, see which pages use each. Critical for print prep. Free, in-browser.", icon: "Edit", free: true, cost: "free", group: "Organize" },
 

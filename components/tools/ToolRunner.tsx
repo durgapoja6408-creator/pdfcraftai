@@ -221,6 +221,11 @@ const PdfAttachmentsTool = dyn(() =>
     default: m.PdfAttachmentsTool,
   })),
 );
+const ExtractContactsTool = dyn(() =>
+  import("@/components/tools/ExtractContactsTool").then((m) => ({
+    default: m.ExtractContactsTool,
+  })),
+);
 const PdfFontsTool = dyn(() =>
   import("@/components/tools/PdfFontsTool").then((m) => ({
     default: m.PdfFontsTool,
@@ -682,6 +687,8 @@ export function ToolRunner({ id }: { id: string }) {
       return <PdfFormsTool />;
     case "pdf-attachments":
       return <PdfAttachmentsTool />;
+    case "extract-contacts":
+      return <ExtractContactsTool />;
     case "pdf-fonts":
       return <PdfFontsTool />;
     case "pdf-links":

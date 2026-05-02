@@ -811,6 +811,90 @@ export const TOOL_LONGFORMS: Record<string, ToolLongformData> = {
     },
   },
 
+  // 2026-05-01 — Extract Contacts: regex emails + Indian/intl phones
+  "extract-contacts": {
+    useCasesTitle: "Why people extract emails and phones from PDFs",
+    useCasesIntro:
+      "Old contact sheets, conference attendee lists, vendor catalogues, sales-rep PDFs, real-estate listings — every flat-file roster has hundreds of contacts that need to live in a CRM, a spreadsheet, or an email tool. Extract Contacts pulls them out as a deduped table with page references — runs entirely in your browser, no signup required.",
+    useCases: [
+      {
+        icon: "Search",
+        title: "Sales lead enrichment",
+        text: "Conference attendee lists, exhibitor directories, industry reports often have contact details buried in prose. Extraction turns the PDF into a CSV ready for Salesforce / HubSpot / Pipedrive import.",
+      },
+      {
+        icon: "Edit",
+        title: "Email-list dedup before campaign",
+        text: "When inheriting a contact list as a PDF (a common consultancy / agency situation), extract first, dedupe against your existing CRM, then upload the new-only contacts. Saves the spend on already-known leads.",
+      },
+      {
+        icon: "Pages",
+        title: "Vendor / supplier directory parsing",
+        text: "MSME directories, trade-association rosters, and exhibitor lists publish as PDFs. The structured CSV makes them queryable — find every supplier in a city, every vendor with a specific email domain.",
+      },
+      {
+        icon: "Shield",
+        title: "Resume contact-info verification",
+        text: "Recruiters with hundreds of candidate PDFs use the tool to standardize the contact info they capture into ATS — same email/phone formats across all candidates, no re-keying typos.",
+      },
+      {
+        icon: "Book",
+        title: "Real-estate / classified listings",
+        text: "Indian property classifieds publish as multi-page PDFs. Extract phones to get every broker / owner number with page references for follow-up. Indian phone formats (+91, bare 10-digit, STD landline) all detected.",
+      },
+    ],
+    howWorksTitle: "How Extract Contacts works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your PDF",
+        text: "Up to 100 MB. The byte-parser pipeline that runs PDF to Text + the email/phone regex all execute in your browser — nothing uploaded.",
+      },
+      {
+        step: "2",
+        title: "We extract + dedupe",
+        text: "Emails matched via standard local-part@domain.tld regex. Phones matched via India-first ordered patterns (+91 XXXXX XXXXX → 0XX-XXXXXXXX → bare 10-digit) plus US/Canadian and generic international (+CC). Each contact deduped across pages with occurrence count + page list preserved.",
+      },
+      {
+        step: "3",
+        title: "Copy or export CSV",
+        text: "Combined CSV (type / value / normalized / region / count / pages) drops into your CRM, spreadsheet, or email tool. JSON export available for programmatic workflows.",
+      },
+    ],
+    faqs: [
+      {
+        q: "What phone formats are supported?",
+        a: "Indian formats are primary: +91 XXXXX XXXXX, +91-XXXXX-XXXXX, +91XXXXXXXXXX, 0XX-XXXXXXXX (STD landline), bare 10-digit (mobile). Plus US/Canadian (+1 (XXX) XXX-XXXX, etc.) and generic international (+CC ...). Bare 10-digit numbers default to Indian classification (mobiles starting 6-9; landlines 2-5).",
+      },
+      {
+        q: "Will it catch obfuscated emails like &lsquo;name [at] domain dot com&rsquo;?",
+        a: "No. The regex matches standard email format only. Obfuscated emails are intentionally hard to scrape — that's their purpose. For obfuscated formats, use AI Extract Entities which uses an LLM and handles natural-language obfuscation.",
+      },
+      {
+        q: "What about scanned PDFs?",
+        a: "Won&rsquo;t work — we extract from PDF text, and scanned PDFs have no text layer. The tool detects this case and tells you to run AI PDF OCR first to add a text layer, then re-run Extract Contacts.",
+      },
+      {
+        q: "Does it work for non-English content?",
+        a: "Email regex is universal (emails are ASCII). Phone regex is biased toward Indian + US formats; other international formats with + prefix usually match but won&rsquo;t be normalized. For Indic-script content (Hindi, Tamil, etc.), text extraction itself works on Unicode PDFs but quality degrades on older non-Unicode fonts.",
+      },
+      {
+        q: "Privacy?",
+        a: "Everything runs in your browser. The PDF never leaves your machine. The extracted contact table is for your own use — for sharing with third parties (e.g. handing a list to a marketing agency), redact PII via Redact PDF or scrub via your own tool first.",
+      },
+      {
+        q: "What about false positives?",
+        a: "Phone regex over-matches on prices, timestamps, ID numbers — those get filtered by &lsquo;isLikelyPhone&rsquo; before output, but a few may slip through. Eyeball the output before importing into a CRM.",
+      },
+    ],
+    cta: {
+      title: "Need to extract structured entities too?",
+      text: "AI Extract Entities surfaces people, organizations, places, and dates as four separate tables — useful when you need named-entity tables, not just emails and phones.",
+      linkHref: "/tool/ai-entities",
+      linkLabel: "Try AI Extract Entities",
+    },
+  },
+
   // -------- Wave 8 (2026-04-27) — byte-parser tools --------------
 
   "pdf-links": {

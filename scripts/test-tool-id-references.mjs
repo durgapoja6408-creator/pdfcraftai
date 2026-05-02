@@ -132,8 +132,8 @@ const KNOWN_BROKEN_RELATED_IDS = new Set([
   "to-pdf",
   "pdf-to-office",
   // Extract-X tools planned as separate actions (KNOWN_DEAD_REF).
+  // 2026-05-01 — "extract-contacts" SHIPPED, removed from allowlist.
   "extract-form-data",
-  "extract-contacts",
   "extract-dates",
 ]);
 
@@ -240,13 +240,14 @@ assert(
 // (instead of fixing the underlying reference) bumps the size; this
 // assertion forces a deliberate cap bump in the same PR for visibility.
 assert(
-  KNOWN_BROKEN_RELATED_IDS.size <= 11,
+  KNOWN_BROKEN_RELATED_IDS.size <= 10,
   `KNOWN_BROKEN_RELATED_IDS has ${KNOWN_BROKEN_RELATED_IDS.size} entries; ` +
-    `cap is 11 (down from 22 after Phase 3 cleanup, 2026-05-01). Either fix ` +
+    `cap is 10 (down from 22 → 11 → 10 over 2026-05-01: Phase 3 cleanup ` +
+    `repaired 11 ids; extract-contacts SHIPPED, removing the 12th). Either fix ` +
     `one of the listed ids to repair its references (preferred — repair the ` +
     `real tool reference in seo-pages.ts), or if a new id genuinely needs ` +
     `grandfathering, fix one existing entry first to keep the cap monotonic. ` +
-    `The remaining 11 are aligned with KNOWN_DEAD_REFS in test-seo-pages-tool-mapping.mjs ` +
+    `The remaining 10 are aligned with KNOWN_DEAD_REFS in test-seo-pages-tool-mapping.mjs ` +
     `— they will resolve naturally when the planned tools ship.`,
 );
 
