@@ -150,9 +150,13 @@ const KNOWN_DEAD_REFS = new Map([
   // /extract-pdf-attachments SEO landing now resolves to a real tool
   // with stream decompression + ZIP bundle download. Removed (was:
   // ["extract-pdf-attachments", "extract-attachments"]).
-  // "Edit PDF" generic surface — would aggregate add-text + highlight
-  // + redact + draw into one canvas; not built.
-  ["edit-pdf", "edit-pdf"],
+  // 2026-05-01 — /edit-pdf REPOINTED to existing add-text-box tool.
+  // Was: ["edit-pdf", "edit-pdf"]. The aggregated "Edit PDF" generic
+  // surface (add-text + highlight + redact + draw in one canvas) is
+  // genuinely Adobe-Acrobat-Pro-tier engineering and no free-tier
+  // competitor ships it at quality. Repoint surfaces add-text-box's
+  // existing overlay-tier work + the related toolkit (sign + redact +
+  // free-draw) for the parts of "edit PDF" people actually want.
   // 2026-05-01 — ai-court-order SHIPPED. The /court-judgment-summarizer
   // SEO landing now resolves to a real AI tool (depth=court-order routing
   // through /api/ai/summarize, with structured JSON output rendered by

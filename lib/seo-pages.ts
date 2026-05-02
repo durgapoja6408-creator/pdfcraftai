@@ -918,26 +918,39 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
   },
 
 
+  // 2026-05-01 — Repointed /edit-pdf at the existing add-text-box tool.
+  // The previous SEO copy promised Adobe-Acrobat-level edit-in-place
+  // ("click any text on a PDF page to edit it, font and position
+  // preserved") but that's a 1000+ LOC engineering project (PDFium
+  // text-run bounding boxes, click targets per text run, white-rect-
+  // then-redraw save with matched fonts) that nobody actually ships
+  // at parity — including the open-source / freemium competitors who
+  // claim it. Honest framing: free PDF editors (us included) do
+  // overlay-tier text addition, not true edit-in-place.
+  //
+  // Copy downgraded to match what add-text-box actually does. Related
+  // tools surface the rest of the editing toolkit (sign + redact +
+  // free-draw + ai-rewrite for the "rewrite the doc's text" workflow).
+  // For true edit-in-place at Adobe-level quality, users should buy
+  // Adobe Acrobat Pro — there's no free-tier substitute.
   "edit-pdf": {
-    tool: "edit-pdf",
-    h1: "Edit PDF text — click, type, replace. Free, in your browser",
-    sub: "Click any text on a PDF page to edit it. Font and position preserved. Multi-page, no signup, no watermarks.",
+    tool: "add-text-box",
+    h1: "Edit PDF — add text, sign, redact, draw on any page",
+    sub: "Add new text overlays anywhere on a PDF, sign with a drawn or uploaded signature, redact sensitive content, or draw freehand. All client-side, no signup, no watermarks. For Adobe-level edit-in-place text replacement, use Adobe Acrobat Pro.",
     canonical: "/edit-pdf",
     howTo: [
-      { t: "Drop your PDF", d: "Rendered on your device — nothing uploaded." },
-      { t: "Click the text you want to change", d: "Every text run on the page is clickable. The current text appears in an inline editor." },
-      { t: "Type the replacement", d: "Press Enter to save, Escape to cancel. Edits stack — you can change many runs in one session." },
-      { t: "Apply and download", d: "Original text is covered, replacement drawn at the same position with a matched standard font." },
+      { t: "Drop your PDF", d: "Rendered locally — nothing uploaded." },
+      { t: "Click anywhere to place text", d: "Text overlay with font and size picker. Multi-page support — navigate via the sidebar, click on each page." },
+      { t: "Apply and download", d: "Overlays composed into a new PDF via pdf-lib. The original page content is preserved underneath." },
     ],
     faq: [
-      { q: "Does it work on scanned PDFs?", a: "No — scans are images, not text. Run AI · OCR first to convert the scan into a searchable PDF, then come back here. Once OCR'd, the detected text becomes editable." },
-      { q: "What about coloured or patterned backgrounds?", a: "This v1 covers the original text with an opaque white rectangle before drawing the replacement. On coloured backgrounds the white rectangle will be visible. For those cases, use Redact first (to blank the region your way), then Add Text Box for the new content." },
-      { q: "Why does my replacement look slightly different?", a: "pdf-lib's standard fonts cover Helvetica / Times / Courier / Symbol / ZapfDingbats in their regular/bold/italic/bold-italic variants. Documents using Roboto, Arial, or an embedded custom font will render replacements in Helvetica — the editor shows a warning chip when that's the case." },
-      { q: "Can I edit images too?", a: "Not yet. This is a v1 text-only release. Image editing (replace, delete, resize) is on the roadmap." },
-      { q: "Will longer text overflow?", a: "Yes — we don't reflow surrounding content, so a replacement much longer than the original may overflow into adjacent text. The editor flashes a warning if your replacement is >40% longer." },
+      { q: "Can I edit existing text in the PDF?", a: "No — this tool adds NEW text on top, it doesn't modify existing text runs in place. True edit-in-place (Adobe Acrobat Pro's behavior) requires PDFium-level text-run bounding-box extraction + font matching + reflow handling, which no free-tier tool ships at quality. For that, Adobe Acrobat Pro ($14.99/mo) is the right tool. For overlay-tier edits — adding signatures, dates, comments, fixing typos by covering them — this works." },
+      { q: "What about scanned PDFs?", a: "Overlays work on any PDF including scanned ones (the overlay sits on top of the page image). For scanned PDFs where you want searchable text, run AI · OCR first to add a text layer." },
+      { q: "How do I sign?", a: "Use the Sign PDF tool — a separate free tool that handles drawn or uploaded signature placement with the same click-to-position UX. Linked under Related Tools below." },
+      { q: "How do I redact / black out content?", a: "Use the Redact PDF tool — places opaque rectangles over sensitive content. Linked below." },
       { q: "Privacy?", a: "100% client-side. Your PDF never leaves your browser." },
     ],
-    related: ["edit-pdf", "add-text-box", "redact-free", "ai-rewrite"],
+    related: ["add-text-box", "sign-pdf-free", "redact-free", "free-draw-pdf"],
   },
 
   "sign-pdf-free": {
@@ -2075,7 +2088,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Why would I need this?", a: "Common cases: sharing a doc where the linked URLs themselves are sensitive (private GitHub repos, internal Confluence, partner-only resources); printing without blue link clutter; preventing recipients from accidentally navigating away during a presentation; meeting submission requirements that disallow active hyperlinks." },
       { q: "What about table-of-contents jumps?", a: "Internal navigation links (TOC jumps within the same PDF) are also removed. If you need to keep them, use Flatten + Bookmarks instead." },
     ],
-    related: ["flatten-pdf", "remove-metadata", "redact-free", "edit-pdf"],
+    related: ["flatten-pdf", "remove-metadata", "redact-free", "add-text-box"],
   },
 
   "booklet-pdf": {
@@ -2135,7 +2148,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Why does this need low-level pdf-lib code?", a: "pdf-lib has high-level helpers for drawing rectangles, text, images, SVG paths — anything that goes into a page's content stream. Annotations are different: they're sibling objects that the viewer overlays for interactivity. pdf-lib doesn't expose a high-level addLink(); we construct the /Annot dict manually with the right /Subtype, /Rect, /Border, and /A action subtree, then register it and append the indirect ref to the page's /Annots array. Doable, just not one-liner doable." },
       { q: "Inverse?", a: "Strip Hyperlinks. Run Add Hyperlinks → Strip Hyperlinks and you're back where you started. Both tools agree on the same /Link annotation shape." },
     ],
-    related: ["strip-links", "highlight-pdf", "add-text-box", "edit-pdf"],
+    related: ["strip-links", "highlight-pdf", "add-text-box", "free-draw-pdf"],
   },
 
   // Sprint A REVERTED in Task #99 — 5 govt ID parser SEO entries
