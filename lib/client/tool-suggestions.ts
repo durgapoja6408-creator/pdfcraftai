@@ -48,6 +48,27 @@ export const TOOL_SUGGESTIONS: Record<string, readonly string[]> = {
   "flatten-pdf": ["resize-pdf", "page-numbers", "stamp-pdf"],
   "remove-metadata": ["resize-pdf", "flatten-pdf", "page-numbers"],
 
+  // 2026-05-02 Tier 2a — n-up-pdf was the one head-term PDF-producing
+  // tool still missing handoff suggestions. After imposing N pages
+  // per sheet, common follow-ups are pagination (numbering each
+  // imposed sheet, not each source page) and bookleting for staple-
+  // ready output.
+  "n-up-pdf": ["page-numbers", "booklet-pdf", "resize-pdf"],
+
+  // 2026-05-02 — PDF → non-PDF extraction tools: outputs are not PDFs,
+  // but users often want to round-trip the extracted content back into
+  // a styled PDF (cleanup-and-reflow workflow). Suggesting the
+  // matching <format>-to-pdf tool covers the common round-trip case;
+  // ai-summarize covers users who really wanted distilled content.
+  "pdf-to-text": ["text-to-pdf", "ai-summarize", "ai-translate"],
+  "pdf-to-markdown": ["markdown-to-pdf", "ai-summarize", "ai-blog"],
+  "pdf-to-html": ["text-to-pdf", "ai-summarize", "ai-translate"],
+  // pdf-to-jpg + pdf-to-png: rasterized output. Round-trip via
+  // jpg-to-pdf / png-to-pdf gets the user a flat-image PDF (useful
+  // for redaction-by-rasterization workflows).
+  "pdf-to-jpg": ["jpg-to-pdf", "extract-images", "merge"],
+  "pdf-to-png": ["png-to-pdf", "extract-images", "merge"],
+
   // Edit tools
   "page-numbers": ["stamp-pdf", "resize-pdf", "highlight-pdf"],
   "stamp-pdf": ["page-numbers", "resize-pdf", "highlight-pdf"],
