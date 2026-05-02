@@ -148,7 +148,15 @@ export type SeoPageSlug =
   | "unlock-pdf"
   | "add-page-numbers"
   | "crop-pdf"
-  | "fill-pdf-form";
+  | "fill-pdf-form"
+  // 2026-05-02 Tier 3b mid-traffic batch — 7 landings completing the
+  // catalog niche-search coverage.
+  | "bates-stamp-pdf"
+  | "csv-to-pdf"
+  | "compare-pdfs-visual"
+  | "batch-process-pdf"
+  | "pdf-letterhead-overlay"
+  | "split-odd-even-pages";
 
 export type SeoPageData = {
   tool: string; // tool id from lib/tools.ts
@@ -509,8 +517,13 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
     related: ["pdf-to-jpg", "compress", "extract-images", "pdf-to-office"],
   },
 
+  // 2026-05-02: was tool: "pdf-to-jpg" — the wrong tool. pdf-to-png is
+  // its own catalog entry (PdfRasterizeTool exports both PdfToJpgTool
+  // and PdfToPngTool). Same wrong-direction-of-mapping class of bug
+  // as the /markdown-to-pdf fix earlier today, except this one was
+  // a wrong-tool-on-the-landing instead of a wrong-target-redirect.
   "pdf-to-png": {
-    tool: "pdf-to-jpg",
+    tool: "pdf-to-png",
     h1: "PDF to PNG — lossless page-to-image conversion",
     sub: "Export PDF pages to PNG for screenshots, thumbnails, or archival.",
     canonical: "/pdf-to-png",
@@ -2522,6 +2535,137 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Privacy?", a: "100% client-side. Forms filled in your browser; nothing uploaded." },
     ],
     related: ["sign-pdf-free", "flatten-pdf", "ai-sign", "add-text-box"],
+  },
+
+  // 2026-05-02 Tier 3b — 7 mid-traffic landings completing the catalog.
+  // Lower per-keyword volume than Tier 1's head-terms but each closes
+  // a specific niche-search gap. Same shape as Tier 1: tool already
+  // shipped, just no keyword-targeted landing page.
+
+  "bates-stamp-pdf": {
+    tool: "bates-numbers",
+    h1: "Bates stamp PDF — sequential numbering for legal production",
+    sub: "Stamp Bates numbers (BATES000001, BATES000002, ...) onto every page of a discovery production. Configurable prefix, starting number, position. Free, in-browser, no signup.",
+    canonical: "/bates-stamp-pdf",
+    howTo: [
+      { t: "Drop your PDFs", d: "Up to 100 MB each. Process one at a time or batch through our Batch Process tool." },
+      { t: "Configure prefix + starting number", d: "Default \"BATES\" prefix, starting at 1. Customize for matter-specific schemes (e.g. SMITH-DOE-000001 starting at 5000 to continue an existing range)." },
+      { t: "Pick stamp position", d: "Six positions (top/bottom × left/center/right). Footer-right is the legal-industry default." },
+      { t: "Apply and download", d: "Output PDF has Bates numbers baked into every page as text — searchable, copy-able, and machine-readable for downstream review tools." },
+    ],
+    faq: [
+      { q: "What's a Bates number?", a: "Sequential alphanumeric identifier stamped on every page of a discovery production so each page is uniquely citable. Originally a physical Bates Manufacturing stamping machine; now the most common identifier scheme in US litigation. Each Bates number = one physical page = one citable unit." },
+      { q: "Does it work for non-US discovery?", a: "Bates is the US convention; UK / Indian / EU discovery uses similar sequential schemes (e.g. \"Doc 1, Pg 1\") that this tool also supports via custom prefix. Just set the prefix to match your jurisdiction's convention." },
+      { q: "Can I continue numbering across multiple PDFs?", a: "Yes — note the last Bates number from PDF 1, set the starting number on PDF 2 to continue. Or use Batch Process which auto-continues across the whole batch in one pass." },
+      { q: "What if my PDF already has Bates numbers?", a: "We add new ones on top. If you need to RE-Bates a production (e.g. after re-organizing exhibits), redact the old Bates first with our free Redact tool, then re-Bates." },
+      { q: "Privacy?", a: "100% client-side. Your discovery materials are processed in your browser — never uploaded. Critical for matters under privilege." },
+    ],
+    related: ["page-numbers", "redact-free", "merge", "remove-metadata"],
+  },
+
+  "csv-to-pdf": {
+    tool: "csv-to-pdf",
+    h1: "CSV to PDF — render any CSV as a paginated, styled table",
+    sub: "Drop a CSV file or paste CSV text, get a clean A4 PDF with auto-fitted columns, alternating row shading, and headers repeated on every page. Free, in-browser, no signup.",
+    canonical: "/csv-to-pdf",
+    howTo: [
+      { t: "Drop your CSV", d: "Up to 50 MB. Or paste CSV text directly into the editor. Comma, tab, and semicolon separators auto-detected." },
+      { t: "Preview the table", d: "Live preview shows how the table renders before generating the PDF. Adjust column widths if auto-fit doesn't pick the right ones." },
+      { t: "Pick page size + orientation", d: "A4 / Letter / Legal × portrait / landscape. Landscape recommended for tables with 6+ columns." },
+      { t: "Generate and download", d: "Multi-page PDF with headers repeated on each page. Alternating row shading for readability. Searchable text — not rasterized." },
+    ],
+    faq: [
+      { q: "What if my CSV has quoted fields with commas?", a: "RFC-4180-compliant parser handles quoted fields, escaped quotes (\"\"), and embedded newlines correctly. The same edge cases that trip up Excel-import-CSV are handled here." },
+      { q: "Do columns auto-fit by content?", a: "Yes — column widths are computed from content (longest cell + headers) up to a max of ~30% of page width per column. Override per-column if needed before generating." },
+      { q: "What about non-ASCII / non-Latin scripts (Hindi, Chinese, etc.)?", a: "We embed Helvetica + a CJK fallback font so most non-Latin scripts render correctly. For specialized scripts (e.g. Devanagari, Tamil) the rendering may not match your spreadsheet's preferred typography. For pixel-perfect rendering, export to PDF directly from Excel / LibreOffice instead." },
+      { q: "Will my CSV be uploaded?", a: "No — 100% client-side. CSV parsed and rendered in your browser." },
+      { q: "What about huge CSVs (100K+ rows)?", a: "Tested up to 50K rows. Above that, generation time crosses 30 seconds and the resulting PDF is huge (5+ MB). Consider splitting the CSV first or generating multiple smaller PDFs." },
+    ],
+    related: ["text-to-pdf", "markdown-to-pdf", "merge", "page-numbers"],
+  },
+
+  "compare-pdfs-visual": {
+    tool: "pdf-diff",
+    h1: "Visual PDF compare — pixel-level diff between two versions",
+    sub: "Drop two versions of a PDF, get a side-by-side visual diff highlighting every changed region in red. Pure pixel comparison — catches every visible change including image swaps, font shifts, and layout edits. For text-only changes use AI Compare.",
+    canonical: "/compare-pdfs-visual",
+    howTo: [
+      { t: "Drop both PDFs", d: "Side A (older / baseline) and Side B (newer / candidate). Same page count expected; mismatches are flagged before diffing." },
+      { t: "We render + diff", d: "Each page rendered at 144 DPI. Pixel-level diff overlays red highlights on every changed region — text, images, layout, color, anything visually different." },
+      { t: "Browse the diff", d: "Page-by-page side-by-side view. Click any red region to zoom in. Summary card shows total changed pages + percentage of pixels modified." },
+      { t: "Export the report", d: "Diff PDF with red-highlight overlays on the candidate side, plus a JSON report with per-page change percentages — useful for paper-trail / approval workflows." },
+    ],
+    faq: [
+      { q: "Visual vs AI compare — when do I use which?", a: "Visual diff catches EVERY pixel change — text, image, layout, color, font rendering. AI compare understands semantic content — paragraph rewrites, sentence-level changes, citation differences. Use Visual when you need to verify nothing changed during a conversion / re-flow / re-export. Use AI when you need to summarize WHAT changed at a content level." },
+      { q: "What if the page counts don't match?", a: "We flag the mismatch and let you choose: diff only the matching prefix, or skip the alignment and side-by-side render with the longer PDF's extra pages flagged as \"new\"." },
+      { q: "Do font subset changes show up as diffs?", a: "Yes — font rendering at the pixel level changes when the embedded font subset changes, even if the visible text is identical. False positives are common in legal redlining workflows. Use AI Compare for text-only diffs." },
+      { q: "What about scanned PDFs?", a: "Works on scanned PDFs too — pixel diff is content-agnostic. Note that scanner noise (slight rotation, dust speckles) often produces noisy diffs. For best results, OCR both PDFs first via AI · OCR + use AI Compare on the resulting text layers." },
+      { q: "Privacy?", a: "100% client-side. Both PDFs rendered + diffed in your browser; nothing uploaded." },
+    ],
+    related: ["ai-compare", "extract-pages", "highlight-pdf", "pdf-inspector"],
+  },
+
+  "batch-process-pdf": {
+    tool: "pdf-batch",
+    h1: "Batch process PDFs — apply one operation to many files",
+    sub: "Drop up to 50 PDFs at once, pick an operation (rotate, page numbers, watermark, metadata strip, form flatten, link strip), get a ZIP of processed outputs. Free, in-browser, no signup.",
+    canonical: "/batch-process-pdf",
+    howTo: [
+      { t: "Drop multiple PDFs", d: "Up to 50 files, 100 MB each. Drag-and-drop a folder to load everything at once." },
+      { t: "Pick one operation", d: "Rotate (90°/180°/270°), Add Page Numbers, Add Watermark (text or image), Remove Metadata, Flatten Form Fields, Strip Hyperlinks, or Count Pages (returns CSV summary instead of processed PDFs)." },
+      { t: "Configure once", d: "Settings apply to every file — pick rotation amount once, enter watermark text once, etc. Per-file customization isn't supported in v1; for that, run the relevant single-file tool per PDF." },
+      { t: "Download the ZIP", d: "Output is a single .zip containing every processed file with its original name preserved. Failed files are listed in a manifest.txt at the top of the zip." },
+    ],
+    faq: [
+      { q: "Why a ZIP instead of merging?", a: "Different use case. Use Merge if you want all files combined into one PDF. Use Batch Process when you want to APPLY the same operation to many files but keep them as separate PDFs — e.g. add page numbers to 30 contract drafts before sending them out individually." },
+      { q: "What if processing fails on some files?", a: "Each file is processed independently. Failures (typically: encrypted PDFs, malformed structure) get logged in manifest.txt; successful files are in the ZIP with the operation applied. The failed-files list is what you'd manually fix or skip." },
+      { q: "How is this different from running the single-file tool 50 times?", a: "Speed (one upload, one settings pass, one download) and consistency (every file gets exactly the same configuration — no risk of typo'ing the watermark text on file 17 of 50). The processing time is roughly the same (it's still 50 separate operations under the hood)." },
+      { q: "Can I run multiple operations in one batch?", a: "v1 = one operation per batch. To chain operations (e.g. rotate THEN add page numbers), run the first batch, download the ZIP, extract, then upload the result for batch #2. Multi-step batching is on the roadmap." },
+      { q: "Privacy?", a: "100% client-side. All 50 files processed in your browser; nothing uploaded." },
+    ],
+    related: ["merge", "rotate", "page-numbers", "remove-metadata"],
+  },
+
+  "pdf-letterhead-overlay": {
+    tool: "pdf-overlay",
+    h1: "PDF letterhead overlay — stamp a template onto every page",
+    sub: "Drop a base PDF and an overlay PDF (letterhead, watermark, stamp) — the overlay gets layered onto every page of the base. Pure pdf-lib composition, no rasterization, lossless.",
+    canonical: "/pdf-letterhead-overlay",
+    howTo: [
+      { t: "Drop the base PDF", d: "The document you want stamped (e.g. a contract draft, an invoice, a report)." },
+      { t: "Drop the overlay PDF", d: "The template to layer on top — letterhead with logo + company info, a draft watermark, a regulatory disclaimer block. Should be a 1-page PDF; if multi-page, only page 1 is used as the overlay." },
+      { t: "Pick layer order", d: "Overlay goes ON TOP (covers content) or BEHIND (acts as background — common for letterhead with logo behind text). PDF/A-friendly: behind-mode preserves text-selection on the base." },
+      { t: "Apply and download", d: "Output PDF has every base page composited with the overlay. Lossless — no rasterization, original text remains selectable." },
+    ],
+    faq: [
+      { q: "Why use this instead of Add Text Box or Image Watermark?", a: "Add Text Box is for short typed text. Image Watermark is for static images. PDF Overlay is for FULL-PAGE templates that mix text, images, and graphics — exactly what corporate letterheads need (logo + watermark + disclaimer + footer all in one)." },
+      { q: "What about overlays larger than the base page?", a: "Overlay is scaled to the base's page size. If the overlay is A4 and the base is Letter (slightly different ratio), the overlay scales-to-fit with center alignment. For pixel-perfect alignment, match page sizes upstream." },
+      { q: "Does this handle different page sizes within the base PDF?", a: "Yes — the overlay scales to each base page independently. Common case: a base PDF with a Letter cover page and Legal-size body pages will get the overlay scaled correctly on each." },
+      { q: "What if my overlay has transparency?", a: "Transparency is preserved. PDF supports alpha channels natively — the composited output respects the overlay's alpha. Common letterhead use case: subtle 30%-opacity logo behind body text." },
+      { q: "Privacy?", a: "100% client-side. Both PDFs composited in your browser; nothing uploaded." },
+    ],
+    related: ["stamp-pdf", "image-watermark", "add-text-box", "flatten-pdf"],
+  },
+
+  "split-odd-even-pages": {
+    tool: "odd-even-pages",
+    h1: "Split odd / even pages — separate a duplex scan into two PDFs",
+    sub: "Common scan-recovery workflow: a duplex document scanned as a single PDF where odd pages are fronts and even pages are backs (in reverse order). Split into two PDFs, fix the back-page order, then merge interleaved.",
+    canonical: "/split-odd-even-pages",
+    howTo: [
+      { t: "Drop your duplex scan", d: "A single PDF where odd pages = fronts, even pages = backs (or vice versa). Up to 100 MB." },
+      { t: "Auto-split into two PDFs", d: "Output 1 = all odd pages (1, 3, 5, ...), Output 2 = all even pages (2, 4, 6, ...). Both downloadable separately." },
+      { t: "Optional: reverse the even output", d: "If your scanner fed back-pages in reverse order (a common ADF behavior), the even-page output is in wrong order. Use our Sort Pages tool to reverse it." },
+      { t: "Re-merge interleaved", d: "Use our Merge tool with \"interleave\" mode to alternate between the front + reordered-back PDFs and produce the correct front/back/front/back sequence." },
+    ],
+    faq: [
+      { q: "Why is this a common problem?", a: "Many ADF (auto-document-feeder) scanners produce a single PDF with all fronts followed by all backs in reverse order — because the user scans front sides first, flips the stack, and re-scans backs which come out reversed. The fix is the 4-step workflow above." },
+      { q: "Why not just rotate or rearrange in one tool?", a: "The 4-step workflow gives you intermediate verification — confirm the split worked, confirm the reversal worked, confirm the interleave worked. Single-step automation would have to make assumptions about your scanner's behavior; manual verification catches edge cases." },
+      { q: "Can I extract just the odd pages without the workflow?", a: "Yes — odd-page extraction alone is one of the modes. Skip steps 3 + 4 if all you wanted was \"give me only the fronts\"." },
+      { q: "What about triplex scans?", a: "v1 supports odd/even (modulo 2). Triplex (every 3rd page) needs custom page-range extraction via Extract Pages — specify ranges like \"1, 4, 7, 10, ...\" manually." },
+      { q: "Privacy?", a: "100% client-side. Your scan stays in your browser." },
+    ],
+    related: ["sort-pages", "merge", "extract-pages", "rotate"],
   },
 
 };
