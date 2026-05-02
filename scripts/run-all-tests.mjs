@@ -760,6 +760,21 @@ const SUITES = [
   // NO_FILE_INPUT allowlist whitelists ai-generate (no PDF input)
   // and ai-chat (separate streaming surface).
   { name: "ai-tool-preview", file: "test-ai-tool-preview.mjs" },
+  // 2026-05-02: redirect-direction integrity. Catches the lurking
+  // bug where a /<slug> → /tool/<id> redirect intentionally exists
+  // but its destination is the OPPOSITE-direction tool from what
+  // the SEO landing's tool: field declares. Caught + fixed today
+  // for /markdown-to-pdf (was → /tool/pdf-to-markdown, wrong
+  // direction); same pattern caught earlier for /text-to-pdf.
+  // Sister to seo-pages-tool-mapping (which pins each landing's
+  // tool: ref to a real tool id) and redirect-destinations (which
+  // pins each redirect dest to a live route) — both pass for
+  // direction-flip bugs because the dest IS a real tool and DOES
+  // resolve. The bug is structural — wrong tool for the URL.
+  // KNOWN_FALLBACK_REDIRECTS allowlist matches KNOWN_DEAD_REFS in
+  // test-seo-pages-tool-mapping for deliberate "shipping ahead of
+  // tooling" cases (Office bidirectionals → /tool/pdf-to-text).
+  { name: "redirect-direction", file: "test-redirect-direction.mjs" },
   // 2026-04-30 a11y guard: prevents `color: var(--accent),
   // textDecoration: "none"` from being reintroduced in body-text JSX
   // contexts. Pattern was the source of 18 serious axe
