@@ -71,6 +71,12 @@ const NAV: NavItem[] = [
   { section: "Pricing", href: "/admin/plans", label: "Plans" },
   { section: "Pricing", href: "/admin/promos", label: "Promos" },
   { section: "People", href: "/admin/users", label: "Users" },
+  // 2026-05-03 plan §7 + §8 — abuse-signal clustering across IP /24,
+  // device fingerprint, and Gmail-normalized email facets. Surfaces
+  // signups likely to be the same actor under different identities.
+  // Lives in People because it's a "who keeps trying to abuse us"
+  // question, not a financial rollup.
+  { section: "People", href: "/admin/abuse-signals", label: "Abuse signals" },
   { section: "Ops", href: "/admin/ops", label: "Operations" },
   { section: "Ops", href: "/admin/providers", label: "Providers" },
   { section: "Ops", href: "/admin/router", label: "Router" },
