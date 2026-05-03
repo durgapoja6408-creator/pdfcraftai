@@ -16,6 +16,17 @@ import { useRouter } from "next/navigation";
 import { classifyAiError } from "@/lib/ai/degradation";
 import { useSession, getSession } from "next-auth/react";
 import { I } from "@/components/icons/Icons";
+// 2026-05-03 plan §9 — Day 6.5 wire-in. Variant wrapper covers
+// ~25 individual AI tool slots (key-points, study-notes, blog,
+// readability, entities, etc.). Each variant lands in this same
+// 402 branch. opLabel is derived from props.runLabel for context-
+// specific copy ("this Generate FAQ run", etc.).
+import {
+  OutOfCreditsAlert,
+  isInsufficientCreditsError,
+  parseRequiredFromError,
+  parseBalanceFromError,
+} from "@/components/upsell/OutOfCreditsAlert";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
@@ -354,9 +365,20 @@ export function SummarizeVariantTool(props: {
           pricingBlurb texts have been migrated into TOOL_INTROS. */}
 
       {error && (
-        <p role="alert" style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>
-          {error}
-        </p>
+        // 2026-05-03 plan §9 — branch on insufficient-credits.
+        // opLabel uses props.runLabel (e.g. "Generate FAQ") to give
+        // each variant slot a context-specific message.
+        isInsufficientCreditsError(error) ? (
+          <OutOfCreditsAlert
+            required={parseRequiredFromError(error)}
+            balance={parseBalanceFromError(error)}
+            opLabel={`this ${props.runLabel.toLowerCase()} run`}
+          />
+        ) : (
+          <p role="alert" style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>
+            {error}
+          </p>
+        )
       )}
 
       {result && (

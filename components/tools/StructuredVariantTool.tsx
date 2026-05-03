@@ -24,6 +24,14 @@ import { useRouter } from "next/navigation";
 import { classifyAiError } from "@/lib/ai/degradation";
 import { useSession, getSession } from "next-auth/react";
 import { I } from "@/components/icons/Icons";
+// 2026-05-03 plan §9 — Day 6.5 wire-in. Same pattern as the
+// SummarizeVariantTool wrapper.
+import {
+  OutOfCreditsAlert,
+  isInsufficientCreditsError,
+  parseRequiredFromError,
+  parseBalanceFromError,
+} from "@/components/upsell/OutOfCreditsAlert";
 import { ToolDropzone } from "./ToolDropzone";
 import {
   deriveOutputName,
@@ -337,7 +345,20 @@ export function StructuredVariantTool(props: {
           SummarizeVariantTool.tsx for the full rationale. The text now
           renders once at the top of the runner page via TOOL_INTROS. */}
 
-      {error && <p role="alert" style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>{error}</p>}
+      {error && (
+        // 2026-05-03 plan §9 — branch on insufficient-credits.
+        isInsufficientCreditsError(error) ? (
+          <OutOfCreditsAlert
+            required={parseRequiredFromError(error)}
+            balance={parseBalanceFromError(error)}
+            opLabel={`this ${props.runLabel.toLowerCase()} run`}
+          />
+        ) : (
+          <p role="alert" style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>
+            {error}
+          </p>
+        )
+      )}
 
       {flashcards && (
         <div className="card" style={{ padding: 20, borderColor: "var(--accent)", background: "var(--accent-soft)" }}>
