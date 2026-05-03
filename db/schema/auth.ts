@@ -147,6 +147,26 @@ export const verificationTokens = mysqlTable(
 // email-provider flow (composite PK on identifier + token, no user FK).
 // Password resets want a user FK so we can cascade-delete and enforce
 // "one outstanding reset per user at a time" via the index.
+// 2026-05-03 plan §8a Day 1.5a Phase C — credentials login rate limit.
+// Tracks failed Credentials authorize() attempts so we can lock out
+// after N failures per (email, IP) in a rolling window. Successful
+// logins delete this user's rows; expired rows GC'd lazily on read.
+// See migration 0020.
+export const failedLoginAttempts = mysqlTable(
+  "failed_login_attempts",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    emailNormalized: varchar("email_normalized", { length: 254 }).notNull(),
+    ip: varchar("ip", { length: 45 }).notNull().default(""),
+    attemptedAt: timestamp("attempted_at", { fsp: 3 }).notNull().defaultNow(),
+  },
+  (t) => ({
+    emailIdx: index("failed_login_attempts_email_idx").on(t.emailNormalized, t.attemptedAt),
+    ipIdx: index("failed_login_attempts_ip_idx").on(t.ip, t.attemptedAt),
+    gcIdx: index("failed_login_attempts_gc_idx").on(t.attemptedAt),
+  }),
+);
+
 export const passwordResetTokens = mysqlTable(
   "password_reset_tokens",
   {

@@ -20,6 +20,17 @@ import { eq } from "drizzle-orm";
 // so re-firing on subsequent sign-ins is safe. Default OFF until
 // SIGNUP_GRANT_ENABLED=true (Day 6 atomic flip).
 import { grantSignupBonus } from "@/lib/payments/signup-bonus";
+// 2026-05-03 plan §8a Day 1.5a Phase C — login rate limit.
+import { headers } from "next/headers";
+import {
+  checkLockout,
+  recordFailure,
+  clearFailures,
+} from "@/lib/auth/login-rate-limit";
+import {
+  normalizeEmail,
+  readClientIp,
+} from "@/lib/auth/abuse-prevention";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -51,6 +62,42 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
         const { email, password } = parsed.data;
 
+        // 2026-05-03 plan §8a Phase C — rate-limit gate.
+        // Normalise email so attacker can't bypass the lockout by
+        // varying Gmail aliases. Lockout decision is per email-
+        // normalised, not per (email, IP) — IPs rotate; emails don't.
+        const lowercased = email.toLowerCase();
+        const normalizedEmail = normalizeEmail(lowercased);
+        let clientIp = "";
+        try {
+          const reqHeaders = await headers();
+          clientIp = readClientIp(reqHeaders);
+        } catch {
+          // headers() can throw outside a request context (e.g. some
+          // edge cases in test environments). Empty IP is treated as
+          // "no signal" by the rate limiter — fail-open.
+        }
+
+        const lockout = await checkLockout(normalizedEmail, clientIp);
+        if (lockout.locked) {
+          // Returning null (the same as a wrong-password failure) keeps
+          // the no-user-enumeration semantic — attacker can't tell
+          // "locked out" from "wrong password". Lockout still works
+          // because it's enforced server-side regardless of attacker
+          // visibility into the verdict.
+          console.log(
+            JSON.stringify({
+              event: "credentials_lockout",
+              emailNormalized: normalizedEmail,
+              ip: clientIp || null,
+              failureCount: lockout.failureCount,
+              retryAfterSec: lockout.retryAfterSec,
+              ts: new Date().toISOString(),
+            }),
+          );
+          return null;
+        }
+
         const rows = await db
           .select({
             id: schema.users.id,
@@ -60,14 +107,27 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             passwordHash: schema.users.passwordHash,
           })
           .from(schema.users)
-          .where(eq(schema.users.email, email))
+          .where(eq(schema.users.email, lowercased))
           .limit(1);
 
         const user = rows[0];
-        if (!user || !user.passwordHash) return null;
+        if (!user || !user.passwordHash) {
+          // Record failure even when user not found — same response
+          // as wrong password, so an enumeration probe can't tell the
+          // difference (and we still throttle the probing).
+          await recordFailure(normalizedEmail, clientIp);
+          return null;
+        }
 
         const ok = await bcrypt.compare(password, user.passwordHash);
-        if (!ok) return null;
+        if (!ok) {
+          await recordFailure(normalizedEmail, clientIp);
+          return null;
+        }
+
+        // Success — clear all failed attempts for this email so the
+        // next legit user doesn't carry old failures forward.
+        await clearFailures(normalizedEmail);
 
         return {
           id: user.id,

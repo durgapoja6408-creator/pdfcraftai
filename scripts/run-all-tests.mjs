@@ -1029,6 +1029,14 @@ const SUITES = [
   // via hidden form field, persisted to users.device_fingerprint.
   // 25 assertions / 6 sections.
   { name: "fingerprint", file: "test-fingerprint.mjs" },
+  // 2026-05-03 plan §8a Day 1.5a Phase C — login rate limit.
+  // Migration 0020 adds failed_login_attempts table; auth.ts
+  // authorize() gates on checkLockout() before bcrypt.compare(),
+  // recordFailure() on user-not-found OR wrong-password paths
+  // (anti-enumeration), clearFailures() on success. 5 failures /
+  // 15 min window / 30 min lockout — env-overridable.
+  // 31 assertions / 4 sections.
+  { name: "login-rate-limit", file: "test-login-rate-limit.mjs" },
   // 2026-04-30 aggregator-coverage guard: every scripts/test-*.mjs
   // and scripts/test-*.ts must be wired into the SUITES array
   // above. Catches orphan test files that silently never run in
