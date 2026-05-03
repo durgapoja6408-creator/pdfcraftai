@@ -1006,6 +1006,14 @@ const SUITES = [
   // compliance, parser-regex correctness against real mapErrorBody
   // 402 messages including multiplier-aware ops).
   { name: "out-of-credits-alert", file: "test-out-of-credits-alert.mjs" },
+  // 2026-05-03 plan §8 layer 6 (Day 5.5) — credit-expiry cron
+  // sweeper. /api/cron/expire-grants debits expired signup_bonus
+  // rows so the "valid 7 days" promise is enforced. CRON_SECRET-
+  // gated, idempotent per-row, debit clamped to current balance,
+  // per-row try/catch so partial failures don't abort the sweep.
+  // 21 assertions / 6 sections covering surface, auth, query,
+  // idempotency, error handling, response shape.
+  { name: "expire-grants", file: "test-expire-grants.mjs" },
   // 2026-04-30 aggregator-coverage guard: every scripts/test-*.mjs
   // and scripts/test-*.ts must be wired into the SUITES array
   // above. Catches orphan test files that silently never run in
