@@ -3,8 +3,8 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-05-02 night (Pricing/Telemetry plan auto-mode arc — 7 commits, Days 1 + 1.5b + 1.6 + 2 + 5-partial + STATUS sync + client-pwd-min match).
-**Live commit:** `72ae160` (deploy queued; previous `85c7a3c` verified at HTTP 200, db ok, both new endpoints `/api/account/export` + `/api/ai/estimate` return 401 unauth = correct gate). Recovered from zombie-next-server cascade at 20:06 UTC via documented mass-kill playbook.
+**Last updated:** 2026-05-03 early AM (Pricing/Telemetry plan auto-mode arc — 8 commits, Days 1 + 1.5b + 1.6 + 1.7 + 2 + 5-partial + STATUS syncs).
+**Live commit:** `606e57b` (Day 1.7 multiplier-aware spend for translate/redact/sign — verified at HTTP 200, db ok). Recovered from zombie-next-server cascade at 20:06 UTC earlier this session via documented mass-kill playbook.
 **Aggregator:** 4219 passed across 69 suites in 7.0s (+124 from `4095/63` — 5 new CI guards `no-supply-chain-leaks` + `no-credit-number-hardcodes` + `estimate` + `auth-hardening` + `dpdp-endpoints` + `abuse-prevention`).
 
 ### 2026-05-02 night — Pricing/Telemetry auto-mode arc (Days 1 + 1.5b + 1.6 + 2 + 5-partial)
@@ -19,6 +19,7 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 | **1.5b** | `f96800c` | Bcrypt cost factor 10 → 12. Password strength: min(10) + 3 of 4 character classes (lowercase/uppercase/digit/symbol). Removed user-enumeration message ("An account with that email already exists" → generic "Couldn't create the account"). bcrypt.compare audit (auth.ts:64 already correct, constant-time). NextAuth v5 default cookie audit passes (Secure + HttpOnly + SameSite=Lax + 30d). |
 | **1.6** | `8dbfcbe` | DPDP Act 2023 compliance work. New `GET /api/account/export` (full JSON dump of every user-attributable record, parallel queries, ai_outputs joined via files). New `POST /api/account/delete` (email-confirmation defense, hard-delete + cascade, audit log captures domain+id+ts only). New `docs/runbooks/data-breach.md` (DPDP §8(6) + GDPR Art. 33-34, 4-tier classification, hour-by-hour playbook, cross-border transfer note). Privacy Policy unchanged (already covers DPDP §16/§9/§11 from earlier Task #24). |
 | **5-partial** | `08c62fe` | Abuse-prevention layers 1, 2, 4. Migration `0018_users_signup_security.sql` applied pre-push (3 new cols on users: signup_ip, device_fingerprint, email_normalized + UNIQUE INDEX). Layer 1 disposable email blocklist (~250 domains). Layer 2 Gmail+alias + dot normalization (`raja+1@gmail.com` collapses to `raja@gmail.com`). Layer 4 IP capture via Cloudflare cf-connecting-ip (full /24 throttle deferred to Day 5.5). registerAction wired to apply all three before DB write. Layer 3 (verification gate), 5 (FingerprintJS), 6 (expiry), 7 (Turnstile) deferred. |
+| **1.7** | `606e57b` | Multiplier-aware spend for translate/redact/sign route handlers. redact + sign peek pageCount via PDFDocument.load before spendCredits; translate moves text extraction before spend and computes chunkCount from text length (matches estimator's TRANSLATE_CHUNK_CHARS=10K). Closes the gap where the Day 2 estimator quoted size-aware costs but the routes still charged flat. All gated behind `isMultiplierPricingEnabled()` for env-var rollback. Translate's reordering is a strict UX improvement — failed extracts no longer require refunds. |
 
 #### Zombie next-server cascade — recovered (this arc)
 
