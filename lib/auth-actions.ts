@@ -31,6 +31,11 @@ import { grantSignupBonus } from "@/lib/payments/signup-bonus";
 // any DB write. Fail-OPEN if TURNSTILE_SECRET_KEY env var is unset
 // (so the form keeps working until Hostinger panel ships the secret).
 import { verifyTurnstileToken } from "@/lib/auth/turnstile";
+// 2026-05-03 plan §8a Day 1.5a Phase A — email verification flow.
+// Send link on registration; user clicks → users.email_verified set.
+// Send is fire-and-forget — failure logs but doesn't abort signup
+// (avoid locking users out of an account they just created).
+import { sendVerificationEmail } from "@/lib/auth/email-verification";
 
 // ---------------- Register ----------------
 
@@ -270,6 +275,21 @@ export async function registerAction(
     await db.insert(schema.credits).values({
       userId: id,
       balance: 0,
+    });
+
+    // 2026-05-03 plan §8a Day 1.5a Phase A — fire-and-forget
+    // verification email. SMTP failure logs but doesn't abort
+    // signup (the user can request a re-send later). The mass
+    // signup-flow doesn't need to await; we hand off to a
+    // microtask so the redirect happens immediately.
+    void sendVerificationEmail(lowercased, id).then((result) => {
+      if (!result.ok) {
+        console.error(
+          "[register] verification email failed for",
+          id,
+          result.error,
+        );
+      }
     });
 
     // 2026-05-02 plan §2 path D wire-in. grantSignupBonus is
