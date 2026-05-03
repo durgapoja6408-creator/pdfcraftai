@@ -26,6 +26,11 @@ import {
 // enables the env var; until then no credits move but the wiring
 // is type-checked + import-correct.
 import { grantSignupBonus } from "@/lib/payments/signup-bonus";
+// 2026-05-03 plan §8 layer 7 — Cloudflare Turnstile captcha verify.
+// Server-side check that the client-submitted token is valid before
+// any DB write. Fail-OPEN if TURNSTILE_SECRET_KEY env var is unset
+// (so the form keeps working until Hostinger panel ships the secret).
+import { verifyTurnstileToken } from "@/lib/auth/turnstile";
 
 // ---------------- Register ----------------
 
@@ -124,6 +129,34 @@ export async function registerAction(
   // will wire grantSignupBonus to skip when throttled).
   const reqHeaders = await headers();
   const signupIp = readClientIp(reqHeaders);
+
+  // 2026-05-03 plan §8 layer 7 — Cloudflare Turnstile captcha verify
+  // BEFORE any DB write. Token comes from a hidden form field that
+  // the Turnstile widget injects on the client side. Fails open when
+  // TURNSTILE_SECRET_KEY env var is unset — see lib/auth/turnstile.ts
+  // for the rationale.
+  const turnstileToken =
+    typeof formData.get("cf-turnstile-response") === "string"
+      ? (formData.get("cf-turnstile-response") as string)
+      : null;
+  const turnstileVerdict = await verifyTurnstileToken(turnstileToken, {
+    remoteIp: signupIp || undefined,
+  });
+  if (!turnstileVerdict.ok) {
+    console.log(
+      JSON.stringify({
+        event: "turnstile_verify_failed",
+        errorCodes: turnstileVerdict.errorCodes ?? [],
+        signupIp: signupIp || null,
+        ts: new Date().toISOString(),
+      }),
+    );
+    return {
+      ok: false,
+      error:
+        "Captcha verification failed. Refresh the page and try again — if it keeps happening, contact support@pdfcraftai.com.",
+    };
+  }
 
   // 2026-05-03 plan §8 layer 4 (full) — count recent signups from
   // the same /24 (or /48 IPv6) bucket within the rolling window.

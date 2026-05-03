@@ -1014,6 +1014,14 @@ const SUITES = [
   // 21 assertions / 6 sections covering surface, auth, query,
   // idempotency, error handling, response shape.
   { name: "expire-grants", file: "test-expire-grants.mjs" },
+  // 2026-05-03 plan §8 layer 7 (Day 5.5) — Cloudflare Turnstile
+  // captcha. Server-side verifyTurnstileToken() helper +
+  // registerAction wire-in (verify before any DB write) + client
+  // widget on RegisterForm with NEXT_PUBLIC_TURNSTILE_SITE_KEY.
+  // Fail-OPEN when env vars unset (escape hatch). 25 assertions
+  // / 5 sections covering surface, token submission, failure
+  // handling, registerAction wire-in, client widget rendering.
+  { name: "turnstile", file: "test-turnstile.mjs" },
   // 2026-04-30 aggregator-coverage guard: every scripts/test-*.mjs
   // and scripts/test-*.ts must be wired into the SUITES array
   // above. Catches orphan test files that silently never run in

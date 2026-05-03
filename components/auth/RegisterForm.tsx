@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Script from "next/script";
 import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { useSearchParams } from "next/navigation";
@@ -15,6 +16,14 @@ import {
   PasswordField,
   PasswordStrength,
 } from "@/components/auth/AuthBits";
+// 2026-05-03 plan §8 layer 7 — Cloudflare Turnstile site key.
+// Site key is PUBLIC by design (Cloudflare docs:
+// "The site key is not secret. It is included in the HTML of any
+//  page that uses Turnstile."). Reading from NEXT_PUBLIC_ env var
+// follows convention; falls back to "" when unset (widget renders
+// nothing, server-side verify fails-open per turnstile.ts).
+const TURNSTILE_SITE_KEY =
+  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 const initial: RegisterState = { ok: false };
 
@@ -144,6 +153,29 @@ export function RegisterForm() {
             Get <strong>5 AI credits free</strong> on signup — valid 7 days, no card required.
           </span>
         </div>
+
+        {/* 2026-05-03 plan §8 layer 7 — Cloudflare Turnstile widget.
+            Rendered only when the public site key is configured (Hostinger
+            panel must ship NEXT_PUBLIC_TURNSTILE_SITE_KEY for the build).
+            The widget injects a hidden `cf-turnstile-response` field into
+            the surrounding form on render; registerAction reads it. */}
+        {TURNSTILE_SITE_KEY && (
+          <>
+            <div
+              className="cf-turnstile"
+              data-sitekey={TURNSTILE_SITE_KEY}
+              data-theme="auto"
+              data-size="flexible"
+              style={{ marginTop: 16 }}
+            />
+            <Script
+              src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+              strategy="afterInteractive"
+              async
+              defer
+            />
+          </>
+        )}
 
         {state.error && !state.fieldErrors && (
           <p
