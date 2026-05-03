@@ -27,6 +27,7 @@
 import "server-only";
 
 import { randomUUID, createHash } from "crypto";
+import { PDFDocument } from "pdf-lib";
 
 import { auth } from "@/auth";
 import { db, schema } from "@/db/client";
@@ -41,6 +42,8 @@ import {
 } from "@/lib/ai/sign";
 import { findAiOutputByIdempotencyKey } from "@/lib/ai/idempotency";
 import { guardAiRoute } from "@/lib/ai/route-guards";
+// 2026-05-02 plan §3 (Day 1.7) — multiplier-aware spend.
+import { isMultiplierPricingEnabled } from "@/lib/pricing";
 
 // Node runtime — pdfjs-dist legacy + pdf-lib + mysql2 + AI SDKs don't
 // run on Edge.
@@ -148,13 +151,31 @@ export async function POST(req: Request): Promise<Response> {
     });
   }
 
+  // -- 3.5. Peek page count (Day 1.7 — multiplier-aware spend) -------
+  // pdf-lib parses the page tree only — cheap, no full-text extraction.
+  // Pre-spend so the quoted estimate (estimateCredits with
+  // multiplier=pageCount) matches what gets debited.
+  let pageCount: number;
+  try {
+    const doc = await PDFDocument.load(pdfBytes);
+    pageCount = doc.getPageCount();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "pdf_parse_failed";
+    return json(400, { error: "pdf_parse_failed", detail: message });
+  }
+  if (pageCount === 0) {
+    return json(400, { error: "pdf_parse_failed", detail: "PDF has no pages" });
+  }
+  const multiplier = isMultiplierPricingEnabled() ? pageCount : 1;
+
   // -- 4. Spend credits ------------------------------------------------
   const spendKey = `ai:sign:${idempotencyKey}`;
   const spend = await spendCredits({
     userId,
     operation: "sign",
+    multiplier,
     idempotencyKey: spendKey,
-    note: `Fill & sign "${pdfFile.name}"`,
+    note: `Fill & sign "${pdfFile.name}" (${pageCount} page${pageCount === 1 ? "" : "s"})`,
   });
   if (!spend.ok) {
     if (spend.reason === "insufficient") {

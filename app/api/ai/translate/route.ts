@@ -29,6 +29,8 @@ import { auth } from "@/auth";
 import { db, schema } from "@/db/client";
 import { extractPdfText } from "@/lib/ai/pdf-extract";
 import { refundCredits, spendCredits } from "@/lib/ai/credits";
+// 2026-05-02 plan §3 (Day 1.7) — multiplier-aware spend.
+import { isMultiplierPricingEnabled } from "@/lib/pricing";
 import {
   COMMON_TARGET_LANGUAGES,
   NoAIProviderConfiguredError,
@@ -133,13 +135,52 @@ export async function POST(req: Request): Promise<Response> {
     });
   }
 
+  // -- 3.5. Extract text BEFORE spend (Day 1.7 — multiplier-aware) ---
+  // Plan §3: translate's spend should scale with chunkCount, not be
+  // flat 5. Computing chunkCount requires the extracted text length.
+  // Moving extraction before spend means the user's quoted estimate
+  // (estimateCredits with charCount → ceil(chars/10K) chunks) matches
+  // what gets debited. Fast operation (~100ms for typical PDFs) — we
+  // accept the cost of extracting before user "commits" because (a)
+  // failed extraction = no spend = no refund needed, (b) under-40-char
+  // PDFs hit early return without spending, both improvements over
+  // the old extract-after-spend ordering.
+  let extracted: Awaited<ReturnType<typeof extractPdfText>>;
+  try {
+    extracted = await extractPdfText(pdfBytes);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "pdf_extract_failed";
+    return json(400, { error: "pdf_extract_failed", detail: message });
+  }
+
+  if (extracted.fullText.trim().length < 40) {
+    return json(422, {
+      error: "no_extractable_text",
+      detail:
+        "We couldn't find enough text to translate — this PDF appears to be scanned images. " +
+        "Run OCR first (coming soon).",
+      ocrCandidatePages: extracted.ocrCandidatePages,
+    });
+  }
+
+  // chunkCount estimate matches lib/ai/estimate.ts:TRANSLATE_CHUNK_CHARS.
+  // Both call sites must use the SAME constant or the user-quoted
+  // estimate drifts from the actual debit.
+  const TRANSLATE_CHUNK_CHARS = 10_000;
+  const chunkCount = Math.max(
+    1,
+    Math.ceil(extracted.fullText.length / TRANSLATE_CHUNK_CHARS),
+  );
+  const multiplier = isMultiplierPricingEnabled() ? chunkCount : 1;
+
   // -- 4. Spend credits ------------------------------------------------
   const spendKey = `ai:translate:${idempotencyKey}`;
   const spend = await spendCredits({
     userId,
     operation: "translate",
+    multiplier,
     idempotencyKey: spendKey,
-    note: `Translate "${pdfFile.name}" → ${targetLangLabel ?? targetLang}`,
+    note: `Translate "${pdfFile.name}" → ${targetLangLabel ?? targetLang} (${chunkCount} chunk${chunkCount === 1 ? "" : "s"})`,
   });
   if (!spend.ok) {
     if (spend.reason === "insufficient") {
@@ -149,10 +190,6 @@ export async function POST(req: Request): Promise<Response> {
         balance: spend.balance,
       });
     }
-    // Phase 5.5: the replay lookup above missed but the ledger reports
-    // a duplicate — previous attempt died between spend and persist. A
-    // retry with the SAME key can never succeed (the ledger entry is
-    // permanent). Surface 409 so the client can prompt a fresh submit.
     return json(409, {
       error: "duplicate_submission",
       detail:
@@ -161,37 +198,6 @@ export async function POST(req: Request): Promise<Response> {
   }
   const creditCost = spend.creditsSpent;
   const newBalance = spend.newBalance;
-
-  // -- 4. Extract text -------------------------------------------------
-  let extracted: Awaited<ReturnType<typeof extractPdfText>>;
-  try {
-    extracted = await extractPdfText(pdfBytes);
-  } catch (err) {
-    await refundCredits({
-      userId,
-      operation: "translate",
-      originalIdempotencyKey: spendKey,
-      note: "Refund: PDF extraction failed",
-    });
-    const message = err instanceof Error ? err.message : "pdf_extract_failed";
-    return json(400, { error: "pdf_extract_failed", detail: message });
-  }
-
-  if (extracted.fullText.trim().length < 40) {
-    await refundCredits({
-      userId,
-      operation: "translate",
-      originalIdempotencyKey: spendKey,
-      note: "Refund: no extractable text",
-    });
-    return json(422, {
-      error: "no_extractable_text",
-      detail:
-        "We couldn't find enough text to translate — this PDF appears to be scanned images. " +
-        "Run OCR first (coming soon).",
-      ocrCandidatePages: extracted.ocrCandidatePages,
-    });
-  }
 
   // -- 5. Translate ----------------------------------------------------
   let translated: Awaited<ReturnType<typeof translatePdf>>;
