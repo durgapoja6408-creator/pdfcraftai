@@ -41,6 +41,10 @@ import {
   parseBalanceFromError,
 } from "@/components/upsell/OutOfCreditsAlert";
 import { ToolDropzone } from "./ToolDropzone";
+// 2026-05-03 plan §5 + Day 2.5 — pre-flight estimate badge.
+// Summarize is a flat-cost op; the badge renders once a file is
+// picked so the user sees "this run costs N credits" before committing.
+import { CreditEstimateBadge } from "@/components/upsell/CreditEstimateBadge";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
 import { MacroBar, type MacroBarItem } from "./MacroBar";
@@ -377,6 +381,14 @@ export function SummarizePdfTool() {
             <I.X size={14} />
           </button>
         </div>
+      )}
+
+      {file && (
+        <CreditEstimateBadge
+          op="summarize"
+          pageCount={1}
+          opLabel="this summary"
+        />
       )}
 
       {/* Saved presets (macros) — hidden when anon + empty. */}

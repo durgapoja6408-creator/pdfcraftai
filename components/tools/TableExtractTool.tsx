@@ -33,6 +33,8 @@ import {
   parseBalanceFromError,
 } from "@/components/upsell/OutOfCreditsAlert";
 import { ToolDropzone } from "./ToolDropzone";
+// 2026-05-03 plan §5 + Day 2.5 — pre-flight estimate badge.
+import { CreditEstimateBadge } from "@/components/upsell/CreditEstimateBadge";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
 import { classifyAiError } from "@/lib/ai/degradation";
@@ -234,6 +236,14 @@ export function TableExtractTool() {
             <I.X size={14} />
           </button>
         </div>
+      )}
+
+      {file && (
+        <CreditEstimateBadge
+          op="table"
+          pageCount={1}
+          opLabel="this table extraction"
+        />
       )}
 
       {error && (

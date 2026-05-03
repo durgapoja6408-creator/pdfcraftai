@@ -32,6 +32,14 @@ import {
   parseBalanceFromError,
 } from "@/components/upsell/OutOfCreditsAlert";
 import { ToolDropzone } from "./ToolDropzone";
+// 2026-05-03 plan §5 + Day 2.5 — pre-flight estimate badge.
+// Translate is per-chunk (multiplier = ceil(charCount / 10K)). We
+// approximate charCount from file.size with a conservative density
+// of ~1 char per 20 bytes for typical PDFs (binary metadata + fonts +
+// images dilute the text). Server's chunker reads real extracted text,
+// so the live charge can be at or below the displayed quote — never
+// above (per plan §5 "margin direction in user's favour" rule).
+import { CreditEstimateBadge } from "@/components/upsell/CreditEstimateBadge";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { classifyAiError } from "@/lib/ai/degradation";
 import { renderMarkdown } from "@/lib/markdown-mini";
@@ -392,6 +400,14 @@ export function TranslatePdfTool() {
             <I.X size={14} />
           </button>
         </div>
+      )}
+
+      {file && (
+        <CreditEstimateBadge
+          op="translate"
+          charCount={Math.max(1, Math.floor(file.size / 20))}
+          opLabel="this translation"
+        />
       )}
 
       {/* Saved presets (macros) — hidden when anon + empty. */}

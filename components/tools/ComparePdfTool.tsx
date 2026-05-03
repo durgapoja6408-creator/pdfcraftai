@@ -29,6 +29,8 @@ import {
   parseBalanceFromError,
 } from "@/components/upsell/OutOfCreditsAlert";
 import { ToolDropzone } from "./ToolDropzone";
+// 2026-05-03 plan §5 + Day 2.5 — pre-flight estimate badge.
+import { CreditEstimateBadge } from "@/components/upsell/CreditEstimateBadge";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
 import { classifyAiError } from "@/lib/ai/degradation";
@@ -226,6 +228,14 @@ export function ComparePdfTool() {
           onClear={() => setPdfB(null)}
         />
       </div>
+
+      {bothReady && (
+        <CreditEstimateBadge
+          op="compare"
+          pageCount={1}
+          opLabel="this comparison"
+        />
+      )}
 
       {error && (
         // 2026-05-03 plan §9 — branch on insufficient-credits.

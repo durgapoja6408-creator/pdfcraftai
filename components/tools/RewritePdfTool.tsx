@@ -36,6 +36,8 @@ import {
   parseBalanceFromError,
 } from "@/components/upsell/OutOfCreditsAlert";
 import { ToolDropzone } from "./ToolDropzone";
+// 2026-05-03 plan §5 + Day 2.5 — pre-flight estimate badge.
+import { CreditEstimateBadge } from "@/components/upsell/CreditEstimateBadge";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { classifyAiError } from "@/lib/ai/degradation";
 import { renderMarkdown } from "@/lib/markdown-mini";
@@ -269,6 +271,14 @@ export function RewritePdfTool() {
             <I.X size={14} />
           </button>
         </div>
+      )}
+
+      {file && (
+        <CreditEstimateBadge
+          op="rewrite"
+          pageCount={1}
+          opLabel="this rewrite"
+        />
       )}
 
       {/* Mode picker — radio cards. Mirrors SummarizePdfTool's depth picker. */}

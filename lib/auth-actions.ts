@@ -20,12 +20,13 @@ import {
   decideIpThrottle,
   bucketWindowDays,
 } from "@/lib/auth/abuse-prevention";
-// 2026-05-02 plan §2 path D wire-in (Day 6 prep) — fire signup
-// bonus on credentials registration. Helper is idempotent and
-// no-ops when SIGNUP_GRANT_ENABLED!=="true". Day 6 atomic flip
-// enables the env var; until then no credits move but the wiring
-// is type-checked + import-correct.
-import { grantSignupBonus } from "@/lib/payments/signup-bonus";
+// 2026-05-03 plan §8 layer 3 (deferred-grant variant) — the signup
+// bonus is NO LONGER granted in registerAction for the credentials
+// path. Grant happens in /verify-email after the user proves email
+// ownership. OAuth path still grants on first sign-in via auth.ts
+// events.signIn (Google/etc. already verified the email). This closes
+// the layer-3 honesty gap: free credits require proven email control.
+// (Helper itself stays idempotent on `signup_bonus:${userId}`.)
 // 2026-05-03 plan §8 layer 7 — Cloudflare Turnstile captcha verify.
 // Server-side check that the client-submitted token is valid before
 // any DB write. Fail-OPEN if TURNSTILE_SECRET_KEY env var is unset
@@ -292,33 +293,30 @@ export async function registerAction(
       }
     });
 
-    // 2026-05-02 plan §2 path D wire-in. grantSignupBonus is
-    // idempotent on `signup_bonus:${userId}` — safe to call here AND
-    // on the OAuth events.signIn callback in auth.ts. No-ops until
-    // SIGNUP_GRANT_ENABLED=true (Day 6 atomic flip). Wrapped in
-    // try/catch — a grant failure must not abort signup.
+    // 2026-05-03 plan §8 layer 3 (deferred-grant variant). The signup
+    // bonus is granted in /verify-email after consumeVerificationToken
+    // succeeds — NOT here. This closes the gap where unverified
+    // credentials accounts could collect 5 free credits without ever
+    // proving email control. Idempotent on `signup_bonus:${userId}`,
+    // so OAuth's events.signIn path is unaffected (Google already
+    // verified the email there).
     //
-    // 2026-05-03 plan §8 layer 4 — skip the grant when the IP-bucket
-    // throttle decided "queue_review". Account is still created (so
-    // the user can still sign in + buy credits manually), but the
-    // free 5 credits don't auto-fire. Admin /admin/abuse-signals
-    // (Day 4 surface) shows the queued grant for manual approval.
+    // The IP throttle decision is still logged at the top of this
+    // function (search "ip_throttle_triggered") so admins can review
+    // /admin/abuse-signals. If a throttled account does verify and
+    // collect credits, admin can claw back via ledger debit.
     if (throttleDecision?.action === "queue_review") {
       console.log(
         JSON.stringify({
-          event: "signup_bonus_skipped",
+          event: "signup_bonus_deferred_throttled",
           userId: id,
           reason: "ip_throttle_queue_review",
           bucket: throttleDecision.bucket,
+          note:
+            "Grant only fires after /verify-email; admin should review before user verifies.",
           ts: new Date().toISOString(),
         }),
       );
-    } else {
-      try {
-        await grantSignupBonus(id);
-      } catch (err) {
-        console.error("grantSignupBonus failed for", id, err);
-      }
     }
   } catch (err) {
     console.error("register action failed:", err);

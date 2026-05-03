@@ -35,6 +35,10 @@ import { renderMarkdown } from "@/lib/markdown-mini";
 import { classifyAiError } from "@/lib/ai/degradation";
 import { useTrackToolView } from "./useToolTracking";
 import { fetchAiWithRetry } from "@/lib/client/fetch-ai-with-retry";
+// 2026-05-03 plan §5 + Day 2.5 — pre-flight estimate badge.
+// Generate is prompt-only (no file). We pass charCount = trimmed prompt
+// length so the badge surfaces only when there's a real query to run.
+import { CreditEstimateBadge } from "@/components/upsell/CreditEstimateBadge";
 import { downloadBytes } from "@/lib/client/download";
 
 // Keep in sync with VALID_DOC_TYPES / VALID_LENGTHS / VALID_TONES in the
@@ -392,6 +396,14 @@ export function GeneratePdfTool() {
       )}
 
       {result && <ResultCard result={result} />}
+
+      {prompt.trim().length >= 10 && !result && (
+        <CreditEstimateBadge
+          op="generate"
+          charCount={prompt.trim().length}
+          opLabel="this generation"
+        />
+      )}
 
       <div className="row" style={{ gap: 10, justifyContent: "flex-end" }}>
         {(prompt.length > 0 || result) && (

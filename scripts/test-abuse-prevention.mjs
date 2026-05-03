@@ -271,11 +271,11 @@ assert(
 );
 assert(
   /throttleDecision\?\.action\s*===\s*"queue_review"/.test(actionsSrc),
-  "G5: grant is skipped when throttle says queue_review"
+  "G5: grant is logged when throttle says queue_review (deferred-grant variant: actual grant fires from /verify-email after token consume — registerAction only logs the throttle signal so admin can review before user verifies)"
 );
 assert(
-  /event:\s*"signup_bonus_skipped"/.test(actionsSrc),
-  "G6: structured log when grant is skipped due to throttle"
+  /event:\s*"signup_bonus_deferred_throttled"/.test(actionsSrc),
+  "G6: structured log when grant fires deferred-but-throttled (Gap #1 / 2026-05-03: signup bonus moved to /verify-email so layer 3 — email verification — actually gates the grant. registerAction now logs the throttle signal under the deferred event name; admin can review /admin/abuse-signals BEFORE the user clicks the verify link, and claw back via ledger debit if a bot account does verify)"
 );
 
 if (failed > 0) {
