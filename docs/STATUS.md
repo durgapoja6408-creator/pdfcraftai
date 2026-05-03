@@ -3,8 +3,8 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-05-03 early AM (Pricing/Telemetry plan auto-mode arc — 9 commits, Days 1 + 1.5b + 1.6 + 1.7 + 2 + 5-partial + 6-prep + STATUS syncs).
-**Live commit:** `4e77504` (Day 6 prep — `grantSignupBonus` helper + migration 0019 credit_ledger.expires_at). All 70 suites green, 4239 tests passing. Recovered from zombie-next-server cascade at 20:06 UTC earlier this session via documented mass-kill playbook.
+**Last updated:** 2026-05-03 early AM (Pricing/Telemetry plan auto-mode arc — 11 substantive commits + STATUS syncs).
+**Live commit:** `cd3116d` (Day 6 wire-in — `grantSignupBonus` called from registerAction + auth.ts events.signIn for new users; flag still OFF). All 70 suites green, 4239 tests passing. Two zombie-next-server cascades hit + recovered this session — repeated deploys are the trigger; mass-kill recovery in <60s both times.
 **Aggregator:** 4219 passed across 69 suites in 7.0s (+124 from `4095/63` — 5 new CI guards `no-supply-chain-leaks` + `no-credit-number-hardcodes` + `estimate` + `auth-hardening` + `dpdp-endpoints` + `abuse-prevention`).
 
 ### 2026-05-02 night — Pricing/Telemetry auto-mode arc (Days 1 + 1.5b + 1.6 + 2 + 5-partial)
