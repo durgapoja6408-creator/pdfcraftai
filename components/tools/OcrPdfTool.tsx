@@ -47,6 +47,8 @@ import {
   parseRequiredFromError,
   parseBalanceFromError,
 } from "@/components/upsell/OutOfCreditsAlert";
+// 2026-05-03 plan §5 + Day 2.5 — pre-flight estimate badge.
+import { CreditEstimateBadge } from "@/components/upsell/CreditEstimateBadge";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
@@ -401,6 +403,18 @@ export function OcrPdfTool() {
             to break this PDF into chunks, then OCR each chunk.
           </div>
         </div>
+      )}
+
+      {/* 2026-05-03 plan §5 + Day 2.5 — pre-flight credit estimate.
+          Renders only when pageCount is known (post-peek) so the
+          server-side estimator can compute the multiplier. Shows a
+          "Buy credits" CTA inline when balance is insufficient. */}
+      {typeof pageCount === "number" && pageCount > 0 && (
+        <CreditEstimateBadge
+          op="ocr"
+          pageCount={pageCount}
+          opLabel="this OCR run"
+        />
       )}
 
       {error && (
