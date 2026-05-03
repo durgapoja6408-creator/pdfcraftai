@@ -69,10 +69,13 @@ const EXEMPT_PATHS = new Set([
   // estimator pattern doesn't fit chat (no upload to size against).
   path.join("components", "app", "chat", "ChatClient.tsx"),
 
-  // Marketing landing page contains the "25 credits on signup"
-  // promise that Day 6 will atomically flip to "5 credits, valid 7
-  // days". Premature edit would create a copy/grant mismatch window.
-  // Day 6 commit removes this exemption alongside the grant flip.
+  // 2026-05-02 Day 6 marketing copy sweep — the "25 credits" hardcodes
+  // were swept to "5 credits, valid 7 days" + the "5 free credits"
+  // chip rendering moved to a place that legitimately quotes the new
+  // grant size. The new copy still trips the regex (matches "5 free
+  // credits" / "5 credits"), so the file stays exempt — but the
+  // exemption is now ABOUT the new (correct) number, not the old
+  // (stale) one.
   path.join("components", "marketing", "SeoLandingPage.tsx"),
 
   // RESUME tool tier-3 pricing context: "5 credits per resume" is

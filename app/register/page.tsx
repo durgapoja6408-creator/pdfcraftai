@@ -14,7 +14,7 @@ export default function RegisterPage() {
     <AuthShell
       eyebrow="GET STARTED — FREE"
       title="Create your pdfcraft ai account"
-      subtitle="Free forever for merge, split, convert, and compress. 25 AI credits on signup."
+      subtitle="Free forever for merge, split, convert, and compress. 5 AI credits on signup, valid 7 days."
       sidePanel="register"
       footer={
         <>

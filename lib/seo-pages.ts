@@ -1223,7 +1223,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "How is this different from Summarize PDF?", a: "TL;DR is optimised for the \"just tell me what this says\" use case — one paragraph, 2 credits. Summarize gives section headings and bullets at 3 credits, with TL;DR / Standard / Detailed depth pickers. Same backend, different front doors." },
       { q: "Is it accurate on long PDFs?", a: "The TL;DR runs on the full extracted text up to the model's context window. Very long PDFs may be truncated — we show a warning when that happens and point you at the chunked Detailed mode." },
       { q: "Does it work on scanned PDFs?", a: "Only if they have a text layer. Scanned / image-only PDFs: run AI · OCR first." },
-      { q: "Signin required?", a: "Yes — all AI tools require a signed-in account (25 free credits on signup, worth ~₹125 of usage)." },
+      { q: "Signin required?", a: "Yes — all AI tools require a signed-in account. 5 free credits on signup (valid 7 days) so you can try a few tools before topping up." },
     ],
     related: ["ai-tldr", "ai-summarize", "ai-chat", "pdf-to-text"],
   },
@@ -1242,7 +1242,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "How is this different from Summarize?", a: "Summarize returns TL;DR + bullets + section prose. Key Points returns ONLY the bullets — scannable, quick, no reading through intros. 3 credits vs 3 credits but much less output to wade through." },
       { q: "How many bullets?", a: "6–12 typically. Shorter PDFs get fewer, longer get more. No fixed cap — the model decides based on how many distinct claims exist." },
       { q: "What about the page citations?", a: "Every bullet should end with \"[p. N]\" citing where the claim came from. If a bullet lacks a citation, the model couldn't trace it to a single page (common for multi-page themes)." },
-      { q: "Signin required?", a: "Yes — 25 free credits on signup." },
+      { q: "Signin required?", a: "Yes — 5 free credits on signup, valid 7 days." },
     ],
     related: ["ai-key-points", "ai-summarize", "ai-tldr", "ai-study-notes"],
   },
@@ -1268,7 +1268,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
 
   "explain-pdf": {
     tool: "ai-eli5",
-    h1: "Explain PDF in plain English — free 25 credits on signup",
+    h1: "Explain PDF in plain English — free 5 credits on signup",
     sub: "Short sentences, everyday words, no jargon. Big Idea / Details / Why It Matters structure. 3 credits per PDF.",
     canonical: "/explain-pdf",
     howTo: [

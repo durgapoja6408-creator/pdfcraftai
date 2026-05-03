@@ -275,8 +275,9 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
                     <span className="row" style={{ gap: 6 }}>
                       <I.Check size={14} /> Cited answers
                     </span>
+                    {/* 2026-05-02 plan §2 path D — bumped 25 → 5. */}
                     <span className="row" style={{ gap: 6 }}>
-                      <I.Check size={14} /> 25 free credits
+                      <I.Check size={14} /> 5 free credits
                     </span>
                     <span className="row" style={{ gap: 6 }}>
                       <I.Check size={14} /> Files deleted in 60 min
@@ -342,7 +343,8 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
                 <>
                   <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 6 }}>Try {tool.name} free</div>
                   <div className="muted" style={{ fontSize: 13, marginBottom: 20 }}>
-                    25 credits on signup · no card required
+                    {/* 2026-05-02 plan §2 path D. */}
+                    5 credits on signup · valid 7 days · no card
                   </div>
                   <Link href="/register" className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }}>
                     Sign up free
@@ -643,7 +645,8 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
           <p className="muted" style={{ fontSize: 16, marginBottom: 28 }}>
             {tool.free
               ? "No signup. No watermarks. Your file stays private."
-              : "25 free credits on signup. No card required. Files deleted in 60 min."}
+              : // 2026-05-02 plan §2 path D — was "25 free credits".
+                "5 free credits on signup, valid 7 days. No card required. Files deleted in 60 min."}
           </p>
           <Link href={primaryHref} className="btn btn-lg btn-primary">
             Open {tool.name} <I.ArrowRight size={16} />

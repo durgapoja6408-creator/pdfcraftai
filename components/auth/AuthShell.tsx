@@ -160,15 +160,16 @@ export function AuthShell({
             }}
           >
             {[
-              // Conversion-focused bullets — put concrete value up
-              // front. "25 AI credits" > vague "AI Chat available";
-              // explicit "free forever" counters the common worry
-              // that free tier is a trial.
+              // 2026-05-02 plan §2 path D — bumped down from 25 to 5
+              // credits with a 7-day expiry. "5 free credits" still
+              // works as a conversion hook — what matters is "free to
+              // start" framing, not the specific number. Rupee-leak
+              // copy ("worth ~₹125 / $1.50") removed per principle 1.
               [
                 "Coin",
                 sidePanel === "register"
-                  ? "25 AI credits on signup — worth ~₹125 / $1.50 of usage"
-                  : "AI credits on signup — 25 free for new accounts",
+                  ? "5 AI credits on signup — try summarize, OCR, translate"
+                  : "Free credits on signup — try the AI tools risk-free",
               ],
               [
                 "Sparkle",

@@ -138,7 +138,10 @@ export function RegisterForm() {
             <I.Sparkle size={14} />
           </span>
           <span style={{ fontSize: 13, lineHeight: 1.4 }}>
-            Get <strong>25 AI credits free</strong> on signup — no card required.
+            {/* 2026-05-02 plan §2 path D — was "25 AI credits free",
+                now "5 AI credits free, valid 7 days". Honest about the
+                signup-grant expiry that ships with grantSignupBonus(). */}
+            Get <strong>5 AI credits free</strong> on signup — valid 7 days, no card required.
           </span>
         </div>
 
