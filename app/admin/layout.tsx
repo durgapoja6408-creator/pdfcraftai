@@ -77,6 +77,13 @@ const NAV: NavItem[] = [
   // Lives in People because it's a "who keeps trying to abuse us"
   // question, not a financial rollup.
   { section: "People", href: "/admin/abuse-signals", label: "Abuse signals" },
+  // 2026-05-03 plan §7 — per-op unit economics. Lists all AIOperationId
+  // entries with base cost + multiplier rule; click through for per-op
+  // stats (calls, credits, cost, margin, success rate, provider mix,
+  // top users). Lives in Ops because it's an operator question
+  // ("which tool is healthy / which is leaking margin?"), not a
+  // money-flow rollup (that's /admin/margin).
+  { section: "Ops", href: "/admin/tools", label: "Tools" },
   { section: "Ops", href: "/admin/ops", label: "Operations" },
   { section: "Ops", href: "/admin/providers", label: "Providers" },
   { section: "Ops", href: "/admin/router", label: "Router" },
