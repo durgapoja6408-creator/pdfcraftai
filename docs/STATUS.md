@@ -3,8 +3,8 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-05-03 early AM (Pricing/Telemetry plan auto-mode arc — 8 commits, Days 1 + 1.5b + 1.6 + 1.7 + 2 + 5-partial + STATUS syncs).
-**Live commit:** `606e57b` (Day 1.7 multiplier-aware spend for translate/redact/sign — verified at HTTP 200, db ok). Recovered from zombie-next-server cascade at 20:06 UTC earlier this session via documented mass-kill playbook.
+**Last updated:** 2026-05-03 early AM (Pricing/Telemetry plan auto-mode arc — 9 commits, Days 1 + 1.5b + 1.6 + 1.7 + 2 + 5-partial + 6-prep + STATUS syncs).
+**Live commit:** `4e77504` (Day 6 prep — `grantSignupBonus` helper + migration 0019 credit_ledger.expires_at). All 70 suites green, 4239 tests passing. Recovered from zombie-next-server cascade at 20:06 UTC earlier this session via documented mass-kill playbook.
 **Aggregator:** 4219 passed across 69 suites in 7.0s (+124 from `4095/63` — 5 new CI guards `no-supply-chain-leaks` + `no-credit-number-hardcodes` + `estimate` + `auth-hardening` + `dpdp-endpoints` + `abuse-prevention`).
 
 ### 2026-05-02 night — Pricing/Telemetry auto-mode arc (Days 1 + 1.5b + 1.6 + 2 + 5-partial)
@@ -20,6 +20,7 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 | **1.6** | `8dbfcbe` | DPDP Act 2023 compliance work. New `GET /api/account/export` (full JSON dump of every user-attributable record, parallel queries, ai_outputs joined via files). New `POST /api/account/delete` (email-confirmation defense, hard-delete + cascade, audit log captures domain+id+ts only). New `docs/runbooks/data-breach.md` (DPDP §8(6) + GDPR Art. 33-34, 4-tier classification, hour-by-hour playbook, cross-border transfer note). Privacy Policy unchanged (already covers DPDP §16/§9/§11 from earlier Task #24). |
 | **5-partial** | `08c62fe` | Abuse-prevention layers 1, 2, 4. Migration `0018_users_signup_security.sql` applied pre-push (3 new cols on users: signup_ip, device_fingerprint, email_normalized + UNIQUE INDEX). Layer 1 disposable email blocklist (~250 domains). Layer 2 Gmail+alias + dot normalization (`raja+1@gmail.com` collapses to `raja@gmail.com`). Layer 4 IP capture via Cloudflare cf-connecting-ip (full /24 throttle deferred to Day 5.5). registerAction wired to apply all three before DB write. Layer 3 (verification gate), 5 (FingerprintJS), 6 (expiry), 7 (Turnstile) deferred. |
 | **1.7** | `606e57b` | Multiplier-aware spend for translate/redact/sign route handlers. redact + sign peek pageCount via PDFDocument.load before spendCredits; translate moves text extraction before spend and computes chunkCount from text length (matches estimator's TRANSLATE_CHUNK_CHARS=10K). Closes the gap where the Day 2 estimator quoted size-aware costs but the routes still charged flat. All gated behind `isMultiplierPricingEnabled()` for env-var rollback. Translate's reordering is a strict UX improvement — failed extracts no longer require refunds. |
+| **6-prep** | `4e77504` | Migration `0019_credit_ledger_expiry.sql` applied pre-push (single nullable `expires_at datetime(3)` + covering index `(expires_at, delta)`). `lib/payments/ledger.ts:GrantCreditsInput.expiresAt` threading. NEW `lib/payments/signup-bonus.ts:grantSignupBonus(userId)` — default 5 credits / 7-day TTL, idempotency key `signup_bonus:${userId}` (exactly-once across user lifetime, handles credentials → OAuth re-link). Helper callable today but no-ops until `SIGNUP_GRANT_ENABLED=true` (Day 6 atomic flip). New CI guard `signup-bonus` 20/20. Aggregator: 4239 passed across 70 suites. |
 
 #### Zombie next-server cascade — recovered (this arc)
 
@@ -36,7 +37,7 @@ The Day 5-partial deploy (`08c62fe`) hit the zombie-next-server cascade document
 | §8a Day 1.5a | Email verification flow + password reset flow + credentials login rate limit | 6h; SMTP creds saved; needs Day 1.5a-specific commit |
 | §8 Day 5 layer 3 | Email verification gate (depends on Day 1.5a flow) | gated on Day 1.5a |
 | §8 Day 5.5 | Layers 5-7: device fingerprint + 7-day grant expiry + Turnstile widget | Migration 0019 + FingerprintJS open-core + Turnstile React component |
-| §9 Day 6 | Atomic deploy: marketing copy 25→5 + grantSignupBonus + 6-item pre-deploy probe | Depends on Days 1.5a + 5 + 5.5 |
+| §9 Day 6 | Atomic deploy: marketing copy 25→5 + flip `SIGNUP_GRANT_ENABLED=true` (helper already shipped in 6-prep) + 6-item pre-deploy probe | Depends on Days 1.5a + 5.5 |
 | §9 Day 6.5 | Personalized out-of-credits modal | After Day 6 |
 
 
