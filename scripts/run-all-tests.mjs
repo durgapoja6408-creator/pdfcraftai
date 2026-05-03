@@ -991,6 +991,13 @@ const SUITES = [
   // from Day 1.5a — deferred. Layer 5/6/7 (device fingerprint, expiry,
   // Turnstile) deferred to Day 5.5.
   { name: "abuse-prevention", file: "test-abuse-prevention.mjs" },
+  // 2026-05-02 plan §8 layer 6 + Day 6 prep — signup-bonus helper
+  // contract. Static-parse guard for grantSignupBonus() default-OFF
+  // feature flag, idempotency key shape, default 5 credits / 7-day
+  // TTL, ledger expiresAt threading, schema + migration 0019 parity.
+  // 20 assertions / 5 sections. Helper is callable today but no-ops
+  // until SIGNUP_GRANT_ENABLED=true (Day 6 atomic flip).
+  { name: "signup-bonus", file: "test-signup-bonus.mjs" },
   // 2026-04-30 aggregator-coverage guard: every scripts/test-*.mjs
   // and scripts/test-*.ts must be wired into the SUITES array
   // above. Catches orphan test files that silently never run in

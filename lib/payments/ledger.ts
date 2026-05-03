@@ -81,6 +81,14 @@ export type GrantCreditsInput = {
    * grants / debits that don't correspond to a real payment capture.
    */
   financials?: LedgerFinancials;
+  /**
+   * 2026-05-02 plan §8 layer 6 — optional per-row expiry for time-locked
+   * grants. NULL = never expires (the default for paid grants, refunds,
+   * manual adjustments). When set (typically by grantSignupBonus()), a
+   * nightly cleanup pass debits the row's `delta` back to zero past
+   * this timestamp. See migration 0019.
+   */
+  expiresAt?: Date;
 };
 
 export type GrantCreditsResult =
@@ -137,6 +145,9 @@ export async function grantCredits(
         netRevenueMicros: fin.netRevenueMicros ?? null,
         cardFingerprint: fin.cardFingerprint ?? null,
         dataSource: fin.dataSource ?? null,
+        // 2026-05-02 plan §8 layer 6 — set per-row expiry for time-
+        // locked grants. NULL for everything else.
+        expiresAt: input.expiresAt ?? null,
       });
 
       // Upsert the balance. `ON DUPLICATE KEY UPDATE` handles first-time

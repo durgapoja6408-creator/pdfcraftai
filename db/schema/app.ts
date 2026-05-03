@@ -154,12 +154,20 @@ export const creditLedger = mysqlTable(
     /** One of: "webhook" | "backfill_api" | "estimate" */
     dataSource: varchar("data_source", { length: 16 }),
     // --- End Phase B additions ----------------------------------------
+    // 2026-05-02 plan §8 layer 6 — per-row expiry for time-locked
+    // grants. NULL = never expires (default for paid grants, refunds,
+    // manual adjustments). Set to NOW + 7 days for the signup-grant
+    // rows that grantSignupBonus() writes. Migration 0019.
+    expiresAt: timestamp("expires_at", { fsp: 3 }),
     createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
   },
   (t) => ({
     userIdx: index("credit_ledger_user_idx").on(t.userId),
     paymentIdx: index("credit_ledger_payment_idx").on(t.paymentId),
     idempotencyIdx: uniqueIndex("credit_ledger_idempotency_idx").on(t.idempotencyKey),
+    // 2026-05-02 plan §8 layer 6 — covering index for the nightly
+    // expiry sweep `WHERE expires_at < NOW() AND delta > 0`.
+    expiresIdx: index("credit_ledger_expires_idx").on(t.expiresAt, t.delta),
   })
 );
 
