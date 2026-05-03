@@ -1037,6 +1037,25 @@ const SUITES = [
   // 15 min window / 30 min lockout — env-overridable.
   // 31 assertions / 4 sections.
   { name: "login-rate-limit", file: "test-login-rate-limit.mjs" },
+  // 2026-05-03 post-plan Gap #4 + Gap #5 contract guards:
+  //   - /api/account/recent-usage endpoint (auth-gated, credits-only,
+  //     7-day window, top-3 cap, delegates to lib/user/queries —
+  //     specifically NOT lib/admin to prevent USD micros leak)
+  //   - OutOfCreditsAlert recap fetch (silent soft-load, hides on
+  //     totalCredits=0, AbortController cleanup, all 9 AI ops mapped)
+  //   - lib/admin/user-actions (requireAdmin FIRST, 1000-credit cap,
+  //     audit-trail email stamp, second-aligned idempotency key,
+  //     debit clamps to balance, structured error logs)
+  //   - AdminUserActions client component (useTransition, 5s
+  //     auto-clear, debit-disabled-when-balance-zero)
+  //   - /admin/users/[id] mounts AdminUserActions BEFORE the abuse-
+  //     signal panel (placement invariant: admins reviewing a flagged
+  //     account claw back without scrolling)
+  // 54 assertions across 5 sections. Sequenced after login-rate-limit
+  // (last of the Pricing/Telemetry plan suites) and before aggregator-
+  // coverage (which would error if a new test file was orphaned).
+  // Pure static-parse — no DB, no live route — adds ~5ms.
+  { name: "gap4-gap5", file: "test-gap4-gap5.mjs" },
   // 2026-04-30 aggregator-coverage guard: every scripts/test-*.mjs
   // and scripts/test-*.ts must be wired into the SUITES array
   // above. Catches orphan test files that silently never run in
