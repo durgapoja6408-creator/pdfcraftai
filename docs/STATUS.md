@@ -3,8 +3,8 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-05-03 mid-day (Pricing/Telemetry plan + post-plan gap closure batch).
-**Live commit:** `c635015` (Gap #1 + Gap #3: signup bonus deferred to /verify-email after email-ownership proof; CreditEstimateBadge wired into 9/9 AI tools — Summarize/Rewrite/Table/Compare/Generate/Translate added to existing Ocr/Redact/Sign). All 75 suites green, **4378 tests passing**. Six zombie-next-server cascades + 2 auto-pull jams survived across the full plan arc; deploy at `c635015` clean (no cascade, fresh build at uptimeSec=0 visible at health endpoint within ~3 min of push).
+**Last updated:** 2026-05-03 afternoon (Pricing/Telemetry plan + post-plan gap closure batch — 4 of 5 code gaps closed).
+**Live commit:** `8afefa5` (Gap #4 + Gap #5: personalized "last 7 days" usage recap on OutOfCreditsAlert; admin grant + debit credit actions on `/admin/users/[id]`). All 75 suites green, **4378 tests passing**. Seven zombie-next-server cascades + 2 auto-pull jams survived across the full plan arc; deploy at `8afefa5` triggered cascade #7 — recovered via the documented "wait 5–10 min for kernel to drain" path after thread-cap saturation prevented the SSH mass-kill from completing.
 **Aggregator:** 4378 passed across 75 suites in 8.8s (+283 from earlier 4095/63 baseline — new CI guards added across the arc: `no-supply-chain-leaks`, `no-credit-number-hardcodes`, `estimate`, `auth-hardening`, `dpdp-endpoints`, `abuse-prevention`, `signup-bonus`, `out-of-credits-alert`, `expire-grants`, `turnstile`, `fingerprint`, `login-rate-limit`).
 
 ### 2026-05-03 mid-day — post-plan gap closure (Gap #1 + Gap #3)
@@ -35,10 +35,24 @@ CI: full aggregator 4378/4378 passed across 75 suites; `tsc --noEmit` exit 0. No
 
 **Remaining post-plan gaps (not closed in this batch — see audit response for full list):**
 - Gap #2: per-tool first-use cap (5 credits should be one-use-per-tool, currently pooled) — deferred for design review
-- Gap #4: personalized "Last 7 days you used" recap on OutOfCreditsAlert (~1h)
-- Gap #5: admin action buttons (grant/debit/ban) on `/admin/users/[id]` (~2h)
 - User-side: Hostinger panel env vars (CRON_SECRET, NEXT_PUBLIC_TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY) → Save and redeploy
 - User-side: cron-job.org daily 03:00 UTC GET schedule for `/api/cron/expire-grants`
+
+### 2026-05-03 afternoon — Gap #4 + Gap #5 closure (commit `8afefa5`)
+
+**Gap #4 — Personalized recap on OutOfCreditsAlert.** New `GET /api/account/recent-usage` endpoint returns `{ totalCredits, days: 7, top: [{op, credits, calls}] }` for the signed-in user. OutOfCreditsAlert (client component) fetches it on mount, hides the recap if `totalCredits === 0` (don't condescend to brand-new signups), renders "Last 7 days you used N credits across Summarize · Translate · Compare" otherwise. The line frames the upsell as "you've been getting value, top up to keep going" instead of "you're out, pay us." Soft-load — fetch failures hide the recap rather than scaring with banners.
+
+**Gap #5 — Admin action buttons on `/admin/users/[id]`.** New `lib/admin/user-actions.ts` exports two server actions:
+- `adminGrantCredits` — manual goodwill grants (writes credit_ledger with reason="manual_grant", admin email stamped in note for audit trail).
+- `adminDebitCredits` — clawback for flagged signup-bonus accounts that verified (writes negative-delta ledger row, reason="manual_debit", clamped to current balance — refuses to push below 0).
+
+Both call `requireAdmin()` first (404s for non-admin), cap at 1000 credits per action (fat-finger guard), use idempotency key `admin_${grant|debit}:${userId}:${tsKey}` where tsKey is second-aligned (spam-clicks within 1s collide; 2s+ retries make separate rows). New `components/admin/AdminUserActions.tsx` mounts a side-by-side grant/debit form with optional note + inline success/error toast (5s auto-clear so messages don't bleed across user pages).
+
+Mounted on `/admin/users/[id]` ABOVE the existing abuse-signal panel — admins reviewing a flagged account can claw back without scrolling.
+
+Ban affordance deliberately deferred — needs migration for `users.banned_at` + sign-in middleware check + DPDP notice email (~2h design task vs ~30min for grant/debit). Documented inline in `lib/admin/user-actions.ts`.
+
+**Cascade #7 hit + recovered.** The deploy at `8afefa5` triggered another zombie next-server cascade (12 stale workers, BUILD_ID present + Passenger restart-spamming "✓ Starting…" 4 times in 3 seconds = the documented signal). Tried the SSH mass-kill from the playbook — got `bash: fork: retry: Resource temporarily unavailable` on the third attempt = thread-cap saturation. Per CLAUDE.md "DO NOT pkick repeatedly" + "STOP and wait" rule, halted all SSH/curl probing for 8 minutes. Site self-recovered to 200 at `commit:"8afefa5139cf"` `uptimeSec:120`. Total downtime ~10 min from push to live. This is the second time the documented "wait 5–10 min" path saved the deploy without hPanel access.
 
 ### 2026-05-02 night — Pricing/Telemetry auto-mode arc (Days 1 + 1.5b + 1.6 + 2 + 5-partial)
 
