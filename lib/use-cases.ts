@@ -23,7 +23,6 @@ export type UseCaseSlug =
   | "ocr-old-archive"
   | "redact-pdf-before-sharing"
   | "extract-tables-from-financial-report"
-  | "compress-pdf-for-email-attachment"
   | "convert-research-papers-to-study-notes";
 
 export type UseCaseStep = {
@@ -149,7 +148,7 @@ export const USE_CASES: Record<UseCaseSlug, UseCaseData> = {
         a: "Yes — use AI Table Extract after merging to pull every transaction into one CSV. Useful for handing your accountant a spreadsheet alongside the PDF.",
       },
     ],
-    related: ["combine-receipts-for-expense-report", "extract-tables-from-financial-report", "compress-pdf-for-email-attachment"],
+    related: ["combine-receipts-for-expense-report", "extract-tables-from-financial-report"],
   },
 
   // ============================================================
@@ -235,7 +234,7 @@ export const USE_CASES: Record<UseCaseSlug, UseCaseData> = {
         a: "Modern phone cameras (12 MP+) are perfect at default settings. Don't downsample before submitting — the higher resolution helps OCR catch fine print.",
       },
     ],
-    related: ["merge-bank-statements-for-accountant", "compress-pdf-for-email-attachment", "ocr-old-archive"],
+    related: ["merge-bank-statements-for-accountant", "ocr-old-archive"],
   },
 
   // ============================================================
@@ -327,7 +326,7 @@ export const USE_CASES: Record<UseCaseSlug, UseCaseData> = {
         a: "Yes — for the signed declaration page, use a cryptographic signature via our API or Adobe Acrobat. For working drafts, the visual signer works.",
       },
     ],
-    related: ["redline-contract-revisions", "convert-research-papers-to-study-notes", "compress-pdf-for-email-attachment"],
+    related: ["redline-contract-revisions", "convert-research-papers-to-study-notes"],
   },
 
   // ============================================================
@@ -758,92 +757,6 @@ export const USE_CASES: Record<UseCaseSlug, UseCaseData> = {
       },
     ],
     related: ["merge-bank-statements-for-accountant", "translate-handbook-to-multiple-languages", "convert-research-papers-to-study-notes"],
-  },
-
-  // ============================================================
-  // 9. Compress PDF for email
-  // ============================================================
-  "compress-pdf-for-email-attachment": {
-    slug: "compress-pdf-for-email-attachment",
-    h1: "How to compress a PDF to fit under your email's attachment limit",
-    sub: "60 MB → under 25 MB without making images look like a fax. Target-size mode does the math for you.",
-    audience: "Anyone who's hit Gmail's 25 MB cap, Outlook's 20 MB cap, or a corporate gateway's stricter rules",
-    totalTime: "30 seconds",
-    steps: [
-      {
-        tool: "compress",
-        title: "Set a target size",
-        detail:
-          "Don't pick a compression level — pick a target. 'Get under 24 MB' (Gmail), '34 MB' (Outlook 365 limit). Compress iterates parameters automatically until it lands just under your target.",
-      },
-      {
-        tool: "compress",
-        title: "Choose the right quality floor",
-        detail:
-          "Tell us what's most important: 'preserve text sharpness' (default — keeps text vector, downsamples images) or 'preserve image quality' (rare; useful for portfolios). The first option works for 95% of email attachments.",
-      },
-      {
-        tool: "compress",
-        title: "Validate the result",
-        detail:
-          "Open the compressed PDF and scroll through. Check the worst-case images (charts with fine detail, signatures, small text on diagrams). If anything looks rough, retry with a higher target.",
-      },
-    ],
-    whyItMatters:
-      "Bouncing PDFs because they're too big to email is one of the dumbest tax we pay on modern work. The fix is 30 seconds. Knowing the right compression level saves you a 'can you re-send that smaller?' email and the 24-hour delay it adds to whatever you were trying to do.",
-    pitfalls: [
-      {
-        title: "Compressing twice",
-        detail:
-          "Each pass re-encodes already-compressed JPEGs, compounding artifacts. Compress once at the level you actually need.",
-      },
-      {
-        title: "Using Strong on print-bound documents",
-        detail:
-          "150 DPI is fine on screen but visibly soft on a printed page, especially on logos and fine type. Light or Balanced for print-bound, Strong for screen-only.",
-      },
-      {
-        title: "Forgetting that signed PDFs invalidate on compression",
-        detail:
-          "Compression rewrites the file's byte layout, voiding any cryptographic signature. Compress before signing, never after.",
-      },
-    ],
-    tips: [
-      {
-        title: "Strip metadata if you care about privacy",
-        detail:
-          "Author name, edit history, and original-file path live inside the PDF. Compression doesn't strip these by default — toggle 'remove metadata' alongside.",
-      },
-      {
-        title: "Re-export from source if compression won't shrink enough",
-        detail:
-          "If you can rebuild the PDF from the source DOCX or PPTX, exporting fresh at a lower DPI beats post-hoc compression by 20-40%.",
-      },
-      {
-        title: "Use a file-sharing link instead",
-        detail:
-          "If your file is fundamentally too big for email (videos, hi-res photo books), upload to Drive/Box/Dropbox and email the link. Compression has limits.",
-      },
-    ],
-    faq: [
-      {
-        q: "What's Gmail's actual limit?",
-        a: "25 MB for the message including all attachments. Practical target: 24 MB to leave room for the message itself.",
-      },
-      {
-        q: "Outlook 365?",
-        a: "20-35 MB depending on org config. Target 19 MB to be safe across most tenants.",
-      },
-      {
-        q: "Can I compress to under 1 MB?",
-        a: "Sometimes — depends on what's in the PDF. Heavy text content compresses less; image-heavy docs compress more. We'll tell you if your target isn't achievable without unacceptable damage.",
-      },
-      {
-        q: "Will my recipient need a special tool to open it?",
-        a: "No. Compressed output is standard PDF, opens in every reader.",
-      },
-    ],
-    related: ["merge-bank-statements-for-accountant", "combine-receipts-for-expense-report", "thesis-combine-and-format"],
   },
 
   // ============================================================

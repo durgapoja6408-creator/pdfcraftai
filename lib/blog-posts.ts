@@ -154,7 +154,7 @@ export const BLOG_POSTS: BlogPost[] = [
     body: [
       { type: "p", text: "Bouncing PDFs because they're too big to email is the dumbest tax we pay on modern work. The fix is 30 seconds. Knowing how to do it right saves you a 'can you re-send that smaller?' email and the half-day delay it adds." },
       { type: "h3", text: "Pick a target, not a level" },
-      { type: "p", text: "Most compress tools ask you to pick Light/Balanced/Strong, and then you guess. Better: tell pdfcraft ai's Compress tool the size you need. 'Get under 5 MB.' 'Under 24 MB for Gmail.' The tool iterates JPEG quality and DPI until it lands just under your target — or warns you if your target isn't achievable without unacceptable damage." },
+      { type: "p", text: "Most compress tools ask you to pick Light/Balanced/Strong, and then you guess. The smarter mental model: pick a target SIZE first ('under 5 MB', 'under 24 MB for Gmail'), then choose the gentlest level that gets you there. We don't yet ship a built-in compress tool ourselves (pdf-lib doesn't support compression; we're building a server-side qpdf+ghostscript pipeline) — until then, Adobe Acrobat Online's free tier or iLovePDF's compress will get you to a target size." },
       { type: "h3", text: "Why email caps vary" },
       { type: "p", text: "Gmail caps at 25 MB, Outlook 365 ranges 20-35 MB depending on tenant config, government and bank gateways often cap at 5-10 MB. Each cap is per-message including all attachments — a 24 MB compressed PDF leaves room for the message itself but not for additional files." },
       { type: "h3", text: "Pitfalls" },
@@ -482,6 +482,7 @@ export const BLOG_POSTS: BlogPost[] = [
     read: "4 min",
     author: { name: "pdfcraft team", role: "pdfcraft ai", initial: "P" },
     body: [
+      { type: "p", text: "Heads up: we don't yet ship a built-in compress tool ourselves (pdf-lib's API doesn't support compression — a server-side qpdf+ghostscript pipeline is on the roadmap). The conceptual breakdown of Light/Balanced/Strong below applies to whatever compression tool you do use (Adobe Acrobat Online, iLovePDF, SmallPDF). We'll restore this post's tutorial framing when the real tool ships." },
       { type: "p", text: "PDF compression is mostly image compression. The text in your file is already vector data — it shrinks barely at all. The savings come from re-encoding embedded images at lower JPEG quality and downsampling them." },
       { type: "h3", text: "Light: ~80% JPEG quality, no downsample" },
       { type: "p", text: "Re-encodes images at 80% JPEG quality, leaves DPI alone, strips unused fonts. Result: ~20% smaller, no visible quality loss. Use for print-bound documents and archival copies." },
