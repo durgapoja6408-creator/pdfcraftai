@@ -73,7 +73,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const REDIRECTED_SEO_SLUGS = new Set([
     // First-pass redirects (commit 89cd1e8) — slugs without
     // app/<slug>/page.tsx, redirect to /tool/<id> or /tools.
-    "merge-pdf", "split-pdf", "compress-pdf", "word-to-pdf",
+    // 2026-05-04 SEO landing removed (see TOOL_IMPROVEMENT_PLAN T1-1).
+    "merge-pdf", "split-pdf", "word-to-pdf",
     "excel-to-pdf", "powerpoint-to-pdf", "jpg-to-pdf", "png-to-pdf",
     "extract-pdf-pages", "delete-pdf-pages", "pdf-page-count",
     "resize-pdf", "remove-pdf-metadata", "add-logo-to-pdf",

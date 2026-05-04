@@ -122,7 +122,10 @@ const KNOWN_BROKEN_RELATED_IDS = new Set([
   // Each will resolve to a real /tool/<id> page once the corresponding
   // tool is built.
   // 2026-05-01 — "extract-attachments" SHIPPED, removed from allowlist.
-  "compress",
+  // 2026-05-04 — "compress" REMOVED. compress-pdf SEO landing was deleted
+  // entirely (T1-1, see docs/TOOL_IMPROVEMENT_PLAN.md). All "compress"
+  // refs in lib/seo-pages.ts related[] arrays were also stripped. Restore
+  // alongside the SEO landing once Plan T2-1 ships the real tool.
   // 2026-05-01 — "edit-pdf" SEO landing REPOINTED to existing
   // add-text-box tool with honest copy downgrade (overlay-tier, not
   // Adobe-level edit-in-place). Removed from allowlist.

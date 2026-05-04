@@ -89,78 +89,15 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
   },
 
   // ============================================================
-  // 2. split-pdf
+  // compress-pdf longform REMOVED 2026-05-04 (T1-1 from
+  // docs/TOOL_IMPROVEMENT_PLAN.md). The tool was never built
+  // (pdf-lib limitation, intentional). Restore alongside
+  // SEO_PAGES["compress-pdf"] entry once Plan T2-1 ships the
+  // real Compress tool.
   // ============================================================
-  // ============================================================
-  // 3. compress-pdf
-  // ============================================================
-  "compress-pdf": {
-    title: "How to compress a PDF without making it look bad",
-    intro:
-      "PDF compression is mostly image compression. The text in your file is already vector data — it shrinks barely at all. The real savings come from re-encoding embedded images at lower JPEG quality, downsampling them to a sensible DPI, and stripping bloat the original software left behind. Knowing this changes how you choose between Light, Balanced, and Strong, and saves you from sending a customer a PDF where the logo has gone fuzzy.",
-    sections: [
-      {
-        h: "What compression actually does to your file",
-        p: [
-          "We open the document, walk every embedded resource, and re-encode the bitmap images. Vector graphics, text, and form fields are left alone. The shrinkage you see is a function of how much of your file's bytes were images in the first place. A scanned report can drop 80%; a typed memo with one logo might only lose 15% even on Strong, because there isn't much to squeeze.",
-          "We also remove things that bloat PDFs without adding value: unused fonts, duplicate images, page-tree fragments left over from the source application, deleted-but-still-embedded objects, and unused private dictionaries. This part is lossless — the file looks identical, it's just smaller.",
-        ],
-      },
-      {
-        h: "Picking the right compression level",
-        p: [
-          "Each level is calibrated for a typical end use. Match the level to where the PDF is going, not to how aggressively you can compress in theory.",
-        ],
-        list: {
-          items: [
-            { b: "Light (~80% JPEG quality, no downsample).", t: "Use for print-to-paper output, client deliverables, archival copies, anything where the recipient might zoom in. Saves about 20% with no visible quality loss." },
-            { b: "Balanced (~60% JPEG quality, downsample to 200 DPI).", t: "The default. Best trade-off for email, portals, and on-screen reading. Cuts file size 40–60% on most documents." },
-            { b: "Strong (~40% JPEG, downsample to 150 DPI).", t: "Use for upload caps, mobile-first reading, or attaching to forms that reject big files. Compression is visible if the recipient zooms past 100%; for normal reading at fit-to-width, it looks fine." },
-            { b: "Target size.", t: "Tell us 'get this under 5 MB' and we iterate the parameters until we land just under your target — or warn you if it's not achievable without unacceptable damage." },
-          ],
-        },
-      },
-      {
-        h: "Common mistakes",
-        p: [
-          "These are the recurring patterns that cause people to either ship a bad-looking PDF or fail to actually shrink the file:",
-        ],
-        list: {
-          items: [
-            { b: "Compressing twice.", t: "Each compression cycle re-encodes already-compressed JPEGs, which compounds artifacts. Recompress once at the level you actually need; don't iterate." },
-            { b: "Using Strong on print-bound documents.", t: "150 DPI is fine on screen but visibly soft on a printed page, especially on logos and fine type. Use Light or Balanced for anything heading to a printer." },
-            { b: "Compressing before OCR.", t: "If the file is a scan and you'll need searchable text, OCR first. The smaller the input image, the worse the OCR accuracy, and Strong-then-OCR can lose 10–15% accuracy versus OCR-then-Strong." },
-            { b: "Forgetting that signed PDFs invalidate on compression.", t: "Compression rewrites the file's byte layout, which voids any cryptographic signature. Compress before you sign, never after." },
-            { b: "Trying to compress a file that's already nothing but text.", t: "If your PDF is 90% vector text, expect 5–10% savings even on Strong. There's no image data to squeeze." },
-          ],
-        },
-      },
-      {
-        h: "Tips for the best results",
-        p: [
-          "These are the small choices that make a real difference between a usable compressed file and a cleanly produced one:",
-        ],
-        list: {
-          items: [
-            { b: "Open the Options panel before compressing.", t: "You can override the JPEG quality and DPI per pass — useful when the auto-pick doesn't match your destination's quirks." },
-            { b: "Strip metadata if you care about privacy.", t: "Author name, edit history, and original-file path often live inside the PDF. Compression doesn't strip these by default — toggle 'Remove metadata' alongside." },
-            { b: "Convert color profiles to sRGB.", t: "Many corporate-template PDFs embed full CMYK profiles for print, which add 200–500 KB per file. The sRGB conversion option drops them losslessly for screen-bound files." },
-            { b: "Re-export from source if compression won't shrink enough.", t: "If you can rebuild the PDF from the source DOCX or PPTX, exporting fresh at a lower DPI will always beat post-hoc compression by 20–40%." },
-            { b: "Keep an uncompressed master.", t: "Always save the original alongside the compressed copy. You can recompress at any level later from the master, but you can't recover quality once it's discarded." },
-          ],
-        },
-      },
-      {
-        h: "Limits and compatibility",
-        p: [
-          "Free web tool: input up to 100 MB. The compressed output stays PDF/A compatible if the input was PDF/A. We preserve form fields, bookmarks, hyperlinks, and digital signatures (within limits — see above). The output opens in every major reader from Acrobat 7 onward, all browsers' built-in viewers, Preview, and every cloud platform.",
-        ],
-      },
-    ],
-  },
 
   // ============================================================
-  // 4. pdf-to-word
+  // pdf-to-word
   // ============================================================
   "pdf-to-word": {
     title: "How to convert a PDF to Word so the layout actually survives",

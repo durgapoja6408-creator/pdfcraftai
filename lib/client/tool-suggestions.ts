@@ -206,6 +206,47 @@ export const TOOL_SUGGESTIONS: Record<string, readonly string[]> = {
   "ai-chart-to-table": ["ai-table", "ai-summarize", "ai-key-points"],
   "ai-generate": ["text-to-pdf", "ai-improve-writing", "merge"],
   "ai-sign": ["sign-pdf-free", "flatten-pdf", "merge"],
+
+  // 2026-05-04 (T1-3 from docs/TOOL_IMPROVEMENT_PLAN.md) —
+  // Backfill 18 tools missing handoff entries. Audited via
+  // diff(catalog ids, TOOL_SUGGESTIONS keys). Curated by
+  // "what does the user typically do AFTER this output lands?"
+
+  // --- AI chat — short-form turn-by-turn, common follow-ons are
+  // distillation tools that consolidate the conversation
+  "ai-chat": ["ai-summarize", "ai-key-points", "ai-faq"],
+
+  // --- Extract → non-PDF output (CSV, JSON, ICS); typical follow-on
+  // is round-tripping back into a styled PDF or feeding to AI
+  "extract-contacts": ["text-to-pdf", "csv-to-pdf", "ai-summarize"],
+  "extract-dates": ["csv-to-pdf", "text-to-pdf", "ai-summarize"],
+  "extract-attachments": ["merge", "pdf-inspector", "ai-summarize"],
+  "extract-images": ["png-to-pdf", "jpg-to-pdf", "image-watermark"],
+
+  // --- Read-only inspectors — output is metadata/info; pair with the
+  // tool that uses that info. After page-count, users typically
+  // split or extract pages. After pdf-fonts/inspector/outline,
+  // they often want to repair or extract content.
+  "page-count": ["split", "extract-pages", "delete-pages"],
+  "pdf-fonts": ["pdf-inspector", "extract-images", "remove-metadata"],
+  "pdf-inspector": ["pdf-fonts", "repair-pdf", "remove-metadata"],
+  "pdf-outline": ["extract-pages", "split", "page-numbers"],
+  "pdf-search": ["ai-summarize", "pdf-to-text", "ai-translate"],
+
+  // --- Compliance / format checkers — fail typically routes to
+  // remediation tools (flatten, remove-metadata, repair).
+  "pdf-a-check": ["flatten-pdf", "remove-metadata", "repair-pdf"],
+  "pdf-x-check": ["flatten-pdf", "grayscale-pdf", "remove-metadata"],
+  "pdf-accessibility": ["flatten-pdf", "page-numbers", "remove-metadata"],
+
+  // --- Object inspectors — outputs are lists of attached items.
+  // pdf-attachments shows them; extract-attachments pulls them. After
+  // viewing annotations / links / scripts, the typical action is to
+  // strip or flatten them.
+  "pdf-attachments": ["extract-attachments", "pdf-inspector", "remove-metadata"],
+  "pdf-annotations": ["flatten-pdf", "remove-metadata", "page-numbers"],
+  "pdf-links": ["strip-links", "redact-free", "remove-metadata"],
+  "pdf-javascript": ["remove-metadata", "repair-pdf", "strip-links"],
 };
 
 /** Look up suggestions, defaulting to empty if no entry. */

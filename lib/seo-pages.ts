@@ -8,7 +8,12 @@
 export type SeoPageSlug =
   | "merge-pdf"
   | "split-pdf"
-  | "compress-pdf"
+  // 2026-05-04 — "compress-pdf" removed from union (T1-1 from
+  // docs/TOOL_IMPROVEMENT_PLAN.md). The next.config.mjs redirect
+  // catches /compress-pdf → /tools (308); search engines will
+  // eventually drop the indexed URL. To re-add: ship a real
+  // compress tool first (Plan T2-1), then restore the slug here
+  // and the entry in SEO_PAGES below.
   | "pdf-to-word"
   | "translate-pdf"
   // Tier 1 expansion — 12 SEO landings routing to existing combo tools
@@ -245,7 +250,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
         a: "Yes. The site is fully responsive and every free tool runs in the browser — no app install.",
       },
     ],
-    related: ["split", "compress", "pdf-to-office", "rotate"],
+    related: ["split", "pdf-to-office", "rotate"],
   },
   "split-pdf": {
     tool: "split",
@@ -284,47 +289,28 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
         a: "No limit on the free web tool. The API's batch endpoint handles 10k-page PDFs with streaming output.",
       },
     ],
-    related: ["merge", "rotate", "compress", "pdf-to-office"],
+    related: ["merge", "rotate", "pdf-to-office"],
   },
-  "compress-pdf": {
-    tool: "compress",
-    h1: "Compress PDF — shrink file size without losing quality",
-    sub: "Three levels of compression, typically 20-75% smaller. Free, fast, and safe for print.",
-    canonical: "/compress-pdf",
-    howTo: [
-      {
-        t: "Drop a PDF",
-        d: "Scans, image-heavy reports, exported slide decks — anything goes.",
-      },
-      {
-        t: "Pick a level",
-        d: "Light (20%), Balanced (50%), or Strong (75%). Balanced keeps print-grade sharpness.",
-      },
-      {
-        t: "Download",
-        d: 'Attach to email, upload to portals — no more "file too large" bounces.',
-      },
-    ],
-    faq: [
-      {
-        q: "What's the difference between Light, Balanced and Strong?",
-        a: "Light re-encodes images at high quality (~80% JPEG). Balanced at medium (~60%). Strong at aggressive (~40%) and downsamples to 150 DPI — still readable, not print-grade.",
-      },
-      {
-        q: "Can I compress to a specific size?",
-        a: "Yes. Use 'Target size' in Options — we iterate until we hit your ceiling (or tell you it's not possible without destroying quality).",
-      },
-      {
-        q: "Will text get blurry?",
-        a: "No. Text stays vector. Only images are re-encoded.",
-      },
-      {
-        q: "Are scanned PDFs handled differently?",
-        a: "Yes. Scans trigger a different pipeline — we can also offer to OCR them in the same step (costs credits).",
-      },
-    ],
-    related: ["merge", "split", "pdf-to-office", "to-pdf"],
-  },
+  // 2026-05-04 — `compress-pdf` SEO landing entry removed.
+  //
+  // Reason: pdf-lib doesn't support compression (documented in
+  // lib/tools.ts:132 "no compress, no edit text"). The catalog has
+  // never had a `compress` tool, but this SEO landing existed with
+  // detailed marketing copy ("20-75% smaller, three levels"). The
+  // next.config.mjs redirect catches /compress-pdf → /tools (308),
+  // but visitors arriving from search engines get a confusing
+  // bait-and-switch — landing copy promises a tool, redirect dumps
+  // them at the catalog index.
+  //
+  // Discovered during the 2026-05-04 end-to-end smoke test. See
+  // docs/TOOL_IMPROVEMENT_PLAN.md T1-1.
+  //
+  // To re-add: ship a real compress tool first (Plan T2-1, ~5 days
+  // server-side qpdf + ghostscript). Then restore this entry with
+  // honest copy.
+  //
+  // Related[] arrays elsewhere in this file that previously listed
+  // "compress" are also updated to drop the dangling reference.
   "pdf-to-word": {
     tool: "pdf-to-office",
     h1: "PDF to Word — convert PDF to editable .docx, free",
@@ -362,7 +348,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
         a: "Free: 100 pages per file. API & Pro: unlimited.",
       },
     ],
-    related: ["to-pdf", "ai-table", "ai-ocr", "compress"],
+    related: ["to-pdf", "ai-table", "ai-ocr"],
   },
   "translate-pdf": {
     tool: "ai-translate",
@@ -428,7 +414,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "What about .doc (old binary)?", a: "Supported too — we detect and auto-convert via the same pipeline." },
       { q: "Are my files kept?", a: "In-memory only. Discarded the moment the download completes." },
     ],
-    related: ["to-pdf", "pdf-to-office", "merge", "compress"],
+    related: ["to-pdf", "pdf-to-office", "merge"],
   },
 
   "excel-to-pdf": {
@@ -466,7 +452,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Free forever?", a: "Yes. No signup, unlimited conversions." },
       { q: "What about .key (Keynote)?", a: "Export to .pptx from Keynote first; we don't read native Keynote files." },
     ],
-    related: ["to-pdf", "pdf-to-office", "merge", "compress"],
+    related: ["to-pdf", "pdf-to-office", "merge"],
   },
 
   "jpg-to-pdf": {
@@ -485,7 +471,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Free?", a: "Yes, unlimited. No watermarks, no signup." },
       { q: "Is metadata stripped?", a: "EXIF/GPS metadata is dropped when the image becomes a PDF page. Use the Metadata tool to also strip PDF-level fields." },
     ],
-    related: ["to-pdf", "compress", "merge", "remove-metadata"],
+    related: ["to-pdf", "merge", "remove-metadata"],
   },
 
   "png-to-pdf": {
@@ -504,7 +490,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Free?", a: "Yes. Unlimited, no signup." },
       { q: "How big can each image be?", a: "Up to 100 MB per file, up to 50 images per PDF." },
     ],
-    related: ["to-pdf", "ai-ocr", "compress", "merge"],
+    related: ["to-pdf", "ai-ocr", "merge"],
   },
 
   "pdf-to-jpg": {
@@ -523,7 +509,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "How many pages can I convert?", a: "No hard cap, but large PDFs (200+ pages) will take proportionally longer — each page renders sequentially." },
       { q: "Can I get all images as a zip?", a: "Not yet — click Download All to save each page individually. Zip support is on the roadmap." },
     ],
-    related: ["pdf-to-jpg", "compress", "extract-images", "pdf-to-office"],
+    related: ["pdf-to-jpg", "extract-images", "pdf-to-office"],
   },
 
   // 2026-05-02: was tool: "pdf-to-jpg" — the wrong tool. pdf-to-png is
@@ -547,7 +533,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Private?", a: "Yes — runs entirely in your browser." },
       { q: "Free?", a: "Unlimited, no signup." },
     ],
-    related: ["pdf-to-jpg", "extract-images", "compress"],
+    related: ["pdf-to-jpg", "extract-images"],
   },
 
   "pdf-to-excel": {
@@ -566,7 +552,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Is it free?", a: "Yes for text PDFs. AI Table Extract (for scans) costs a few credits." },
       { q: "Are my files kept?", a: "In-memory only, discarded after download." },
     ],
-    related: ["pdf-to-office", "ai-table", "extract-pages", "compress"],
+    related: ["pdf-to-office", "ai-table", "extract-pages"],
   },
 
   "pdf-to-powerpoint": {
@@ -787,7 +773,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "What if the inspector shows non-embedded fonts?", a: "Use a tool like Acrobat Pro to embed them, or re-export the source document with 'Embed all fonts' checked. Standard 14 PDF fonts (Helvetica, Times, Courier etc.) are technically allowed unembedded but most modern workflows embed everything for safety." },
       { q: "Is anything uploaded?", a: "No. Byte-stream parser runs in your browser." },
     ],
-    related: ["pdf-fonts", "pdf-inspector", "page-count", "compress"],
+    related: ["pdf-fonts", "pdf-inspector", "page-count"],
   },
 
   "pdf-to-text": {
@@ -825,7 +811,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Aspect ratio?", a: "Scale mode always preserves aspect ratio and adds letterbox space if needed. Stretch distorts. Crop clips." },
       { q: "Privacy?", a: "100% client-side. Your PDF is never uploaded." },
     ],
-    related: ["resize-pdf", "crop-pdf", "compress", "rotate"],
+    related: ["resize-pdf", "crop-pdf", "rotate"],
   },
 
   "remove-pdf-metadata": {
@@ -1023,7 +1009,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "Does it make the file smaller?", a: "Usually yes. Orphaned objects and stale xref entries accumulate in heavily-edited PDFs. The repair report shows the before/after sizes so you know how much was reclaimed." },
       { q: "Privacy?", a: "100% client-side. pdf-lib parses and re-saves in your browser — nothing uploaded." },
     ],
-    related: ["repair-pdf", "compress", "flatten-pdf", "remove-metadata"],
+    related: ["repair-pdf", "flatten-pdf", "remove-metadata"],
   },
 
   "flatten-pdf": {
@@ -1043,7 +1029,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "What about comments and highlights?", a: "All annotations get burned into the page. Highlight color overlays become permanent yellow/blue/etc. tints. Comment text becomes either visible text or is dropped depending on the comment type." },
       { q: "Privacy?", a: "100% client-side. The flatten operation runs in your browser via pdf-lib. Your file never uploads." },
     ],
-    related: ["sign-pdf-free", "page-numbers", "remove-metadata", "compress"],
+    related: ["sign-pdf-free", "page-numbers", "remove-metadata"],
   },
 
   "markdown-to-pdf": {
@@ -2099,7 +2085,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       { q: "How big will the output file be?", a: "Roughly 0.5-2 MB per page at Standard quality; 1-4 MB per page at Print quality. Color PDFs often shrink slightly because the 3 color channels collapse into 1, even though we're encoding as PNG." },
       { q: "Is this the same as Compress PDF?", a: "No. Compress reduces file size while preserving color and text. Grayscale removes color entirely (and text-selectability) but isn't necessarily smaller. Use them together if you want a small B&W file: Grayscale → Compress." },
     ],
-    related: ["compress", "pdf-to-jpg", "remove-metadata", "flatten-pdf"],
+    related: ["pdf-to-jpg", "remove-metadata", "flatten-pdf"],
   },
 
   "strip-links": {
