@@ -1163,6 +1163,21 @@ const SUITES = [
     name: "webhook-reconcile-resilience",
     file: "test-webhook-reconcile-resilience.mjs",
   },
+  // 2026-05-04 (PENDING §6b corollary) — ai_usage instrumentation
+  // tracker. Discovered 8/10 AI ops don't call recordAiUsage which
+  // means /admin/margin sees ~20% of fleet, FeedbackChip flip
+  // semantics broken on those ops, /app/usage per-op breakdown
+  // wrong, per-op error rate unmeasurable. Guard locks the current
+  // state + SSOT for which ops are instrumented; ops moving from
+  // MISSING_OPS to INSTRUMENTED_OPS must be paired with the route
+  // change in the same commit. 48 assertions across 5 sections
+  // (tracker doc, instrumented ops actually call recordAiUsage,
+  // missing ops actually don't, AIOp union coverage, operator
+  // summary). See docs/AI_USAGE_INSTRUMENTATION_GAP.md.
+  {
+    name: "ai-usage-instrumentation",
+    file: "test-ai-usage-instrumentation.mjs",
+  },
   // 2026-04-30 aggregator-coverage guard: every scripts/test-*.mjs
   // and scripts/test-*.ts must be wired into the SUITES array
   // above. Catches orphan test files that silently never run in
