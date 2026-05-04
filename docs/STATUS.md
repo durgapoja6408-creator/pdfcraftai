@@ -4,8 +4,8 @@ _Single source of truth for what's done, what's pending, and who owns each item.
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
 **Last updated:** 2026-05-04 (17 ship items + Batch 2 instrumentation + Batch A FeedbackChip finish — table/compare wired).
-**Live commit:** `cb013ab5a772` (Chat FeedbackChip wire-up — **10/10 AI ops now have the chip**). Deployed CLEAN — single push, no cascade, no nudge required. The data flywheel is structurally complete on every leveraged AI route. All 86 suites green, **4994 tests passing**. **Nineteen zombie-next-server cascades** total (no new cascade on this commit).
-**Aggregator:** 4994 passed across 86 suites in ~8s (+3 from prior 4991/86 — Chat adds 3 cross-checks in the chip pilot guard).
+**Live commit:** `76a0c8290fed` (Dunning persistence foundation — closes PENDING §4c orphaned `TODO(Phase E)` marker). Deployed via single mass-kill recovery (~3 min — typical-fast cascade #20). All 87 suites green, **5053 tests passing**. **Twenty zombie-next-server cascades** total.
+**Aggregator:** 5053 passed across 87 suites in ~7.5s (+59 from prior 4994/86 — new `dunning-foundation` suite locks in the migration + schema + persist surface + admin page contract).
 
 ### 2026-05-04 — Activation + e2e + tool improvement plan + Tier 1/2 ships
 
@@ -295,6 +295,27 @@ Generate + chat have non-standard UX shapes (PDF base64 download / conversationa
 **Stage 3 batches B + C remain pending** (43 tools — variants + specialist + tail). Those are lower priority than batch A (these 10 are the highest-traffic AI ops carrying the bulk of feedback signal); they'll get wired in batched commits once the variant runner pattern is consolidated.
 
 **Aggregator state:** 4994 passed across 86 suites in ~8s. `npx tsc --noEmit` exit 0 on both commits.
+
+### 2026-05-04 — Dunning persistence foundation (commit `76a0c82`) — PENDING §4c closed
+
+**Closes the orphaned `TODO(Phase E)` marker** in `lib/payments/dunning.ts:236`. The dunning state machine has been a pure reducer for ~2 weeks (commit `8bbd841`) but had no storage — Phase E couldn't actually drive it without first having to land + run a migration in a tense moment. Same staging discipline as ai-feedback (`d74fefe`) and contact-submissions (`52307a3`): schema + persist surface + admin viewer + CI guard land together so the persist wiring (Phase E webhook handler) is a 1-file diff later.
+
+**7 files / +1079 / -3:**
+- `db/migrations/0023_subscription_dunning.sql` — new table, 8 cols, PK on subscription_id, 2 secondary indexes (state+updated_at, state_since_ms), bigint widths on the *_ms columns (Date.now() in ms exceeds int32). No FK because the future `subscriptions` recurring shape doesn't yet exist; FK can land alongside Phase E.
+- `db/schema/app.ts` — `subscriptionDunning` Drizzle table with column-by-column parity, `.onUpdateNow()` on `updatedAt`, both secondary indexes declared, defaults to `"current"` state.
+- `lib/payments/dunning.ts` — preserves the existing pure surface (`applyDunningEvent`, `newDunningRow`, `isEntitled`, `DUNNING_POLICY`, all type exports) and adds three persistence helpers: `loadDunningRow(subscriptionId)` reads row or null; `persistDunningEvent(subscriptionId, event)` does load → reduce → upsert via `INSERT ... ON DUPLICATE KEY UPDATE` so concurrent webhook deliveries can't race; `listDunningRows(limit)` is the read-side surface for /admin/dunning. Phase E TODO updated to enumerate Razorpay + Paddle event names that should call `persistDunningEvent`.
+- `app/admin/dunning/page.tsx` — read-only admin viewer. `requireAdmin` guard, `force-dynamic`, summary cards for the 4 states, past-due backlog sorted oldest-first (closest to grace-window expiry), full table. Surfaces "Phase E pending" in the header so operators reading an empty page understand it's empty by design today.
+- `app/admin/layout.tsx` — new "Dunning" entry under Ops, between "AI feedback" and "Operations".
+- `scripts/test-dunning-foundation.mjs` — 59 assertions across 6 sections (migration shape, schema parity, persist helper surface, admin page contract, layout NAV, cross-file state-name invariant).
+- `scripts/run-all-tests.mjs` — wired between `ai-feedback-pilot` and `webhook-reconcile-resilience`.
+
+**Production migration applied via SSH HEREDOC pipe** (same discipline as 0021/0022) BEFORE push, so the first request after Hostinger's auto-deploy doesn't 500 on `Unknown column 'subscription_id'`. `SHOW COLUMNS FROM subscription_dunning` confirms all 8 columns + PK on subscription_id + both secondary indexes (MUL markers on state and state_since_ms) + `on update current_timestamp(3)` on updated_at.
+
+**Cascade #20 — typical-fast.** 503 hit at push as expected for a 7-file commit including a new admin page. Single mass-kill via SSH (`pkill -9 -u u692382124 -f "next-server"` + `touch nodejs/tmp/restart.txt`) recovered within ~3 min — uptime came back at 5s on commit `76a0c8290fed`. Back to nominal range. Cascade-pattern hypothesis update: 7-file commits with new admin pages + new migration tend to cascade more reliably than doc-only or persistence-only commits, but recovery is straightforward.
+
+**Empty table by design.** Today every SKU is a one-shot credit pack — a charge either succeeds (credits land) or fails (no credits, no retry); no recurring contracts means no dunning posture to track. The first row will land when Phase E wires `persistDunningEvent` into webhook-handler.ts on Razorpay `subscription.charged|pending|halted|cancelled` and Paddle `subscription.payment_succeeded|payment_failed|canceled` events.
+
+**Aggregator state:** 5053 passed across **87 suites** in ~7.5s (delta +59 assertions / +1 suite). `npx tsc --noEmit` exit 0.
 
 ### 2026-05-03 mid-day — post-plan gap closure (Gap #1 + Gap #3)
 
