@@ -1,19 +1,23 @@
 # Next session — pick up here
 
-**Updated 2026-05-04 evening (latest live commit `6641cf7`).**
+**Updated 2026-05-04 night (latest live commit `21b874a`).**
 Multi-day arc complete. Production observability rollout 100% done.
-AI feedback data flywheel structurally live on all 8 high-leverage
-tools. Last documented correctness issue (PENDING §11a) closed.
+AI feedback data flywheel structurally live on **all 10 high-leverage
+tools** (Stage 3 batch A closed; 10/10 milestone reached on
+`cb013ab`). Last documented correctness issue (PENDING §11a) closed.
 
 **Status snapshot:**
-- Latest live commit: `6641cf7` (retrospective doc append)
-- Last code-bearing deploy: `25a49a4` (PENDING §11a — webhook
-  audit-after-process)
-- Aggregator: **4988/4988 tests passing across 86 suites** in ~7s
+- Latest live commit: `21b874a` (retrospective doc append for chat
+  chip wire-up)
+- Last code-bearing deploy: `cb013ab` (Chat FeedbackChip wire-up —
+  10/10 AI ops now have the chip + aiUsageId on the wire)
+- Aggregator: **4994/4994 tests passing across 86 suites** in ~8s
 - `tsc --noEmit` exit 0
-- 18 cascade events survived; recovery playbook holds
+- 19 cascade events survived; recovery playbook holds; cb013ab
+  itself deployed CLEAN (no cascade)
 - Production: all systems active, all 10 AI ops audited, /admin/margin
-  sees 100% of fleet
+  sees 100% of fleet, /admin/ai-feedback collects ↑/↓ across 10/10
+  leveraged ops
 
 ## Read first
 
@@ -31,9 +35,9 @@ tools. Last documented correctness issue (PENDING §11a) closed.
 
 | Item | Estimate | Why now |
 |---|---|---|
-| Generate FeedbackChip wire-up | ~30 min | Last markdown-rendering AI op without chip. Custom UX needed because Generate returns base64 PDF — chip placement after the markdown source preview, before the download button. 1-file commit. |
-| Chat FeedbackChip wire-up | ~30 min | Conversational UX — chip per assistant message, not per "result card". Different layout from the 8 batch-result tools. ChatClient.tsx is the file. |
-| `lib/payments/dunning.ts` orphaned TODO (PENDING §4c) | ~2 hours | Persist DunningRow to subscription_dunning table. Migration + persist + admin viewer. Same pattern as contact-submissions (commit `52307a3`) and ai-feedback (commit `d74fefe`). The actual dunning automation logic is bigger; foundation is small. |
+| ~~Generate FeedbackChip wire-up~~ | ~~~30 min~~ | ✅ DONE (commit `94db9e1`). 9/10 milestone. |
+| ~~Chat FeedbackChip wire-up~~ | ~~~30 min~~ | ✅ DONE (commit `cb013ab`). 10/10 milestone. Stage 3 batch A closed. |
+| `lib/payments/dunning.ts` orphaned TODO (PENDING §4c) | ~2 hours | Persist DunningRow to subscription_dunning table. Migration + persist + admin viewer. Same pattern as contact-submissions (commit `52307a3`) and ai-feedback (commit `d74fefe`). The actual dunning automation logic is bigger; foundation is small. **Now the highest-priority Tier 1 code item.** |
 | Slack alerting verification (PENDING §2a) | 30 min user-action | `AI_SPEND_ALERT_SLACK_URL` env var is unset in Hostinger. Founder sets it; lib/ai/margin-rollup.ts already has the helper code shipped. |
 
 ### Tier 2 — medium (next arc)
@@ -96,8 +100,10 @@ The infrastructure groundwork is structurally complete on these axes:
 - **Observability:** 100% AI usage instrumentation; per-op error
   rates measurable; /admin/margin sees full fleet.
 - **Data flywheel:** ai_feedback table + persist endpoint + admin
-  viewer; 8/10 high-traffic AI tools collect thumbs ↑/↓ with full
-  provenance.
+  viewer; **10/10 high-traffic AI tools** collect thumbs ↑/↓ with
+  full provenance (Stage 3 batch A closed). Stage 3 batches B + C
+  remain pending (43 lower-traffic tools — variants + specialist +
+  tail).
 - **Resilience:** Webhook audit-after-process (§11a fix); reconcile
   sweep + ledger-layer idempotency forms a 2-layer safety net.
 - **Lead capture:** /enterprise sales intake + /admin/contact-
@@ -144,7 +150,7 @@ The infrastructure groundwork is structurally complete on these axes:
 ```bash
 cd /sessions/gifted-funny-franklin/pdfcraftai-work
 npx tsc --noEmit                                # exit 0?
-node scripts/run-all-tests.mjs 2>&1 | tail -3   # 4988/0 across 86?
+node scripts/run-all-tests.mjs 2>&1 | tail -3   # 4994/0 across 86?
 curl -s https://pdfcraftai.com/api/health | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['commit'], d['uptimeSec'])"
 ```
 
