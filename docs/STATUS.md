@@ -3,7 +3,7 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-05-04 (15 ship items + Batch A FeedbackChip wire-up on translate/rewrite/ocr).
+**Last updated:** 2026-05-04 (17 ship items + Batch 2 instrumentation + Batch A FeedbackChip finish — table/compare wired).
 **Live commit:** `beeb902eadbb` (FeedbackChip live on translate/rewrite/ocr tool result cards — every thumbs ↑/↓ click now lands a row in ai_feedback with full provenance). Deployed clean (no cascade) after empty-nudge `5b839cf`. All 86 suites green, **4964 tests passing**. **Fifteen zombie-next-server cascades** to-date (no new cascade on this commit despite 3-component code change). Worth noting: this is the 3rd consecutive code-bearing commit since the cascade pattern stabilized; the recovery playbook is now reflexive enough that even cascade-bearing commits ship cleanly within 1 push cycle most of the time.
 **Aggregator:** 4964 passed across 86 suites in ~9s (+9 from prior 4955/86 — `ai-feedback-pilot` guard's WIRED_TOOLS list grew from 1 → 4 tools; each new tool adds 3 cross-checks for component existence + chip render + operation literal).
 
