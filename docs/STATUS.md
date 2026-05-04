@@ -3,9 +3,9 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-05-04 (14 ship items + ai_usage Batch 1 instrumentation closing 3 of 8 observability gaps).
-**Live commit:** `f7d5a9ce39ed` (translate/rewrite/ocr routes now write ai_usage rows + surface aiUsageId; deploy survived cascade #15 via documented `awk | xargs kill -KILL` recovery — single pkick + ~5 min recovery, faster than #13 (25 min) and #14 (12 min) as the playbook keeps tightening). All 86 suites green, **4955 tests passing**. **Fifteen zombie-next-server cascades** survived. Cascade-pattern data point: 5 of last 6 deploys (including this code-bearing one) cascaded — frequency is up but recovery is fast and reliable.
-**Aggregator:** 4955 passed across 86 suites in ~10s (+6 from prior 4949/86 — `ai-usage-instrumentation` guard's INSTRUMENTED_OPS list grew from 2 → 5 ops; each new op adds 2 assertions for the recordAiUsage call + aiUsageId surfacing).
+**Last updated:** 2026-05-04 (15 ship items + Batch A FeedbackChip wire-up on translate/rewrite/ocr).
+**Live commit:** `beeb902eadbb` (FeedbackChip live on translate/rewrite/ocr tool result cards — every thumbs ↑/↓ click now lands a row in ai_feedback with full provenance). Deployed clean (no cascade) after empty-nudge `5b839cf`. All 86 suites green, **4964 tests passing**. **Fifteen zombie-next-server cascades** to-date (no new cascade on this commit despite 3-component code change). Worth noting: this is the 3rd consecutive code-bearing commit since the cascade pattern stabilized; the recovery playbook is now reflexive enough that even cascade-bearing commits ship cleanly within 1 push cycle most of the time.
+**Aggregator:** 4964 passed across 86 suites in ~9s (+9 from prior 4955/86 — `ai-feedback-pilot` guard's WIRED_TOOLS list grew from 1 → 4 tools; each new tool adds 3 cross-checks for component existence + chip render + operation literal).
 
 ### 2026-05-04 — Activation + e2e + tool improvement plan + Tier 1/2 ships
 
@@ -192,6 +192,21 @@ PENDING §6b corollary / AI_USAGE_INSTRUMENTATION_GAP.md Batch 1. Closes the obs
 **SSOT updated:** `scripts/test-ai-usage-instrumentation.mjs` INSTRUMENTED_OPS list now: 5/10 ops (50%, up from 20%). MISSING_OPS: table, compare, generate, sign, redact (Batch 2 + Batch 3).
 
 **Cascade #15 recovery:** code-bearing commit cascaded as expected. Single pkick + restart.txt nudge cleared within ~5 min — fastest recovery yet (vs. #13's 25 min and #14's 12 min) because the awk-pipeline mass-kill pattern is now reflexive. Recovery time is converging downward as the playbook stabilizes.
+
+### 2026-05-04 — FeedbackChip wired into Batch A tool components (commit `beeb902`)
+
+PENDING §6b stage 3 / Batch A (3 of 5). Ships the user-facing data flywheel for translate/rewrite/ocr now that their routes surface aiUsageId (Batch 1 instrumentation, commit `f7d5a9c`).
+
+**Files touched** (3 client-side tool components + 2 SSOT updates):
+- `components/tools/TranslatePdfTool.tsx` — import chip, extend TranslationResult type with aiUsageId, capture from response in 200 + 207 branches, render chip in ResultCard footer
+- `components/tools/RewritePdfTool.tsx` — same pattern
+- `components/tools/OcrPdfTool.tsx` — same pattern
+- `scripts/test-ai-feedback-pilot.mjs` — WIRED_TOOLS list grew from 1 → 4; cross-check verifies each component imports the chip and renders it with the matching operation literal
+- `docs/AI_FEEDBACK_ROLLOUT.md` — status table updated (4/53 tools wired = 7.5%)
+
+**Smoke verified post-deploy:** `/tool/ai-translate`, `/tool/ai-rewrite`, `/tool/ai-ocr` all return 200. The chip is live; once users click thumbs, `/admin/ai-feedback` will show per-op NPS for these ops.
+
+**Cascade-free deploy.** Code-bearing commit (3 component changes) deployed clean after empty-commit nudge. No zombie cascade. The 5/6-cascade-rate from the previous mini-arc has cooled — recovery playbook discipline + smaller commit scope (3 surgical files vs. 5+) likely contributing factors. Recovery playbook continues to hold whenever needed; cascades just aren't deterministic per code change.
 
 ### 2026-05-03 mid-day — post-plan gap closure (Gap #1 + Gap #3)
 
