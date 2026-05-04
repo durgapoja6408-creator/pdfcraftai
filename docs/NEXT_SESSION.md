@@ -1,114 +1,152 @@
 # Next session — pick up here
 
-**Updated 2026-05-03 evening (latest live commit `4f3a4c7`).** The Pricing/Telemetry plan auto-mode arc is complete + all 5 post-plan code gaps are closed. Code-side punch list is empty. Only user-action items remain.
+**Updated 2026-05-04 evening (latest live commit `6641cf7`).**
+Multi-day arc complete. Production observability rollout 100% done.
+AI feedback data flywheel structurally live on all 8 high-leverage
+tools. Last documented correctness issue (PENDING §11a) closed.
 
 **Status snapshot:**
-- Latest live commit: `4f3a4c7` (Gap #2 Option A — per-op signup-bonus cap, feature-flagged default OFF)
-- All 13 plan days shipped at gross level; all 5 post-plan code gaps closed (#1, #3, #4, #5, #2 all live)
-- Aggregator: **4462/4462 tests passing across 77 suites** (`tsc --noEmit` exit 0)
-- Resilience: 8 zombie-next-server cascades + 3 auto-pull jams survived this arc; documented playbook is reliable
+- Latest live commit: `6641cf7` (retrospective doc append)
+- Last code-bearing deploy: `25a49a4` (PENDING §11a — webhook
+  audit-after-process)
+- Aggregator: **4988/4988 tests passing across 86 suites** in ~7s
+- `tsc --noEmit` exit 0
+- 18 cascade events survived; recovery playbook holds
+- Production: all systems active, all 10 AI ops audited, /admin/margin
+  sees 100% of fleet
 
-**Three classes of remaining work:**
+## Read first
 
-## 1. User-action items (founder must do, no Claude work needed)
+1. `CLAUDE.md` — bootstrap (credentials + infra)
+2. `docs/STATUS.md` — running timeline (most recent at top)
+3. `docs/SESSION_2026-05-04_RETROSPECTIVE.md` §9 — full arc summary
+   (24-commit observability + chip rollout; cascade-pattern data;
+   hypothesis revisions; recovery playbook validation)
+4. `docs/PENDING_WORK_ANALYSIS.md` — full forward-looking audit;
+   §11a marked ✅ FIXED in this arc
 
-These are the only blockers between "everything is wired" and "everything is live + active in prod."
+## What's left (ranked by ratio of impact to cascade risk)
 
-### 1a. Hostinger panel env vars (REQUIRED)
-Add the following in hPanel → Environment Variables → Save and redeploy:
-- `CRON_SECRET=<generate any 32+ char random string>` — gates `/api/cron/expire-grants` (the daily sweep that debits expired signup_bonus credits past the 7-day TTL).
-- `NEXT_PUBLIC_TURNSTILE_SITE_KEY=0x4AAAAAADH0w8NFtw_mwWPx` — public site key (already in `.claude/secrets.env`, just needs to be on the live env). Required for the registration form's captcha widget to render.
-- `TURNSTILE_SECRET_KEY=0x4AAAAAADH0wxWtlmi0hAi8-8HB-zOCYK8` — server-side secret. Required for `verifyTurnstileToken` to hit Cloudflare's siteverify endpoint. Without this, the captcha layer fails open.
+### Tier 1 — small + cascade-friendly (any session)
 
-### 1b. cron-job.org schedule (REQUIRED for credit expiry to actually fire)
-1. Sign in to cron-job.org → New cronjob.
-2. URL: `https://pdfcraftai.com/api/cron/expire-grants?secret=<the CRON_SECRET you set above>`
-3. Schedule: daily at 03:00 UTC (low-traffic window for the production DB).
-4. HTTP Method: GET.
-5. Save + enable.
+| Item | Estimate | Why now |
+|---|---|---|
+| Generate FeedbackChip wire-up | ~30 min | Last markdown-rendering AI op without chip. Custom UX needed because Generate returns base64 PDF — chip placement after the markdown source preview, before the download button. 1-file commit. |
+| Chat FeedbackChip wire-up | ~30 min | Conversational UX — chip per assistant message, not per "result card". Different layout from the 8 batch-result tools. ChatClient.tsx is the file. |
+| `lib/payments/dunning.ts` orphaned TODO (PENDING §4c) | ~2 hours | Persist DunningRow to subscription_dunning table. Migration + persist + admin viewer. Same pattern as contact-submissions (commit `52307a3`) and ai-feedback (commit `d74fefe`). The actual dunning automation logic is bigger; foundation is small. |
+| Slack alerting verification (PENDING §2a) | 30 min user-action | `AI_SPEND_ALERT_SLACK_URL` env var is unset in Hostinger. Founder sets it; lib/ai/margin-rollup.ts already has the helper code shipped. |
 
-Without this, the "free credits valid 7 days" promise isn't enforced — credits silently sit on user accounts past expiry. The expire-grants endpoint is idempotent (each row gets debited at most once) so manual re-runs are safe.
+### Tier 2 — medium (next arc)
 
-### 1c. Optional: activate Gap #2 per-op cap
-The cap is wired but disabled by default. To activate:
-- Add `BONUS_PER_OP_CAP_ENABLED=true` in hPanel.
-- (Optional) `BONUS_PER_OP_CAP=2` to override the default cap value.
-- Save + redeploy.
+| Item | Estimate | Why later |
+|---|---|---|
+| Stage 3 Batch B chip rollout (SummarizeVariantTool family) | ~1 day | ~9 variant ops sharing a single component (faq, action-items, mindmap, etc.). Single-file refactor + per-variant testing. Real value once accumulated feedback data shows variants worth scaling. |
+| Stage 3 Batch C chip rollout (specialist + tail tools) | ~2 days | ~30+ specialist tools (legal/medical/etc.). Each needs route-level instrumentation if their AI work routes through different modules. Lower per-tool traffic so per-tool feedback signal is sparse. |
+| Per-user negative feedback signal (PENDING §6c) | ~1 week | Detect "user X has 3+ consecutive thumbs-down on AI ops" and either re-route or surface to admin. Depends on chip data accumulating across the wired 8 tools first. Worth ~1-2 weeks of real traffic before building. |
+| Mobile UI hardening (PENDING §5f / T1-4) | 3-5 days | Playwright mobile spec across the 13 visual editors. Fix touch behavior issues. ~40% of typical PDF tool traffic is mobile. |
 
-When activated, free-trial users (no purchases yet) can spend at most 2 of their 5 credits on any single AI op. After hitting the cap on a given op, they see "Top up to keep using it" — same UX as running out of pool credits, just earlier per-op. Topping up bypasses the cap entirely.
+### Tier 3 — large (multi-week)
 
-### 1d. Search Console / Bing Webmaster
-Sitemap was last submitted to GSC + Bing on 2026-04-20 / 2026-04-21. The plan arc shipped 13 SEO landings + several redirect changes; the sitemap reflects them. Re-submit if you want fresh crawls — `https://pdfcraftai.com/sitemap.xml`.
+| Item | Estimate | Notes |
+|---|---|---|
+| Real PDF Compress (PENDING T2-1 / §5a) | ~5 days | Server-side qpdf + ghostscript pipeline. Closes the bait-and-switch gap fully. Run as 5-credit AI op since it needs server compute. |
+| PDF/A converter (PENDING §5b) | 3-4 days | Server-side ghostscript or qpdf. Real demand from compliance/archival users. |
+| Edit Text in PDFs (PENDING §5c) | 2-3 weeks | Significant — pdf-lib doesn't support text editing in existing pages. Apache PDFBox Java sidecar OR deeper PDFium. |
+| OCR-then-searchable workflow (PENDING §5d) | 1 week | Combine ai-ocr + ai-searchable-pdf into a unified flow. |
+| Bulk processing (PENDING T3-1 / §5e) | 2-3 weeks | ZIP upload OR multi-select with shared config + background job processing + per-file results table. |
 
-## 2. Open investigation threads (worth a future session)
+### User-action / external-vendor blocked
 
-### Cascade-pattern investigation
-**Hypothesis:** zombie-next-server cascades correlate with **rapid code-bearing deploys**, not with deploy frequency alone. Doc-only and test-only commits deploy clean (commits `78240d4`, `ff54a98`, `d75f726`, `fef1304`); code-bearing commits repeatedly trigger cascades (`8afefa5` → #7, `acb7695` → #8). Counter-data: `4f3a4c7` was code-bearing but deployed clean — though only after an empty-commit nudge resolved auto-pull jam #3, suggesting the nudge sidestepped some queue-overlap state.
+| Item | Owner | Notes |
+|---|---|---|
+| GST invoice generation (PENDING §1a) | Founder + CA | 3-5 days when CA reviews HSN code 998313. Required for Indian B2B procurement; below ₹40-lakh threshold today so not urgent. |
+| EU VAT path (PENDING §1b) | Paddle KYC clearance | Adapter scaffolded at lib/payments/adapters/paddle.ts. Once Paddle KYC clears, MoR absorbs VAT calculation + remittance. |
+| US sales-tax-nexus (PENDING §1c) | Paddle MoR | Same path as EU VAT — Paddle covers it. |
+| SOC 2 Type II audit (PENDING §1g) | Founder + auditor | $5k-15k/yr; trigger condition: ARR > $200k OR first enterprise prospect asks. |
 
-**Suggested experiment** (~30 min):
-1. Push a small code-bearing commit at low-traffic time. Watch `/api/health` `uptimeSec` and `ps -fu u692382124 | grep -c next-server` via SSH.
-2. Wait 10 min. Push another code-bearing commit. Observe whether the second deploy cascades (overlap with first deploy's cleanup).
-3. Try the same with two doc-only commits 10 min apart. Compare cascade rate.
+## Cascade discipline reminders
 
-**Working theory:** Hostinger's Passenger HelperAgent has a thread budget; rapid LSAPI socket re-binds during code-bearing rebuilds saturate it. Doc-only commits skip the rebuild entirely so don't compete for thread slots.
+The 2026-05-04 arc validated the recovery playbook across 18
+cascade events. Three concrete rules going forward:
 
-**Mitigation if confirmed:** batch code commits with 5+ min spacing, OR ask Hostinger Support to bump the per-user thread cap (currently shared at the cgroup level — `ulimit -u` in user shell is misleadingly high).
+1. **One pkick max per deploy cycle.** If `pkill -9 -f "next-server"`
+   doesn't recover within 60s, escalate to documented
+   `ps -fu | grep next-server | awk '{print $2}' | xargs kill -KILL`
+   pattern (cascade #13 lesson, validated in #15-#18).
 
-### `capExceeded` flag → friendlier copy (deferred)
-Gap #2 Option A wires the cap and returns `{reason:"insufficient", capExceeded:true}` when fired. Route handlers and tool components currently ignore the flag — users see the standard "Not enough credits" copy. Once the cap is activated and we observe friction, the friendlier "Free trial cap reached on this tool — top up" copy is a 30-min batch:
-- 9-10 AI route handlers: pass `capExceeded` through to the 402 response body.
-- 9-10 client tool components: detect the new field, switch the formatted error string.
-- Probably best wrapped as a single `lib/ai/error-mapping.ts` helper that all components import, to avoid duplicating the conditional logic.
+2. **SSH fork-saturation: STOP and wait.** When `bash: fork: retry`
+   appears, EVERY reconnect attempt compounds the cgroup pressure.
+   Wait 5-10 min for kernel drain; can extend to 25 min in
+   worst-case (cascade #18). Don't poll, just wait.
 
-### Per-op cap admin observability
-Right now we have no admin signal that "user X hit the cap on op Y." Worth a small dashboard or log line: when `checkPerOpBonusCap` returns capped:true with remaining < cost, emit a structured stdout log (`event: "per_op_cap_blocked"`) so admin can grep for cap-hit clusters. Especially useful in the first 2 weeks after activation to see if the cap is firing on legit users.
+3. **Auto-pull jams clear via empty-commit nudge.** 10/10 jams
+   resolved this way. Multiple commits queued behind a jam can
+   pile up; auto-pull eventually pulls latest main (commit-by-
+   commit semantics not observed). If multiple nudges don't
+   work, wait 5+ min — Hostinger may rate-limit auto-pull on
+   rapid-fire commit chains.
 
-## 3. Documentation that should exist (low-priority polish)
+## Codebase health
 
-### Operations runbook
-We have lots of cascade history in STATUS.md but no single "what to do when X breaks" doc. A short `docs/OPS_RUNBOOK.md` covering:
-- Cascade recovery: SSH mass-kill or wait 5–10 min (with the fork-retry decision tree)
-- Auto-pull jam: empty-commit nudge
-- 503 vs 200 vs HTML-default-error decision flow
-- "How to find the latest live commit": `curl /api/health | jq .commit`
-- "How to roll back": `git revert HEAD && push` (followed by another empty-commit nudge if needed)
+The infrastructure groundwork is structurally complete on these axes:
 
-This could be 1 page of dense bullets and would save ~10 min in any future incident.
+- **Compliance:** SECURITY_COMPLIANCE_AUDIT.md attests to refund/CSP/
+  abuse-stack/DPDP/Razorpay merchant requirements all PASS. Cookie
+  banner equal-prominence shipped (GDPR dark-pattern fix).
+- **Observability:** 100% AI usage instrumentation; per-op error
+  rates measurable; /admin/margin sees full fleet.
+- **Data flywheel:** ai_feedback table + persist endpoint + admin
+  viewer; 8/10 high-traffic AI tools collect thumbs ↑/↓ with full
+  provenance.
+- **Resilience:** Webhook audit-after-process (§11a fix); reconcile
+  sweep + ledger-layer idempotency forms a 2-layer safety net.
+- **Lead capture:** /enterprise sales intake + /admin/contact-
+  submissions reader. SendGrid/Postmark wire-up still pending
+  (founder decision).
 
-### Cron-jobs index
-Currently we have one cron (expire-grants) and the design doc trail mentions future ones (margin rollup, anomaly detection, etc.). Worth a `docs/CRON_JOBS.md` listing every endpoint that should be hit on a schedule, the schedule, and the canonical cron-job.org configuration. Easy to forget to set up new crons during onboarding to a new hosting platform.
+## Hypothesis tracker (open questions for future arcs)
 
----
+1. **Cascade frequency vs. commit scope** — initial hypothesis was
+   small commits cascade less. Disproven by cascade #14 (doc-only)
+   and weakly held by cascade #18 (3-file). Dominant factor seems
+   to be Hostinger plan cgroup pressure at push time. Worth
+   tracking across the next 10 cascades for a real signal.
 
-## What this session shipped (handoff snapshot)
+2. **Auto-pull rate-limit threshold** — cascade #16 + jam #10 needed
+   3 nudges across 6 queued commits. Suggests Hostinger may rate-
+   limit when the queue backs up. Worth instrumenting if it
+   recurs.
 
-**Plan arc** (Pricing/Telemetry — multiple sub-sessions, ~50 commits total):
-- Day 1 supply-chain scrub + credit-badge removal + marketing copy
-- Day 1.5a/b email verification + password reset SMTP + login rate limit + bcrypt 12 + password strength + no-enumeration
-- Day 1.6 DPDP compliance (data export, account delete, breach runbook)
-- Day 1.7 multiplier-aware spend for translate/redact/sign
-- Day 2 + 2.5 pre-flight credit estimator + 9/9 AI tools wired
-- Day 3 user `/app/usage` page (credits-only)
-- Day 5 + 5.5 abuse stack layers 1-7 (disposable blocklist, Gmail-alias normalize, IP /24 throttle, device fingerprint, Cloudflare Turnstile)
-- Day 6 atomic 25→5 credit grant flip + grantSignupBonus
+3. **Recovery time normalization** — cascade #18 took 50 min
+   (worst-case); typical is 5-15 min. Whether this correlates with
+   time-of-day, cgroup neighbour load, or Hostinger plan tier is
+   unclear. Worth logging cascade timestamps + recovery durations.
 
-**Post-plan gap closure** (this session, 9 commits):
-- Gap #1 — defer signup bonus to /verify-email after email-ownership proof
-- Gap #3 — estimator badge wired into 6 remaining AI tools (9/9 coverage now)
-- Gap #4 — personalized "last 7 days" recap on OutOfCreditsAlert (+ rate-limit on /api/account/recent-usage)
-- Gap #5 — admin grant/debit credit actions on /admin/users/[id]
-- Gap #2 Option A — per-op signup-bonus cap (feature-flagged default OFF, decision-doc trail in `docs/GAP2_DESIGN_OPTIONS.md`)
+## Things NOT to do without a clear reason
 
-**Test surface:** 4462/4462 across 77 suites; 2 new CI guards added (`gap4-gap5` 58 assertions, `per-op-bonus-cap` 26 assertions), plus extensions to `abuse-prevention`.
+- **Don't pkick twice within 60 seconds.** Cgroup saturation cascades
+  worse than the original incident. Cascade #18 lesson reinforced.
+- **Don't push 5+ commits in rapid sequence.** Auto-pull may rate-
+  limit and queue them all. Wait for one to deploy before pushing
+  the next. (Cascade #16 / jam #10 evidence.)
+- **Don't add per-call dollar values to user-facing copy.** The
+  `no-credit-number-hardcodes` guard exists for a reason — credits
+  are the unit users see; rupees only at /buy.
+- **Don't undo the PDFium WASM API route.** `lib/pdf/library.ts`
+  routes through `/api/pdfium-wasm` because the static file gets
+  served as `text/plain` by LiteSpeed/Passenger regardless of
+  next.config.mjs `headers()` or `.htaccess` directives. Reverting
+  to `wasmUrl: "/pdfium.wasm"` breaks PDFium-backed tools silently.
+  See CLAUDE.md §5 "Static `/public/*.wasm` files".
 
-**Files most likely to be relevant in the next session:**
-- `lib/payments/per-op-bonus-cap.ts` — Gap #2 helper (pure)
-- `lib/ai/credits.ts` — spendCredits wire-in
-- `app/verify-email/page.tsx` — grant-on-verify hook
-- `lib/admin/user-actions.ts` — admin grant/debit
-- `components/admin/AdminUserActions.tsx` — admin form UI
-- `app/api/account/recent-usage/route.ts` — recent-usage endpoint with rate limit
-- `components/upsell/OutOfCreditsAlert.tsx` — alert with personalized recap
-- `docs/GAP2_DESIGN_OPTIONS.md` — Option A activation instructions
-- `docs/STATUS.md` — full timeline of the arc (cascade history, decision rationale)
-- `CLAUDE.md` — bootstrap doc (deployment playbook, cascade recovery, env vars)
+## Quick health check before any work
+
+```bash
+cd /sessions/gifted-funny-franklin/pdfcraftai-work
+npx tsc --noEmit                                # exit 0?
+node scripts/run-all-tests.mjs 2>&1 | tail -3   # 4988/0 across 86?
+curl -s https://pdfcraftai.com/api/health | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['commit'], d['uptimeSec'])"
+```
+
+If any of these fail, READ STATUS.md tail before doing anything else
+— the cascade may be in flight.
