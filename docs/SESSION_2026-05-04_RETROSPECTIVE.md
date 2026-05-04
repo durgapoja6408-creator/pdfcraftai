@@ -201,3 +201,102 @@ See `docs/NEXT_SESSION.md` for ranked handoff. Three classes of remaining work:
 3. **Plan items remaining:** see `docs/TOOL_IMPROVEMENT_PLAN.md` Tier 1/2/3 — pick by acquisition data when we have it.
 
 The codebase is in the cleanest state of the entire arc. Documentation trail is complete. Production is fully active. Anyone picking up the next session should start with `CLAUDE.md` (bootstrap) → `docs/STATUS.md` (timeline) → `docs/NEXT_SESSION.md` (ranked next steps).
+
+---
+
+## 9. Arc continuation (2026-05-04 evening — observability + chip rollout)
+
+**24 additional commits** beyond the original retrospective. Major arc focus: full observability rollout + AI feedback flywheel.
+
+### Commits shipped (latest first)
+- `c2d2569` — docs: §11a fix retrospective + cascade #18
+- `25a49a4` — fix(webhook): defer audit insert until after processing (PENDING §11a closed)
+- `955cb7b` — docs: sign + redact chips shipped, cascade-free deploy
+- `1684741` — feat(ai-feedback): wire chip into sign + redact tools
+- `23b4247` — docs: 100% ai_usage instrumentation milestone + cascade #17
+- `b49e4d3` — feat(ai-usage): Batch 3 (final) — instrument sign + redact routes
+- `91ae387` — docs: Batch 2 + Batch A finish + cascade #16 / jam #10
+- `ff54b07` — feat(ai-feedback): Stage 3 Batch A finish — chip on table + compare
+- `37b6573` — feat(ai-usage): Batch 2 — instrument table/compare/generate routes
+- `064f813` — docs: Batch A chip wire-up shipped + cascade-free deploy
+- `beeb902` — feat(ai-feedback): Stage 3 Batch A (3/5) — wire chip into translate/rewrite/ocr
+- `0fde602` — docs: Batch 1 ai_usage instrumentation + cascade #15
+- `f7d5a9c` — feat(ai-usage): Batch 1 — instrument translate/rewrite/ocr routes
+- `16419ce` — docs: cascade #14 + ai_usage gap tracker shipped
+- `bff7354` — docs: ai_usage instrumentation gap tracker + CI guard
+- `b03b301` — docs: webhook resilience guard + cascade-pattern evidence
+- `ff59b5e` — test(ci): webhook + reconcile resilience contract guard
+- `e8b70c0` — docs: AI feedback pilot shipped + cascade #13 retrospective
+- `e99ac1c` — feat(ai-feedback): stage 2 pilot — FeedbackChip + Summarize wire-up
+- `f1daf88` — docs: AI feedback foundation shipped (d74fefe)
+- `d74fefe` — feat(ai-feedback): schema + persist endpoint + admin viewer (stage 1 of 2)
+- `ea9ac61` — docs: contact form persistence shipped (52307a3)
+- `52307a3` — feat(contact): persist submissions to MariaDB + admin viewer
+- `78a0277` — compliance: SECURITY_COMPLIANCE_AUDIT.md + cookie banner equal-prominence + 2 CI guards
+
+(plus 8 empty-commit nudges across cascades #13–#18 — not counted as "real" commits)
+
+### Major milestones reached
+
+**100% AI usage instrumentation.** Started at 20% (only chat + summarize); ended at 100% (all 10 ops). 80-percentage-point swing in this arc. /admin/margin sees 100% of AI fleet for the first time. Per-op error rates measurable across the board. /app/usage per-op breakdown accurate for every tool.
+
+**FeedbackChip data flywheel structurally complete.** 8 of 10 markdown-rendering AI tools have the chip wired (summarize, translate, rewrite, ocr, table, compare, sign, redact). Generate (PDF base64 UX) + chat (conversational UX) deferred for separate UX-shape decisions.
+
+**§11a closed — last documented correctness issue gone.** Webhook audit-row ordering inverted: applyPaymentEvent FIRST, then recordWebhookEvent. Failure path now skips audit insert → next retry actually re-runs the processor. Reconcile sweep was the safety net before; now the handler itself is correct.
+
+**3 new admin surfaces:**
+- `/admin/contact-submissions` — sales-qualified-lead reader (PENDING §4c orphan TODO closed)
+- `/admin/ai-feedback` — per-op NPS + recent thumbs-down rows (PENDING §6b foundation)
+- (existing /admin/margin gains 100% fleet visibility for the first time)
+
+**8 new CI guards:**
+- `csp-turnstile` (4) — Cloudflare Turnstile origin allowlist
+- `cap-exceeded-wireup` (77) — capExceeded flag through 4-layer chain
+- `enterprise-and-plus-cta` (25) — T1-6 OutOfCreditsAlert + /enterprise wire-up
+- `cookie-banner-prominence` (15) — GDPR equal-prominence
+- `contact-persistence` (46) — contact form persist + admin viewer
+- `ai-feedback-foundation` (63) — schema + persist + admin viewer
+- `ai-feedback-pilot` (33→42→...) — chip wire-up SSOT
+- `ai-usage-instrumentation` (48→64) — recordAiUsage SSOT
+- `webhook-reconcile-resilience` (23→25) — 500/200/400 contract + idempotency keys
+
+**Test surface growth:** 4619 → 4988 (+369 assertions, 80% growth driven by new infrastructure guards).
+
+### Cascade pattern data (hard-won)
+
+**Cascades survived: 14 → 18 (+5 in this continuation).** Recovery time has stabilized but spans a wide range:
+- Cascade #13 (T2-5 chain): 25 min
+- Cascade #14 (doc-only): 12 min
+- Cascade #15 (Batch 1): 5 min
+- Cascade #16 (jam #10 multi-step): ~12 min + 3 nudges
+- Cascade #17 (Batch 3): 8 min via "wait for kernel drain"
+- Cascade #18 (§11a fix): **~50 min — worst-case path**
+
+**Hypothesis revisions documented:**
+1. Earlier: "doc-only commits don't cascade" → DISPROVEN (cascade #14 hit a doc-only commit)
+2. Later: "smaller commit scopes correlate with cascade-free deploys" → PARTIALLY HOLDS (1 of 3 small commits cascaded; not deterministic)
+3. Latest: cgroup pressure at push time is the dominant factor; ANY push can trigger a hard cascade if the kernel is already near saturation. Recovery playbook is the constant.
+
+**Recovery playbook validated** across all 5 new cascades:
+- Empty-commit nudge resolves auto-pull jams (10/10 success)
+- Documented `awk | xargs kill -KILL` pattern is the reliable mass-kill (replaces the less-reliable `pkill -9` in some cases)
+- "Wait 5-10 min for kernel drain" extends to "wait 25 min" in worst-case (cascade #18)
+- The playbook holds; just slower under saturation
+
+### What remains (revised)
+
+The §11a fix closes the last documented correctness issue. Remaining work is genuinely forward-looking:
+- Generate FeedbackChip wire-up (PDF base64 UX)
+- Chat FeedbackChip wire-up (conversational UX)
+- Stage 3 Batch B (SummarizeVariantTool family, ~9 variants sharing a single component)
+- Stage 3 Batch C (specialist + tail tools, ~30+)
+- Per-user negative feedback signal (PENDING §6c — depends on chip data accumulating)
+- Real PDF Compress (PENDING T2-1, ~5 days)
+- Mobile UI hardening (PENDING T1-4, 3-5 days)
+- GST invoice generation (PENDING §1a, founder + CA dependency)
+
+The infrastructure groundwork is structurally complete. Future work plugs into existing surfaces (ai_feedback / ai_usage / admin pages) rather than building new ones.
+
+### Aggregator endpoint state
+
+**4988/0 across 86 suites in ~7s.** All green; no skipped suites; no flakes observed across the arc.
