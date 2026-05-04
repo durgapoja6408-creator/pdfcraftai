@@ -4,8 +4,8 @@ _Single source of truth for what's done, what's pending, and who owns each item.
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
 **Last updated:** 2026-05-04 (17 ship items + Batch 2 instrumentation + Batch A FeedbackChip finish — table/compare wired).
-**Live commit:** `25a49a41947d` (PENDING §11a fix — webhook audit-after-process ordering). Deployed after cascade #18 — the worst-case SSH-fork-saturation event of the arc, ~50 min total recovery time. Multi-stage recovery: initial mass-kill failed because SSH cgroup was saturated; ~25 min wait restored SSH; mass-kill THEN succeeded; another ~25 min for Passenger to fully respawn workers under the still-stressed cgroup. All 86 suites green, **4988 tests passing**. **Eighteen zombie-next-server cascades** survived total.
-**Aggregator:** 4988 passed across 86 suites in ~7s (+2 from prior 4986/86 — F2 + F3 added to webhook-reconcile-resilience for the §11a fix).
+**Live commit:** `94db9e18ada8` (Generate FeedbackChip wire-up — 9/10 markdown-rendering AI ops now have the chip). Deployed via single mass-kill recovery in cascade #19 (~5 min — fastest in last 4 cascades, back to typical range after #18's 50-min worst-case). All 86 suites green, **4991 tests passing**. **Nineteen zombie-next-server cascades** survived total.
+**Aggregator:** 4991 passed across 86 suites in ~7s (+3 from prior 4988/86 — Generate adds 3 cross-checks in the chip pilot guard).
 
 ### 2026-05-04 — Activation + e2e + tool improvement plan + Tier 1/2 ships
 
