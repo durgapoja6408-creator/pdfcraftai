@@ -25,6 +25,9 @@ import { randomUUID, createHash } from "crypto";
 import { auth } from "@/auth";
 import { db, schema } from "@/db/client";
 import { refundCredits, spendCredits } from "@/lib/ai/credits";
+// 2026-05-04 (PENDING §6b corollary / AI_USAGE_INSTRUMENTATION_GAP) —
+// Batch 2: generate joins the instrumented set.
+import { recordAiUsage } from "@/lib/ai/usage";
 import {
   NoAIProviderConfiguredError,
   generatePdf,
@@ -191,6 +194,8 @@ export async function POST(req: Request): Promise<Response> {
   const newBalance = spend.newBalance;
 
   // -- 5. Generate -----------------------------------------------------
+  // 2026-05-04 — capture provider start time for recordAiUsage latency.
+  const providerStartedAt = Date.now();
   let result: Awaited<ReturnType<typeof generatePdf>>;
   try {
     result = await generatePdf({
@@ -213,6 +218,23 @@ export async function POST(req: Request): Promise<Response> {
     const message = err instanceof Error ? err.message : "generate_failed";
     return json(502, { error: "generate_failed", detail: message });
   }
+
+  // 2026-05-04 — Phase A1 audit row.
+  const usageRecord = await recordAiUsage({
+    userId,
+    operation: "generate",
+    providerId: result.providerId,
+    model: result.model,
+    inputTokens: result.usage.inputTokens,
+    outputTokens: result.usage.outputTokens,
+    latencyMs: Date.now() - providerStartedAt,
+    creditsSpent: creditCost,
+    costMicros: null,
+    success: true,
+    responseTruncated: result.wasTruncated ? 1 : 0,
+    ledgerId: spend.ledgerId,
+    idempotencyKey: spendKey,
+  });
 
   // -- 6. Persist summary (markdown) -----------------------------------
   const fileId = randomUUID();
@@ -279,6 +301,8 @@ export async function POST(req: Request): Promise<Response> {
       length,
       tone,
       title: resolvedTitle,
+      // 2026-05-04 (PENDING §6b stage 2). FeedbackChip flip semantics.
+      aiUsageId: usageRecord.applied ? usageRecord.id : null,
     });
   }
 
@@ -299,6 +323,8 @@ export async function POST(req: Request): Promise<Response> {
     length,
     tone,
     title: resolvedTitle,
+    // 2026-05-04 (PENDING §6b stage 2). FeedbackChip flip semantics.
+    aiUsageId: usageRecord.applied ? usageRecord.id : null,
   });
 }
 

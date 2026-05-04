@@ -120,12 +120,12 @@ For each of the 8 missing ops:
 |---|---|---|---|
 | summarize | app/api/ai/summarize/route.ts | components/tools/SummarizePdfTool.tsx | ✅ instrumented + chip wired |
 | chat | app/api/ai/chat/route.ts | components/app/chat/ChatClient.tsx | ✅ instrumented; chip not wired (chat-turn UI is different) |
-| translate | app/api/ai/translate/route.ts | components/tools/TranslatePdfTool.tsx | ✅ instrumented (Batch 1, 2026-05-04); chip wire-up pending |
-| rewrite | app/api/ai/rewrite/route.ts | components/tools/RewritePdfTool.tsx | ✅ instrumented (Batch 1, 2026-05-04); chip wire-up pending |
-| ocr | app/api/ai/ocr/route.ts | components/tools/OcrPdfTool.tsx | ✅ instrumented (Batch 1, 2026-05-04); chip wire-up pending |
-| table | app/api/ai/table/route.ts | components/tools/TableExtractTool.tsx | ❌ no ai_usage write (Batch 2) |
-| compare | app/api/ai/compare/route.ts | components/tools/ComparePdfTool.tsx | ❌ no ai_usage write (Batch 2) |
-| generate | app/api/ai/generate/route.ts | components/tools/GeneratePdfTool.tsx | ❌ no ai_usage write (Batch 2) |
+| translate | app/api/ai/translate/route.ts | components/tools/TranslatePdfTool.tsx | ✅ instrumented (Batch 1) + chip wired (Batch A) |
+| rewrite | app/api/ai/rewrite/route.ts | components/tools/RewritePdfTool.tsx | ✅ instrumented (Batch 1) + chip wired (Batch A) |
+| ocr | app/api/ai/ocr/route.ts | components/tools/OcrPdfTool.tsx | ✅ instrumented (Batch 1) + chip wired (Batch A) |
+| table | app/api/ai/table/route.ts | components/tools/TableExtractTool.tsx | ✅ instrumented (Batch 2, 2026-05-04); chip wire-up pending |
+| compare | app/api/ai/compare/route.ts | components/tools/ComparePdfTool.tsx | ✅ instrumented (Batch 2, 2026-05-04); chip wire-up pending |
+| generate | app/api/ai/generate/route.ts | components/tools/GeneratePdfTool.tsx | ✅ instrumented (Batch 2, 2026-05-04); chip wire-up pending |
 | sign | app/api/ai/sign/route.ts | components/tools/SignPdfTool.tsx | ❌ no ai_usage write (Batch 3) |
 | redact | app/api/ai/redact/route.ts | components/tools/RedactPdfTool.tsx | ❌ no ai_usage write (Batch 3) |
 

@@ -92,13 +92,26 @@ const INSTRUMENTED_OPS = [
     route: "app/api/ai/ocr/route.ts",
     surfacesAiUsageId: true,
   },
+  // 2026-05-04 — Batch 2 of the AI_USAGE_INSTRUMENTATION_GAP.md
+  // rollout: mid-traffic ops. Same pattern as Batch 1.
+  {
+    op: "table",
+    route: "app/api/ai/table/route.ts",
+    surfacesAiUsageId: true,
+  },
+  {
+    op: "compare",
+    route: "app/api/ai/compare/route.ts",
+    surfacesAiUsageId: true,
+  },
+  {
+    op: "generate",
+    route: "app/api/ai/generate/route.ts",
+    surfacesAiUsageId: true,
+  },
 ];
 
 const MISSING_OPS = [
-  // Batch 2 (pending, see docs/AI_USAGE_INSTRUMENTATION_GAP.md):
-  { op: "table", route: "app/api/ai/table/route.ts" },
-  { op: "compare", route: "app/api/ai/compare/route.ts" },
-  { op: "generate", route: "app/api/ai/generate/route.ts" },
   // Batch 3 (pending, lowest traffic):
   { op: "sign", route: "app/api/ai/sign/route.ts" },
   { op: "redact", route: "app/api/ai/redact/route.ts" },

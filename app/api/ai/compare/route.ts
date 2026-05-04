@@ -28,6 +28,9 @@ import { auth } from "@/auth";
 import { db, schema } from "@/db/client";
 import { extractPdfText } from "@/lib/ai/pdf-extract";
 import { refundCredits, spendCredits } from "@/lib/ai/credits";
+// 2026-05-04 (PENDING §6b corollary / AI_USAGE_INSTRUMENTATION_GAP) —
+// Batch 2: compare joins the instrumented set.
+import { recordAiUsage } from "@/lib/ai/usage";
 import {
   NoAIProviderConfiguredError,
   comparePdfs,
@@ -207,6 +210,8 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   // -- 5. Compare ------------------------------------------------------
+  // 2026-05-04 — capture provider start time for recordAiUsage latency.
+  const providerStartedAt = Date.now();
   let diffed: Awaited<ReturnType<typeof comparePdfs>>;
   try {
     diffed = await comparePdfs({
@@ -236,6 +241,24 @@ export async function POST(req: Request): Promise<Response> {
     const message = err instanceof Error ? err.message : "compare_failed";
     return json(502, { error: "compare_failed", detail: message });
   }
+
+  // 2026-05-04 — Phase A1 audit row. Compare's diffed result has
+  // wasTruncated for "input was clipped to context window."
+  const usageRecord = await recordAiUsage({
+    userId,
+    operation: "compare",
+    providerId: diffed.providerId,
+    model: diffed.model,
+    inputTokens: diffed.usage.inputTokens,
+    outputTokens: diffed.usage.outputTokens,
+    latencyMs: Date.now() - providerStartedAt,
+    creditsSpent: creditCost,
+    costMicros: null,
+    success: true,
+    responseTruncated: diffed.wasTruncated ? 1 : 0,
+    ledgerId: spend.ledgerId,
+    idempotencyKey: spendKey,
+  });
 
   // -- 6. Persist files + ai_outputs -----------------------------------
   const fileId = randomUUID();
@@ -297,6 +320,8 @@ export async function POST(req: Request): Promise<Response> {
       providerId: diffed.providerId,
       model: diffed.model,
       wasTruncated: diffed.wasTruncated,
+      // 2026-05-04 (PENDING §6b stage 2). FeedbackChip flip semantics.
+      aiUsageId: usageRecord.applied ? usageRecord.id : null,
     });
   }
 
@@ -316,6 +341,8 @@ export async function POST(req: Request): Promise<Response> {
     revisedChars: diffed.revisedChars,
     ocrCandidatePagesOriginal: extractedA.ocrCandidatePages,
     ocrCandidatePagesRevised: extractedB.ocrCandidatePages,
+    // 2026-05-04 (PENDING §6b stage 2). FeedbackChip flip semantics.
+    aiUsageId: usageRecord.applied ? usageRecord.id : null,
   });
 }
 

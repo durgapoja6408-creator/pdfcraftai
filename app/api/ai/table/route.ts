@@ -18,6 +18,9 @@ import { auth } from "@/auth";
 import { db, schema } from "@/db/client";
 import { extractPdfText } from "@/lib/ai/pdf-extract";
 import { refundCredits, spendCredits } from "@/lib/ai/credits";
+// 2026-05-04 (PENDING §6b corollary / AI_USAGE_INSTRUMENTATION_GAP) —
+// Batch 2: table joins the instrumented set.
+import { recordAiUsage } from "@/lib/ai/usage";
 import {
   NoAIProviderConfiguredError,
   TableParseError,
@@ -148,6 +151,8 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   // -- 6. Extract tables ------------------------------------------------
+  // 2026-05-04 — capture provider start time for recordAiUsage latency.
+  const providerStartedAt = Date.now();
   let extractResult: Awaited<ReturnType<typeof extractTables>>;
   try {
     extractResult = await extractTables({
@@ -176,6 +181,25 @@ export async function POST(req: Request): Promise<Response> {
     const message = err instanceof Error ? err.message : "table_failed";
     return json(502, { error: "table_failed", detail: message });
   }
+
+  // 2026-05-04 — Phase A1 audit row. Same shape as Batch 1 ops; no
+  // stopReason or prompt-registry fields (table extraction can chunk
+  // for large PDFs). responseTruncated maps from extractResult.
+  const usageRecord = await recordAiUsage({
+    userId,
+    operation: "table",
+    providerId: extractResult.providerId,
+    model: extractResult.model,
+    inputTokens: extractResult.usage.inputTokens,
+    outputTokens: extractResult.usage.outputTokens,
+    latencyMs: Date.now() - providerStartedAt,
+    creditsSpent: creditCost,
+    costMicros: null,
+    success: true,
+    responseTruncated: extractResult.wasTruncated ? 1 : 0,
+    ledgerId: spend.ledgerId,
+    idempotencyKey: spendKey,
+  });
 
   // -- 7. Persist files row + ai_outputs row ---------------------------
   const fileId = randomUUID();
@@ -229,6 +253,8 @@ export async function POST(req: Request): Promise<Response> {
       providerId: extractResult.providerId,
       model: extractResult.model,
       wasTruncated: extractResult.wasTruncated,
+      // 2026-05-04 (PENDING §6b stage 2). FeedbackChip flip semantics.
+      aiUsageId: usageRecord.applied ? usageRecord.id : null,
     });
   }
 
@@ -245,6 +271,8 @@ export async function POST(req: Request): Promise<Response> {
     wasTruncated: extractResult.wasTruncated,
     pageCount: extracted.pageCount,
     ocrCandidatePages: extracted.ocrCandidatePages,
+    // 2026-05-04 (PENDING §6b stage 2). FeedbackChip flip semantics.
+    aiUsageId: usageRecord.applied ? usageRecord.id : null,
   });
 }
 
