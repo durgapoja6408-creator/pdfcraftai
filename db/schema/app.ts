@@ -936,6 +936,85 @@ export const aiFeedback = mysqlTable(
   }),
 );
 
+/**
+ * 2026-05-04 — subscription dunning posture (PENDING §4c foundation).
+ *
+ * Companion to `lib/payments/dunning.ts`'s pure reducer. The reducer
+ * computes a fresh `DunningRow` from {previousRow, event}; this table
+ * stores the latest reduced row keyed by subscription_id so a
+ * Phase E webhook handler can do load → reduce → upsert.
+ *
+ * Today (one-shot credit packs only) the table stays empty — every
+ * existing SKU is a single charge, not a recurring contract. The
+ * structural foundation lands now so Phase E (recurring plans —
+ * annual prepay + monthly tiers) can wire `webhook-handler.ts` to
+ * `subscription.payment_failed` / `subscription.charged` /
+ * `subscription.cancelled` events without first having to design + run
+ * a migration in a tense moment. Same staging discipline as
+ * `ai_feedback` (commit `d74fefe`) and `contact_submissions`
+ * (commit `52307a3`) — schema before consumer.
+ *
+ * Why a separate table not a column on `subscriptions`:
+ *   - `subscriptions` today is one-shot pack metadata (a row is the
+ *     contract that produced a credit grant). It does NOT yet have
+ *     the recurring shape Phase E needs.
+ *   - When Phase E reshapes `subscriptions` for recurring plans, this
+ *     table can gain a FK; today FK-less is correct because the
+ *     referent column doesn't exist.
+ *   - Multiple subscriptions per user are plausible (annual + add-on);
+ *     dunning is per-subscription, not per-user.
+ *
+ * State semantics: stored as varchar (not enum) so a future
+ * "trialing" / "paused" state doesn't require ALTER TABLE.
+ * `lib/payments/dunning.ts` validates the literal union before write.
+ *
+ * Idempotency: the reducer is idempotent on `last_provider_event_id`
+ * — a Phase E persist helper that `applyDunningEvent`s the same event
+ * twice will produce the same row. The persist write is then an upsert
+ * (PK on subscription_id) so duplicate webhook deliveries no-op.
+ *
+ * Migration: db/migrations/0023_subscription_dunning.sql.
+ */
+export const subscriptionDunning = mysqlTable(
+  "subscription_dunning",
+  {
+    subscriptionId: varchar("subscription_id", { length: 64 }).primaryKey(),
+    // "current" | "past_due" | "suspended" | "cancelled" — matches
+    // the DunningState union in lib/payments/dunning.ts. varchar so
+    // adding a future state doesn't require a migration.
+    state: varchar("state", { length: 16 }).notNull().default("current"),
+    // UNIX ms when the current state began. bigint because JS Date.now()
+    // is comfortably within int64 but exceeds int32 (year 2038 problem
+    // for 32-bit seconds; we're storing ms, so int32 wraps in 1973).
+    stateSinceMs: bigint("state_since_ms", { mode: "number" }).notNull(),
+    // UNIX ms the provider intends to retry next, or null. Same width
+    // rationale as stateSinceMs.
+    nextRetryAtMs: bigint("next_retry_at_ms", { mode: "number" }),
+    failedAttempts: int("failed_attempts").notNull().default(0),
+    // Provider event id we last applied — replay guard. NULL on a
+    // fresh row before any event has been processed.
+    lastProviderEventId: varchar("last_provider_event_id", { length: 128 }),
+    createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { fsp: 3 })
+      .notNull()
+      .defaultNow()
+      .onUpdateNow(),
+  },
+  (t) => ({
+    // Admin "show me all past_due subs sorted by recency" — drives the
+    // /admin/dunning page's primary slice once Phase E ships.
+    stateUpdatedIdx: index("subscription_dunning_state_updated_idx").on(
+      t.state,
+      t.updatedAt,
+    ),
+    // Daily walk for the "flip past_due → suspended after grace
+    // window" cron (Phase E wiring).
+    stateSinceIdx: index("subscription_dunning_state_since_idx").on(
+      t.stateSinceMs,
+    ),
+  }),
+);
+
 // --- Phase 6.3 Agent tables — REMOVED on 2026-04-20 ---------------------
 //
 // `agent_runs` + `agent_run_steps` powered the authenticated /app/studio

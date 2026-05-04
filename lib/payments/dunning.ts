@@ -233,10 +233,152 @@ export function isEntitled(row: DunningRow): boolean {
   return row.state === "current" || row.state === "past_due";
 }
 
-// TODO(Phase E): persist DunningRow to a `subscription_dunning` table
-// keyed by subscriptionId. Wire from webhook-handler.ts on:
+// --- Persistence layer (PENDING §4c foundation, 2026-05-04) ---------------
+//
+// The reducer above is pure + transport-agnostic. The functions below
+// thread it through MariaDB via the `subscription_dunning` table
+// (migration `0023_subscription_dunning.sql`, schema entry
+// `subscriptionDunning`). They are exported NOW even though no Phase E
+// webhook handler calls them yet, for two reasons:
+//
+//   1. The migration + schema have to land together; calling code is
+//      a Phase E concern but having the persist surface compile-checked
+//      against the schema lets us catch shape drift at build time
+//      rather than at first-event-time on a sandbox webhook.
+//   2. /admin/dunning consumes `loadDunningRow` to render its read-
+//      only viewer (see `app/admin/dunning/page.tsx`). The page
+//      surfaces "table empty — Phase E pending" today; once Phase E
+//      flips the wiring on, the same page shows real rows without
+//      any code change.
+//
+// The persist-side flow Phase E will implement:
+//
+//   webhook-handler.ts → normalizeProviderEvent() → DunningEvent
+//   → persistDunningEvent(subscriptionId, event)
+//
+// Phase E SHOULD NOT bypass `persistDunningEvent` — using
+// `applyDunningEvent` directly + writing manually re-implements the
+// load + upsert dance and risks losing the idempotency guarantee.
+
+import { db } from "@/db/client";
+import { subscriptionDunning } from "@/db/schema/app";
+import { eq, sql } from "drizzle-orm";
+
+/**
+ * Read the current dunning row for a subscription. Returns null if the
+ * subscription has never had an event applied (a Phase E `subscription.created`
+ * webhook should be the first thing to seed a row via
+ * `persistDunningEvent` with a synthetic `payment_succeeded` or by
+ * calling `newDunningRow` + the seed helper below).
+ *
+ * The DB row's column names map to the in-memory `DunningRow` via
+ * Drizzle, so the return is a typed `DunningRow` rather than a raw
+ * record.
+ */
+export async function loadDunningRow(
+  subscriptionId: string,
+): Promise<DunningRow | null> {
+  const rows = await db
+    .select()
+    .from(subscriptionDunning)
+    .where(eq(subscriptionDunning.subscriptionId, subscriptionId))
+    .limit(1);
+
+  const row = rows[0];
+  if (!row) return null;
+
+  return {
+    subscriptionId: row.subscriptionId,
+    state: row.state as DunningState,
+    stateSinceMs: row.stateSinceMs,
+    nextRetryAtMs: row.nextRetryAtMs ?? null,
+    failedAttempts: row.failedAttempts,
+    lastProviderEventId: row.lastProviderEventId ?? null,
+  };
+}
+
+/**
+ * Apply a Phase E webhook-driven dunning event to the persisted row.
+ *
+ * If no row exists yet, seed one via `newDunningRow` keyed at the
+ * event's `occurredAtMs` so the first event creates the contract row.
+ * If a row exists, reduce it via `applyDunningEvent` and upsert.
+ *
+ * Idempotency: replays of the same provider event are no-ops via the
+ * reducer's `lastProviderEventId` guard. The DB upsert is keyed on
+ * subscription_id so duplicate webhook deliveries collapse to a single
+ * row regardless of timing.
+ *
+ * Returns the new row so the caller can decide on entitlement
+ * follow-ups (e.g. flipping a `subscriptions.active = false` flag if
+ * the new state is "cancelled").
+ */
+export async function persistDunningEvent(
+  subscriptionId: string,
+  event: DunningEvent,
+): Promise<DunningRow> {
+  const existing = await loadDunningRow(subscriptionId);
+  const previous = existing ?? newDunningRow(subscriptionId, event.occurredAtMs);
+  const next = applyDunningEvent(previous, event);
+
+  // Upsert keyed on subscription_id. We use INSERT ... ON DUPLICATE KEY
+  // UPDATE to keep the persist atomic — a separate read + write would
+  // race against a concurrent webhook delivery for the same sub.
+  await db
+    .insert(subscriptionDunning)
+    .values({
+      subscriptionId: next.subscriptionId,
+      state: next.state,
+      stateSinceMs: next.stateSinceMs,
+      nextRetryAtMs: next.nextRetryAtMs,
+      failedAttempts: next.failedAttempts,
+      lastProviderEventId: next.lastProviderEventId,
+    })
+    .onDuplicateKeyUpdate({
+      set: {
+        state: sql`VALUES(state)`,
+        stateSinceMs: sql`VALUES(state_since_ms)`,
+        nextRetryAtMs: sql`VALUES(next_retry_at_ms)`,
+        failedAttempts: sql`VALUES(failed_attempts)`,
+        lastProviderEventId: sql`VALUES(last_provider_event_id)`,
+      },
+    });
+
+  return next;
+}
+
+/**
+ * Read every dunning row for the /admin/dunning viewer. Sorted with
+ * the most-recently-updated state changes first (admin's "what's
+ * happening right now" mental model).
+ *
+ * Caps the result at 500 rows because /admin/dunning renders a single
+ * paginated table; if a deployment ever exceeds 500 active subs in
+ * dunning posture, the admin page should switch to per-state filters
+ * instead of one giant list. That's a Phase E sizing decision, not a
+ * foundation concern.
+ */
+export async function listDunningRows(limit: number = 500): Promise<DunningRow[]> {
+  const rows = await db
+    .select()
+    .from(subscriptionDunning)
+    .orderBy(sql`${subscriptionDunning.updatedAt} DESC`)
+    .limit(limit);
+
+  return rows.map((row) => ({
+    subscriptionId: row.subscriptionId,
+    state: row.state as DunningState,
+    stateSinceMs: row.stateSinceMs,
+    nextRetryAtMs: row.nextRetryAtMs ?? null,
+    failedAttempts: row.failedAttempts,
+    lastProviderEventId: row.lastProviderEventId ?? null,
+  }));
+}
+
+// TODO(Phase E): wire `persistDunningEvent` from webhook-handler.ts on:
 //   Razorpay: subscription.charged, subscription.pending, subscription.halted,
 //             subscription.cancelled
+//   Paddle:   subscription.payment_succeeded, subscription.payment_failed,
+//             subscription.canceled
 // (When the next international gateway is added, map its subscription
 // lifecycle events to the same DunningEvent shape.)
-// Expose in /admin/dunning (new page) with a StatCard per state.

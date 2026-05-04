@@ -1150,6 +1150,20 @@ const SUITES = [
     name: "ai-feedback-pilot",
     file: "test-ai-feedback-pilot.mjs",
   },
+  // 2026-05-04 (PENDING §4c foundation) — subscription dunning
+  // foundation. Migration 0023 (subscription_dunning table),
+  // persistence helpers in lib/payments/dunning.ts, /admin/dunning
+  // read-only viewer. Same staging discipline as ai-feedback: the
+  // table + persist surface lands now even though no Phase E
+  // webhook handler calls it yet, so the persist wiring can ship
+  // as a 1-file diff later. 59 assertions across 6 sections
+  // (migration shape, schema parity, helper + DUNNING_POLICY
+  // surface preservation, admin page contract, layout NAV,
+  // cross-file state-name invariant).
+  {
+    name: "dunning-foundation",
+    file: "test-dunning-foundation.mjs",
+  },
   // 2026-05-04 (PENDING §1f) — webhook + reconcile resilience
   // contract. Locks in: 500 on processing error (provider retries),
   // 200 on duplicate (provider stops), 400 on bad sig (provider

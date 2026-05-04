@@ -101,6 +101,11 @@ const NAV: NavItem[] = [
   // down rows let an operator drill into bad outputs and re-route
   // (eventually) or update the prompt registry.
   { section: "Ops", href: "/admin/ai-feedback", label: "AI feedback" },
+  // 2026-05-04 (PENDING §4c foundation) — subscription dunning posture
+  // viewer. Empty by design today (no recurring plans yet); ships
+  // alongside migration 0023 + persist helpers in
+  // lib/payments/dunning.ts so Phase E webhook wiring is a 1-file diff.
+  { section: "Ops", href: "/admin/dunning", label: "Dunning" },
   { section: "Ops", href: "/admin/ops", label: "Operations" },
   { section: "Ops", href: "/admin/providers", label: "Providers" },
   { section: "Ops", href: "/admin/router", label: "Router" },
