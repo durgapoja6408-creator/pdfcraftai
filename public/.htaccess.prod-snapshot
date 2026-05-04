@@ -1,0 +1,43 @@
+# .htaccess.prod-snapshot
+#
+# **DO NOT EDIT** to change prod behavior — this file is a SNAPSHOT
+# of the live .htaccess on Hostinger as of the timestamp in the
+# accompanying commit. The actual production .htaccess lives at
+# /home/u692382124/domains/pdfcraftai.com/public_html/.htaccess and
+# is NOT auto-deployed from this repo (Hostinger's GitHub auto-pull
+# only syncs the Next.js build artifacts; .htaccess is owned by the
+# server-side LiteSpeed/Apache layer).
+#
+# This snapshot exists to make CSP / Passenger config / .htaccess
+# changes visible in code review. To CHANGE prod behavior:
+#   1. SSH: ssh -i .claude/id_ed25519_cowork -p 65002 u692382124@212.85.28.206
+#   2. Edit ~/domains/pdfcraftai.com/public_html/.htaccess directly
+#   3. Update this snapshot in the same commit so source control matches reality
+#   4. Apache reads .htaccess per-request — no reload needed
+#
+# Discovered 2026-05-04 during E2E smoke test that next.config.mjs
+# CSP changes were silently overridden by `.htaccess` ALWAYS UNSET +
+# ALWAYS SET pattern below. The fix for the Turnstile CSP gap was
+# made directly in this file via SSH; this snapshot captures the
+# post-fix state.
+PassengerAppRoot /home/u692382124/domains/pdfcraftai.com/nodejs
+PassengerAppType node
+PassengerNodejs /opt/alt/alt-nodejs20/root/bin/node
+PassengerStartupFile server.js
+PassengerBaseURI /
+PassengerRestartDir /home/u692382124/domains/pdfcraftai.com/nodejs/tmp
+SetEnv NODE_OPTIONS "--require /home/u692382124/domains/pdfcraftai.com/public_html/.builds/config/preload-timestamp.js"
+SetEnv LSNODE_CONSOLE_LOG console.log
+SetEnv TOKIO_WORKER_THREADS 2
+RewriteRule ^\.builds - [F,L]
+
+# --- PCI SAQ-A CSP enforcement at the edge -------------------------------
+# The Node runtime sets the same CSP via next.config.mjs, but the LiteSpeed/
+# Passenger path was stripping it down to the last directive
+# (upgrade-insecure-requests) in production. Setting the header here makes
+# sure the full policy always lands on the client, and `unset` first stops
+# duplicate / conflicting values from stacking.
+<IfModule mod_headers.c>
+  Header always unset Content-Security-Policy
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://checkout.razorpay.com https://api.razorpay.com https://lumberjack.razorpay.com https://challenges.cloudflare.com https://www.googletagmanager.com https://www.clarity.ms https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://www.google-analytics.com https://www.googletagmanager.com; font-src 'self' data:; frame-src 'self' https://checkout.razorpay.com https://api.razorpay.com https://lumberjack.razorpay.com https://challenges.cloudflare.com; connect-src 'self' https://checkout.razorpay.com https://api.razorpay.com https://lumberjack.razorpay.com https://www.google-analytics.com https://www.clarity.ms https://c.clarity.ms https://www.googletagmanager.com https://cloudflareinsights.com https://static.cloudflareinsights.com; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+</IfModule>
