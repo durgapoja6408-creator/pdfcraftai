@@ -3,9 +3,9 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-05-04 (post-plan activation + e2e + tool improvement plan + 11 ship items + compliance audit + contact persistence + AI feedback foundation + AI feedback stage 2 pilot).
-**Live commit:** `e99ac1c8a61b` (FeedbackChip + Summarize pilot wire-up; deployed after the documented zombie-cleanup mass-kill recovery — pkick alone didn't clear stuck workers, the explicit `awk | xargs kill -KILL` pipeline did). Last code-bearing deploys: `52307a3` (contact), `d74fefe` (ai-feedback foundation), `e99ac1c` (ai-feedback pilot). All 84 suites green, **4878 tests passing**. **Thirteen zombie-next-server cascades** survived. Cascade #13 was the longest of the arc (~25 min recovery vs. the typical 1–5 min) and validated the documented zombie-cleanup pattern as the LAST-resort recovery when pkill alone fails.
-**Aggregator:** 4878 passed across 84 suites in ~8s (+33 from prior 4845/83 — added `ai-feedback-pilot` (33) locking in chip contract + summarize route surfacing aiUsageId + tool wire-up + rollout doc).
+**Last updated:** 2026-05-04 (12 ship items + compliance audit + contact persistence + AI feedback foundation + AI feedback stage 2 pilot + webhook resilience CI guard).
+**Live commit:** `ff59b5ec691e` (webhook+reconcile resilience guard; cascade-free test-only+doc-only deploy — auto-pull jam #8 cleared via empty nudge `3956bd5`). Last code-bearing deploys: `52307a3` (contact), `d74fefe` (ai-feedback foundation), `e99ac1c` (ai-feedback pilot). All 85 suites green, **4901 tests passing**. **Thirteen zombie-next-server cascades** survived; auto-pull jams now at 8/8 cleared via empty nudge alone. Doc-only / test-only commits continue to NOT trigger zombie cascades — the resilience guard commit is fresh evidence.
+**Aggregator:** 4901 passed across 85 suites in ~8s (+23 from prior 4878/84 — added `webhook-reconcile-resilience` (23) locking in 500/200/400 contract, applyPaymentEvent shared path, lookback ≥ 24h Razorpay retry budget, idempotency key shape consistency).
 
 ### 2026-05-04 — Activation + e2e + tool improvement plan + Tier 1/2 ships
 
@@ -113,6 +113,47 @@ PENDING §6b stage 2. The user-facing FeedbackChip + Summarize wire-up.
 - Documented mass-kill pattern (`ps -fu | grep next-server | awk '{print $2}' | xargs kill -KILL`) FINALLY cleared. uptime=0s on next health check, commit=`e99ac1c8a61b` confirmed.
 
 **New playbook learning:** when `pkill -9 -f "next-server"` doesn't clear all processes within 60s, escalate to the explicit `awk | xargs kill -KILL` pattern. The latter sends signals one-at-a-time per PID, which appears to bypass whatever batching hiccup pkill ran into. Documented in CLAUDE.md zombie-cleanup section but worth re-emphasizing — this was the first time in 13 cascades that pkill alone wasn't sufficient.
+
+### 2026-05-04 — Webhook + reconcile resilience CI guard (commit `ff59b5e`)
+
+PENDING_WORK_ANALYSIS.md §1f. Static-parse contract guard locking in
+the safety net that prevents "silent credit loss" — the failure mode
+where Razorpay retries 5xx-failing webhooks 24× over 24h and we'd
+never grant credits despite the user paying.
+
+**23 assertions across 7 sections:**
+- Webhook handler: 500 on processing error (provider retries), 200 on
+  duplicate (provider stops), 400 on bad signature (provider stops)
+- Reconcile shares the `applyPaymentEvent` path (single idempotent
+  code path with webhooks)
+- DEFAULT_LOOKBACK_HOURS ≥ 24 (covers Razorpay retry budget) and ≤ 168
+  (so we don't burn rate-limit budget on re-scans)
+- Reverse sweep MIN_AGE ≥ 15 min (gives users with checkout modal
+  open time to complete)
+- Reverse sweep MAX_AGE ≤ 14 days (Razorpay drops order retention
+  beyond that)
+- Idempotency key shapes locked: `${paymentId}:base`, `:bonus`,
+  `:refund:${providerRefundRef}`, `:promo_bonus`. A reconcile-
+  synthesized refund uses `reconciled:${providerRef}` so it's distinct
+  from any webhook-emitted ref — the same physical refund won't
+  double-grant if both paths fire on it
+- "Never synthesize a downgrade" structural invariant (synthesizeEvent
+  returns null for status=pending)
+
+**Newly identified subtle issue (PENDING §11a):** discovered while
+auditing the contract — `recordWebhookEvent` inserts BEFORE
+`applyPaymentEvent`. If processing throws on first delivery, the audit
+row IS persistent; on retry, the dedupe sees recorded:false and
+returns 200 duplicate, never re-running processing. The reconcile sweep
+mitigates (24h max latency until the cron picks up the missing event)
+but the right fix is to defer audit insert until after processing
+succeeds. Tracked for next compliance/payments review (~2h estimate).
+
+**Cascade-pattern evidence:** test-only + doc-only commit. Deployed
+clean (uptime=0s, no zombie buildup, no pkick required). 9th
+consecutive non-code-bearing commit to deploy without cascade. Pattern
+hypothesis (cascade frequency scales with webpack-cache invalidation
+surface) holds across all observations.
 
 ### 2026-05-03 mid-day — post-plan gap closure (Gap #1 + Gap #3)
 
