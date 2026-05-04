@@ -83,6 +83,22 @@ const EXEMPT_PATHS = new Set([
   // billing unit that resists multiplier framing. Keep until product
   // pricing lead reviews (Day 7 follow-up).
   // (Listed for visibility, not yet exempt — auditing on next pass.)
+
+  // 2026-05-04 (Plan T1-6) — OutOfCreditsAlert tooltip on Start-Plus
+  // CTA references the canonical Plus plan ("200 credits + rollover
+  // to 400"). This is plan-level pricing, not per-call billing —
+  // matches the same canonical string used in /pricing's promo
+  // banner. The guard's purpose is to catch HARDCODED PER-CALL
+  // CREDIT NUMBERS in tool components / runners; tooltips on plan
+  // CTAs are legitimately allowed to quote the plan size.
+  path.join("components", "upsell", "OutOfCreditsAlert.tsx"),
+
+  // 2026-05-04 (Plan T1-6 ext) — /enterprise marketing page quotes
+  // "1,000 credits/month" as a volume-pricing threshold for sales
+  // qualification ("beyond 1k credits/mo, talk to us about volume
+  // discounts"). Marketing-page-level threshold, not per-tool
+  // billing.
+  path.join("app", "enterprise", "page.tsx"),
 ]);
 
 // Directories to skip entirely.

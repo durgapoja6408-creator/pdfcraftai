@@ -248,7 +248,11 @@ export function OutOfCreditsAlert({
 
       <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
         {/* Primary CTA → /app/credits (signed-in cash register).
-            Secondary → /pricing (public catalog for visitors who
+            Secondary → "Start Plus" deep-link to /pricing#plus —
+            converts to recurring Plus (200 credits/mo + rollover to
+            400) instead of one-shot pack. Higher LTV per converting
+            user; surfaced here per Plan T1-6.
+            Tertiary → /pricing (public catalog for visitors who
             land on this alert via a sign-out edge case). */}
         <Link
           href="/app/credits"
@@ -258,8 +262,16 @@ export function OutOfCreditsAlert({
           Buy credits
         </Link>
         <Link
-          href="/pricing"
+          href="/pricing#plus"
           className="btn btn-outline btn-sm"
+          style={{ textDecoration: "none" }}
+          title="Plus: monthly plan · 200 credits + rollover to 400. Cancel anytime."
+        >
+          Start Plus
+        </Link>
+        <Link
+          href="/pricing"
+          className="btn btn-ghost btn-sm"
           style={{ textDecoration: "none" }}
         >
           See packs
