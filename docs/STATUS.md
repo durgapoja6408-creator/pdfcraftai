@@ -3,9 +3,9 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-05-04 (post-plan activation + e2e + tool improvement plan + 7 ship items).
-**Live commit:** `9f8bf07` (T2-5 capExceeded copy through 20 files — 10 AI route handlers + 9 tool components + OutOfCreditsAlert; deployed via empty-commit nudge after auto-pull jam #4). Last clean code-bearing deploy: `0ad19d8` (T1-1 + T1-3). All 78 suites green, **4619 tests passing**. **Nine zombie-next-server cascades** + 4 auto-pull jams survived across the full multi-day arc; the documented "ONE pkick + restart.txt" + "empty-commit nudge" + "wait 5–10 min if SSH fork-saturates" playbook handled every case.
-**Aggregator:** 4619 passed across 78 suites in ~6.5s (+157 from prior 4462/77 — added `csp-turnstile` guard with 4 assertions, `gap4-gap5` extension, plus all the assertion deltas absorbed by existing guards as new tools/SEO landings shipped).
+**Last updated:** 2026-05-04 (post-plan activation + e2e + tool improvement plan + 8 ship items + compliance audit).
+**Live commit:** `78a02771fcf3` (compliance audit + cookie banner equal-prominence + 2 CI guards; deployed via empty-commit nudge `07a3cc4` after auto-pull jam #5). Last code-bearing deploys: `9f8bf07` (T2-5), `96ac693` (T1-6 + /enterprise), `78a0277` (compliance). All 81 suites green, **4736 tests passing**. **Ten zombie-next-server cascades** + 5 auto-pull jams survived across the full multi-day arc; the documented "ONE pkick + restart.txt" + "empty-commit nudge" + "wait 5–10 min if SSH fork-saturates" playbook handled every case.
+**Aggregator:** 4736 passed across 81 suites in ~13s (+117 from prior 4619/78 — added `enterprise-and-plus-cta` (25), `cookie-banner-prominence` (15), and the T2-5 cap-exceeded-wireup sweeps from earlier in this arc).
 
 ### 2026-05-04 — Activation + e2e + tool improvement plan + Tier 1/2 ships
 
@@ -32,11 +32,29 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 - Cascade #9 specifically: T2-5 deployed via empty-commit nudge (auto-pull jam #4 had to be cleared first); ONE pkick recovered to live within ~60s. No cgroup saturation this time — the saturation seems correlated with the SECOND pkick, not the first.
 
 **Total session shipped (multi-day arc):**
-- 25+ commits since context compaction
+- 30+ commits since context compaction
 - All 5 post-plan code gaps closed
-- 6 Tier-1/Tier-2 items from the new improvement plan shipped (T1-1, T1-3, T2-5, plus the cascade-discovered CSP-Turnstile fix and the .htaccess snapshot)
-- Full doc trail: `PRICING_AND_TELEMETRY_PLAN`, `NEXT_SESSION`, `OPS_RUNBOOK`, `CRON_JOBS`, `ABUSE_PREVENTION`, `GAP2_DESIGN_OPTIONS`, `TOOL_IMPROVEMENT_PLAN`, `STATUS`
-- Test surface: 4619/4619 across 78 suites — every assertion in green
+- 8 Tier-1/Tier-2 items from the new improvement plan shipped (T1-1, T1-3, T2-5, T1-6 + /enterprise, plus the cascade-discovered CSP-Turnstile fix and the .htaccess snapshot, plus the compliance audit + cookie-banner equalization)
+- Full doc trail: `PRICING_AND_TELEMETRY_PLAN`, `NEXT_SESSION`, `OPS_RUNBOOK`, `CRON_JOBS`, `ABUSE_PREVENTION`, `GAP2_DESIGN_OPTIONS`, `TOOL_IMPROVEMENT_PLAN`, `SESSION_2026-05-04_RETROSPECTIVE`, `PENDING_WORK_ANALYSIS`, `SECURITY_COMPLIANCE_AUDIT`, `STATUS`
+- Test surface: 4736/4736 across 81 suites — every assertion in green
+
+### 2026-05-04 evening — compliance audit + cookie banner GDPR fix (commit `78a0277`)
+
+After the T1-6 + /enterprise monetization batch landed clean, ran a deep compliance audit of the consent funnel. Findings documented in `docs/SECURITY_COMPLIANCE_AUDIT.md`:
+
+- **Refund policy**: PASS — meets Razorpay merchant onboarding requirements (7/7 disclosures present)
+- **CSP**: PASS — locked in by `csp-turnstile` guard
+- **Abuse stack**: PASS — all 8 layers CI-guarded
+- **DPDP Act 2023**: PASS — all 8 articles addressed (Day 1.6 deliverables)
+- **Cookie banner content**: PASS — accurate disclosures, third parties named, granular toggle path exists
+- **Cookie banner visual prominence**: DARK-PATTERN flagged + fixed in same commit. Earlier styling had Accept-all filled-accent + fontWeight 600 (visual primary) vs. Essential-only outlined-transparent + fontWeight 500 (secondary) — the exact unequal-prominence pattern flagged by EDPB Guidelines 03/2022 §3.2.1 ("Hindering") and CNIL deliberation 2021-152 (€60M Facebook fine). Equalized both buttons to outlined-neutral 500-weight. Verified live in production HTML — both buttons render with identical inline styles after deploy.
+
+Two new CI guards: `enterprise-and-plus-cta` (25 assertions) locks in the T1-6 OutOfCreditsAlert "Start Plus" CTA + /enterprise page sections + sitemap inclusion. `cookie-banner-prominence` (15 assertions) anchors on JSX label sentinels and asserts both buttons share identical border, background, fontWeight, color values; future visual refactor that re-introduces the dark pattern fails CI.
+
+**Out-of-scope items** documented in audit §7 with clear owners + trigger conditions: GST invoice generation (3-5 days, founder + CA), Slack alerting on cron-job.org failure (1 day, founder), staging environment (1 week, founder + ops), SOC 2 Type II audit (~$15k/year, triggered by first enterprise prospect or ARR threshold).
+
+**Cascade #10 + auto-pull jam #5** (recovery clean):
+- Auto-pull stuck on first push (health stayed on `2a3263f`/`9f8bf07` for ~7 min). Empty-commit nudge `07a3cc4` cleared it; next health check showed `78a02771fcf3` with uptime 0s — fresh restart, no pkick needed. The "code-bearing commits sometimes need an empty nudge" pattern continues to hold (5/5 jams resolved this way).
 
 ### 2026-05-03 mid-day — post-plan gap closure (Gap #1 + Gap #3)
 
