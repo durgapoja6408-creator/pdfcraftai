@@ -4,8 +4,8 @@ _Single source of truth for what's done, what's pending, and who owns each item.
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
 **Last updated:** 2026-05-04 (17 ship items + Batch 2 instrumentation + Batch A FeedbackChip finish — table/compare wired).
-**Live commit:** `ff54b07e8ca6` (Stage 3 Batch A finished — FeedbackChip live on 5/5 top-traffic AI tools: summarize + translate + rewrite + ocr + table + compare). Deployed clean after cascade #16 + auto-pull jam #10 (3 nudge attempts). All 86 suites green, **4976 tests passing**. **Sixteen zombie-next-server cascades** survived; auto-pull jams now at 10 — escalating jam pattern: simple 1-nudge clears the early jams, this one needed 3+ nudges + cascade recovery. Possibly Hostinger rate-limiting auto-pull when too many commits queue (5+ commits between successful pulls).
-**Aggregator:** 4976 passed across 86 suites in ~7s (+12 from prior 4964/86 — Batch 2 instrumentation added 6 ops × 2 = 12 instrumented assertions for table/compare/generate; chip wire-up added 6 more for table+compare wiring; offset by some refactors).
+**Live commit:** `b49e4d35e7b7` (Batch 3 — final ai_usage instrumentation, 10/10 AI ops). **Observability rollout COMPLETE — /admin/margin sees 100% of AI fleet for the first time.** Deployed after cascade #17 — first SSH fork-saturation event of the arc. 8-min kernel drain wait per CLAUDE.md playbook ("STOP — wait 5-10 min if SSH fork-saturates"). All 86 suites green, **4980 tests passing**. **Seventeen zombie-next-server cascades** survived.
+**Aggregator:** 4980 passed across 86 suites in ~7s (+4 from prior 4976/86 — sign + redact each add 2 instrumented-op assertions in the SSOT cross-checks).
 
 ### 2026-05-04 — Activation + e2e + tool improvement plan + Tier 1/2 ships
 
@@ -221,6 +221,33 @@ Two-step rollout completing the top-5-traffic AI fleet:
 **Cascade #16 + auto-pull jam #10 — multi-step recovery:** Auto-pull stalled hard on the rapid sequence of pushes (Batch 2 → empty nudge → Batch A finish → empty nudge → status bump → empty nudge — 6 commits in ~30 min). 3 separate nudges + 1 cascade recovery via the documented `awk | xargs kill -KILL` pattern. Post-recovery jumped from `0fbcbaa` → `ff54b07` (skipping the intermediate nudge commits — auto-pull pulls latest main, not commit-by-commit).
 
 **Possible cause hypothesized:** Hostinger may rate-limit auto-pull when too many commits queue between successful pulls. The 7+ commit chain in this turn was the first time we saw this pattern. Keep this in mind: when shipping rapid-fire rollouts, expect auto-pull to lag and don't pile on more nudges.
+
+### 2026-05-04 — Batch 3 final + 100% observability milestone (commit `b49e4d3`)
+
+**ai_usage instrumentation rollout COMPLETE.** All 10 AI ops now write per-call audit rows. /admin/margin sees 100% of fleet for the first time. Started this arc at 20% (only chat + summarize); ended at 100% (all 10 ops). 80-percentage-point coverage swing in a single session.
+
+**Files shipped:**
+- `app/api/ai/sign/route.ts` — recordAiUsage on kept-credits path (post looksScanned refund branch); aiUsageId in 200 + 207
+- `app/api/ai/redact/route.ts` — same shape
+- `scripts/test-ai-usage-instrumentation.mjs` — SSOT now reports "10/10 ops instrumented (100%)"; MISSING_OPS array is empty
+- `docs/AI_USAGE_INSTRUMENTATION_GAP.md` — tracker shows all 10 instrumented, with 🎉 milestone line
+
+**Cascade #17 + first SSH fork-saturation event of the arc:** This is the worst-case scenario the playbook documents — `bash: fork: retry: Resource temporarily unavailable` on SSH attempts. CLAUDE.md is explicit: "STOP TRYING. Every reconnect attempt creates more pending forks." Waited 8 minutes for kernel cgroup drain; recovered cleanly. Total recovery time: ~10 min. This is the playbook's worst-case path; subsequent cascades on smaller commits should resolve faster.
+
+**Aggregator final state:** 4980/0 across 86 suites in 6.9s.
+
+**What this unlocks:**
+- /admin/margin per-op revenue + cost slice for ALL 10 ops
+- Per-op error-rate dashboards (the `success` column on ai_usage now has data for every op)
+- /app/usage per-op breakdown shows ALL ops the user has touched
+- FeedbackChip flip semantics work on any tool; no aiUsageId-null fallback needed
+- Future commits can join ai_feedback × ai_usage to compute per-(provider, model) NPS for fine-grained quality observability
+
+**Remaining FeedbackChip rollout:**
+- Generate (different UX shape — returns base64 PDF, needs custom layout)
+- Sign + Redact (newly unlocked by Batch 3 instrumentation)
+- Batch B: SummarizeVariantTool family
+- Batch C: specialist + tail tools
 
 ### 2026-05-03 mid-day — post-plan gap closure (Gap #1 + Gap #3)
 
