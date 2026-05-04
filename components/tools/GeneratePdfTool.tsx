@@ -28,6 +28,7 @@ import { I } from "@/components/icons/Icons";
 import {
   OutOfCreditsAlert,
   isInsufficientCreditsError,
+  isCapExceededError,
   parseRequiredFromError,
   parseBalanceFromError,
 } from "@/components/upsell/OutOfCreditsAlert";
@@ -376,6 +377,7 @@ export function GeneratePdfTool() {
             required={parseRequiredFromError(error)}
             balance={parseBalanceFromError(error)}
             opLabel="generating this PDF"
+            capExceeded={isCapExceededError(error ?? "")}
           />
         ) : (
           <div
@@ -637,7 +639,7 @@ function mapErrorBody(
     case 402: {
       const required = typeof body.required === "number" ? body.required : 20;
       const balance = typeof body.balance === "number" ? body.balance : 0;
-      return `Not enough credits — this generation costs ${required}, you have ${balance}. Top up on /app/billing.`;
+      const cap = body.capExceeded === true ? " [trial-cap]" : ""; return `Not enough credits — this generation costs ${required}, you have ${balance}. Top up on /app/billing.${cap}`;
     }
     case 409:
       return (

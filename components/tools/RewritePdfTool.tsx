@@ -32,6 +32,7 @@ import { I } from "@/components/icons/Icons";
 import {
   OutOfCreditsAlert,
   isInsufficientCreditsError,
+  isCapExceededError,
   parseRequiredFromError,
   parseBalanceFromError,
 } from "@/components/upsell/OutOfCreditsAlert";
@@ -349,6 +350,7 @@ export function RewritePdfTool() {
             required={parseRequiredFromError(error)}
             balance={parseBalanceFromError(error)}
             opLabel="this rewrite"
+            capExceeded={isCapExceededError(error ?? "")}
           />
         ) : (
           <div
@@ -559,7 +561,7 @@ function mapErrorBody(
     case 402: {
       const required = typeof body.required === "number" ? body.required : 3;
       const balance = typeof body.balance === "number" ? body.balance : 0;
-      return `Not enough credits — this rewrite costs ${required}, you have ${balance}. Top up on /app/billing.`;
+      const cap = body.capExceeded === true ? " [trial-cap]" : ""; return `Not enough credits — this rewrite costs ${required}, you have ${balance}. Top up on /app/billing.${cap}`;
     }
     case 409:
       return (

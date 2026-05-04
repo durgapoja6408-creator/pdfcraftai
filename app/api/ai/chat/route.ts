@@ -201,6 +201,7 @@ export async function POST(req: Request): Promise<Response> {
         error: "insufficient_credits",
         required: spend.required,
         balance: spend.balance,
+        capExceeded: spend.capExceeded ?? false,
       });
     }
     // "duplicate" here is effectively impossible: we just looked up the

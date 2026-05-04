@@ -188,6 +188,7 @@ export async function POST(req: Request): Promise<Response> {
         error: "insufficient_credits",
         required: spend.required,
         balance: spend.balance,
+        capExceeded: spend.capExceeded ?? false,
       });
     }
     return json(409, {

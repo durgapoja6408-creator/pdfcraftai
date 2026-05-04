@@ -142,6 +142,7 @@ export async function POST(req: Request): Promise<Response> {
         error: "insufficient_credits",
         required: spend.required,
         balance: spend.balance,
+        capExceeded: spend.capExceeded ?? false,
       });
     }
     // Phase 5.5: replay missed + ledger duplicate = previous attempt

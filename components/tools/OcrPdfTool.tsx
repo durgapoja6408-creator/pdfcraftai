@@ -44,6 +44,7 @@ import { I } from "@/components/icons/Icons";
 import {
   OutOfCreditsAlert,
   isInsufficientCreditsError,
+  isCapExceededError,
   parseRequiredFromError,
   parseBalanceFromError,
 } from "@/components/upsell/OutOfCreditsAlert";
@@ -424,6 +425,7 @@ export function OcrPdfTool() {
             required={parseRequiredFromError(error)}
             balance={parseBalanceFromError(error)}
             opLabel="this OCR run"
+            capExceeded={isCapExceededError(error ?? "")}
           />
         ) : (
           <div
@@ -655,7 +657,7 @@ function mapErrorBody(status: number, body: Record<string, unknown>): string {
     case 402: {
       const required = typeof body.required === "number" ? body.required : 0;
       const balance = typeof body.balance === "number" ? body.balance : 0;
-      return `Not enough credits — this OCR run needs ${required}, you have ${balance}. Top up on /app/billing.`;
+      const cap = body.capExceeded === true ? " [trial-cap]" : ""; return `Not enough credits — this OCR run needs ${required}, you have ${balance}. Top up on /app/billing.${cap}`;
     }
     case 409:
       return (

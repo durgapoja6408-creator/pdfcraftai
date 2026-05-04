@@ -242,6 +242,7 @@ export async function POST(req: Request): Promise<Response> {
         error: "insufficient_credits",
         required: spend.required,
         balance: spend.balance,
+        capExceeded: spend.capExceeded ?? false,
       });
     }
     // Duplicate ledger debit without a matching ai_outputs row means the

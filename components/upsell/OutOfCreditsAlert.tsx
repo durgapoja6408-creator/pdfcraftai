@@ -78,15 +78,37 @@ export interface OutOfCreditsAlertProps {
    * credits — you have 0"). Defaults to "operation" if omitted.
    */
   opLabel?: string;
+  /**
+   * 2026-05-04 (Plan T2-5) — set when the spend was blocked by the
+   * per-op signup-bonus cap (Gap #2 / Option A) rather than a true
+   * zero-balance situation. Activates the friendlier "Free trial cap
+   * reached on this tool" heading + body copy. The Buy Credits CTA
+   * still works — topping up bypasses the cap entirely.
+   */
+  capExceeded?: boolean;
 }
 
 /**
  * Test whether an error string matches the 402 insufficient-credits
  * pattern. Tool components call this to decide between the
  * OutOfCreditsAlert and the generic error block.
+ *
+ * Matches both the standard "Not enough credits" copy AND the
+ * trial-cap variant which includes a `[trial-cap]` marker token —
+ * see isCapExceededError below.
  */
 export function isInsufficientCreditsError(msg: string): boolean {
-  return /not\s+enough\s+credits/i.test(msg);
+  return /not\s+enough\s+credits/i.test(msg) || /\[trial-cap\]/i.test(msg);
+}
+
+/**
+ * 2026-05-04 (Plan T2-5) — detect the per-op cap variant. Tool
+ * components emit a marker `[trial-cap]` in the error string when
+ * the route handler returned `capExceeded:true` in the 402 body.
+ * Strips noise from the regex by anchoring on the literal token.
+ */
+export function isCapExceededError(msg: string): boolean {
+  return /\[trial-cap\]/i.test(msg);
 }
 
 /** Extract the `required` number from the message, falling back to 0. */
@@ -105,6 +127,7 @@ export function OutOfCreditsAlert({
   required,
   balance,
   opLabel = "this operation",
+  capExceeded = false,
 }: OutOfCreditsAlertProps) {
   const shortfall = Math.max(0, required - balance);
 
@@ -169,15 +192,29 @@ export function OutOfCreditsAlert({
         </span>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>
-            Not enough credits
+            {capExceeded
+              ? "Free trial cap reached on this tool"
+              : "Not enough credits"}
           </div>
           <div className="muted" style={{ fontSize: 13, lineHeight: 1.5 }}>
-            {opLabel} needs <strong style={{ color: "var(--fg)" }}>{required} credits</strong>.
-            You have <strong style={{ color: "var(--fg)" }}>{balance}</strong>.
-            {shortfall > 0 && (
+            {capExceeded ? (
               <>
-                {" "}
-                Top up <strong style={{ color: "var(--fg)" }}>{shortfall} more</strong> to run.
+                Your free trial allows up to{" "}
+                <strong style={{ color: "var(--fg)" }}>{balance} credits</strong>{" "}
+                on this tool. {opLabel} needs{" "}
+                <strong style={{ color: "var(--fg)" }}>{required}</strong>. Top up
+                to keep using it — paid credits don&apos;t have a per-tool cap.
+              </>
+            ) : (
+              <>
+                {opLabel} needs <strong style={{ color: "var(--fg)" }}>{required} credits</strong>.
+                You have <strong style={{ color: "var(--fg)" }}>{balance}</strong>.
+                {shortfall > 0 && (
+                  <>
+                    {" "}
+                    Top up <strong style={{ color: "var(--fg)" }}>{shortfall} more</strong> to run.
+                  </>
+                )}
               </>
             )}
           </div>
