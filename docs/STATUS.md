@@ -3,9 +3,9 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-05-04 (post-plan activation + e2e + tool improvement plan + 9 ship items + compliance audit + contact persistence).
-**Live commit:** `52307a332996` (contact form persistence + /admin/contact-submissions viewer; migration 0021 applied to prod via SSH HEREDOC pre-push; deployed via empty-commit nudge `3f4a495` after auto-pull jam #6). Last code-bearing deploys: `9f8bf07` (T2-5), `96ac693` (T1-6 + /enterprise), `78a0277` (compliance), `52307a3` (contact). All 82 suites green, **4782 tests passing**. **Eleven zombie-next-server cascades** + 6 auto-pull jams survived across the full multi-day arc; the documented "ONE pkick + restart.txt" + "empty-commit nudge" + "wait 5–10 min if SSH fork-saturates" playbook handled every case.
-**Aggregator:** 4782 passed across 82 suites in ~10s (+46 from prior 4736/81 — added `contact-persistence` (46) covering migration 0021 + Drizzle schema parity + route persist+catch+stdout fallback + admin page + nav wiring).
+**Last updated:** 2026-05-04 (post-plan activation + e2e + tool improvement plan + 10 ship items + compliance audit + contact persistence + AI feedback foundation).
+**Live commit:** `d74fefed0f47` (AI feedback foundation — schema 0022 + POST /api/ai/feedback + /admin/ai-feedback; deployed via empty-commit nudge `e1657ac` after auto-pull jam #7). Last code-bearing deploys: `52307a3` (contact), `d74fefe` (ai-feedback). All 83 suites green, **4845 tests passing**. **Twelve zombie-next-server cascades** + 7 auto-pull jams survived; the documented "ONE pkick + restart.txt" + "empty-commit nudge" + "wait 5–10 min if SSH fork-saturates" playbook handled every case (7/7 jams cleared via empty-commit nudge alone).
+**Aggregator:** 4845 passed across 83 suites in ~9s (+63 from prior 4782/82 — added `ai-feedback-foundation` (63) covering migration 0022 + Drizzle schema parity + route auth+zod+upsert+rate-limit+try/catch + admin page + nav wiring).
 
 ### 2026-05-04 — Activation + e2e + tool improvement plan + Tier 1/2 ships
 
@@ -71,6 +71,24 @@ PENDING_WORK_ANALYSIS.md §4c flagged the orphaned `TODO(Phase E)` in `app/api/c
 **CI guard:** `contact-persistence` (46 assertions across 5 sections — migration shape, Drizzle schema parity, route wiring, admin page existence + admin gate + force-dynamic + nodejs runtime, layout nav). Drops anywhere in the chain → CI fails.
 
 **Cascade-pattern data:** Auto-pull jam #6 hit on this commit. Empty-commit nudge `3f4a495` resolved it. The pattern continues to hold (6/6 jams resolved via empty nudge; no SSH intervention required this round).
+
+### 2026-05-04 — AI feedback foundation, stage 1 of 2 (commit `d74fefe`)
+
+PENDING_WORK_ANALYSIS.md §6b. AI quality has zero subjective signal today — quality is measured at the structured level only. This commit ships the data flywheel foundation; the UI integration (FeedbackChip on AI tool result cards) follows in stage 2 so the cascade-bearing UI change can be reviewed independently.
+
+**Migration 0022** (applied to prod pre-push via SSH HEREDOC): `ai_feedback` table — 12 cols (id/user_id/ai_usage_id/file_id/operation/verdict/reason/note/provider_id/model/created_at/updated_at), 1 UNIQUE index on (user_id, ai_usage_id) for idempotent upserts, 4 secondary indexes (created/verdict-created/op-created/provider-model-created), FKs to users + ai_usage with cascade. Verified live via SHOW COLUMNS + statistics count.
+
+**Schema entry**: `aiFeedback` in db/schema/app.ts with .onUpdateNow() on updatedAt to mirror the migration's ON UPDATE CURRENT_TIMESTAMP. Verdict stored as varchar(8) not enum so future "n/a" / "flag" verdicts don't need ALTER. Denormalized provider_id/model columns let admin queries skip the ai_usage join.
+
+**POST /api/ai/feedback**: auth-gated (PII wall — userId from session only), zod-validated verdict union ("up" | "down"), 60/min per-user token bucket rate limit, upserts via INSERT ... ON DUPLICATE KEY UPDATE so flips replace in place, echoes verdict back so client can confirm optimistic UI state. Persist wrapped in try/catch — DB error → 500 `{error:"persist_failed"}` not unhandled rejection.
+
+**/admin/ai-feedback** (gated on requireAdmin): three sections — summary cards (total/up/down/NPS bps), per-op NPS table ordered by thumbs-down DESC, recent thumbs-down rows (50 LIMIT) with reason chips + model + link to /admin/users/<id>. v1 read-only — same posture as other admin queues.
+
+**End-to-end smoke** (post-deploy): POST without auth → 401 `auth_required`; POST with invalid verdict (anon) → 401 (auth gate catches before zod, correct order); anonymous GET /admin/ai-feedback → 404 (correct posture, not 403).
+
+**CI guard:** `ai-feedback-foundation` (63 assertions across 5 sections — migration shape, schema parity, route auth+zod+upsert+rate-limit+try/catch, admin page, layout NAV).
+
+**Cascade-pattern data:** Auto-pull jam #7 hit on this commit. Empty-commit nudge `e1657ac` resolved it. 7/7 jams resolved via empty nudge alone. Stage 2 (FeedbackChip in AI tool result cards) is genuinely larger — touches 53 AI tool components — so it'll cascade differently and ships separately.
 
 ### 2026-05-03 mid-day — post-plan gap closure (Gap #1 + Gap #3)
 
