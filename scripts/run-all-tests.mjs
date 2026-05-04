@@ -1116,6 +1116,18 @@ const SUITES = [
     name: "cookie-banner-prominence",
     file: "test-cookie-banner-prominence.mjs",
   },
+  // 2026-05-04 (PENDING_WORK_ANALYSIS.md §4c) — contact form
+  // persistence + admin viewer. Migration 0021 added the
+  // contact_submissions table; the route now persists every
+  // submission so /enterprise sales-qualified leads survive log
+  // rotation. 46 assertions across 5 sections (migration shape,
+  // Drizzle schema parity, route wiring + try/catch + stdout
+  // fallback, admin page existence + admin gate, layout nav
+  // wiring). Pure static-parse — no live MySQL dependency.
+  {
+    name: "contact-persistence",
+    file: "test-contact-persistence.mjs",
+  },
   // 2026-04-30 aggregator-coverage guard: every scripts/test-*.mjs
   // and scripts/test-*.ts must be wired into the SUITES array
   // above. Catches orphan test files that silently never run in

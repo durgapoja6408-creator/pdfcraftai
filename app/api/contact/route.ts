@@ -1,15 +1,25 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
+
+import { db, schema } from "@/db/client";
 
 /**
  * Contact form handler.
  *
- * Currently logs the message server-side and returns 200. When the email
- * provider lands (SendGrid / Postmark / Resend), send the payload to support
- * + a thank-you acknowledgement back to the submitter.
+ * 2026-05-04 — now persists to `contact_submissions` so /enterprise
+ * leads + general inquiries survive log rotation. Admin reads via
+ * /admin/contact-submissions until SendGrid/Postmark wires the
+ * outbound email. The persist is fire-and-forget on a separate
+ * try/catch so a transient DB error never bricks the form (the user
+ * still gets a 200; the message is also logged to stdout as a fall-
+ * back). Real outbound email is still pending — that's a founder-side
+ * decision (which provider, which sending domain, transactional
+ * template).
  *
- * Rate limiting is intentionally light (one submission per email per 60s,
- * in-memory). Replace with an edge KV store before this sees real traffic.
+ * Rate limiting is intentionally light (one submission per email per
+ * 60s, in-memory). Replace with an edge KV store before this sees
+ * real traffic.
  */
 
 const contactSchema = z.object({
@@ -113,9 +123,47 @@ export async function POST(req: Request) {
   }
   recentByEmail.set(email, now);
 
-  // TODO(email): wire SendGrid / Postmark here.
-  // For now just log so the ops team can see submissions in the Hostinger
-  // logs until the mail provider is configured.
+  // Persist the submission so /admin/contact-submissions can surface
+  // it. Fire-and-forget: any DB error here STILL returns 200 to the
+  // user (they shouldn't see infra errors as failed submissions), but
+  // we ALSO log to stdout as a fallback so the data survives even if
+  // the DB write silently lost the row. The order matters — DB first
+  // so we don't lose the row to a transient stdout buffer flush; if
+  // the DB throws, the catch logs the FULL payload synchronously.
+  //
+  // Truncate optional headers to schema cap to avoid Drizzle insert
+  // errors on overlong UA / Referer (the schema declares varchar(512)
+  // and varchar(1024); some bots send headers >2KB).
+  const userAgent = (req.headers.get("user-agent") ?? "").slice(0, 512);
+  const referer = (req.headers.get("referer") ?? "").slice(0, 1024);
+
+  // 2026-05-04: TODO(email) — wire SendGrid / Postmark / Resend. Once
+  // wired, send the payload to support@ + a thank-you ACK back to the
+  // submitter. Until then, /admin/contact-submissions is the
+  // admin-side view; founder reads + responds manually.
+  try {
+    await db.insert(schema.contactSubmissions).values({
+      id: randomUUID(),
+      name: parsed.data.name,
+      email: parsed.data.email,
+      topic: parsed.data.topic,
+      message: parsed.data.message,
+      ip,
+      userAgent: userAgent || null,
+      referer: referer || null,
+      // status defaults to "new", createdAt defaults to NOW(); both
+      // omitted so the DB applies its defaults rather than us
+      // round-tripping a Date object through the driver.
+    });
+  } catch (err) {
+    // DB hiccup — fall back to stdout so the data survives. Do NOT
+    // surface to the user; they shouldn't see infra noise.
+    console.error("[contact-persist-failed]", String(err));
+  }
+
+  // Stdout log as a defense-in-depth backup for the DB write. Logged
+  // even on success so ops can grep the Hostinger logs directly when
+  // /admin is unreachable mid-cascade.
   console.log(
     "[contact]",
     JSON.stringify({

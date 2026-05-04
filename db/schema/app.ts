@@ -785,6 +785,67 @@ export const geoWaitlist = mysqlTable(
   })
 );
 
+/**
+ * 2026-05-04 — Contact form submission audit log.
+ *
+ * Why this table exists:
+ *   `app/api/contact/route.ts` had a long-standing TODO ("wire SendGrid /
+ *   Postmark here") that meant every submission was logged to stdout
+ *   only. With /enterprise live as a sales-qualified-lead intake page,
+ *   leads were at the mercy of Hostinger log rotation. Persisting to
+ *   MariaDB lets the founder read submissions via /admin/contact-
+ *   submissions until the transactional email provider lands.
+ *
+ * Why a new table not extending an existing one:
+ *   `geo_waitlist` is shaped for opt-in tracking (email + country +
+ *   consent_text). `webhook_events` is shaped for provider event audit.
+ *   Contact submissions have a different shape (free-form message +
+ *   topic + UA / referer for triage) that doesn't fit either.
+ *
+ * Status enum (varchar, not mysqlEnum so we can grow it without ALTER):
+ *   - "new"     — default; admin hasn't seen it yet
+ *   - "read"    — admin opened the row in /admin/contact-submissions
+ *   - "replied" — admin marked replied (manual until email provider)
+ *   - "spam"    — admin classified as spam (audit trail, no delete)
+ *
+ * Topic is varchar (not enum) so the ContactForm dropdown can grow
+ * without migrations. Current topics from the form: "Sales", "Support",
+ * "Billing", "Press", "General". /enterprise pre-selects "Sales".
+ *
+ * No FK to users — anonymous visitors can contact us without an
+ * account. Storing the email as plain text lets the admin search across
+ * sessions without join.
+ *
+ * Migration: db/migrations/0021_contact_submissions.sql.
+ */
+export const contactSubmissions = mysqlTable(
+  "contact_submissions",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    name: varchar("name", { length: 200 }).notNull(),
+    email: varchar("email", { length: 320 }).notNull(),
+    topic: varchar("topic", { length: 60 }).notNull(),
+    message: text("message").notNull(),
+    ip: varchar("ip", { length: 45 }).notNull().default(""),
+    userAgent: varchar("user_agent", { length: 512 }),
+    referer: varchar("referer", { length: 1024 }),
+    status: varchar("status", { length: 16 }).notNull().default("new"),
+    createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
+    readAt: timestamp("read_at", { fsp: 3 }),
+  },
+  (t) => ({
+    // Admin "newest first" sort + per-day grouping.
+    createdIdx: index("contact_submissions_created_idx").on(t.createdAt),
+    // Admin "show only new" filter (default landing view).
+    statusCreatedIdx: index("contact_submissions_status_created_idx").on(
+      t.status,
+      t.createdAt,
+    ),
+    // "All submissions from this email" (admin per-contact drill-in).
+    emailIdx: index("contact_submissions_email_idx").on(t.email),
+  }),
+);
+
 // --- Phase 6.3 Agent tables — REMOVED on 2026-04-20 ---------------------
 //
 // `agent_runs` + `agent_run_steps` powered the authenticated /app/studio

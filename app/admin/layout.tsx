@@ -77,6 +77,17 @@ const NAV: NavItem[] = [
   // Lives in People because it's a "who keeps trying to abuse us"
   // question, not a financial rollup.
   { section: "People", href: "/admin/abuse-signals", label: "Abuse signals" },
+  // 2026-05-04 — contact form submissions queue. Lives in People
+  // because it's a "who's reaching out + what do they need" surface,
+  // not a financial rollup. Founder reads here while SendGrid /
+  // Postmark / Resend transactional email is still pending; without
+  // this surface, /enterprise SMB sales-qualified leads were
+  // disappearing into Hostinger log rotation.
+  {
+    section: "People",
+    href: "/admin/contact-submissions",
+    label: "Contact",
+  },
   // 2026-05-03 plan §7 — per-op unit economics. Lists all AIOperationId
   // entries with base cost + multiplier rule; click through for per-op
   // stats (calls, credits, cost, margin, success rate, provider mix,
