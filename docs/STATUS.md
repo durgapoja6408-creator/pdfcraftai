@@ -4,8 +4,8 @@ _Single source of truth for what's done, what's pending, and who owns each item.
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
 **Last updated:** 2026-05-04 (17 ship items + Batch 2 instrumentation + Batch A FeedbackChip finish — table/compare wired).
-**Live commit:** `b49e4d35e7b7` (Batch 3 — final ai_usage instrumentation, 10/10 AI ops). **Observability rollout COMPLETE — /admin/margin sees 100% of AI fleet for the first time.** Deployed after cascade #17 — first SSH fork-saturation event of the arc. 8-min kernel drain wait per CLAUDE.md playbook ("STOP — wait 5-10 min if SSH fork-saturates"). All 86 suites green, **4980 tests passing**. **Seventeen zombie-next-server cascades** survived.
-**Aggregator:** 4980 passed across 86 suites in ~7s (+4 from prior 4976/86 — sign + redact each add 2 instrumented-op assertions in the SSOT cross-checks).
+**Live commit:** `168474143e17` (FeedbackChip wired into sign + redact tools — 8/10 markdown-rendering AI ops now have the chip). Deployed clean (no cascade, no nudge required) — first single-push clean deploy in several turns. All 86 suites green, **4986 tests passing**. **Seventeen zombie-next-server cascades** survived total. The cascade rate has cooled significantly in the last 3 commits: 1 of 3 cascaded (vs. earlier mini-arc where 5/6 cascaded). Working theory: smaller commit scopes (2 surgical files vs. 5+) seem to correlate with cascade-free deploys.
+**Aggregator:** 4986 passed across 86 suites in ~7s (+6 from prior 4980/86 — 2 new wired tools × 3 cross-checks each in the chip pilot guard).
 
 ### 2026-05-04 — Activation + e2e + tool improvement plan + Tier 1/2 ships
 
@@ -244,10 +244,19 @@ Two-step rollout completing the top-5-traffic AI fleet:
 - Future commits can join ai_feedback × ai_usage to compute per-(provider, model) NPS for fine-grained quality observability
 
 **Remaining FeedbackChip rollout:**
+- ~~Sign + Redact~~ ✅ shipped in commit `1684741`
 - Generate (different UX shape — returns base64 PDF, needs custom layout)
-- Sign + Redact (newly unlocked by Batch 3 instrumentation)
-- Batch B: SummarizeVariantTool family
-- Batch C: specialist + tail tools
+- Chat (conversational UX, different shape — chip placement TBD)
+- Batch B: SummarizeVariantTool family (~9 variant ops sharing a single component)
+- Batch C: specialist + tail tools (~30+)
+
+### 2026-05-04 — FeedbackChip wired into sign + redact (commit `1684741`)
+
+PENDING §6b stage 3. Now that all 10 routes surface aiUsageId (Batch 3 instrumentation, commit `b49e4d3`), wiring the chip into sign + redact closes the loop on the 8 markdown-rendering AI tools. **Stage 3 progress: 8/53 tools wired (15.1%).**
+
+Generate + chat have non-standard UX shapes (PDF base64 download / conversational multi-turn) so they're tracked separately and require custom chip placement.
+
+**Cascade-free deploy.** Single push, clean deploy, no nudge, no pkick. The cascade rate has cooled noticeably in the last 3 code-bearing commits: 1 of 3 cascaded (vs. an earlier mini-arc where 5/6 cascaded). Working theory: smaller commit scopes (2-3 surgical files vs. 5+) correlate with cascade-free deploys, possibly because the Passenger restart cycle handles smaller webpack-cache deltas more reliably. Tracking this hypothesis going forward.
 
 ### 2026-05-03 mid-day — post-plan gap closure (Gap #1 + Gap #3)
 
