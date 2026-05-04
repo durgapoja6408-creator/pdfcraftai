@@ -41,6 +41,7 @@ import { ToolDropzone } from "./ToolDropzone";
 // so the live charge can be at or below the displayed quote — never
 // above (per plan §5 "margin direction in user's favour" rule).
 import { CreditEstimateBadge } from "@/components/upsell/CreditEstimateBadge";
+import { FeedbackChip } from "@/components/feedback/FeedbackChip";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { classifyAiError } from "@/lib/ai/degradation";
 import { renderMarkdown } from "@/lib/markdown-mini";
@@ -83,6 +84,14 @@ type TranslationResult = {
   chunkCount: number;
   /** Non-empty on 207 — compute succeeded, persist failed. */
   persistWarning?: string;
+  /**
+   * 2026-05-04 (PENDING §6b stage 3 / Batch A). ai_usage row id
+   * captured from the response. FeedbackChip uses this for flip
+   * semantics on the ai_feedback table's UNIQUE(user_id, ai_usage_id).
+   * Null on legacy responses or when recordAiUsage hits a duplicate-
+   * key replay.
+   */
+  aiUsageId: string | null;
 };
 
 // Pre-encoded Sign-in CTA target — see SummarizePdfTool for rationale.
@@ -306,6 +315,11 @@ export function TranslatePdfTool() {
           wasChunked: Boolean(body.wasChunked),
           wasTruncated: Boolean(body.wasTruncated),
           chunkCount: Number(body.chunkCount ?? 1),
+          // 2026-05-04 (PENDING §6b stage 3 / Batch A). FeedbackChip flip-
+          // semantics dependency from translate route.ts (Batch 1
+          // instrumentation, commit f7d5a9c).
+          aiUsageId:
+            typeof body.aiUsageId === "string" ? body.aiUsageId : null,
         });
         return;
       }
@@ -328,6 +342,9 @@ export function TranslatePdfTool() {
             typeof body.detail === "string"
               ? body.detail
               : "Translation generated, but couldn't be saved to your files. Copy it below before leaving.",
+          // Same — surface aiUsageId on the persist-failed branch.
+          aiUsageId:
+            typeof body.aiUsageId === "string" ? body.aiUsageId : null,
         });
         return;
       }
@@ -697,7 +714,29 @@ function ResultCard({ result }: { result: TranslationResult }) {
         className="prose-mini"
         style={{ padding: "20px 22px", fontSize: 14, lineHeight: 1.65 }}
         dangerouslySetInnerHTML={{ __html: renderMarkdown(result.markdown) }}
-      />    </div>
+      />
+
+      {/*
+        2026-05-04 (PENDING §6b stage 3 / Batch A). FeedbackChip data
+        flywheel. translate route.ts surfaces aiUsageId since Batch 1
+        instrumentation (commit f7d5a9c) — flip semantics work.
+      */}
+      <div
+        style={{
+          padding: "12px 22px",
+          borderTop: "1px solid var(--border)",
+          background: "var(--bg-2, rgba(0,0,0,0.02))",
+        }}
+      >
+        <FeedbackChip
+          operation="translate"
+          aiUsageId={result.aiUsageId}
+          fileId={result.fileId ?? null}
+          providerId={result.providerId}
+          model={result.model}
+        />
+      </div>
+    </div>
   );
 }
 

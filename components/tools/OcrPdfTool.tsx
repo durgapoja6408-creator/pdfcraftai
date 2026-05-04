@@ -50,6 +50,7 @@ import {
 } from "@/components/upsell/OutOfCreditsAlert";
 // 2026-05-03 plan §5 + Day 2.5 — pre-flight estimate badge.
 import { CreditEstimateBadge } from "@/components/upsell/CreditEstimateBadge";
+import { FeedbackChip } from "@/components/feedback/FeedbackChip";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
@@ -78,6 +79,11 @@ type OcrResult = {
   wasTruncated: boolean;
   /** Non-empty on 207 — OCR succeeded but persist to /app/files failed. */
   persistWarning?: string;
+  /**
+   * 2026-05-04 (PENDING §6b stage 3 / Batch A). FeedbackChip flip-
+   * semantics dependency from ocr route.ts (Batch 1 instrumentation).
+   */
+  aiUsageId: string | null;
 };
 
 // Pre-encoded Sign-in CTA target — see SummarizePdfTool for rationale.
@@ -237,6 +243,8 @@ export function OcrPdfTool() {
           providerId: String(body.providerId ?? ""),
           model: String(body.model ?? ""),
           wasTruncated: Boolean(body.wasTruncated),
+          aiUsageId:
+            typeof body.aiUsageId === "string" ? body.aiUsageId : null,
         });
         trackTool.success({ creditCost: credit, pageCount: pages, processingMs });
         return;
@@ -260,6 +268,8 @@ export function OcrPdfTool() {
             typeof body.detail === "string"
               ? body.detail
               : "OCR completed, but the result couldn't be saved to your files. Copy it below before leaving.",
+          aiUsageId:
+            typeof body.aiUsageId === "string" ? body.aiUsageId : null,
         });
         trackTool.success({ creditCost: credit, pageCount: pages, processingMs });
         return;
@@ -626,7 +636,26 @@ function ResultCard({ result }: { result: OcrResult }) {
         className="prose-mini"
         style={{ padding: "20px 22px", fontSize: 14, lineHeight: 1.65 }}
         dangerouslySetInnerHTML={{ __html: renderMarkdown(result.markdown) }}
-      />    </div>
+      />
+
+      {/* 2026-05-04 (PENDING §6b stage 3 / Batch A) — FeedbackChip
+          flywheel; ocr route surfaces aiUsageId since Batch 1. */}
+      <div
+        style={{
+          padding: "12px 22px",
+          borderTop: "1px solid var(--border)",
+          background: "var(--bg-2, rgba(0,0,0,0.02))",
+        }}
+      >
+        <FeedbackChip
+          operation="ocr"
+          aiUsageId={result.aiUsageId}
+          fileId={result.fileId ?? null}
+          providerId={result.providerId}
+          model={result.model}
+        />
+      </div>
+    </div>
   );
 }
 

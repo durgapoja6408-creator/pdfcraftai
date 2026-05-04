@@ -58,6 +58,25 @@ const WIRED_TOOLS = [
     route: "app/api/ai/summarize/route.ts",
     operation: "summarize",
   },
+  // 2026-05-04 — Batch A (3 of 5 top-traffic ops). Each route was
+  // already instrumented in commit f7d5a9c (Batch 1 of the
+  // AI_USAGE_INSTRUMENTATION_GAP rollout); this batch adds the
+  // FeedbackChip wire-up on the matching tool components.
+  {
+    component: "components/tools/TranslatePdfTool.tsx",
+    route: "app/api/ai/translate/route.ts",
+    operation: "translate",
+  },
+  {
+    component: "components/tools/RewritePdfTool.tsx",
+    route: "app/api/ai/rewrite/route.ts",
+    operation: "rewrite",
+  },
+  {
+    component: "components/tools/OcrPdfTool.tsx",
+    route: "app/api/ai/ocr/route.ts",
+    operation: "ocr",
+  },
 ];
 
 // ============================================================================
