@@ -116,8 +116,8 @@ the id. No data migration needed.
 |---|---|---|---|
 | Stage 1 — foundation | 0 / 53 (table + endpoints) | 100% (foundation) | `d74fefe` |
 | Stage 2 — Summarize pilot | 1 / 53 | 1.9% | `e99ac1c` |
-| Stage 3 batch A — top 5 ops (3 of 5) | 4 / 53 | 7.5% | _this commit_ (translate/rewrite/ocr) |
-| Stage 3 batch A — remaining 2 ops | — | — | pending (table, compare — need Batch 2 instrumentation first) |
+| Stage 3 batch A — top 5 ops (3 of 5) | 4 / 53 | 7.5% | `beeb902` (translate/rewrite/ocr) |
+| Stage 3 batch A — finish (table + compare) | 6 / 53 | 11.3% | _this commit_ |
 | Stage 3 batch B — variants | — | — | pending |
 | Stage 3 batch C — specialist + tail | — | — | pending |
 

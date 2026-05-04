@@ -77,6 +77,19 @@ const WIRED_TOOLS = [
     route: "app/api/ai/ocr/route.ts",
     operation: "ocr",
   },
+  // 2026-05-04 — Batch A finish (5 of 5 top-traffic ops). Routes
+  // were instrumented in Batch 2 (commit 37b6573); this batch wires
+  // the chip on the matching tool components.
+  {
+    component: "components/tools/TableExtractTool.tsx",
+    route: "app/api/ai/table/route.ts",
+    operation: "table",
+  },
+  {
+    component: "components/tools/ComparePdfTool.tsx",
+    route: "app/api/ai/compare/route.ts",
+    operation: "compare",
+  },
 ];
 
 // ============================================================================

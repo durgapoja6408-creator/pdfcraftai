@@ -36,6 +36,7 @@ import {
 import { ToolDropzone } from "./ToolDropzone";
 // 2026-05-03 plan §5 + Day 2.5 — pre-flight estimate badge.
 import { CreditEstimateBadge } from "@/components/upsell/CreditEstimateBadge";
+import { FeedbackChip } from "@/components/feedback/FeedbackChip";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { renderMarkdown } from "@/lib/markdown-mini";
 import { classifyAiError } from "@/lib/ai/degradation";
@@ -62,6 +63,8 @@ type TableResult = {
   wasTruncated: boolean;
   /** Non-empty on 207 — compute succeeded, persist failed. */
   persistWarning?: string;
+  /** 2026-05-04 (PENDING §6b stage 3 / Batch A finish). */
+  aiUsageId: string | null;
 };
 
 // Pre-encoded Sign-in CTA target — see SummarizePdfTool for rationale.
@@ -149,6 +152,8 @@ export function TableExtractTool() {
           providerId: String(body.providerId ?? ""),
           model: String(body.model ?? ""),
           wasTruncated: Boolean(body.wasTruncated),
+          aiUsageId:
+            typeof body.aiUsageId === "string" ? body.aiUsageId : null,
         });
         return;
       }
@@ -163,6 +168,8 @@ export function TableExtractTool() {
           providerId: String(body.providerId ?? ""),
           model: String(body.model ?? ""),
           wasTruncated: Boolean(body.wasTruncated),
+          aiUsageId:
+            typeof body.aiUsageId === "string" ? body.aiUsageId : null,
           persistWarning:
             typeof body.detail === "string"
               ? body.detail
@@ -435,7 +442,26 @@ function ResultCard({ result }: { result: TableResult }) {
         className="prose-mini"
         style={{ padding: "20px 22px", fontSize: 14, lineHeight: 1.65 }}
         dangerouslySetInnerHTML={{ __html: renderMarkdown(result.markdown) }}
-      />    </div>
+      />
+
+      {/* 2026-05-04 (PENDING §6b stage 3 / Batch A finish) — FeedbackChip
+          flywheel; table route surfaces aiUsageId since Batch 2. */}
+      <div
+        style={{
+          padding: "12px 22px",
+          borderTop: "1px solid var(--border)",
+          background: "var(--bg-2, rgba(0,0,0,0.02))",
+        }}
+      >
+        <FeedbackChip
+          operation="table"
+          aiUsageId={result.aiUsageId}
+          fileId={result.fileId ?? null}
+          providerId={result.providerId}
+          model={result.model}
+        />
+      </div>
+    </div>
   );
 }
 
