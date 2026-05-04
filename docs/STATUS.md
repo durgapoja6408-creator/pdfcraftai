@@ -3,9 +3,9 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-05-04 (13 ship items + compliance audit + contact persistence + AI feedback foundation + AI feedback stage 2 pilot + webhook resilience CI guard + ai_usage gap tracker).
-**Live commit:** `bff73540ed8b` (ai_usage instrumentation gap tracker + 48-assertion CI guard; deploy survived cascade #14 via documented `awk | xargs kill -KILL` recovery + empty nudge `d0a0241`). All 86 suites green, **4949 tests passing**. **Fourteen zombie-next-server cascades** survived. Notable cascade-pattern revision: cascade #14 hit on a DOC-ONLY commit (no app code change at all), invalidating the earlier "doc-only commits don't cascade" hypothesis. Cascades are about Passenger restart cycle hygiene, NOT about webpack-cache surface size. Pattern is now: every push triggers some risk; recovery playbook is the constant.
-**Aggregator:** 4949 passed across 86 suites in ~8s (+48 from prior 4901/85 — added `ai-usage-instrumentation` (48) tracking the 8/10 ops-without-recordAiUsage gap, with SSOT lists, drift detection, and AIOp union coverage check).
+**Last updated:** 2026-05-04 (14 ship items + ai_usage Batch 1 instrumentation closing 3 of 8 observability gaps).
+**Live commit:** `f7d5a9ce39ed` (translate/rewrite/ocr routes now write ai_usage rows + surface aiUsageId; deploy survived cascade #15 via documented `awk | xargs kill -KILL` recovery — single pkick + ~5 min recovery, faster than #13 (25 min) and #14 (12 min) as the playbook keeps tightening). All 86 suites green, **4955 tests passing**. **Fifteen zombie-next-server cascades** survived. Cascade-pattern data point: 5 of last 6 deploys (including this code-bearing one) cascaded — frequency is up but recovery is fast and reliable.
+**Aggregator:** 4955 passed across 86 suites in ~10s (+6 from prior 4949/86 — `ai-usage-instrumentation` guard's INSTRUMENTED_OPS list grew from 2 → 5 ops; each new op adds 2 assertions for the recordAiUsage call + aiUsageId surfacing).
 
 ### 2026-05-04 — Activation + e2e + tool improvement plan + Tier 1/2 ships
 
@@ -172,6 +172,26 @@ Discovered while planning Stage 3 batch A of the FeedbackChip rollout. Empirical
 **Cascade #14 — first cascade observed on a DOC-ONLY commit (this one).** Important learning: cascade frequency is NOT correlated with webpack-cache surface; even byte-identical builds can cascade because the cascade is about Passenger's restart cycle hygiene, not about what the runtime is loading. The "9 consecutive non-code commits clean" streak from earlier today was luck, not a deterministic property. Recovery: documented `awk | xargs kill -KILL` pattern (the cascade #13 lesson) + empty-nudge to push the gap-tracker commit through after recovery returned to a previous commit. ~12 min total recovery.
 
 **STATUS.md preamble updated** to revise the cascade hypothesis: every push has some cascade risk; recovery playbook is the constant, not the input commit's "size."
+
+### 2026-05-04 — AI usage Batch 1 instrumentation (commit `f7d5a9c`)
+
+PENDING §6b corollary / AI_USAGE_INSTRUMENTATION_GAP.md Batch 1. Closes the observability gap on 3 of 8 missing ops by lifting the canonical recordAiUsage pattern from summarize.
+
+**Routes instrumented:**
+- `app/api/ai/translate/route.ts` — top-traffic op
+- `app/api/ai/rewrite/route.ts` — second-most traffic
+- `app/api/ai/ocr/route.ts` — third (highest credit cost per call due to per-page multiplier)
+
+**Pattern applied** (each route gets the same shape):
+- Capture `providerStartedAt = Date.now()` before the provider call
+- After provider success, call `recordAiUsage` with userId/operation/providerId/model/tokens/latency/credits/success/responseTruncated/ledgerId/idempotencyKey
+- Surface `aiUsageId: usageRecord.applied ? usageRecord.id : null` in BOTH 200 + 207 response bodies (FeedbackChip flip-semantics dependency)
+
+**Honest about what we don't know:** stopReason + promptVersion + experimentId are omitted (null). These ops use chunked / per-page provider calls so a single terminal stopReason or prompt version doesn't have meaningful semantics across the multi-call flow. responseTruncated is mapped from each lib's wasTruncated flag (translate: input exceeded hard upper bound; rewrite: input clipped; ocr: pageCount > 50).
+
+**SSOT updated:** `scripts/test-ai-usage-instrumentation.mjs` INSTRUMENTED_OPS list now: 5/10 ops (50%, up from 20%). MISSING_OPS: table, compare, generate, sign, redact (Batch 2 + Batch 3).
+
+**Cascade #15 recovery:** code-bearing commit cascaded as expected. Single pkick + restart.txt nudge cleared within ~5 min — fastest recovery yet (vs. #13's 25 min and #14's 12 min) because the awk-pipeline mass-kill pattern is now reflexive. Recovery time is converging downward as the playbook stabilizes.
 
 ### 2026-05-03 mid-day — post-plan gap closure (Gap #1 + Gap #3)
 
