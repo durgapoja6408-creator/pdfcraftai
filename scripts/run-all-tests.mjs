@@ -1150,6 +1150,19 @@ const SUITES = [
     name: "ai-feedback-pilot",
     file: "test-ai-feedback-pilot.mjs",
   },
+  // 2026-05-04 (PENDING §1f) — webhook + reconcile resilience
+  // contract. Locks in: 500 on processing error (provider retries),
+  // 200 on duplicate (provider stops), 400 on bad sig (provider
+  // stops), reconcile shares applyPaymentEvent path, lookback ≥
+  // 24h Razorpay retry budget, idempotency keys consistent across
+  // webhook + reconcile so a synthesized event after a successful
+  // webhook doesn't double-grant. 23 assertions across 7 sections.
+  // F1 explicitly documents the recordWebhookEvent-before-process
+  // ordering issue mitigated by the reconcile sweep.
+  {
+    name: "webhook-reconcile-resilience",
+    file: "test-webhook-reconcile-resilience.mjs",
+  },
   // 2026-04-30 aggregator-coverage guard: every scripts/test-*.mjs
   // and scripts/test-*.ts must be wired into the SUITES array
   // above. Catches orphan test files that silently never run in

@@ -368,3 +368,38 @@ These are real outstanding items but outside the engineering-focused scope of th
 - `CLAUDE.md` — bootstrap
 
 The codebase + production are healthy. What's pending is genuine forward work, not unfinished plumbing — most items have estimates in days/weeks rather than hours, and several (compliance, Paddle KYC, growth) are partly external-vendor blocked. Pick by impact + dependency, not by item count.
+
+---
+
+## 11. Newly identified subtle issues
+
+### 11a. Webhook audit-row insert before processing (PENDING §1f follow-up)
+
+**State:** discovered while writing the webhook-reconcile-resilience CI
+guard. `lib/payments/webhook-handler.ts` calls `recordWebhookEvent`
+BEFORE `applyPaymentEvent`. If processing throws on first delivery:
+
+1. Audit row inserts (recorded:true)
+2. Processing throws → 500 → provider retries
+3. On retry, audit dedupe sees existing row → recorded:false → 200 duplicate
+4. Provider marks delivered. Processing never re-ran.
+
+**Mitigation today:** the nightly reconciliation cron (commit
+`f02c5b3`) catches this — it asks the provider "what happened in the
+last 48h" and synthesizes any missing events through the same
+idempotent path. Maximum credit-grant latency on a webhook-failure
+event is ~24h.
+
+**Real fix:** defer the audit row insert until AFTER `applyPaymentEvent`
+succeeds, OR mark the row as "processing_failed" and update to
+"processed" on success. The latter is more robust because it preserves
+the audit trail of what we attempted.
+
+**Risk:** medium — actual occurrence requires applyPaymentEvent to
+throw on first delivery, which is rare (DB write inside a transaction;
+either commits or rolls back fully). When it does happen, the
+reconcile sweep recovers within 24h.
+
+**Estimate:** ~2 hours (handler logic change + new test cases). Not
+prioritized for this arc because the safety net works; tracking here
+so the next compliance/payments review picks it up.
