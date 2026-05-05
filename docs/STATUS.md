@@ -4,7 +4,7 @@ _Single source of truth for what's done, what's pending, and who owns each item.
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
 **Last updated:** 2026-05-04 (17 ship items + Batch 2 instrumentation + Batch A FeedbackChip finish — table/compare wired).
-**Live commit (in deploy queue):** `c6470ffc` (Quality-signal router-bias auto-routing scaffold — PENDING §6c automation). Working its way through Hostinger auto-pull behind `b233220` (cron escalation §2b) + `fe857a6` (dunning automation §4c) — all 4 user-directed automations from the §2a/§2b/§6c/§4c batch shipped this turn. All 93 suites green, **5285 tests passing**. **Twenty-two zombie-next-server cascades** total (no new cascades observed across the 4 commits this turn).
+**Live commit:** `834d61199f61` (post-batch retrospective doc, deployed cleanly atop the 4 code commits). All 93 suites green, **5285 tests passing**. **Twenty-three zombie-next-server cascades** total — cascade #23 self-recovered during the §6c→doc deploy window without operator intervention (single `uv_thread_create` thread-cap failure captured in stderr.log; worker respawned successfully without external pkick). Verified post-batch: uptime grew monotonically 126s → 157s → 188s across 90s observation window, no flapping.
 **Aggregator:** 5190 passed across 90 suites in ~5.5s (+29 from prior 5161/89 — new `margin-rollup-slack-migration` suite locks in the consumer-specific contract: imports, all 4 message branches preserved, severity typed as `SlackAlertSeverity`, no inline `fetch(url, ...)`, no legacy `{text:...}` payload, `urlOverride` backward-compat for `AI_SPEND_ALERT_SLACK_URL`, never-throws guarantee, context block populated. Foundation guard also gained 3 new assertions (A9-A11) for the new `SendSlackAlertOptions` interface + `urlOverride` field + the https:// validation gate on the override path.
 
 ### 2026-05-04 — Activation + e2e + tool improvement plan + Tier 1/2 ships
@@ -454,7 +454,7 @@ User asked: "Proceed with 2a, 2b, 6c, 4c". Four commits shipped, each with its o
 
 **Aggregator state:** 5285 passed across **93 suites** in ~6.6s (delta +95 assertions / +3 suites from 5190/90 at start of turn). `npx tsc --noEmit` exit 0.
 
-**Deploys:** all 4 code-bearing commits (`b233220` / `fe857a6` / `c6470ff`) + this doc commit working their way through Hostinger auto-pull. No cascades observed at the time of writing (which the §10 retrospective lesson 4 correction calls out as fallible — write-time clean ≠ post-deploy clean). Verifying in next turn.
+**Deploys (verified post-batch):** all 4 code-bearing commits (`b233220` / `fe857a6` / `c6470ff`) + the doc commit `834d611` reached production. **Cascade #23** fired once during the deploy window — single `uv_thread_create` failure captured in `nodejs/stderr.log` showing the cgroup hit pthread quota (the same thread-cap pattern documented in CLAUDE.md §5). The cascade **self-recovered without operator intervention** — no SSH pkick was run; Hostinger's plan-level restart machinery cleared it. Site stabilized on `834d61199f61` with uptime growing monotonically (126 → 157 → 188s across 90s observation window). This is exactly the §10 Lesson 4 correction in action: write-time-clean ≠ post-deploy-clean. The 4-commit batch with no migrations + minimal admin changes still produced one cascade — empirically, even disciplined commits cascade ~5-10% of the time.
 
 ### 2026-05-03 mid-day — post-plan gap closure (Gap #1 + Gap #3)
 
