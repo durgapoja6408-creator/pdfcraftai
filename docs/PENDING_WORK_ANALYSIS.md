@@ -254,22 +254,33 @@ Large files = higher bug density. Refactor each into composed sub-components, mo
 
 ## 5. Product gaps (6 customer-facing items)
 
-### 5a. Real PDF Compress (T2-1) — ⚠️ INFRA UNBLOCKED (2026-05-05)
+### 5a. Real PDF Compress (T2-1) — ✅ FOUNDATION SHIPPED (2026-05-05)
 
-**State:** intentional gap (pdf-lib limitation). Two SEO landings + use case + 2 blog posts had bait-and-switch references; cleaned up earlier. Now honest but the demand is real.
+**State pre-foundation:** intentional gap (pdf-lib can't compress). Two SEO landings + use case + 2 blog posts had bait-and-switch references; cleaned up earlier. Now honest but the demand is real.
 
-**What changed 2026-05-05:** verified via SSH that `/usr/bin/gs` (Ghostscript 9.54.0) IS available on the Hostinger box — `qpdf` is NOT, but Ghostscript alone is sufficient (`gs -sDEVICE=pdfwrite -dPDFSETTINGS=/screen|/ebook|/printer` covers all three quality levels). This flips the implementation from "uncertain — needs binary install" to "ready to build against existing infra".
+**Discovery (de-risk):** SSH'd into the Hostinger box and verified `/usr/bin/gs` (Ghostscript 9.54.0) is available. `qpdf` is NOT, but Ghostscript alone covers all three quality levels (`-dPDFSETTINGS=/printer|/ebook|/screen`).
 
-**Implementation (revised):** server-side `gs` invocation only (skip `qpdf --linearize` since it's not on the box; `gs` handles linearization via `-dFastWebView=true`). Three levels:
-- **Light** (`-dPDFSETTINGS=/printer`): minimal loss, ~10-30% reduction
-- **Balanced** (`-dPDFSETTINGS=/ebook`): default; ~30-50% reduction
-- **Strong** (`-dPDFSETTINGS=/screen`): aggressive; 50-80% reduction; visible image quality drop
+**Foundation shipped** in commit `27b1a1e` (this session) — server-side helper + flag-gated route + CI guard:
+- `lib/tools/ghostscript/compress.ts` — `compressPdf()` async wrapper. Three levels (`light`→/printer, `balanced`→/ebook, `strong`→/screen). 50MB input cap, 60s timeout with SIGKILL (NOT SIGTERM — gs ignores SIGTERM mid-compression and creates zombies, learned from CLAUDE.md §5 zombie cleanup runbook). Always cleans up temp dir in `finally{}` regardless of throw/timeout/success. Bypass branch returns ORIGINAL bytes when gs achieves <5% savings (noise floor — anything below is within font-subset variance and not perceptually worth the trade-off). `GhostscriptError` class with categorized codes (TIMEOUT / EXIT_NONZERO / SPAWN_FAILED / INPUT_TOO_LARGE).
+- `app/api/tools/compress/route.ts` — POST handler. Auth gate → `isFeatureEnabled(PDF_COMPRESS)` flag gate → multipart parse → size pre-check → mime-type guard → level whitelist → `%PDF` magic-header byte check → `compressPdf()` → JSON response with base64 outputBytes + bypass flag + size deltas + duration + suggested filename.
+- `lib/flags.ts` — registers `FEATURE_FLAGS.PDF_COMPRESS = "pdf_compress"` so the per-user / per-percent rollout machinery is wired in.
+- 45-assertion CI guard (`scripts/test-pdf-compress-foundation.mjs`) covering wrapper invariants (level→preset map, all 5 required gs flags, mkdtemp + finally{} cleanup, SIGKILL pinning, bypass branch), route invariants (auth gate, flag gate, size cap, magic-header check, level whitelist, error categorization), flag registration, and dynamic eval of the preset map literal.
 
-**Pricing decision (deferred):** PENDING audit suggested 5 credits/doc. MVP could ship FREE bounded by 50MB + 200 pages (matches existing OCR cap pattern); if abuse surfaces, add credit pricing. Ghostscript on a 50MB PDF takes ~5s CPU + minimal RAM — manageable resource cost.
+**Same staging discipline** as feature-flags / referrals / quality-signal: foundation lands now, route is reachable but flag-gated to OFF (returns `feature_disabled` 404). Operator activates via Hostinger panel:
+- `FEATURE_PDF_COMPRESS_OVERRIDE=on` (everyone gets it), OR
+- `FEATURE_PDF_COMPRESS_USERS=<userId>,<userId>` (allowlist), OR
+- `FEATURE_PDF_COMPRESS_PERCENT=10` (10% rollout, deterministic SHA-1 bucket so each user always gets the same answer)
 
-**Abuse prevention:** existing rate limit (10 req/hr/user) + 50MB file cap + 200 page cap.
+**Verified live (2026-05-05 13:55 UTC):** deployed to commit `27b1a1e`. Anonymous POST returns `{"error":"not_authenticated"}` 401. Authenticated POST (with flag off) would return `{"error":"feature_disabled"}` 404 — expected foundation behavior.
 
-**Estimate:** 3-4 days for full UX (route + tool component + registry entry + redirect cleanup + tests). Foundation (server-side helper + route + CI guard, no UI) is ~1 day.
+**Remaining (Phase B follow-on, ~2 days):**
+- `components/tools/PdfCompressTool.tsx` — client UI: ToolDropzone for input, three radio buttons for quality, progress + size-delta display, "couldn't make it smaller" copy when `bypassed=true`.
+- `app/tool/compress-pdf/page.tsx` — tool page using ToolRunner pattern.
+- Add registry entry to `lib/tools.ts` and update the "no compress" comment.
+- `next.config.mjs` redirect cleanup: change `/compress-pdf` → `/tools` to `/compress-pdf` → `/tool/compress-pdf` once flag is on for everyone.
+- (Maybe) credit pricing — defer until usage data justifies it. PENDING audit originally suggested 5 credits/doc.
+
+**Estimate from foundation → full feature:** ~2 days (most of the work — Ghostscript wrapper + auth + abuse prevention — is done).
 
 ### 5b. PDF/A converter (not just check) — ⚠️ INFRA UNBLOCKED (2026-05-05)
 
