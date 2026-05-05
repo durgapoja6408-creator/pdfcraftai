@@ -282,15 +282,27 @@ Large files = higher bug density. Refactor each into composed sub-components, mo
 
 **Estimate from foundation → full feature:** ~2 days (most of the work — Ghostscript wrapper + auth + abuse prevention — is done).
 
-### 5b. PDF/A converter (not just check) — ⚠️ INFRA UNBLOCKED (2026-05-05)
+### 5b. PDF/A converter (not just check) — ✅ FOUNDATION SHIPPED (2026-05-05)
 
-**State:** we have `/tool/pdf-a-check` (validates compliance) but no converter (makes a non-compliant PDF compliant). Real demand from compliance/archival users.
+**State pre-foundation:** we had `/tool/pdf-a-check` (validates compliance) but no converter (makes a non-compliant PDF compliant). Real demand from compliance/archival users.
 
-**What changed 2026-05-05:** Ghostscript 9.54.0 verified on the Hostinger box. `gs -dPDFA=2 -dPDFACompatibilityPolicy=1 -sProcessColorModel=DeviceRGB -sDEVICE=pdfwrite ...` covers PDF/A-2b conversion natively. `qpdf` not available, but for PDF/A specifically Ghostscript is the canonical tool anyway.
+**Foundation shipped** in this session, parallel to §5a:
+- `lib/tools/ghostscript/pdfa.ts` — `convertToPdfa()` async wrapper. PDF/A-2b only (intentionally not -1b/-3b/-2u/-2a — see source docstring for rationale per level). 50MB input cap (inherited from `COMPRESS_MAX_INPUT_BYTES`), 90s SIGKILL timeout (slower than compress because gs has to inspect every font, embed missing ones, validate transparency). Same temp-file + `finally{}` cleanup discipline as compress. Re-uses `GhostscriptError` from `compress.ts` to avoid two parallel error hierarchies.
+- `app/api/tools/pdf-a/route.ts` — POST handler. Auth → `isFeatureEnabled(PDF_A_CONVERT)` flag gate → multipart parse → size pre-check → mime-type guard → `%PDF` magic-header check → `convertToPdfa()` → JSON response. NO `level` parameter exposed (only -2b ships).
+- `lib/flags.ts` — adds `FEATURE_FLAGS.PDF_A_CONVERT = "pdf_a_convert"`.
+- 39-assertion CI guard (`scripts/test-pdfa-foundation.mjs`) covering all four required PDF/A flags (`-dPDFA=2`, `-dPDFACompatibilityPolicy=1`, `-sProcessColorModel=DeviceRGB`, `-sOutputIntentProfile=...`), the inheritance pin (`PDFA_MAX_INPUT_BYTES = COMPRESS_MAX_INPUT_BYTES` not a literal), the route's read-only invariant (no user-controlled `level` parameter), and full feature-flag + auth + size-cap + magic-header check coverage.
 
-**Implementation (revised):** Ghostscript only. Need to bundle a default sRGB ICC color profile (`-sOutputICCProfile=...`) since PDF/A requires an output intent. Source the profile from a trusted upstream (sRGB.icc shipped with Ghostscript itself OR the open-source `colorprofiles.org` v4 ICC). Single quality level (PDF/A-2b is the standard archival target — most-supported, OK for embedded fonts + transparency).
+**Critical Ghostscript invariant:** `-dPDFACompatibilityPolicy=1` is what makes the foundation honest. Without it, gs silently strips un-PDF/A-able content (embedded JS, encrypted streams, certain transparency groups) and produces files that LIE about conformance — file says it's PDF/A, archival validators reject it. The `=1` policy makes gs fail loudly instead, which surfaces as a `pdfa_failed 500` to the user; they at least know to fix the source PDF.
 
-**Estimate:** 3-4 days. Implementation parallels §5a Compress: same Ghostscript wrapper module + new route variant + new tool component. Could share the same `lib/tools/ghostscript.ts` helper.
+**Same staging discipline** as §5a: foundation lands now, route is reachable but flag-gated to OFF (returns `feature_disabled` 404). Operator activates via `FEATURE_PDF_A_CONVERT_OVERRIDE=on` (or per-user / per-percent flavors).
+
+**Remaining (Phase B follow-on, ~1-2 days):**
+- `components/tools/PdfaConvertTool.tsx` — UI tool (single-shot: drop PDF, click convert, download). Even simpler than compress UI because no quality picker.
+- `app/tool/pdf-a/page.tsx` (or extend `/tool/pdf-a-check` to a dual-mode tool — check or convert).
+- Add registry entry in `lib/tools.ts`.
+- ICC profile bundling — current code points at `/usr/share/ghostscript/9.54.0/iccprofiles/srgb.icc` (verified to exist on Hostinger). For belt-and-suspenders, ship a copy in the repo at `public/icc/srgb.icc` and pass that path via `iccProfilePath` option, so a Ghostscript upgrade that moves the profile location doesn't break the route.
+
+**Estimate from foundation → full feature:** ~1-2 days.
 
 ### 5c. Edit Text in PDFs
 

@@ -1309,6 +1309,19 @@ const SUITES = [
     name: "pdf-compress-foundation",
     file: "test-pdf-compress-foundation.mjs",
   },
+  // 2026-05-05 (PENDING §5b foundation) — PDF/A-2b converter guard.
+  // Companion to pdf-compress-foundation: same Ghostscript wrapper
+  // discipline, different argv builder. Pins PdfaLevel union at "2b"
+  // only (broader exposure invites confusion + invalid output for
+  // non-tagged source PDFs), pins PDFACompatibilityPolicy=1 (without
+  // it gs silently strips un-PDF/A-able content and produces files
+  // that LIE about conformance), pins -sOutputIntentProfile usage,
+  // pins PDFA_MAX_INPUT_BYTES is INHERITED from COMPRESS_MAX_INPUT_BYTES
+  // (single source of truth). 39 assertions across 4 sections.
+  {
+    name: "pdfa-foundation",
+    file: "test-pdfa-foundation.mjs",
+  },
   // 2026-05-04 (PENDING §1f) — webhook + reconcile resilience
   // contract. Locks in: 500 on processing error (provider retries),
   // 200 on duplicate (provider stops), 400 on bad sig (provider

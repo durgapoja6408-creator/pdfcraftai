@@ -92,6 +92,13 @@ export const FEATURE_FLAGS = {
    * UI / catalog entry / CI smoke is ready to ship together.
    */
   PDF_COMPRESS: "pdf_compress",
+  /**
+   * PDF/A-2b conversion (PENDING §5b) — wraps the server-side
+   * Ghostscript-backed PDF/A converter. Same staging discipline as
+   * PDF_COMPRESS — foundation route ships flag-off, UI ships in a
+   * follow-up commit, operator activation flips it to live.
+   */
+  PDF_A_CONVERT: "pdf_a_convert",
 } as const;
 
 export type FeatureFlagName = (typeof FEATURE_FLAGS)[keyof typeof FEATURE_FLAGS];
