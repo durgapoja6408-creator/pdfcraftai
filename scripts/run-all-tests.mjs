@@ -1199,6 +1199,21 @@ const SUITES = [
     name: "slack-alert-foundation",
     file: "test-slack-alert-foundation.mjs",
   },
+  // 2026-05-04 follow-up to commit `36821aa` — the first consumer
+  // migration of the shared Slack helper. lib/ai/margin-rollup.ts's
+  // postMarginAlertToSlack used to read AI_SPEND_ALERT_SLACK_URL
+  // inline + post legacy {text:...} payloads; this commit migrated
+  // it to call sendSlackAlert with a structured (severity, title,
+  // body, context) payload, while preserving the legacy env var as
+  // urlOverride for backward-compat. 26 assertions across 5
+  // sections — keeping migration-specific invariants in their own
+  // suite (vs. the foundation guard) makes failure attribution
+  // clean: a regression in the helper API breaks foundation; a
+  // regression in margin-rollup's call-site breaks migration.
+  {
+    name: "margin-rollup-slack-migration",
+    file: "test-margin-rollup-slack-migration.mjs",
+  },
   // 2026-05-04 (PENDING §1f) — webhook + reconcile resilience
   // contract. Locks in: 500 on processing error (provider retries),
   // 200 on duplicate (provider stops), 400 on bad sig (provider

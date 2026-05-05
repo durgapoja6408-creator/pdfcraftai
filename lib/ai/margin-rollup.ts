@@ -63,6 +63,15 @@ import { randomUUID } from "node:crypto";
 import { db, schema } from "@/db/client";
 import type { AIOp } from "./router";
 import { currentPolicySnapshot } from "./router";
+// 2026-05-04 (PENDING §2a follow-up to commit `36821aa`) — migrate
+// inline `AI_SPEND_ALERT_SLACK_URL` fetch to the shared helper.
+// `urlOverride` keeps the legacy env var name working during the
+// founder-action window so a founder who already set the old name
+// (per docs/STATUS.md notes) doesn't see alerts go silent the moment
+// the migration lands. New consumers should call `sendSlackAlert`
+// directly without an override.
+import { sendSlackAlert } from "@/lib/ops/slack-alert";
+import type { SlackAlertSeverity } from "@/lib/ops/slack-alert";
 
 // --- Constants --------------------------------------------------------
 
@@ -1208,32 +1217,49 @@ async function detectDarkRouting(opts: {
 // --- Slack emitter (optional) -----------------------------------------
 
 /**
- * Post a margin alert to Slack if `AI_SPEND_ALERT_SLACK_URL` is set.
+ * Post a margin alert to Slack via the shared helper at
+ * `lib/ops/slack-alert.ts`. Routes to whichever webhook URL is
+ * available — canonical `SLACK_OPS_WEBHOOK_URL` first, then the
+ * legacy `AI_SPEND_ALERT_SLACK_URL` as backward-compat for
+ * deployments that already set the old name.
  *
- * No-ops (returns false) if the webhook isn't configured or the post
- * fails — we NEVER throw from a monitoring hook, because that would
- * fail the cron request and mask the rollup itself succeeding. A
- * failed Slack post is logged to console and swallowed.
+ * Returns true on successful delivery; false if the webhook isn't
+ * configured (graceful no-op) OR if the post failed (Slack outage,
+ * 4xx, etc.). The shared helper never throws, so this function
+ * doesn't either — a Slack outage MUST NOT mask a successful rollup.
  *
- * Called by the cron route when `redCount > 0` OR streak hits 7
- * (both deserve a message — alerts on red, celebrations on gate-close).
+ * Migration note (2026-05-04, follow-up to commit `36821aa`):
+ * before this commit, the function read `AI_SPEND_ALERT_SLACK_URL`
+ * inline and built `{text: "..."}` Slack legacy payloads. The shared
+ * helper now builds proper attachments (with the colored severity
+ * sidebar Slack uses for at-a-glance triage), so the visual format
+ * in the Slack channel improves. The 4 message branches map cleanly
+ * to the helper's 3-severity taxonomy:
+ *   - redSlices    → severity "alarm" (page the founder)
+ *   - redAlarms    → severity "alarm" (page the founder)
+ *   - warnAlarms   → severity "warn"  (heads-up, drift detected)
+ *   - all green    → severity "info"  (routine pass; gate-hit banner appended)
  */
 export async function postMarginAlertToSlack(
   report: DailyRollupReport
 ): Promise<boolean> {
-  const url = process.env.AI_SPEND_ALERT_SLACK_URL;
-  if (!url) return false;
-
   const redSlices = report.slices.filter((s) => !s.isGreen);
   const alarms = report.alarms ?? [];
   const redAlarms = alarms.filter((a) => a.severity === "red");
 
-  let text: string;
+  // Build the structured payload. Severity drives the Slack
+  // attachment color (red/amber/green sidebar) AND the title emoji
+  // prefix; the helper handles both via its severity → color/emoji
+  // maps so we don't reproduce them here.
+  let severity: SlackAlertSeverity;
+  let title: string;
+  let body: string;
+
   if (redSlices.length > 0) {
-    text =
-      `:warning: *AI margin alert — ${report.date}*\n` +
-      `${redSlices.length} red slice(s), ${report.greenCount} green. ` +
-      `Streak reset to 0.\n` +
+    severity = "alarm";
+    title = `AI margin alert — ${report.date}`;
+    body =
+      `${redSlices.length} red slice(s), ${report.greenCount} green. Streak reset to 0.\n` +
       redSlices
         .slice(0, 10)
         .map(
@@ -1248,51 +1274,68 @@ export async function postMarginAlertToSlack(
     // Slices are all-green but a detect-point alarm tripped red —
     // e.g. dark-routing >= threshold. Worth paging even though margin
     // floors are intact, because these catch regressions early.
-    text =
-      `:rotating_light: *AI alarm — ${report.date}*\n` +
+    severity = "alarm";
+    title = `AI alarm — ${report.date}`;
+    body =
       `${redAlarms.length} red alarm(s) (slices all green; streak still ${report.greenStreakDays}).\n` +
       redAlarms
         .slice(0, 10)
         .map((a) => `• \`${a.kind}\` ${a.message}`)
         .join("\n");
   } else if (alarms.length > 0) {
-    // Warn-level alarms only. Slice floors intact, but drift or primary-
-    // share is worth a heads-up. No gate-hit banner — we reserve that
-    // message for truly clean days.
-    text =
-      `:eyes: *AI drift — ${report.date}*\n` +
-      `Slices all green, streak *${report.greenStreakDays}* day(s). ` +
-      `${alarms.length} warning alarm(s):\n` +
+    // Warn-level alarms only. Slice floors intact, but drift or
+    // primary-share is worth a heads-up. No gate-hit banner — we
+    // reserve that message for truly clean days.
+    severity = "warn";
+    title = `AI drift — ${report.date}`;
+    body =
+      `Slices all green, streak *${report.greenStreakDays}* day(s). ${alarms.length} warning alarm(s):\n` +
       alarms
         .slice(0, 10)
         .map((a) => `• \`${a.kind}\` ${a.message}`)
         .join("\n");
   } else {
-    text =
-      `:white_check_mark: *AI margin — ${report.date} all green*\n` +
+    severity = "info";
+    title = `AI margin — ${report.date} all green`;
+    body =
       `${report.greenCount} slice(s) green, streak now *${report.greenStreakDays}* day(s).` +
-      (report.greenStreakDays >= 7
-        ? "  :tada: Gate #7 target reached."
-        : "");
+      (report.greenStreakDays >= 7 ? "  :tada: Gate #7 target reached." : "");
   }
 
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
-    if (!res.ok) {
-      console.warn(
-        `[margin-rollup] Slack post returned ${res.status} ${res.statusText}`
-      );
-      return false;
-    }
-    return true;
-  } catch (err) {
-    console.warn("[margin-rollup] Slack post failed:", err);
+  // Compact context block — operators glance at these fields rather
+  // than parsing the body bullets. Helper drops null values + caps
+  // string values at 200 chars + coerces numbers, so we can pass
+  // these directly without pre-formatting.
+  const context = {
+    "Green count": report.greenCount,
+    "Red count": redSlices.length,
+    "Streak (days)": report.greenStreakDays,
+    "Total alarms": alarms.length,
+  };
+
+  // Backward-compat: prefer canonical SLACK_OPS_WEBHOOK_URL (read by
+  // the helper internally). Fall back to AI_SPEND_ALERT_SLACK_URL via
+  // the helper's urlOverride escape hatch. The override path itself
+  // re-validates the https:// prefix in the helper, so a malformed
+  // legacy var doesn't bypass our defensive check.
+  const legacyOverride = process.env.AI_SPEND_ALERT_SLACK_URL || undefined;
+  const result = await sendSlackAlert(
+    { severity, title, body, context },
+    legacyOverride ? { urlOverride: legacyOverride } : undefined,
+  );
+
+  if (result.ok && result.sent) return true;
+  if (result.ok && !result.sent) {
+    // No webhook configured — graceful no-op. Logged at debug level
+    // (not warn) because this is the expected state pre-§2a.
     return false;
   }
+  // Delivery failed (network / non-2xx). Log at warn so the deploy
+  // log captures it without throwing.
+  console.warn(
+    `[margin-rollup] Slack post failed via shared helper: ${result.reason} (${result.detail})`,
+  );
+  return false;
 }
 
 // --- Admin dashboard surface ------------------------------------------

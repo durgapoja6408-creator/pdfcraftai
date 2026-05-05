@@ -99,13 +99,13 @@ These items are tracked in `docs/PLAN_GAP_ANALYSIS.md` from 2026-04-20. Most are
 
 **Founder action still pending** (this is the §2a work the original audit flagged):
 1. Create a Slack webhook (channel: ops or dedicated #pdfcraftai-alerts).
-2. Set `SLACK_OPS_WEBHOOK_URL` in the Hostinger panel.
-3. Migrate `lib/ai/margin-rollup.ts` from the inline `AI_SPEND_ALERT_SLACK_URL` read to `sendSlackAlert()` (~10-line code change once the helper is in place — separate commit).
+2. Set `SLACK_OPS_WEBHOOK_URL` in the Hostinger panel — OR keep the legacy `AI_SPEND_ALERT_SLACK_URL` if that var is already set somewhere; both work.
+3. ~~Migrate `lib/ai/margin-rollup.ts` from the inline `AI_SPEND_ALERT_SLACK_URL` read to `sendSlackAlert()` (~10-line code change once the helper is in place — separate commit).~~ ✅ DONE in the next commit after this one — the shared helper is now consumed by `postMarginAlertToSlack`, with `urlOverride` keeping the legacy env var name working for backward-compat.
 4. Verify by manually running `/api/cron/ai-margin-rollup` against a synthetic red day.
 
-The helper foundation lands now so the migration in step 3 is a 1-file diff. Until step 2 completes, `sendSlackAlert` returns `{ok:true, sent:false, reason:"no_webhook_configured"}` — graceful no-op.
+The helper foundation + first consumer migration both lands ahead of the founder action. Until step 2 completes, `sendSlackAlert` returns `{ok:true, sent:false, reason:"no_webhook_configured"}` — graceful no-op.
 
-**Estimate:** 30 min user-action (steps 1+2) + ~30 min Claude follow-up (step 3).
+**Estimate:** 30 min user-action (steps 1+2) + ~10 min Claude verification (step 4).
 
 ### 2b. Cron failure escalation — partially unblocked by §2a helper
 

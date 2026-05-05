@@ -94,6 +94,26 @@ for (const sev of ["info", "warn", "alarm"]) {
   );
 }
 
+// 2026-05-04 follow-up to commit 36821aa — sendSlackAlert gained an
+// optional `urlOverride` param so legacy AI_SPEND_ALERT_SLACK_URL
+// callers can migrate without losing alerts mid-flight. The
+// SendSlackAlertOptions interface MUST exist + the urlOverride field
+// MUST go through the same https:// validation gate as the canonical
+// env var read (otherwise the migration escape hatch becomes a
+// defensive-check bypass).
+assert(
+  /export\s+interface\s+SendSlackAlertOptions/.test(LIB_SRC),
+  "A9: SendSlackAlertOptions interface exported (urlOverride migration param)",
+);
+assert(
+  /urlOverride\?:\s*string/.test(LIB_SRC),
+  "A10: urlOverride is `string | undefined` (optional migration escape hatch)",
+);
+assert(
+  /urlOverride[^]*?startsWith\(\s*"https:\/\/"/.test(LIB_SRC),
+  "A11: urlOverride still validates startsWith('https://') — escape hatch can't bypass the defensive check",
+);
+
 // ============================================================================
 // SECTION B: formatSlackPayload semantics — actually RUN the function
 // ============================================================================

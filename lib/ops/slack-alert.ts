@@ -191,6 +191,27 @@ export function readSlackWebhookUrl(): string | null {
 }
 
 /**
+ * Optional `sendSlackAlert` options. The `urlOverride` param exists
+ * for backward-compat with the legacy `AI_SPEND_ALERT_SLACK_URL` env
+ * var read in `lib/ai/margin-rollup.ts`'s `postMarginAlertToSlack` —
+ * during the migration window, that module can resolve its env var
+ * fallback chain in-place and pass the result here, so a founder
+ * who set the OLD var name keeps getting alerts even after the
+ * migration commit lands. New consumers should NOT use
+ * `urlOverride`; rely on the canonical `SLACK_OPS_WEBHOOK_URL` env
+ * var read by `readSlackWebhookUrl()`.
+ */
+export interface SendSlackAlertOptions {
+  /**
+   * If provided, this URL is used INSTEAD of the canonical env var
+   * read. Must still pass the https:// validation gate — a
+   * non-https override is treated the same as a missing one
+   * (graceful no-op return).
+   */
+  urlOverride?: string;
+}
+
+/**
  * Send an alert. Catches every possible failure mode and returns
  * a result envelope; never throws.
  *
@@ -204,9 +225,22 @@ export function readSlackWebhookUrl(): string | null {
  *     we don't parse).
  *   - 4xx / 5xx → returns delivery_failed. Caller decides whether
  *     to fall through to console.error.
+ *   - `options.urlOverride` is the migration escape hatch (see
+ *     `SendSlackAlertOptions` JSDoc above) — when present, it
+ *     bypasses the canonical env var read.
  */
-export async function sendSlackAlert(input: SlackAlertInput): Promise<SlackAlertResult> {
-  const url = readSlackWebhookUrl();
+export async function sendSlackAlert(
+  input: SlackAlertInput,
+  options?: SendSlackAlertOptions,
+): Promise<SlackAlertResult> {
+  // Resolve URL: explicit override wins, then canonical env var.
+  // The override still has to pass the https:// gate so a typo
+  // in the legacy env var name doesn't bypass our defensive check.
+  const overrideUrl =
+    options?.urlOverride && options.urlOverride.startsWith("https://")
+      ? options.urlOverride
+      : null;
+  const url = overrideUrl ?? readSlackWebhookUrl();
   if (!url) {
     return { ok: true, sent: false, reason: "no_webhook_configured" };
   }
