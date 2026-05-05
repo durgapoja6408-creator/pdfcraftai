@@ -358,22 +358,25 @@ This catches bugs that static-parse misses:
 
 The TS-strip regex pass is approximate but works for the simple TS subset used in pure helper modules. It would NOT work for files that use generics deeply, decorators, namespace declarations, or other complex features. Useful pattern: keep dynamic-execution guards scoped to small pure-helper files.
 
-### Lesson 4 — empirical cgroup pattern
+### Lesson 4 — empirical cgroup pattern (with same-day correction)
 
-Across this extension, **4 consecutive clean foundation/follow-up deploys** (`81087df` → `36821aa` → `f08b520` → `b4e382b`) confirmed an empirical pattern from the original arc: foundation/migration commits without new migrations or many tool components are reliably cgroup-safe.
+Across this extension, 4 consecutive foundation/follow-up deploys (`81087df` → `36821aa` → `f08b520` → `b4e382b`) appeared clean at writing time. **Same-day correction:** the very next deploy (`d6a93e5`, the doc-only commit that landed THIS retrospective section) cascaded as #22 — single-mass-kill recovered ~3 min, typical-fast. The "4 consecutive clean" claim was right at write-time but stale by the time CI ran the migration suite against the redeployed worker.
 
-**Cascade-prone commits this extension:**
-- `cda2eae` (batch B chip rollout — 4 component edits): clean deploy, but auto-pull lag of ~10 min
-- `2a459f3` (batch C chip rollout — 5 component edits): cascade #21, single-mass-kill recovered ~3 min
+**Cascade events across the extension (renumbered honestly):**
 - `76a0c82` (dunning foundation — new migration + new admin page): cascade #20, single-mass-kill recovered ~3 min
+- `2a459f3` (batch C chip rollout — 5 component edits): cascade #21, single-mass-kill recovered ~3 min
+- `d6a93e5` (this retrospective doc — DOC-ONLY commit): cascade #22, single-mass-kill recovered ~3 min
 
 **Cascade-clean commits:**
 - `cb013ab` (chat chip — single component + route reorder): clean
+- `cda2eae` (batch B chip rollout — 4 component edits): clean deploy + ~10 min auto-pull lag
 - `81087df` (quality-signal — pure helper + admin page, no migration): clean
 - `36821aa` (slack-alert — pure helper + CI guard, no admin page): clean
 - `b4e382b` (margin-rollup migration — single function refactor): clean
 
-**Hypothesis (now stronger):** the dominant cascade trigger is the COMBINATION of (a) new schema migration applied to prod, (b) new admin page registered, (c) >5 component edits. Any one of those alone is usually fine; the combination puts cgroup pressure during Passenger respawn that triggers a cascade in ~50% of deploys. Foundation commits avoid all 3 by design.
+**Refined hypothesis:** the cascade trigger isn't a deterministic function of commit content. Even doc-only commits cascade occasionally. The dominant variable is timing — cgroup pressure at the moment Passenger respawns. Schema migration + new admin page + >5 component edits AMPLIFIES the cascade probability (because the build pipeline is heavier and Passenger holds more state during respawn), but doesn't guarantee or eliminate it. The recovery playbook (single mass-kill, hPanel restart fallback, wait-don't-poke if SSH fork-saturates) remains the reliable safety net regardless of commit content.
+
+**Practical implication:** don't treat "doc-only commit" as a free pass. Wait for the deploy + smoke-check the same way you would for a code commit. The retrospective above noting "doc-only commit" as a feature in the commit footer is honest signaling but not insurance.
 
 ### Lesson 5 — auto-pull lag is a separate failure mode from cascades
 
@@ -393,7 +396,7 @@ A pattern that emerged: code commit → CI guard verifies it → doc retrospecti
 
 - **Aggregator: 5190/90 in ~5.5s** (was 4988/86 at start)
 - **`tsc --noEmit` exit 0**
-- **21 cascades survived total** across the entire arc (recovery playbook held under all conditions including the 50-min worst-case fork-saturation event)
+- **22 cascades survived total** across the entire arc (recovery playbook held under all conditions including the 50-min worst-case fork-saturation event AND the same-day cascade #22 on the very deploy that shipped this retrospective section — see Lesson 4 for the honest correction)
 - **PENDING items closed in the extension:** §11a (webhook ordering), §4c (dunning), §6c (quality-signal), §2a + §2b (slack helper + first consumer)
 - **FeedbackChip rollout: 100%** on AI-using components (19/19)
 - **What remains:** founder action (set webhook URL env var); multi-day product work (mobile UI hardening, real PDF Compress, edit text in PDFs, bulk processing). Every infrastructure foundation is structurally complete on the code side.
