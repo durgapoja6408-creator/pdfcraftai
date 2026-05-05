@@ -4,8 +4,8 @@ _Single source of truth for what's done, what's pending, and who owns each item.
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
 **Last updated:** 2026-05-04 (17 ship items + Batch 2 instrumentation + Batch A FeedbackChip finish — table/compare wired).
-**Live commit:** `36821aaf05f3` (Operational Slack alert helper — PENDING §2a + §2b foundation; canonical webhook payload format + never-throws fetch wrapper + the codebase's first dynamic-execution CI guard). Deployed CLEAN — no cascade. All 89 suites green, **5161 tests passing**. **Twenty-one zombie-next-server cascades** total (no new cascade on this commit).
-**Aggregator:** 5161 passed across 89 suites in ~5.4s (+42 from prior 5119/88 — new `slack-alert-foundation` suite goes deeper than static-parse: Section B compiles `formatSlackPayload` from .ts to .js via stripped-TS regex pass and runs canonical inputs through `new Function` to verify actual output (severity→color, numeric coercion, null-drop, 200-char cap, ts unit). Section D scans lib/ + app/ + components/ for hardcoded `https://hooks.slack.com/` URLs as a credential-leak tripwire.
+**Live commit:** `b4e382b4df64` (First consumer migration of the shared Slack helper — `lib/ai/margin-rollup.ts:postMarginAlertToSlack` now calls `sendSlackAlert` with structured attachment payloads instead of inline fetch + `{text:...}`). Deployed CLEAN — no cascade. All 90 suites green, **5190 tests passing**. **Twenty-one zombie-next-server cascades** total (no new cascade on this commit; **fourth consecutive clean foundation/follow-up deploy**).
+**Aggregator:** 5190 passed across 90 suites in ~5.5s (+29 from prior 5161/89 — new `margin-rollup-slack-migration` suite locks in the consumer-specific contract: imports, all 4 message branches preserved, severity typed as `SlackAlertSeverity`, no inline `fetch(url, ...)`, no legacy `{text:...}` payload, `urlOverride` backward-compat for `AI_SPEND_ALERT_SLACK_URL`, never-throws guarantee, context block populated. Foundation guard also gained 3 new assertions (A9-A11) for the new `SendSlackAlertOptions` interface + `urlOverride` field + the https:// validation gate on the override path.
 
 ### 2026-05-04 — Activation + e2e + tool improvement plan + Tier 1/2 ships
 
@@ -413,6 +413,32 @@ Until step 2 completes, `sendSlackAlert` returns `{ok:true, sent:false, reason:"
 **Deploy was CLEAN** — no cascade, no nudge required. Live commit `36821aaf05f3` came up at uptime 0s, db OK. Two consecutive clean deploys (`81087df` + `36821aa`) on foundation commits — the foundation pattern (no migration, pure code surface) consistently produces clean deploys vs. the cascade-prone schema/admin-page commits.
 
 **Aggregator state:** 5161 passed across **89 suites** in ~5.4s (delta +42 assertions / +1 suite). `npx tsc --noEmit` exit 0.
+
+### 2026-05-04 — margin-rollup → shared Slack helper migration (commit `b4e382b`) — first consumer
+
+Follow-through on the "1-file follow-up" promised in commit `36821aa`. Migrates `lib/ai/margin-rollup.ts:postMarginAlertToSlack` from its own inline `fetch` + `{text:...}` legacy Slack payloads to calling `sendSlackAlert()` with structured (severity, title, body, context) attachments.
+
+**Visual upgrade in the Slack channel:** alerts now have the colored severity sidebar (red for `alarm`, amber for `warn`, green for `info`) for at-a-glance triage instead of just emoji prefixes. The 4 message branches map cleanly onto the helper's 3-severity taxonomy:
+- `redSlices.length > 0` → severity `"alarm"` (page the founder)
+- `redAlarms.length > 0` → severity `"alarm"` (page the founder)
+- `alarms.length > 0` (warn-only) → severity `"warn"` (heads-up, drift)
+- all green → severity `"info"` (routine pass; gate-7 banner appended unchanged)
+
+**Backward-compat preserved.** `lib/ops/slack-alert.ts` gained a `SendSlackAlertOptions` interface with optional `urlOverride: string` field — the migration escape hatch. `margin-rollup` resolves `urlOverride` from the legacy `AI_SPEND_ALERT_SLACK_URL` env var; if unset, `sendSlackAlert` falls through to the canonical `SLACK_OPS_WEBHOOK_URL` read. The override still has to pass the `https://` validation gate (re-validated inside the helper) so a typo in the legacy var doesn't bypass the defensive check. Three configurations all work:
+- `SLACK_OPS_WEBHOOK_URL` set → canonical path
+- `AI_SPEND_ALERT_SLACK_URL` set (legacy founder action) → urlOverride path wins
+- both set → urlOverride wins (explicit > implicit)
+- neither set → graceful no-op (`{ok:true, sent:false, reason:"no_webhook_configured"}`)
+
+**Two CI guards updated:**
+- `slack-alert-foundation` (A9-A11): new `SendSlackAlertOptions` interface present, `urlOverride` is optional string, override still passes the https:// gate.
+- New `margin-rollup-slack-migration` suite (26 assertions across 5 sections) — kept SEPARATE from the foundation guard so failure attribution stays clean. A regression in the helper API breaks `slack-alert-foundation`; a regression in margin-rollup's call-site breaks `margin-rollup-slack-migration`. Future migrations of `dunning` / `quality-signal` follow the same pattern.
+
+Migration guard sections: A: imports, B: function-body shape (old inline fetch gone, severity typed, all 4 branches preserved with the gate-7 banner anchor), C: backward-compat (legacy env var read ONLY via `urlOverride` ternary), D: result-envelope handling (3 branches + no `throw` statements anywhere in the function), E: context block populated with at least 3 fields (regression check).
+
+**Deploy was CLEAN** — fourth consecutive clean foundation/follow-up deploy in a row (`81087df` → `36821aa` → `f08b520` → `b4e382b`). The pattern is empirically robust: foundation/migration commits without new migrations or many tool components are cgroup-safe.
+
+**Aggregator state:** 5190 passed across **90 suites** in ~5.5s (delta +29 assertions / +1 suite). `npx tsc --noEmit` exit 0.
 
 ### 2026-05-03 mid-day — post-plan gap closure (Gap #1 + Gap #3)
 

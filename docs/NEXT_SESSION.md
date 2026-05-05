@@ -1,31 +1,34 @@
 # Next session — pick up here
 
-**Updated 2026-05-04 late-night (latest live commit `36821aa`).**
+**Updated 2026-05-04 late-night (latest live commit `b4e382b`).**
 Multi-day arc complete. Production observability rollout 100% done.
 **FeedbackChip rollout structurally complete on AI-using component
 side: 19/19 wired** (Stage 3 batches A + B + C all closed). PENDING
 §11a (webhook audit ordering), §4c (dunning persistence foundation),
-§6c (per-user quality-signal foundation), and §2a/§2b (Slack alert
-helper foundation) all closed in this arc.
+§6c (per-user quality-signal foundation), §2a/§2b (Slack alert
+helper foundation), and the §2a follow-through migration (margin-
+rollup now consumes the shared helper) all closed in this arc.
 
 **Status snapshot:**
-- Latest live commit: `36821aa` (Operational Slack alert helper —
-  PENDING §2a + §2b foundation; codebase's first dynamic-execution
-  CI guard)
+- Latest live commit: `b4e382b` (margin-rollup migrated to shared
+  Slack helper; first consumer of the §2a foundation)
 - Last code-bearing deploy: same
-- Aggregator: **5161/5161 tests passing across 89 suites** in ~5.4s
+- Aggregator: **5190/5190 tests passing across 90 suites** in ~5.5s
 - `tsc --noEmit` exit 0
-- 21 cascade events survived; recovery playbook holds; the last 3
-  foundation-pattern commits (`81087df`, `36821aa`) all deployed
-  CLEAN, suggesting foundation commits without migrations are
-  consistently cgroup-safe
+- 21 cascade events survived; recovery playbook holds; **four
+  consecutive clean foundation/follow-up deploys** (`81087df` →
+  `36821aa` → `f08b520` → `b4e382b`) confirm the empirical pattern
+  that foundation/migration commits without new migrations or many
+  tool components are cgroup-safe
 - Production: all systems active, all 10 AI ops audited, /admin/margin
-  sees 100% of fleet, /admin/ai-feedback collects ↑/↓ across all
-  19 AI-using component surfaces, /admin/quality-signals derives
-  per-user trailing-thumbs-down streaks from accumulated chip data,
-  /admin/dunning ready for Phase E, lib/ops/slack-alert.ts ready
-  for SLACK_OPS_WEBHOOK_URL env var (founder action — when set,
-  every consumer goes from no-op to live simultaneously)
+  sees 100% of fleet (now alerts via shared helper when rollup goes
+  red — visual upgrade with colored severity sidebar pending env var
+  set), /admin/ai-feedback collects ↑/↓ across all 19 AI-using
+  component surfaces, /admin/quality-signals derives per-user
+  trailing-thumbs-down streaks from accumulated chip data,
+  /admin/dunning ready for Phase E, lib/ops/slack-alert.ts is now
+  the canonical alerter (with backward-compat for the legacy
+  AI_SPEND_ALERT_SLACK_URL via urlOverride escape hatch)
 
 ## Read first
 
@@ -158,7 +161,7 @@ The infrastructure groundwork is structurally complete on these axes:
 ```bash
 cd /sessions/gifted-funny-franklin/pdfcraftai-work
 npx tsc --noEmit                                # exit 0?
-node scripts/run-all-tests.mjs 2>&1 | tail -3   # 5161/0 across 89?
+node scripts/run-all-tests.mjs 2>&1 | tail -3   # 5190/0 across 90?
 curl -s https://pdfcraftai.com/api/health | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['commit'], d['uptimeSec'])"
 ```
 
