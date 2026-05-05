@@ -292,7 +292,9 @@ Large files = higher bug density. Refactor each into composed sub-components, mo
 
 **Original state (audit time):** when one user got bad outputs (provider hiccup, prompt injection, or genuine model failure), there was no way to detect this server-side except via support email.
 
-**Foundation shipped** in commit (this session) — `lib/ai/quality-signal.ts` with three pure helpers (`computeConsecutiveNegative`, `classifyQualitySignal`, `QUALITY_SIGNAL_POLICY` policy constants) + two read-side queries (`loadUserQualitySignal` for one user, `listFlaggedUsers` for the admin list view) + read-only `/admin/quality-signals` page surfacing every user with a trailing thumbs-down streak. No migration needed — derives from the existing `ai_feedback` table on every read, so there's no cache-vs-truth de-sync risk.
+**Foundation shipped** in commit `81087df` — `lib/ai/quality-signal.ts` with three pure helpers (`computeConsecutiveNegative`, `classifyQualitySignal`, `QUALITY_SIGNAL_POLICY` policy constants) + two read-side queries (`loadUserQualitySignal` for one user, `listFlaggedUsers` for the admin list view) + read-only `/admin/quality-signals` page surfacing every user with a trailing thumbs-down streak. No migration needed — derives from the existing `ai_feedback` table on every read, so there's no cache-vs-truth de-sync risk.
+
+**Auto-routing wire-up shipped** in this commit (follow-up to `81087df`) — `applyQualityBiasIfEnabled` helper added to the same module, wired into `lib/ai/router.ts:route()` after `resolveLadder`. Behind default-off env flag `QUALITY_SIGNAL_AUTO_ROUTE_ENABLED`. When the flag is set AND the user is in the `flagged` bucket AND `recentProviders` is non-empty, the offending providers move to the END of the ladder — graceful degradation. Today every short-circuit path returns the canonical ladder unchanged: env-flag-off (the FIRST check, so no DB query fires), userId not provided, signal lookup throws, bucket !== "flagged", recentProviders empty.
 
 **Thresholds (conservative, tunable):**
 - `watchThreshold = 2` consecutive thumbs-down → bucket = `watch`

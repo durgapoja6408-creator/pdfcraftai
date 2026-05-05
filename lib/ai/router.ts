@@ -83,6 +83,10 @@ import { isProviderKilled } from "./kill-switches";
 import type { AIProvider } from "./provider";
 import { getProvider, listConfiguredProviderIds } from "./registry";
 import type { AICapabilities, AIProviderId } from "./types";
+// 2026-05-04 (PENDING §6c automation) — quality-signal-driven
+// provider bias. Behind a default-off env flag inside the helper;
+// today's behavior is unchanged for every caller.
+import { applyQualityBiasIfEnabled } from "./quality-signal";
 
 // -------------------------------------------------------------------
 // Op taxonomy — the single source of truth for "which operations exist"
@@ -242,6 +246,17 @@ export interface RouteOptions {
    *     the one that just failed (pass the NEXT in the ladder).
    */
   preferredId?: AIProviderId;
+  /**
+   * 2026-05-04 (PENDING §6c automation) — when provided AND the env
+   * flag `QUALITY_SIGNAL_AUTO_ROUTE_ENABLED=true` is set, the router
+   * consults `loadUserQualitySignal(userId)` and deprioritizes
+   * providers the user thumbs-down'd in their trailing streak. Behind
+   * the env flag because the bias thresholds need real chip data to
+   * tune; today the bias step is dormant for every caller. Optional
+   * because system-initiated calls (cron jobs, batch reconcile) and
+   * anonymous routes pass no userId.
+   */
+  userId?: string | null;
 }
 
 /**
@@ -285,7 +300,14 @@ export async function route(
     throw new NoRoutableProviderError(op, "streaming");
   }
 
-  const ladder = resolveLadder(op, opts.preferredId);
+  const baseLadder = resolveLadder(op, opts.preferredId);
+  // 2026-05-04 (PENDING §6c automation) — quality-signal bias step.
+  // Returns baseLadder unchanged when env flag is off OR userId is
+  // null OR signal lookup throws OR user is not flagged. See
+  // applyQualityBiasIfEnabled JSDoc for the full short-circuit set.
+  // Today's behavior: identical to baseLadder for every caller (env
+  // flag default is off).
+  const ladder = await applyQualityBiasIfEnabled(baseLadder, opts.userId);
 
   for (const id of ladder) {
     // Task #12 — provider kill switch. An operator-flipped env var

@@ -104,6 +104,26 @@ assert(
   "A10: listFlaggedUsers exported (async)",
 );
 
+// 2026-05-04 (PENDING §6c automation, follow-up to commit 81087df) —
+// auto-routing bias step. Behind a default-off env flag. Function
+// is generic over the ladder element type (`<T extends string>`)
+// so callers don't have to widen to string[] just to pass through.
+assert(
+  /export\s+async\s+function\s+applyQualityBiasIfEnabled\s*</.test(LIB_SRC),
+  "A11: applyQualityBiasIfEnabled exported (async, generic)",
+);
+// recentProviders field added to UserQualitySignal — without it the
+// bias step has nothing to bias by.
+assert(
+  /recentProviders:\s*string\[\]/.test(LIB_SRC),
+  "A12: UserQualitySignal interface includes recentProviders: string[] (bias-step input)",
+);
+// Env-flag check uses the canonical name.
+assert(
+  /QUALITY_SIGNAL_AUTO_ROUTE_ENABLED/.test(LIB_SRC),
+  "A13: env flag uses canonical name QUALITY_SIGNAL_AUTO_ROUTE_ENABLED",
+);
+
 // Schema usage — read helpers MUST go through the Drizzle schema
 // (not raw SQL strings) so renames surface as TS errors at compile.
 assert(

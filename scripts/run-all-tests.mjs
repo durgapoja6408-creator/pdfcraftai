@@ -1238,6 +1238,19 @@ const SUITES = [
     name: "dunning-automation",
     file: "test-dunning-automation.mjs",
   },
+  // 2026-05-04 (PENDING §6c automation) — quality-signal router-bias.
+  // Follow-up to commit 81087df (quality-signal foundation): the
+  // router consults applyQualityBiasIfEnabled before walking its
+  // ladder so flagged users get the offending provider deprioritized.
+  // Behind a default-off env flag (QUALITY_SIGNAL_AUTO_ROUTE_ENABLED).
+  // Separate suite from quality-signal-foundation for clean failure
+  // attribution: foundation regression breaks classifier surface;
+  // bias regression breaks the router wire-up. 23 assertions across
+  // 5 sections.
+  {
+    name: "quality-signal-router-bias",
+    file: "test-quality-signal-router-bias.mjs",
+  },
   // 2026-05-04 (PENDING §1f) — webhook + reconcile resilience
   // contract. Locks in: 500 on processing error (provider retries),
   // 200 on duplicate (provider stops), 400 on bad sig (provider

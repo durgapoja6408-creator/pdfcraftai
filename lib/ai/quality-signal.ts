@@ -123,6 +123,19 @@ export interface UserQualitySignal {
   lastFeedbackAt: string | null;
   /** Operation list of the trailing-down streak (most recent first), capped at the streak length. */
   recentOperations: string[];
+  /**
+   * Provider IDs the user thumbs-down'd in the trailing streak (most
+   * recent first, deduplicated, capped at the streak length). Used by
+   * `applyQualityBiasIfEnabled` to deprioritize the offending provider
+   * on the user's NEXT request. Null entries (older ai_feedback rows
+   * predating provider-id denormalization) are dropped.
+   *
+   * Empty array is the no-data path — signal exists but the chip
+   * pre-dated provider_id denormalization, OR the streak landed on
+   * rows without a usable provider_id. Bias step treats empty array
+   * the same as healthy-bucket: ladder unchanged.
+   */
+  recentProviders: string[];
 }
 
 // ============================================================================
@@ -190,6 +203,7 @@ export async function loadUserQualitySignal(
     .select({
       verdict: schema.aiFeedback.verdict,
       operation: schema.aiFeedback.operation,
+      providerId: schema.aiFeedback.providerId,
       updatedAt: schema.aiFeedback.updatedAt,
     })
     .from(schema.aiFeedback)
@@ -207,6 +221,20 @@ export async function loadUserQualitySignal(
   const recentOperations = rows
     .slice(0, consecutiveNegative)
     .map((r) => r.operation);
+  // recentProviders: dedupe inside the trailing streak so a user who
+  // got 4 thumbs-down all on the same provider doesn't show up with
+  // the provider name 4× — `Array.from(new Set(...))` preserves
+  // most-recent-first order. Filter out null/empty providerId rows
+  // (chip pre-dated provider_id denormalization) so the bias step
+  // doesn't try to deprioritize an empty string.
+  const recentProviders = Array.from(
+    new Set(
+      rows
+        .slice(0, consecutiveNegative)
+        .map((r) => r.providerId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0),
+    ),
+  );
 
   return {
     userId,
@@ -216,6 +244,7 @@ export async function loadUserQualitySignal(
     downInWindow,
     lastFeedbackAt,
     recentOperations,
+    recentProviders,
   };
 }
 
@@ -306,11 +335,97 @@ export async function listFlaggedUsers(
   return signals;
 }
 
-// TODO(automation): wire `loadUserQualitySignal` into `lib/ai/router.ts`'s
-// provider selection. Once enough data accumulates to confirm the
-// thresholds above, a `bucket === "flagged"` user can be biased
-// toward a different provider (or a different model on the same
-// provider) on their next request — graceful degradation rather
-// than a hard block. Reach for this only after we've seen 1-2
-// weeks of real chip data and confirmed the false-positive rate
-// at the current thresholds is acceptable.
+// 2026-05-04 (PENDING §6c automation foundation, follow-up to commit
+// 81087df) — auto-routing scaffold. The router consults this helper
+// before walking its provider ladder; when the env flag is on AND
+// the user is flagged AND the recent streak attributes blame to
+// specific providers, we move those providers to the END of the
+// ladder. Graceful degradation (try a different provider next time)
+// rather than a hard block. Behind a default-off env flag because
+// the (2, 4) thresholds + the bias decision both need real chip
+// data to validate. Today the helper is dormant for every caller.
+
+/**
+ * Env-flag default. Production must set
+ * `QUALITY_SIGNAL_AUTO_ROUTE_ENABLED=true` to activate the bias
+ * logic. Anything else (unset, "false", "0", typo) is off — fail-
+ * safe default keeps every user on the canonical ladder.
+ */
+function autoRouteEnabled(): boolean {
+  const raw = process.env.QUALITY_SIGNAL_AUTO_ROUTE_ENABLED;
+  return raw === "true" || raw === "1";
+}
+
+/**
+ * Bias the provider ladder for a user whose recent feedback shows a
+ * trailing thumbs-down streak. Returns the ladder unchanged in any
+ * of these cases (so the bias step is safe to call from the hot
+ * path):
+ *
+ *   - env flag not set (default state today)
+ *   - userId not provided (anonymous calls, system calls)
+ *   - signal lookup throws (DB hiccup; fail-safe to canonical ladder)
+ *   - bucket !== "flagged" (we deliberately bias only on the hard
+ *     threshold, not the watch threshold — watch is operator-only
+ *     signal, flagged is "user is genuinely struggling")
+ *   - recentProviders is empty (chip data pre-dated provider_id
+ *     denormalization, or the streak landed on null-provider rows)
+ *
+ * When the bias DOES fire: providers from `recentProviders` are
+ * moved to the END of the ladder, preserving relative order among
+ * themselves AND among the unbiased remainder. This is monotone —
+ * idempotent on repeated calls — so a future caller composing
+ * multiple bias steps doesn't accidentally cycle providers.
+ *
+ * The function is async because `loadUserQualitySignal` is async,
+ * but the env-flag short-circuit lets the no-op path return without
+ * ever touching the DB.
+ *
+ * Hot-path performance note: when the flag is on, the function does
+ * one indexed `SELECT ... LIMIT recentWindow` keyed on user_id. On
+ * a busy user this adds ~5-10ms to the route() call. If that becomes
+ * a concern at scale, the right fix is a per-user-day cache populated
+ * by a cron job that walks `listFlaggedUsers()` once daily — the
+ * staleness is acceptable (the bias is "recently bad provider",
+ * which doesn't change minute-to-minute).
+ */
+export async function applyQualityBiasIfEnabled<T extends string>(
+  ladder: T[],
+  userId: string | null | undefined,
+): Promise<T[]> {
+  if (!autoRouteEnabled()) return ladder;
+  if (!userId) return ladder;
+
+  let signal: UserQualitySignal;
+  try {
+    signal = await loadUserQualitySignal(userId);
+  } catch (err) {
+    // DB hiccup MUST NOT take down the router. Log + return
+    // canonical ladder. Same reasoning as the dunning persist
+    // try/catch: the bias step is an enhancement, not a contract.
+    console.warn(
+      `[quality-signal] bias lookup failed for user ${userId}; ` +
+        `falling back to canonical ladder:`,
+      err,
+    );
+    return ladder;
+  }
+
+  // Watch bucket is operator-only signal; only bias on hard threshold.
+  if (signal.bucket !== "flagged") return ladder;
+  if (signal.recentProviders.length === 0) return ladder;
+
+  const biased = new Set(signal.recentProviders);
+  const front: T[] = [];
+  const tail: T[] = [];
+  for (const id of ladder) {
+    if (biased.has(id)) tail.push(id);
+    else front.push(id);
+  }
+  // No-op shortcut: if the bias step didn't actually move anything
+  // (no overlap between recentProviders and the ladder), don't
+  // reconstruct — return original reference so a downstream
+  // identity check stays cheap.
+  if (tail.length === 0) return ladder;
+  return [...front, ...tail];
+}
