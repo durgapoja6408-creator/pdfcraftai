@@ -208,13 +208,17 @@ Large files = higher bug density. Refactor each into composed sub-components, mo
 
 **Remaining (Phase E proper):** the actual dunning automation logic (~1 week — failed payment → 3-day grace → 7-day notice → 14-day cancel, with retry orchestration + entitlement gating + email sequence) needs the recurring billing surface to exist first. The pure reducer + persist surface this commit ships are the foundation; the lifecycle automation is a Phase E feature, not a foundation gap.
 
-### 4d. No feature flag system beyond env vars
+### 4d. No feature flag system beyond env vars — ✅ FOUNDATION SHIPPED (2026-05-05)
 
-**State:** every feature toggle is a Hostinger panel env var (e.g., `BONUS_PER_OP_CAP_ENABLED`, `SIGNUP_GRANT_ENABLED`, `MULTIPLIER_PRICING_ENABLED`). Toggling requires panel access + redeploy.
+**Original state:** every feature toggle was a one-off Hostinger panel env var (e.g., `BONUS_PER_OP_CAP_ENABLED`, `SIGNUP_GRANT_ENABLED`, `MULTIPLIER_PRICING_ENABLED`, `QUALITY_SIGNAL_AUTO_ROUTE_ENABLED`). Toggling required panel access + redeploy + zero gradual rollout. Each call site invented its own env-var name + parsing logic.
 
-**Mitigation:** GrowthBook (free tier 100k events/mo) or Unleash. Lets us flip flags without redeploy + run real A/B tests.
+**Foundation shipped** in this session — `lib/flags.ts` consolidates the pattern. `isFeatureEnabled(flag, options)` resolves in priority order: per-flag override (`FEATURE_<FLAG>_OVERRIDE=on|off`) → user override list (`FEATURE_<FLAG>_USERS=u1,u2,u3`) → deterministic-percent rollout (`FEATURE_<FLAG>_PERCENT=25`, hash-bucketed by `(userId, flagName)` so different flags assign different buckets to the same user) → default off. Plus admin viewer at `/admin/feature-flags` showing each flag's current state. Flag registry at `lib/flags.ts:FEATURE_FLAGS` (typed constants prevent string-literal typo class).
 
-**Estimate:** 2-3 days.
+**CI guard** (53 assertions across 6 sections, including 26 dynamic-execution checks): exercises all 5 pure helpers against canonical inputs, including the hash-bucket spread invariant (1000 sample users must hit ≥50 distinct buckets out of 100, confirming SHA-1 isn't degenerate).
+
+**Remaining (full GrowthBook upgrade):** when active flag count exceeds ~10, the SaaS path becomes worth the integration cost (UI for non-engineers, real-time updates without redeploy, built-in A/B test stats). Until then, env-var-backed flags are simpler. The `isFeatureEnabled()` API surface is designed to be a drop-in pass-through to a future GrowthBook SDK call — call sites won't change.
+
+**Estimate to GrowthBook:** 2-3 days when triggered (active flag count or operator-clarity demand).
 
 ---
 

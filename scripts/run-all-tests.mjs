@@ -1251,6 +1251,19 @@ const SUITES = [
     name: "quality-signal-router-bias",
     file: "test-quality-signal-router-bias.mjs",
   },
+  // 2026-05-05 (PENDING §4d foundation) — feature flag system. Pure
+  // env-var-backed flags (no SaaS dependency yet) with deterministic
+  // hash-bucket percent rollouts + per-user override list +
+  // per-flag override knob. lib/flags.ts + /admin/feature-flags
+  // viewer + 53-assertion CI guard with dynamic execution of all 5
+  // pure helpers (envKey, bucketUserId, parsePercent, parseUserList,
+  // parseOverride). The bucketing helper hash-spread invariant is
+  // exercised across 1000 sample users to confirm SHA-1 gives ≥50
+  // distinct buckets out of 100 (degenerate hashes would fail this).
+  {
+    name: "feature-flags-foundation",
+    file: "test-feature-flags-foundation.mjs",
+  },
   // 2026-05-04 (PENDING §1f) — webhook + reconcile resilience
   // contract. Locks in: 500 on processing error (provider retries),
   // 200 on duplicate (provider stops), 400 on bad sig (provider

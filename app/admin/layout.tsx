@@ -106,6 +106,11 @@ const NAV: NavItem[] = [
   // with trailing thumbs-down streaks for manual outreach. Auto-
   // routing on flagged users is a planned follow-up.
   { section: "Ops", href: "/admin/quality-signals", label: "Quality signals" },
+  // 2026-05-05 (PENDING §4d foundation) — feature flag registry
+  // viewer. Surfaces every flag in lib/flags.ts:FEATURE_FLAGS with
+  // its current state (override / user-list / percent / default-on).
+  // Read-only — flag changes go through Hostinger panel env vars.
+  { section: "Ops", href: "/admin/feature-flags", label: "Feature flags" },
   // 2026-05-04 (PENDING §4c foundation) — subscription dunning posture
   // viewer. Empty by design today (no recurring plans yet); ships
   // alongside migration 0023 + persist helpers in
