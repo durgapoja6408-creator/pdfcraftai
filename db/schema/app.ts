@@ -1015,6 +1015,94 @@ export const subscriptionDunning = mysqlTable(
   }),
 );
 
+// ---------------------------------------------------------------------------
+// Referral program (PENDING §3e foundation, 2026-05-05)
+// ---------------------------------------------------------------------------
+//
+// Two tables wire the storage half of a referral loop. Helpers live at
+// `lib/referrals/` and the read-only admin viewer at `/admin/referrals`.
+//
+// Staging discipline (matches ai-feedback / dunning / contact-submissions
+// / feature-flags): the storage + read paths land NOW even though no
+// signup-flow wire-up runs yet. Phase E gates the actual reward grants
+// behind a `REFERRALS_ENABLED` env flag — until then the tables stay
+// empty and the admin viewer is "no rows yet".
+//
+// Migration: db/migrations/0024_referrals.sql.
+
+/**
+ * One row per user. The user's `code` IS their referral identity.
+ * Codes are short URL-safe strings (base36, 7 chars upper-cased) so they
+ * survive copy-paste between mobile + desktop without edge-case spaces
+ * or ambiguous case. NOT derived from userId — that would leak account
+ * ordering. Helper retries on collision (~78B namespace, expected loops
+ * are zero at our scale).
+ */
+export const referralCodes = mysqlTable(
+  "referral_codes",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    userId: varchar("user_id", { length: 255 }).notNull(),
+    code: varchar("code", { length: 16 }).notNull(),
+    createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userIdUnique: uniqueIndex("referral_codes_user_id_unique").on(t.userId),
+    codeUnique: uniqueIndex("referral_codes_code_unique").on(t.code),
+  }),
+);
+
+/**
+ * Attribution log. One row per `referrerUserId × referredUserId` pair.
+ * UNIQUE(referredUserId) enforces first-touch attribution: every signup
+ * has exactly one referrer, recorded at signup time. We chose first-
+ * touch over last-touch because the referral CODE is what arrives via
+ * URL parameter — a user can only have ONE referrer entry from their
+ * first signup, and changing it post-hoc would invite a refund-and-
+ * re-attribute attack pattern.
+ *
+ * Reward state lives on the row itself (no separate `referral_rewards`
+ * table). Two nullable timestamps + two nullable FKs to `credit_ledger`
+ * record when each side got credited:
+ *   - referrer_rewarded_at  → "the existing user got their reward"
+ *   - referred_rewarded_at  → "the new user got their welcome bonus"
+ * NULL means "milestone not yet hit". Phase E flips these as the
+ * conversion gates trigger (e.g. email verification → referred reward;
+ * first credit purchase by referred user → referrer reward).
+ *
+ * Ledger FKs are app-layer references (not actual SQL FKs). credit_ledger
+ * uses UUID strings; we store them here for audit traceability without
+ * the cross-table cascade complexity.
+ */
+export const referralSignups = mysqlTable(
+  "referral_signups",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    referrerUserId: varchar("referrer_user_id", { length: 255 }).notNull(),
+    referredUserId: varchar("referred_user_id", { length: 255 }).notNull(),
+    // Denormalized: the code as it was used at signup time. Lets us audit
+    // "this attribution came from sharing X code" even if the referrer
+    // later regenerates their code (we don't currently support code
+    // regeneration but the schema accommodates it).
+    code: varchar("code", { length: 16 }).notNull(),
+    referrerRewardedAt: timestamp("referrer_rewarded_at", { fsp: 3 }),
+    referredRewardedAt: timestamp("referred_rewarded_at", { fsp: 3 }),
+    referrerCreditLedgerId: varchar("referrer_credit_ledger_id", { length: 36 }),
+    referredCreditLedgerId: varchar("referred_credit_ledger_id", { length: 36 }),
+    createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
+  },
+  (t) => ({
+    referredUserIdUnique: uniqueIndex(
+      "referral_signups_referred_user_id_unique",
+    ).on(t.referredUserId),
+    referrerCreatedIdx: index("referral_signups_referrer_created_idx").on(
+      t.referrerUserId,
+      t.createdAt,
+    ),
+    createdIdx: index("referral_signups_created_idx").on(t.createdAt),
+  }),
+);
+
 // --- Phase 6.3 Agent tables — REMOVED on 2026-04-20 ---------------------
 //
 // `agent_runs` + `agent_run_steps` powered the authenticated /app/studio

@@ -1279,6 +1279,22 @@ const SUITES = [
     name: "next-page-exports",
     file: "test-next-page-exports.mjs",
   },
+  // 2026-05-05 (PENDING §3e foundation) — referrals storage + helper
+  // surface guard. Mirrors the feature-flags / quality-signal /
+  // dunning shape: pin migration 0024 (referral_codes +
+  // referral_signups), Drizzle schema parity per column, helper
+  // public surface (generateReferralCode + getOrCreateReferralCode +
+  // lookupReferralCode + isReferralsEnabled), code generator alphabet
+  // (must exclude visually ambiguous 0/O/1/I/L), admin viewer
+  // read-only constraint (no POST surface), and 200-sample dynamic
+  // execution of the generator to verify length, alphabet membership,
+  // and pairwise uniqueness across 200 generations. Placed
+  // immediately after next-page-exports because both are static-parse
+  // guards with zero runtime dependency. 73 assertions.
+  {
+    name: "referrals-foundation",
+    file: "test-referrals-foundation.mjs",
+  },
   // 2026-05-04 (PENDING §1f) — webhook + reconcile resilience
   // contract. Locks in: 500 on processing error (provider retries),
   // 200 on duplicate (provider stops), 400 on bad sig (provider
