@@ -20,6 +20,17 @@ import { eq } from "drizzle-orm";
 // so re-firing on subsequent sign-ins is safe. Default OFF until
 // SIGNUP_GRANT_ENABLED=true (Day 6 atomic flip).
 import { grantSignupBonus } from "@/lib/payments/signup-bonus";
+// PENDING §3e Phase E (2026-05-05) — referral attribution wire-up.
+// Reads the `pdfcraft_ref` cookie (set on /register?ref=CODE arrival)
+// and resolves it to a referrerUserId, then records the attribution.
+// All three pieces are flag-gated by isReferralsEnabled(); when off,
+// these calls are no-op'd silently.
+import { lookupReferralCode } from "@/lib/referrals/codes";
+import { recordReferralSignup } from "@/lib/referrals/writers";
+import {
+  readReferralCookie,
+  clearReferralCookie,
+} from "@/lib/referrals/cookie";
 // 2026-05-03 plan §8a Day 1.5a Phase C — login rate limit.
 import { headers } from "next/headers";
 import {
@@ -164,6 +175,42 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         // Failing the sign-in here would lock the user out of an
         // account they just created.
         console.error("grantSignupBonus failed for", id, err);
+      }
+
+      // PENDING §3e Phase E (2026-05-05) — record referral
+      // attribution if the user signed up via a `?ref=CODE` link.
+      //
+      // Three reasons the attribution might no-op:
+      //   1. No `pdfcraft_ref` cookie present (organic signup) →
+      //      readReferralCookie returns null
+      //   2. Cookie value doesn't resolve to a real code →
+      //      lookupReferralCode returns null
+      //   3. REFERRALS_ENABLED env flag is off → recordReferralSignup
+      //      returns null without touching the DB
+      //
+      // All three paths are silent. Errors are caught + logged but
+      // never block sign-in — same rationale as grantSignupBonus
+      // above (we can't lock the user out of an account they just
+      // created over a referral-credit failure).
+      try {
+        const refCode = readReferralCookie();
+        if (refCode) {
+          const codeRow = await lookupReferralCode(refCode);
+          if (codeRow && codeRow.userId !== id) {
+            await recordReferralSignup({
+              referrerUserId: codeRow.userId,
+              referredUserId: id,
+              code: refCode,
+            });
+          }
+          // Always clear the cookie post-attempt so a re-signin of
+          // an existing user doesn't keep retrying. ALSO clears
+          // when the code didn't resolve — saves bandwidth +
+          // prevents a stale invalid cookie from sitting around.
+          clearReferralCookie();
+        }
+      } catch (err) {
+        console.error("referral attribution failed for", id, err);
       }
     },
   },

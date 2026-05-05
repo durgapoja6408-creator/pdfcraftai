@@ -650,6 +650,193 @@ if (fs.existsSync(REFER_BUTTONS)) {
 }
 
 // ---------------------------------------------------------------------------
+// Section I: lib/referrals/cookie.ts — attribution cookie helper
+// ---------------------------------------------------------------------------
+
+const COOKIE = path.join(ROOT, "lib/referrals/cookie.ts");
+assert(fs.existsSync(COOKIE), "I1: lib/referrals/cookie.ts exists");
+if (fs.existsSync(COOKIE)) {
+  const cookieSrc = fs.readFileSync(COOKIE, "utf8");
+
+  assert(
+    /export\s+const\s+REFERRAL_COOKIE_NAME\s*=\s*"pdfcraft_ref"/.test(
+      cookieSrc,
+    ),
+    "I2: cookie name is 'pdfcraft_ref' (load-bearing — auth.ts reads this)",
+  );
+  assert(
+    /export\s+function\s+isValidReferralCode\b/.test(cookieSrc),
+    "I3: isValidReferralCode is exported (alphabet + length validation)",
+  );
+  assert(
+    /export\s+function\s+setReferralCookie\b/.test(cookieSrc),
+    "I4: setReferralCookie is exported",
+  );
+  assert(
+    /export\s+function\s+readReferralCookie\b/.test(cookieSrc),
+    "I5: readReferralCookie is exported",
+  );
+  assert(
+    /export\s+function\s+clearReferralCookie\b/.test(cookieSrc),
+    "I6: clearReferralCookie is exported",
+  );
+
+  // Validation must use the canonical alphabet from codes.ts so
+  // a code-format change automatically invalidates old cookies.
+  assert(
+    /import\s*\{[^}]*REFERRAL_CODE_ALPHABET[^}]*\}\s*from\s*["']\.\/codes["']/.test(
+      cookieSrc,
+    ),
+    "I7: cookie helper imports REFERRAL_CODE_ALPHABET from ./codes (single source of truth)",
+  );
+
+  // Cookie attributes — security-relevant, pin them so a refactor
+  // doesn't accidentally drop httpOnly or sameSite.
+  assert(
+    /httpOnly:\s*true/.test(cookieSrc),
+    "I8: cookie is httpOnly (XSS exfiltration guard)",
+  );
+  assert(
+    /sameSite:\s*"lax"/.test(cookieSrc),
+    "I9: cookie has sameSite=lax (allows cross-site share-link landing while blocking some CSRF)",
+  );
+  assert(
+    /secure:\s*process\.env\.NODE_ENV\s*===\s*"production"/.test(cookieSrc),
+    "I10: cookie is secure in production (allows http://localhost dev)",
+  );
+  // 30-day TTL: long-tail attribution. Anything shorter loses
+  // the share-it-today-they-sign-up-next-week scenario.
+  assert(
+    /30\s*\*\s*24\s*\*\s*60\s*\*\s*60/.test(cookieSrc),
+    "I11: cookie maxAge = 30 days",
+  );
+
+  // Read path validates value before returning. Without this, a
+  // tampered cookie value goes straight into the SELECT query.
+  assert(
+    /readReferralCookie[\s\S]*?isValidReferralCode\(c\.value\)/.test(
+      cookieSrc,
+    ),
+    "I12: readReferralCookie re-validates the cookie value (tamper guard)",
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Section J: auth.ts events.signIn wire-up
+// ---------------------------------------------------------------------------
+
+const AUTH = path.join(ROOT, "auth.ts");
+assert(fs.existsSync(AUTH), "J1: auth.ts exists");
+if (fs.existsSync(AUTH)) {
+  const authSrc = fs.readFileSync(AUTH, "utf8");
+
+  // Imports — all three referral helpers must be wired in.
+  assert(
+    /lookupReferralCode/.test(authSrc),
+    "J2: auth.ts imports lookupReferralCode",
+  );
+  assert(
+    /recordReferralSignup/.test(authSrc),
+    "J3: auth.ts imports recordReferralSignup",
+  );
+  assert(
+    /readReferralCookie/.test(authSrc),
+    "J4: auth.ts imports readReferralCookie",
+  );
+  assert(
+    /clearReferralCookie/.test(authSrc),
+    "J5: auth.ts imports clearReferralCookie",
+  );
+
+  // events.signIn handler — the wire point. Must check isNewUser
+  // before doing referral work (existing-user signin shouldn't
+  // re-attribute).
+  assert(
+    /async\s+signIn\(\s*\{\s*user,\s*isNewUser\s*\}\s*\)/.test(authSrc),
+    "J6: events.signIn destructures user and isNewUser",
+  );
+  // The grantSignupBonus block already returns early on !isNewUser;
+  // verify the guard is structurally present somewhere in the
+  // handler body.
+  assert(
+    /if\s*\(\s*!isNewUser\s*\)\s*return/.test(authSrc),
+    "J7: events.signIn returns early when !isNewUser",
+  );
+
+  // Self-attribution guard at the call site. UNIQUE catches it
+  // server-side too, but checking here avoids a useless DB write
+  // attempt + ReferralWriteError throw.
+  assert(
+    /codeRow\.userId\s*!==\s*id/.test(authSrc),
+    "J8: signIn handler skips self-referral (codeRow.userId !== id)",
+  );
+
+  // recordReferralSignup is called with the right shape — pin
+  // each field so a refactor that renames doesn't silently break
+  // attribution.
+  assert(
+    /referrerUserId:\s*codeRow\.userId/.test(authSrc),
+    "J9: signIn passes referrerUserId from looked-up code",
+  );
+  assert(
+    /referredUserId:\s*id/.test(authSrc),
+    "J10: signIn passes referredUserId from the new user.id",
+  );
+  assert(
+    /code:\s*refCode/.test(authSrc),
+    "J11: signIn passes the validated cookie code through",
+  );
+
+  // Cookie clear must always run (even on miss) so a stale invalid
+  // cookie doesn't sit around. Pin the unconditional clear.
+  assert(
+    /clearReferralCookie\(\)/.test(authSrc),
+    "J12: signIn calls clearReferralCookie() to prevent stale-cookie retries",
+  );
+
+  // Errors must be caught — failing the sign-in here would lock
+  // users out of accounts they just created (same rationale as
+  // grantSignupBonus error handling).
+  assert(
+    /try\s*\{\s*\n[\s\S]*?const\s+refCode\s*=\s*readReferralCookie/.test(
+      authSrc,
+    ),
+    "J13: referral attribution is wrapped in try/catch (don't block sign-in on failure)",
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Section K: app/register/page.tsx — referral param + cookie set
+// ---------------------------------------------------------------------------
+
+const REGISTER = path.join(ROOT, "app/register/page.tsx");
+assert(fs.existsSync(REGISTER), "K1: app/register/page.tsx exists");
+if (fs.existsSync(REGISTER)) {
+  const registerSrc = fs.readFileSync(REGISTER, "utf8");
+
+  assert(
+    /export\s+const\s+dynamic\s*=\s*"force-dynamic"/.test(registerSrc),
+    "K2: register page is force-dynamic (cookies().set requires dynamic render)",
+  );
+  assert(
+    /export\s+const\s+runtime\s*=\s*"nodejs"/.test(registerSrc),
+    "K3: register page runs on nodejs (cookies API not available on Edge)",
+  );
+  assert(
+    /searchParams\s*:\s*SearchParams|searchParams\.ref/.test(registerSrc),
+    "K4: page reads searchParams.ref",
+  );
+  assert(
+    /isValidReferralCode\(refRaw\)/.test(registerSrc),
+    "K5: page validates the ref code BEFORE setting the cookie",
+  );
+  assert(
+    /setReferralCookie\(refRaw\)/.test(registerSrc),
+    "K6: page calls setReferralCookie when validation passes",
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------------
 
