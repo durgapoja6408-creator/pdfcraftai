@@ -934,6 +934,184 @@ if (fs.existsSync(MIDDLEWARE)) {
 }
 
 // ---------------------------------------------------------------------------
+// Section M: lib/referrals/rewards.ts — reward-trigger orchestration
+// ---------------------------------------------------------------------------
+
+const REWARDS = path.join(ROOT, "lib/referrals/rewards.ts");
+assert(fs.existsSync(REWARDS), "M1: lib/referrals/rewards.ts exists");
+if (fs.existsSync(REWARDS)) {
+  const rewardsSrc = fs.readFileSync(REWARDS, "utf8");
+
+  // Public surface
+  assert(
+    /export\s+const\s+REFERRED_REWARD_CREDITS\s*=\s*25/.test(rewardsSrc),
+    "M2: REFERRED_REWARD_CREDITS = 25 (matches /app/refer page copy)",
+  );
+  assert(
+    /export\s+const\s+REFERRER_REWARD_CREDITS\s*=\s*25/.test(rewardsSrc),
+    "M3: REFERRER_REWARD_CREDITS = 25 (matches /app/refer page copy)",
+  );
+  assert(
+    /export\s+async\s+function\s+triggerReferredReward\b/.test(rewardsSrc),
+    "M4: triggerReferredReward is exported async",
+  );
+  assert(
+    /export\s+async\s+function\s+triggerReferrerReward\b/.test(rewardsSrc),
+    "M5: triggerReferrerReward is exported async",
+  );
+
+  // Flag-gate: both triggers must check isReferralsEnabled.
+  assert(
+    /triggerReferredReward[\s\S]*?if\s*\(\s*!isReferralsEnabled\(\)\s*\)\s*\{[\s\S]*?return null/.test(
+      rewardsSrc,
+    ),
+    "M6: triggerReferredReward checks !isReferralsEnabled() and returns null",
+  );
+  assert(
+    /triggerReferrerReward[\s\S]*?if\s*\(\s*!isReferralsEnabled\(\)\s*\)\s*\{[\s\S]*?return null/.test(
+      rewardsSrc,
+    ),
+    "M7: triggerReferrerReward checks !isReferralsEnabled() and returns null",
+  );
+
+  // Idempotency: both already-rewarded checks pin
+  assert(
+    /signup\.referredRewardedAt\s*!==\s*null/.test(rewardsSrc),
+    "M8: triggerReferredReward checks already-rewarded state (idempotency at orchestration layer)",
+  );
+  assert(
+    /signup\.referrerRewardedAt\s*!==\s*null/.test(rewardsSrc),
+    "M9: triggerReferrerReward checks already-rewarded state",
+  );
+
+  // Idempotency keys — must be signup-specific so re-trigger of the
+  // same signup gets the same key → grantCredits dedupes.
+  assert(
+    /referral_referred:\$\{signup\.id\}/.test(rewardsSrc),
+    "M10: referred reward idempotencyKey = referral_referred:<signupId>",
+  );
+  assert(
+    /referral_referrer:\$\{signup\.id\}/.test(rewardsSrc),
+    "M11: referrer reward idempotencyKey = referral_referrer:<signupId>",
+  );
+
+  // Reasons — must be distinct from purchase/bonus/promo to keep
+  // /admin/credits and /app/credits humanizable.
+  assert(
+    /reason:\s*"referral_referred"/.test(rewardsSrc),
+    "M12: referred reward uses reason='referral_referred'",
+  );
+  assert(
+    /reason:\s*"referral_referrer"/.test(rewardsSrc),
+    "M13: referrer reward uses reason='referral_referrer'",
+  );
+
+  // Both writers called via the canonical lib/referrals/writers
+  // module (not duplicated inline).
+  assert(
+    /grantReferrerReward\(/.test(rewardsSrc),
+    "M14: rewards.ts calls grantReferrerReward from writers.ts",
+  );
+  assert(
+    /grantReferredReward\(/.test(rewardsSrc),
+    "M15: rewards.ts calls grantReferredReward from writers.ts",
+  );
+  assert(
+    /from\s+["']\.\/writers["']/.test(rewardsSrc),
+    "M16: rewards.ts imports writers from ./writers",
+  );
+
+  // grantCredits import — couples the credit ledger as the source
+  // of truth for "where the credits actually live".
+  assert(
+    /grantCredits/.test(rewardsSrc) &&
+      /from\s+["']@\/lib\/payments\/ledger["']/.test(rewardsSrc),
+    "M17: rewards.ts imports grantCredits from lib/payments/ledger",
+  );
+
+  // Dedupe-path ledger lookup (when grantCredits returns
+  // {applied:false, reason:'duplicate'}, we still need to mark the
+  // signup row — look up the original ledger via idempotencyKey).
+  assert(
+    /idempotencyKey,\s*idempotencyKey/.test(rewardsSrc) ||
+      /eq\(\s*schema\.creditLedger\.idempotencyKey,\s*idempotencyKey\s*\)/.test(
+        rewardsSrc,
+      ),
+    "M18: dedupe path looks up existing ledger row by idempotencyKey to populate creditLedgerId on the signup",
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Section N: verify-email + payment-captured wire-ups
+// ---------------------------------------------------------------------------
+
+const VERIFY = path.join(ROOT, "app/verify-email/page.tsx");
+assert(fs.existsSync(VERIFY), "N1: app/verify-email/page.tsx exists");
+if (fs.existsSync(VERIFY)) {
+  const verifySrc = fs.readFileSync(VERIFY, "utf8");
+
+  assert(
+    /import\s*\{[^}]*triggerReferredReward[^}]*\}\s*from\s*["']@\/lib\/referrals\/rewards["']/.test(
+      verifySrc,
+    ),
+    "N2: verify-email page imports triggerReferredReward",
+  );
+  // Must be inside the if(result.ok) branch so we only fire on
+  // successful verification.
+  assert(
+    /if\s*\(\s*result\.ok\s*\)\s*\{[\s\S]*?triggerReferredReward\s*\(\s*result\.userId\s*\)/.test(
+      verifySrc,
+    ),
+    "N3: triggerReferredReward fires only on successful verification (inside if(result.ok))",
+  );
+  // try/catch wrapping — a referral-grant failure must not break
+  // the verify UX.
+  assert(
+    /try\s*\{[\s\S]*?triggerReferredReward[\s\S]*?\}\s*catch/.test(verifySrc),
+    "N4: triggerReferredReward call is wrapped in try/catch (don't break verify on grant failure)",
+  );
+  assert(
+    /verify_email_referral_grant_failed/.test(verifySrc),
+    "N5: structured-log key on referral-grant failure for ops visibility",
+  );
+}
+
+const LEDGER = path.join(ROOT, "lib/payments/ledger.ts");
+assert(fs.existsSync(LEDGER), "N6: lib/payments/ledger.ts exists");
+if (fs.existsSync(LEDGER)) {
+  const ledgerSrc = fs.readFileSync(LEDGER, "utf8");
+
+  assert(
+    /triggerReferrerReward/.test(ledgerSrc),
+    "N7: ledger.ts wires triggerReferrerReward in handleCaptured",
+  );
+  // Must be inside handleCaptured (after the credit grants, before
+  // the return). We don't assert exact placement but pin the import
+  // shape — dynamic import keeps the module-load cycle clean (the
+  // rewards module imports from ./writers which imports from
+  // db/client; ledger.ts also imports db/client so the cycle is
+  // statically resolvable, but dynamic import keeps the dependency
+  // explicit at the call site).
+  assert(
+    /await\s+import\(\s*["']@\/lib\/referrals\/rewards["']\s*\)/.test(
+      ledgerSrc,
+    ),
+    "N8: handleCaptured uses dynamic import for referrals/rewards (avoids module cycle)",
+  );
+  assert(
+    /payment_captured_referral_grant_failed/.test(ledgerSrc),
+    "N9: structured-log key on referrer-grant failure",
+  );
+  // try/catch wrapping — a referral-grant failure mid-webhook must
+  // not throw because that would cause the provider to retry the
+  // capture event and potentially double-grant the buyer's credits.
+  assert(
+    /try\s*\{[\s\S]*?triggerReferrerReward[\s\S]*?\}\s*catch/.test(ledgerSrc),
+    "N10: referrer-reward call is wrapped in try/catch (don't break webhook ack on grant failure)",
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------------
 

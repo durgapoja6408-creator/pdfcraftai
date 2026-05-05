@@ -20,6 +20,10 @@ import Link from "next/link";
 
 import { consumeVerificationToken } from "@/lib/auth/email-verification";
 import { grantSignupBonus } from "@/lib/payments/signup-bonus";
+// PENDING §3e Phase E final (2026-05-05) — fire the referred-user
+// reward when they verify their email. Idempotent + flag-gated;
+// no-op when REFERRALS_ENABLED is off.
+import { triggerReferredReward } from "@/lib/referrals/rewards";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -76,6 +80,28 @@ export default async function VerifyEmailPage({
       console.error(
         JSON.stringify({
           event: "verify_email_grant_failed",
+          userId: result.userId,
+          error: err instanceof Error ? err.message : String(err),
+          ts: new Date().toISOString(),
+        }),
+      );
+    }
+
+    // PENDING §3e Phase E final (2026-05-05) — fire the referred-
+    // user reward if this account was created with a referral
+    // attribution. No-op when REFERRALS_ENABLED is off OR when the
+    // user has no referral_signups row (organic signup) OR when the
+    // reward was already granted on a prior verify (idempotent).
+    //
+    // Same try/catch discipline as grantSignupBonus above: failing
+    // the verify page over a referral reward grant would block the
+    // user from accessing their account.
+    try {
+      await triggerReferredReward(result.userId);
+    } catch (err) {
+      console.error(
+        JSON.stringify({
+          event: "verify_email_referral_grant_failed",
           userId: result.userId,
           error: err instanceof Error ? err.message : String(err),
           ts: new Date().toISOString(),

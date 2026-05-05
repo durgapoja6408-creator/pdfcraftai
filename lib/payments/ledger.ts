@@ -428,6 +428,36 @@ async function handleCaptured(
       }
     }
 
+    // PENDING §3e Phase E final (2026-05-05) — fire the REFERRER's
+    // reward when their referred user makes a purchase. The trigger
+    // is idempotent on referrer_rewarded_at, so calling on every
+    // capture (not just first) only grants on the first one. No-op
+    // when REFERRALS_ENABLED is off OR when the user has no
+    // referral_signups row.
+    //
+    // Failure swallowed deliberately: the payment processed
+    // successfully + the buyer got their credits. A referral-reward
+    // failure is a downstream concern that shouldn't block the
+    // webhook ack (which would cause Razorpay/Paddle to retry the
+    // capture and double-grant the buyer). We log structured for
+    // ops visibility.
+    try {
+      const { triggerReferrerReward } = await import(
+        "@/lib/referrals/rewards"
+      );
+      await triggerReferrerReward(payment.userId);
+    } catch (err) {
+      console.error(
+        JSON.stringify({
+          event: "payment_captured_referral_grant_failed",
+          paymentId: payment.id,
+          userId: payment.userId,
+          error: err instanceof Error ? err.message : String(err),
+          ts: new Date().toISOString(),
+        }),
+      );
+    }
+
     return { status: "processed", grant: baseResult };
   }
 

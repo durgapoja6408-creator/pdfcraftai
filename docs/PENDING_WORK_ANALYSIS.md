@@ -179,7 +179,7 @@ The helper foundation + first consumer migration both lands ahead of the founder
 
 **Estimate:** zero Claude-work — vendor blocked. Once Paddle KYC clears, the adapter at `lib/payments/adapters/paddle.ts` is scaffolded.
 
-### 3e. No referral program — ✅ FOUNDATION + SIGNUP-FLOW SHIPPED (2026-05-05)
+### 3e. No referral program — ✅ END-TO-END SHIPPED (2026-05-05) — awaiting REFERRALS_ENABLED=1
 
 **Original state (audit time):** zero growth-loop infrastructure. Existing users had no incentive to refer.
 
@@ -198,13 +198,19 @@ The helper foundation + first consumer migration both lands ahead of the founder
 - ✅ `lib/referrals/writers.ts` (commit `8f4c899`) — three idempotent flag-gated writers: `recordReferralSignup` (race-safe with self-referral guard), `grantReferrerReward` / `grantReferredReward` (IS NULL re-check inside UPDATE for race-safe idempotency)
 - ✅ Signup-flow wire-up (commit `97f12a8` after fix from `a9e006f`) — middleware-based cookie set on `/register?ref=CODE`, `events.signIn` handler in `auth.ts` reads cookie + looks up code + calls `recordReferralSignup` + clears cookie, all flag-gated. Confirmed live: `Set-Cookie: pdfcraft_ref=...; Max-Age=2592000; Secure; HttpOnly; SameSite=lax` on valid ref param; no cookie on invalid.
 
-**Remaining for full Phase E (~1 day):**
-- Reward-trigger wire-up: when a referred user verifies their email, grant `REFERRED_REWARD_CREDITS` to them via `grantCredits` + call `grantReferredReward(signupId, ledgerId)` transactionally. When the referred user makes their first credit purchase, grant `REFERRER_REWARD_CREDITS` to the referrer + call `grantReferrerReward`. Both wrap two writes (credit_ledger + signup row update) in a single transaction.
-- Then set `REFERRALS_ENABLED=1` on Hostinger panel — the entire referral loop runs end-to-end.
+**Reward-trigger wire-up shipped 2026-05-05** (this session) — closes the last piece of Phase E:
+- ✅ `lib/referrals/rewards.ts` — `triggerReferredReward(referredUserId)` and `triggerReferrerReward(referredUserId)` orchestrate `grantCredits` + the matching `grantXxxReward` writer. Both flag-gated, both idempotent on signup row's rewarded-at timestamps + grantCredits' idempotencyKey. Dedupe path (when grantCredits returns `{applied:false}` because the credit was already granted on a prior trigger) looks up the original ledger row by idempotencyKey to populate creditLedgerId on the signup. Hard-coded reward amounts: `REFERRED_REWARD_CREDITS = 25`, `REFERRER_REWARD_CREDITS = 25` (match `/app/refer` page copy).
+- ✅ Email-verification wire-up in `app/verify-email/page.tsx` — fires `triggerReferredReward` after `grantSignupBonus` succeeds. try/catch guard so a referral-grant failure doesn't break the verify UX. Structured-log key `verify_email_referral_grant_failed`.
+- ✅ First-purchase wire-up in `lib/payments/ledger.ts:handleCaptured` — fires `triggerReferrerReward(payment.userId)` at the end of the credit-pack capture path. Dynamic `await import()` keeps the module-load cycle clean. try/catch guard so a referral-grant failure mid-webhook doesn't throw (which would cause the provider to retry the capture and double-grant the buyer's credits). Structured-log key `payment_captured_referral_grant_failed`. "First purchase" detection isn't needed — the trigger is idempotent on `referrer_rewarded_at`, so calling on every capture only grants on the first.
+- 28 new CI guard assertions in Sections M+N covering: rewards module public surface, flag-gates, idempotency-key shape, reason strings, writers/grantCredits imports, dedupe-path ledger lookup, verify-email + ledger.ts wire-ups, structured-log keys, try/catch coverage at both wire points.
 
 **Cascade learning (this session):** `cookies().set()` from a server-component render path throws "Cookies can only be modified in a Server Action or Route Handler" (Next.js 14). Caught only at request-time in prod (`next build` doesn't execute). Fix: move cookie-write to middleware via `auth(fn)` wrapper that re-implements the gate logic. This is now pinned by CI guard Section L.
 
-**Estimate from current state → fully live:** ~1 day (reward-trigger wire-up only).
+**Final activation (founder-side, no code change):**
+- Set `REFERRALS_ENABLED=1` on Hostinger panel → "Save and redeploy" → the entire referral loop runs end-to-end. Existing `/app/refer` users see their copy switch from "beta" to "you both get 25 credits" on next visit.
+
+**Optional Phase E follow-on:**
+- Transactional email "you got 25 credits because Alice signed up using your link" depends on the SendGrid/Postmark wiring tracked separately under §11 contact-submissions.
 
 ---
 
