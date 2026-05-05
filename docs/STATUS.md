@@ -4,8 +4,8 @@ _Single source of truth for what's done, what's pending, and who owns each item.
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
 **Last updated:** 2026-05-04 (17 ship items + Batch 2 instrumentation + Batch A FeedbackChip finish — table/compare wired).
-**Live commit:** `81087dfdfe27` (Per-user quality-signal foundation — PENDING §6c closed; pure classifier + read helpers + admin viewer). Deployed CLEAN — no cascade. All 88 suites green, **5119 tests passing**. **Twenty-one zombie-next-server cascades** total (no new cascade on this commit).
-**Aggregator:** 5119 passed across 88 suites in ~5.3s (+39 from prior 5080/87 — new `quality-signal-foundation` suite locks in the lib surface, pure-function semantics including the trailing-streak break + flagged-before-watch ordering invariants, admin page contract, layout NAV, and cross-file bucket-name agreement).
+**Live commit:** `36821aaf05f3` (Operational Slack alert helper — PENDING §2a + §2b foundation; canonical webhook payload format + never-throws fetch wrapper + the codebase's first dynamic-execution CI guard). Deployed CLEAN — no cascade. All 89 suites green, **5161 tests passing**. **Twenty-one zombie-next-server cascades** total (no new cascade on this commit).
+**Aggregator:** 5161 passed across 89 suites in ~5.4s (+42 from prior 5119/88 — new `slack-alert-foundation` suite goes deeper than static-parse: Section B compiles `formatSlackPayload` from .ts to .js via stripped-TS regex pass and runs canonical inputs through `new Function` to verify actual output (severity→color, numeric coercion, null-drop, 200-char cap, ts unit). Section D scans lib/ + app/ + components/ for hardcoded `https://hooks.slack.com/` URLs as a credential-leak tripwire.
 
 ### 2026-05-04 — Activation + e2e + tool improvement plan + Tier 1/2 ships
 
@@ -379,6 +379,40 @@ Both invariants pinned in Section B of the CI guard.
 **Deploy was CLEAN** — no cascade, no nudge required. First fully-clean deploy since `cda2eae` (the batch B chip rollout). Auto-pull picked up `81087df` within ~3 min of push and Passenger respawned smoothly.
 
 **Aggregator state:** 5119 passed across **88 suites** in ~5.3s (delta +39 assertions / +1 suite). `npx tsc --noEmit` exit 0.
+
+### 2026-05-04 — Operational Slack alert helper (commit `36821aa`) — PENDING §2a + §2b foundation
+
+Closes the §2a "Slack alerting unwired" gap on the helper side. Several modules across the codebase had TODO markers referencing "post a Slack alert when X" without a shared helper to call — `lib/ai/margin-rollup.ts` had its own inline `AI_SPEND_ALERT_SLACK_URL` env-var read, `lib/payments/dunning.ts` (commit `76a0c82`) had a TODO for lifecycle-transition alerts, `lib/ai/quality-signal.ts` (commit `81087df`) had one for flagged-user pings, the cron failure escalation (PENDING §2b) had nothing. This commit consolidates them.
+
+**Surface (`lib/ops/slack-alert.ts`, 246 lines):**
+- `SlackAlertSeverity` literal union (`info | warn | alarm`) drives both attachment color (good/warning/danger) and emoji prefix.
+- `SlackAlertInput { severity, title, body, context? }` — payload shape.
+- `SlackAlertResult` discriminated union with three variants: happy path (`sent: true`), graceful no-op (`reason: "no_webhook_configured"` when env var unset — today's default state), delivery failure (`reason: "delivery_failed"` with detail string).
+- `formatSlackPayload(input)` — pure formatter, exported separately so the CI guard can dynamically execute it.
+- `readSlackWebhookUrl()` — defensive validator (rejects non-https URLs); single source of truth for the env var name `SLACK_OPS_WEBHOOK_URL`.
+- `sendSlackAlert(input)` — async, never throws. Wraps `fetch` in try/catch with AbortController-driven 5s timeout + `clearTimeout` in finally. Returns the result envelope on every code path.
+
+**CI guard `scripts/test-slack-alert-foundation.mjs` is the codebase's FIRST dynamic-execution guard.** Section B extracts the COLOR_BY_SEVERITY + EMOJI_BY_SEVERITY + formatSlackPayload blocks via regex, strips TS-only syntax (Record<...> annotations, type unions, `unknown` return types) into a JS subset, compiles via `new Function`, and runs canonical inputs through the real formatter:
+- Minimal payload (severity+title+body) → 1 attachment, color="good", `:information_source:` emoji prefix, empty fields[].
+- All 3 severities map to the right colors + emojis.
+- Numeric context value `3` coerced to string `"3"` (Slack rejects non-string field values).
+- Null/undefined context entries dropped (no `"null"` strings rendered).
+- Long context values truncated at 200 chars.
+- `ts` is a plausible unix-seconds integer (not millis).
+
+Section D additionally scans `lib/` + `app/` + `components/` for hardcoded `https://hooks.slack.com/` URLs as a **credential-leak tripwire** — committing a webhook URL would be a credential-rotation hazard. Section C verifies `sendSlackAlert` failure-handling invariants (try/catch around fetch, AbortController timeout, clearTimeout in finally, no_webhook_configured short-circuits BEFORE fetch).
+
+**Founder action remaining (the actual §2a work):**
+1. Create a Slack webhook (channel: ops or dedicated #pdfcraftai-alerts).
+2. Set `SLACK_OPS_WEBHOOK_URL` in Hostinger panel → "Save and redeploy".
+3. Migrate `lib/ai/margin-rollup.ts`'s inline `AI_SPEND_ALERT_SLACK_URL` read to call `sendSlackAlert()` (1-file diff, ~10 lines).
+4. Verify by manually running `/api/cron/ai-margin-rollup` against a synthetic red day.
+
+Until step 2 completes, `sendSlackAlert` returns `{ok:true, sent:false, reason:"no_webhook_configured"}` — graceful no-op.
+
+**Deploy was CLEAN** — no cascade, no nudge required. Live commit `36821aaf05f3` came up at uptime 0s, db OK. Two consecutive clean deploys (`81087df` + `36821aa`) on foundation commits — the foundation pattern (no migration, pure code surface) consistently produces clean deploys vs. the cascade-prone schema/admin-page commits.
+
+**Aggregator state:** 5161 passed across **89 suites** in ~5.4s (delta +42 assertions / +1 suite). `npx tsc --noEmit` exit 0.
 
 ### 2026-05-03 mid-day — post-plan gap closure (Gap #1 + Gap #3)
 

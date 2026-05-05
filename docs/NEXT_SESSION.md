@@ -1,27 +1,31 @@
 # Next session — pick up here
 
-**Updated 2026-05-04 late-night (latest live commit `81087df`).**
+**Updated 2026-05-04 late-night (latest live commit `36821aa`).**
 Multi-day arc complete. Production observability rollout 100% done.
 **FeedbackChip rollout structurally complete on AI-using component
 side: 19/19 wired** (Stage 3 batches A + B + C all closed). PENDING
 §11a (webhook audit ordering), §4c (dunning persistence foundation),
-and §6c (per-user quality-signal foundation) all closed in this arc.
+§6c (per-user quality-signal foundation), and §2a/§2b (Slack alert
+helper foundation) all closed in this arc.
 
 **Status snapshot:**
-- Latest live commit: `81087df` (Per-user quality-signal foundation —
-  PENDING §6c closed)
+- Latest live commit: `36821aa` (Operational Slack alert helper —
+  PENDING §2a + §2b foundation; codebase's first dynamic-execution
+  CI guard)
 - Last code-bearing deploy: same
-- Aggregator: **5119/5119 tests passing across 88 suites** in ~5.3s
+- Aggregator: **5161/5161 tests passing across 89 suites** in ~5.4s
 - `tsc --noEmit` exit 0
-- 21 cascade events survived; recovery playbook holds; cascades
-  #20 + #21 both typical-fast (~3 min via single mass-kill); 81087df
-  itself deployed CLEAN (no cascade)
+- 21 cascade events survived; recovery playbook holds; the last 3
+  foundation-pattern commits (`81087df`, `36821aa`) all deployed
+  CLEAN, suggesting foundation commits without migrations are
+  consistently cgroup-safe
 - Production: all systems active, all 10 AI ops audited, /admin/margin
   sees 100% of fleet, /admin/ai-feedback collects ↑/↓ across all
   19 AI-using component surfaces, /admin/quality-signals derives
   per-user trailing-thumbs-down streaks from accumulated chip data,
-  /admin/dunning ready for Phase E (both quality-signal and dunning
-  empty by design today)
+  /admin/dunning ready for Phase E, lib/ops/slack-alert.ts ready
+  for SLACK_OPS_WEBHOOK_URL env var (founder action — when set,
+  every consumer goes from no-op to live simultaneously)
 
 ## Read first
 
@@ -42,7 +46,7 @@ and §6c (per-user quality-signal foundation) all closed in this arc.
 | ~~Generate FeedbackChip wire-up~~ | ~~~30 min~~ | ✅ DONE (commit `94db9e1`). 9/10 milestone. |
 | ~~Chat FeedbackChip wire-up~~ | ~~~30 min~~ | ✅ DONE (commit `cb013ab`). 10/10 milestone. Stage 3 batch A closed. |
 | ~~`lib/payments/dunning.ts` orphaned TODO (PENDING §4c)~~ | ~~~2 hours~~ | ✅ DONE (commit `76a0c82`). Migration 0023, persist helpers, /admin/dunning viewer, 59-assertion CI guard. Empty table by design until Phase E wires the webhook handler. |
-| Slack alerting verification (PENDING §2a) | 30 min user-action | `AI_SPEND_ALERT_SLACK_URL` env var is unset in Hostinger. Founder sets it; lib/ai/margin-rollup.ts already has the helper code shipped. **Only Tier 1 code item left is the founder action.** |
+| Slack alerting verification (PENDING §2a) | 30 min user-action + ~30 min Claude follow-up | ✅ **HELPER FOUNDATION SHIPPED** (commit `36821aa`). `lib/ops/slack-alert.ts` consolidates the env-var read + payload format + never-throws fetch wrapper. Founder action: create webhook → set `SLACK_OPS_WEBHOOK_URL` in Hostinger panel → "Save and redeploy". Once env var lands, follow-up Claude commit migrates `lib/ai/margin-rollup.ts`'s inline read to call `sendSlackAlert()` (1-file diff). |
 
 ### Tier 2 — medium (next arc)
 
@@ -154,7 +158,7 @@ The infrastructure groundwork is structurally complete on these axes:
 ```bash
 cd /sessions/gifted-funny-franklin/pdfcraftai-work
 npx tsc --noEmit                                # exit 0?
-node scripts/run-all-tests.mjs 2>&1 | tail -3   # 5119/0 across 88?
+node scripts/run-all-tests.mjs 2>&1 | tail -3   # 5161/0 across 89?
 curl -s https://pdfcraftai.com/api/health | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['commit'], d['uptimeSec'])"
 ```
 
