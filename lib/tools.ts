@@ -79,6 +79,17 @@ export const TOOLS: readonly Tool[] = [
   { id: "pdf-overlay", name: "PDF Overlay", desc: "Stamp the first page of one PDF (letterhead / template / watermark) onto every page of another PDF. Front-or-behind layer, configurable opacity, fit-or-stretch, optional page subset.", icon: "Edit", free: true, cost: "free", group: "Edit" },
   { id: "pdf-form-fill", name: "Fill PDF Form", desc: "Visually fill PDF AcroForm fields — text, checkboxes, radio buttons, dropdowns, multi-select. Optional flatten to bake values so recipients can&apos;t edit.", icon: "Edit", free: true, cost: "free", group: "Edit" },
   { id: "pdf-batch", name: "Batch Process PDFs", desc: "Apply one operation (rotate, page numbers, watermark, remove metadata, flatten, strip links) across many PDFs at once. Output bundles into a downloadable zip.", icon: "Pages", free: true, cost: "free", group: "Edit" },
+  // PENDING §5a Phase B (2026-05-05): server-side Ghostscript-backed
+  // compress. Free for MVP, bounded by 50MB + 60s timeout. Three
+  // levels (Light / Balanced / Strong) map to gs PDFSETTINGS=
+  // /printer | /ebook | /screen. Behind PDF_COMPRESS feature flag —
+  // appears in the catalog only when isFeatureEnabled returns true
+  // for the user (the page-level guard in app/tool/[id]/page.tsx
+  // turns 404 when the flag is off, so an early click before flag
+  // flip lands on a graceful 404 instead of a runtime crash).
+  // Replaces the long-standing "no compress" gap that motivated the
+  // T1-1 bait-and-switch removal.
+  { id: "compress-pdf", name: "Compress PDF", desc: "Shrink PDF file size with adjustable quality (Light, Balanced, Strong). Server-side via Ghostscript — keeps text searchable, embeds web-optimized linearization. Falls back to your original if compression doesn't actually help.", icon: "Compress", free: true, cost: "free", group: "Convert" },
   { id: "pdf-diff", name: "Compare PDFs", desc: "Pixel-level visual diff between two PDFs — output a comparison PDF with red highlighting on regions that differ + per-page diff percentage. Pairs with AI Compare for content-level diffs.", icon: "Search", free: true, cost: "free", group: "Organize" },
 
   // Build 2 Wave 3 (2026-04-27): Search + Extract Images. Both

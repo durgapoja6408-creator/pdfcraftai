@@ -188,6 +188,15 @@ const PdfBatchProcessTool = dyn(() =>
     default: m.PdfBatchProcessTool,
   })),
 );
+// PENDING §5a Phase B (2026-05-05) — server-side Ghostscript-backed
+// compress. Ships behind the PDF_COMPRESS feature flag; when off,
+// /api/tools/compress returns 404 and the UI surfaces a friendly
+// "not available on your account yet" message.
+const PdfCompressTool = dyn(() =>
+  import("@/components/tools/PdfCompressTool").then((m) => ({
+    default: m.PdfCompressTool,
+  })),
+);
 const PdfDiffTool = dyn(() =>
   import("@/components/tools/PdfDiffTool").then((m) => ({
     default: m.PdfDiffTool,
@@ -692,6 +701,8 @@ export function ToolRunner({ id }: { id: string }) {
       return <PdfFormFillTool />;
     case "pdf-batch":
       return <PdfBatchProcessTool />;
+    case "compress-pdf":
+      return <PdfCompressTool />;
     case "pdf-diff":
       return <PdfDiffTool />;
     case "pdf-search":

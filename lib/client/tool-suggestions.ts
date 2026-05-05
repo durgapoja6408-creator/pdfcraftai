@@ -23,6 +23,11 @@
  * suggestions (safe default — empty success-card "what next" panel).
  */
 export const TOOL_SUGGESTIONS: Record<string, readonly string[]> = {
+  // PENDING §5a Phase B (2026-05-05): after compressing, users
+  // typically want to merge the smaller files, sign for sharing,
+  // or strip metadata they didn't realize was embedded.
+  "compress-pdf": ["merge", "sign-pdf-free", "remove-metadata"],
+
   // Visual editors — natural pairs (PageEditorTool consumers)
   "highlight-pdf": ["redact-free", "add-links", "page-numbers"],
   "redact-free": ["highlight-pdf", "flatten-pdf", "page-numbers"],

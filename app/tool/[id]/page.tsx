@@ -127,6 +127,17 @@ const LIVE_TOOL_IDS = new Set<string>([
   "pdf-overlay",
   "pdf-form-fill",
   "pdf-batch",
+  // PENDING §5a Phase B (2026-05-05): compress-pdf rendered through
+  // ToolRunner's <PdfCompressTool /> case. Server-side compress lives
+  // at /api/tools/compress and is gated by FEATURE_FLAGS.PDF_COMPRESS;
+  // when the flag is off, the route returns feature_disabled 404 and
+  // the UI surfaces a friendly "not available on your account yet"
+  // copy. Listing here makes the catalog entry render the runner
+  // (rather than the ComingSoon placeholder) once an operator flips
+  // the env var. Catalog filtering by flag state is a future
+  // enhancement (today the entry is visible regardless; flag only
+  // affects whether it actually works).
+  "compress-pdf",
   "pdf-diff",
   // AI tools.
   "ai-summarize",

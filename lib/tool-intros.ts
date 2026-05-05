@@ -540,6 +540,10 @@ export const TOOL_INTROS: Record<string, ToolIntro> = {
     text: "What you'll get: every input PDF processed through one chosen operation (rotate / page numbers / watermark / metadata strip / form flatten / link strip), bundled into a downloadable zip. Up to 50 PDFs per batch.",
     related: { id: "merge", label: "Merge PDF (single combined output)" },
   },
+  "compress-pdf": {
+    text: "What you'll get: a smaller PDF with the same content. Three quality levels — Light (~10–30% smaller, almost no visible change), Balanced (~30–50%, the default), Strong (~50–80% but visible image-quality drop). If your PDF is already well-optimized, we'll return the original and tell you we couldn't make it smaller.",
+    related: { id: "pdf-inspector", label: "PDF Inspector (see what's in your file before compressing)" },
+  },
   "pdf-diff": {
     text: "What you'll get: a comparison PDF where every page shows visual differences between two PDFs highlighted in red, plus a per-page diff percentage table. For content-level diffs, see AI Compare.",
     related: { id: "ai-compare", label: "AI Compare (semantic content diff)" },

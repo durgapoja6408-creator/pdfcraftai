@@ -3389,6 +3389,90 @@ export const TOOL_LONGFORMS: Record<string, ToolLongformData> = {
     },
   },
 
+  // PENDING §5a Phase B (2026-05-05): server-side Ghostscript compress.
+  "compress-pdf": {
+    useCasesTitle: "Why people compress PDFs",
+    useCasesIntro:
+      "PDF size matters more than people admit — email attachment limits, slow page loads on shared drives, mobile data caps, courier upload portals that reject anything over 10 MB. Most PDFs carry redundant image data, oversized embedded fonts, and rasterized scans that compress dramatically with no perceptible quality loss. The right level depends on what you're using the file for: print needs Light, email needs Balanced, archiving on a phone needs Strong.",
+    useCases: [
+      {
+        icon: "Convert",
+        title: "Email attachment limits",
+        text: "Gmail and Outlook cap at 25 MB per email; many corporate gateways stop at 10 MB. A scanned 50-page contract often lands at 35 MB and bounces silently. Balanced quality typically gets you well under the limit without anyone noticing the difference.",
+      },
+      {
+        icon: "Pages",
+        title: "Court &amp; government e-filing portals",
+        text: "Many e-filing systems enforce 10 MB or 5 MB caps and reject anything larger. Strong quality compresses scanned exhibits aggressively while keeping text searchable — the form layer survives, the embedded scans get downsampled.",
+      },
+      {
+        icon: "Edit",
+        title: "Shared-drive performance",
+        text: "Google Drive and OneDrive load PDFs faster when they're linearized (a side-effect of all three quality levels here). Smaller files also use less of the recipient&rsquo;s storage quota — relevant when you're sending the same proposal to 50 prospects.",
+      },
+      {
+        icon: "Sparkle",
+        title: "Web embed &amp; download performance",
+        text: "PDFs embedded on a website (specs, manuals, datasheets) render the first page faster after compression because Fast Web View linearization rearranges the byte stream so page 1 streams before pages 2-N download.",
+      },
+      {
+        icon: "Image",
+        title: "Mobile sharing &amp; data caps",
+        text: "AirDrop, WhatsApp, and SMS attachments all degrade UX past a few MB. Strong quality cuts most scanned PDFs by 60-80% — visible quality drop on photographs, almost invisible on text-only documents.",
+      },
+    ],
+    howWorksTitle: "How Compress PDF works",
+    howWorks: [
+      {
+        step: "1",
+        title: "Drop your PDF",
+        text: "Up to 50 MB. Your file is uploaded to our server (this is one of the few tools that can&rsquo;t run in the browser — Ghostscript needs to be invoked server-side).",
+      },
+      {
+        step: "2",
+        title: "Pick a quality level",
+        text: "Light keeps the file print-ready (10–30% smaller). Balanced is the email-friendly default (30–50%). Strong is aggressive — visible image-quality drop, best for web-only PDFs (50–80%).",
+      },
+      {
+        step: "3",
+        title: "Compress &amp; download",
+        text: "Ghostscript downsamples images, subsets fonts, removes redundant objects, and linearizes the output for Fast Web View. Result is text-searchable, color-faithful at the level you chose, and downloadable as <name>-compressed.pdf.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Will compression ruin my images?",
+        a: "Depends on the level you pick. Light keeps images at 300 DPI — invisible loss. Balanced drops to 150 DPI — fine for email and screen viewing, mostly invisible. Strong drops to 72 DPI — visible quality loss on photographs, OK for text-with-occasional-images. The tool tells you which level produced what reduction so you can compare.",
+      },
+      {
+        q: "What if my PDF is already optimized?",
+        a: "If we can&rsquo;t shave at least 5% off the file, we return your original PDF unchanged with a note explaining we couldn&rsquo;t make it smaller. No silent inflation — your bit-identical original comes back so metadata, signatures, and form fields stay exactly as you uploaded them.",
+      },
+      {
+        q: "Is text still searchable and copyable?",
+        a: "Yes at all three levels. Compression downsamples raster images and re-encodes streams; it doesn&rsquo;t flatten text into pixels. Ctrl-F still finds words; copy-paste still pulls real text. The exception is if your &ldquo;PDF&rdquo; was a scanned-image PDF without a text layer to begin with — compression can&rsquo;t add text that wasn&rsquo;t there. Run OCR (Searchable PDF) first if you need that.",
+      },
+      {
+        q: "What about my PDF&rsquo;s metadata, bookmarks, and form fields?",
+        a: "Metadata (author / title / subject / keywords) is preserved. Bookmarks and the document outline are preserved. Form fields are preserved as fillable fields. Annotations and comments are preserved. The compression operates on object streams and image data, not on the document structure.",
+      },
+      {
+        q: "Why does this tool require sign-in when most others don&rsquo;t?",
+        a: "Compression runs server-side via Ghostscript — it consumes real CPU + memory + disk on our servers. Sign-in lets us tie usage to an account so we can fairly distribute that capacity and prevent abuse. The browser-based tools (merge, split, rotate, etc.) can stay anonymous because they run on your computer, not ours.",
+      },
+      {
+        q: "Are my files retained on your server?",
+        a: "No. We write your PDF to a temp directory, run Ghostscript, return the compressed bytes, and delete the temp directory — all within the same request. The compressed PDF is sent in the response body and not persisted anywhere on our side after the response completes.",
+      },
+    ],
+    cta: {
+      title: "Need to combine compressed files?",
+      text: "Compress all your inputs first, then merge them in the browser. The combined output stays small and stays text-searchable.",
+      linkHref: "/tool/merge",
+      linkLabel: "Try Merge PDF",
+    },
+  },
+
   "pdf-batch": {
     useCasesTitle: "Why people use batch PDF processing",
     useCasesIntro:
