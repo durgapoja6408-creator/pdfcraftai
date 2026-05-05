@@ -33,6 +33,12 @@ import {
   runDailyRollup,
   postMarginAlertToSlack,
 } from "@/lib/ai/margin-rollup";
+// 2026-05-04 (PENDING §2b application-level escalation) — page the
+// operator when the cron itself throws, not just when its output goes
+// red. The shared helper is graceful no-op without env var, so this
+// ships dormant today and activates the moment SLACK_OPS_WEBHOOK_URL
+// (or legacy AI_SPEND_ALERT_SLACK_URL) is set on the panel.
+import { sendSlackAlert } from "@/lib/ops/slack-alert";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -103,6 +109,27 @@ async function runCron(req: Request): Promise<NextResponse> {
     return NextResponse.json(report, { status: 200 });
   } catch (err) {
     console.error("[ai-margin-rollup] run failed:", err);
+    // §2b — application-level escalation. Different signal from
+    // postMarginAlertToSlack (which fires on RED data); this fires
+    // when the rollup itself crashed, meaning we have NO data — a
+    // worse failure mode that needs the operator to investigate the
+    // cron, not the margin floor.
+    const detail = err instanceof Error ? err.message : String(err);
+    const legacyOverride = process.env.AI_SPEND_ALERT_SLACK_URL || undefined;
+    await sendSlackAlert(
+      {
+        severity: "alarm",
+        title: "Cron ai-margin-rollup failed",
+        body:
+          "Daily AI margin rollup threw an exception. No row written to " +
+          "ai_daily_margin for this run; greenStreak NOT advanced. " +
+          "Check Hostinger nodejs/stderr.log for the stack trace.",
+        context: {
+          error: detail.slice(0, 200),
+        },
+      },
+      legacyOverride ? { urlOverride: legacyOverride } : undefined,
+    );
     return NextResponse.json(
       { error: "margin_rollup_failed" },
       { status: 500 }

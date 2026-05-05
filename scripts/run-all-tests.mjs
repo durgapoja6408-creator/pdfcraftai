@@ -1214,6 +1214,20 @@ const SUITES = [
     name: "margin-rollup-slack-migration",
     file: "test-margin-rollup-slack-migration.mjs",
   },
+  // 2026-05-04 (PENDING §2b application-level escalation) — three
+  // cron route handlers (ai-margin-rollup, reconcile-payments,
+  // expire-grants) now thread sendSlackAlert into their failure
+  // paths so an application-level cron failure pages the operator
+  // even when cron-job.org's URL-level monitoring would consider
+  // the request a 5xx success-after-retry. Severity discipline:
+  // "alarm" for data-at-risk failure modes (rollup + reconcile),
+  // "warn" for non-cascading per-row failures (expire-grants).
+  // Each call uses the urlOverride backward-compat pattern from
+  // commit b4e382b. 31 assertions across 4 sections.
+  {
+    name: "cron-slack-escalation",
+    file: "test-cron-slack-escalation.mjs",
+  },
   // 2026-05-04 (PENDING §1f) — webhook + reconcile resilience
   // contract. Locks in: 500 on processing error (provider retries),
   // 200 on duplicate (provider stops), 400 on bad sig (provider

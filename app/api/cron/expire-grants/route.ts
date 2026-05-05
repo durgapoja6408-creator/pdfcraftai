@@ -51,6 +51,13 @@ import { and, eq, gt, isNotNull, lte, sql } from "drizzle-orm";
 
 import { db, schema } from "@/db/client";
 import { grantCredits } from "@/lib/payments/ledger";
+// 2026-05-04 (PENDING §2b application-level escalation) — page the
+// operator when per-row errors accumulate during a sweep. Single-row
+// errors aren't cascading failures (severity "warn", not "alarm")
+// because the sweep continues, but they shouldn't go unseen — a
+// recurring per-row error is a sign of either a schema drift or a
+// stuck row in credit_ledger. Helper is graceful no-op without env var.
+import { sendSlackAlert } from "@/lib/ops/slack-alert";
 
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -192,6 +199,34 @@ export async function GET(req: NextRequest): Promise<Response> {
       ts: new Date().toISOString(),
     }),
   );
+
+  // §2b — application-level escalation. Fire when per-row errors
+  // accumulate; severity "warn" because single rows that fail don't
+  // cascade (the sweep continues), but a recurring pattern needs eyes
+  // on it. Helper is graceful no-op without env var.
+  if (errors > 0) {
+    const legacyOverride = process.env.AI_SPEND_ALERT_SLACK_URL || undefined;
+    await sendSlackAlert(
+      {
+        severity: "warn",
+        title: `Cron expire-grants: ${errors} per-row error(s)`,
+        body:
+          `Sweep examined ${expiredRows.length} row(s); ${errors} threw ` +
+          `errors mid-process. Other rows completed normally (expired=` +
+          `${expired}, skipped=${skipped}). Investigate stderr.log for ` +
+          `the failing row IDs; recurring failures usually mean a ` +
+          `credit_ledger schema drift or a stuck row.`,
+        context: {
+          examined: expiredRows.length,
+          expired,
+          skipped,
+          errors,
+          firstError: errorDetails[0]?.slice(0, 200) ?? null,
+        },
+      },
+      legacyOverride ? { urlOverride: legacyOverride } : undefined,
+    );
+  }
 
   return json(200, {
     examined: expiredRows.length,
