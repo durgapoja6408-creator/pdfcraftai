@@ -425,6 +425,126 @@ if (alphaConstMatch && lengthConstMatch && generatorMatch) {
 }
 
 // ---------------------------------------------------------------------------
+// Section H: lib/referrals/writers.ts — Phase E write-side helpers
+// ---------------------------------------------------------------------------
+
+const WRITERS = path.join(ROOT, "lib/referrals/writers.ts");
+assert(fs.existsSync(WRITERS), "H1: lib/referrals/writers.ts exists");
+if (fs.existsSync(WRITERS)) {
+  const writersSrc = fs.readFileSync(WRITERS, "utf8");
+
+  // Public surface — all three writers + error class.
+  assert(
+    /export\s+async\s+function\s+recordReferralSignup\b/.test(writersSrc),
+    "H2: recordReferralSignup is exported async",
+  );
+  assert(
+    /export\s+async\s+function\s+grantReferrerReward\b/.test(writersSrc),
+    "H3: grantReferrerReward is exported async",
+  );
+  assert(
+    /export\s+async\s+function\s+grantReferredReward\b/.test(writersSrc),
+    "H4: grantReferredReward is exported async",
+  );
+  assert(
+    /export\s+class\s+ReferralWriteError\s+extends\s+Error\b/.test(writersSrc),
+    "H5: ReferralWriteError class is exported",
+  );
+
+  // Flag-gate guard: ALL THREE writers must check isReferralsEnabled
+  // before any DB work. Without this, flag-off prod could write into
+  // referral_signups via a misconfigured caller.
+  for (const fn of [
+    "recordReferralSignup",
+    "grantReferrerReward",
+    "grantReferredReward",
+  ]) {
+    // Match the function body and look for isReferralsEnabled guard
+    // before any db.insert / db.update call.
+    const bodyMatch = writersSrc.match(
+      new RegExp(
+        `export async function ${fn}\\b[\\s\\S]*?\\n\\}\\n`,
+      ),
+    );
+    assert(
+      bodyMatch !== null,
+      `H6.${fn}: extracted function body for flag-gate check`,
+    );
+    if (bodyMatch) {
+      const body = bodyMatch[0];
+      assert(
+        /if\s*\(\s*!isReferralsEnabled\(\)\s*\)\s*\{\s*\n?\s*return null/.test(
+          body,
+        ) || body.includes("return updateRewardSide"),
+        `H7.${fn}: function checks !isReferralsEnabled() and returns null when off (or delegates to a flag-gated helper)`,
+      );
+    }
+  }
+
+  // Self-referral guard: catches the case where an attacker passes
+  // their own userId as both referrer and referred (would otherwise
+  // pass UNIQUE check + appear in admin viewer).
+  assert(
+    /referrerUserId\s*===\s*referredUserId/.test(writersSrc),
+    "H8: writers reject self-referrals (referrerUserId === referredUserId)",
+  );
+  assert(
+    /SELF_REFERRAL/.test(writersSrc),
+    "H9: writers throw ReferralWriteError with code SELF_REFERRAL on self-attribution",
+  );
+
+  // Race-condition handling on the INSERT path. If two requests for
+  // the same referredUserId hit the writer simultaneously, one INSERT
+  // succeeds and the other catches ER_DUP_ENTRY. The catch path must
+  // re-read and return the winning row's id, not throw.
+  assert(
+    /Duplicate entry|ER_DUP_ENTRY/.test(writersSrc),
+    "H10: writers catch MySQL duplicate-key errors on the INSERT race path",
+  );
+
+  // Idempotency on the reward-grant path. Already-rewarded rows
+  // must no-op rather than overwriting the timestamp.
+  assert(
+    /alreadySet|already-rewarded|isNotNull|IS NULL/i.test(writersSrc),
+    "H11: reward-grant path checks for already-rewarded state (idempotency)",
+  );
+
+  // The shared updateRewardSide helper writes both reward sides via
+  // the side parameter. Pin the discriminated update so a refactor
+  // that flattens the function doesn't drop the IS NULL re-check
+  // inside the WHERE clause.
+  assert(
+    /side\s*===\s*"referrer"/.test(writersSrc),
+    "H12: shared write path branches on side === 'referrer'",
+  );
+  // IS NULL re-check inside UPDATE prevents lost-update on race
+  // between SELECT and UPDATE.
+  assert(
+    /isNull\(\s*schema\.referralSignups\.referrerRewardedAt\s*\)/.test(
+      writersSrc,
+    ),
+    "H13: UPDATE re-checks IS NULL on referrerRewardedAt (race-safe idempotency)",
+  );
+  assert(
+    /isNull\(\s*schema\.referralSignups\.referredRewardedAt\s*\)/.test(
+      writersSrc,
+    ),
+    "H14: UPDATE re-checks IS NULL on referredRewardedAt (race-safe idempotency)",
+  );
+
+  // Writers do NOT touch credit_ledger directly. The reward-grant
+  // caller is responsible for that via grantCredits(); this module
+  // only marks milestone columns + stores the ledger id for audit.
+  // If the writers ever start importing from lib/payments/ledger,
+  // it's a bug — credit grants need transactional wrapping that's
+  // the caller's responsibility, not ours.
+  assert(
+    !/from\s+["']@\/lib\/payments\/ledger["']/.test(writersSrc),
+    "H15: writers don't import lib/payments/ledger directly (transactional wrapping is the caller's job)",
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Section G: /app/refer user-facing page (PENDING §3e Phase E, 2026-05-05)
 // ---------------------------------------------------------------------------
 
