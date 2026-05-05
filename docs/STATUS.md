@@ -4,8 +4,8 @@ _Single source of truth for what's done, what's pending, and who owns each item.
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
 **Last updated:** 2026-05-04 (17 ship items + Batch 2 instrumentation + Batch A FeedbackChip finish — table/compare wired).
-**Live commit:** `cda2eae91ecc` (Stage 3 batch B chip rollout — FeedbackChip on the 4 shared variant runners). Deployed CLEAN — no cascade, no nudge required. ~46/53 AI tools now have the chip (~87% rollout complete). All 87 suites green, **5065 tests passing**. **Twenty zombie-next-server cascades** total (no new cascade on this commit).
-**Aggregator:** 5065 passed across 87 suites in ~5s (+12 from prior 5053/87 — pilot guard WIRED_TOOLS list extended 10 → 14 entries × 3 cross-checks each).
+**Live commit:** `2a459f3280c6` (Stage 3 batch C — chip on 5 specialist tools; **rollout structurally complete on AI-using component side**, 19/19). Deployed via single mass-kill recovery (~3 min — typical-fast cascade #21). All 87 suites green, **5080 tests passing**. **Twenty-one zombie-next-server cascades** total.
+**Aggregator:** 5080 passed across 87 suites in ~5.4s (+15 from prior 5065/87 — pilot guard WIRED_TOOLS list extended 14 → 19 entries × 3 cross-checks each).
 
 ### 2026-05-04 — Activation + e2e + tool improvement plan + Tier 1/2 ships
 
@@ -336,6 +336,23 @@ Each component: imports `FeedbackChip`, extends `meta`/`Result` type with `aiUsa
 **Deploy was CLEAN** — no cascade, no nudge required. Auto-pull was stubborn for ~10 min on this push (similar lag pattern to earlier in the arc), but eventually picked up `cda2eae` and Passenger respawned smoothly.
 
 **Aggregator state:** 5065 passed across 87 suites in ~5s (delta +12 from 5053/87). `npx tsc --noEmit` exit 0.
+
+### 2026-05-04 — Stage 3 batch C chip rollout (commit `2a459f3`) — rollout structurally complete (19/19)
+
+Closes the FeedbackChip rollout on the AI-using component side. The original "batch C is blocked on route instrumentation" framing was wrong — when I traced the AI-using components, all 5 remaining specialist tools route through already-instrumented endpoints (4 hit `/api/ai/summarize`, 1 hits `/api/ai/ocr`, both instrumented in `f7d5a9c`). No route changes needed; just the standard 4-line component edit per file.
+
+**Components edited:**
+- `CourtOrderTool.tsx` — Indian court judgment summarizer
+- `ResumeParserTool.tsx` — resume parser to structured JSON
+- `SearchablePdfTool.tsx` — OCR-then-overlay searchable PDF builder. Uses `operation="ocr"` because the chip is feedback on the upstream OCR work; the client-side overlay step is deterministic and doesn't have a quality dimension. fileId points to the upstream OCR's files row.
+- `SemanticSearchPdfTool.tsx` — semantic passage search
+- `TldrPdfTool.tsx` — TL;DR summary
+
+**WIRED_TOOLS now 19 entries** covering every AI-using tool component in `components/tools/` plus the chat client. Stage 3 is structurally complete on the wired side. The "53" denominator in the rollout doc was always a leakier stat — it conflated "tool registry slots" (~53) with "AI-using components with their own runner" (19, all wired). Variant tools that share `SummarizeVariantTool` etc inherit the chip from one component edit (~30+ depth variants get the chip "for free"). The meaningful metric is **19/19 = 100%** on AI-using components.
+
+**Cascade #21 — typical-fast.** 503 hit at push. SSH ConnectTimeout=15 + single mass-kill recovered within ~3 min — uptime came back at 5s on commit `2a459f3280c6`. Back to nominal range.
+
+**Aggregator state:** 5080 passed across 87 suites in ~5.4s (delta +15 from 5065/87). `npx tsc --noEmit` exit 0.
 
 ### 2026-05-03 mid-day — post-plan gap closure (Gap #1 + Gap #3)
 
