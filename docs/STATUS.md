@@ -4,8 +4,8 @@ _Single source of truth for what's done, what's pending, and who owns each item.
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
 **Last updated:** 2026-05-04 (17 ship items + Batch 2 instrumentation + Batch A FeedbackChip finish — table/compare wired).
-**Live commit:** `76a0c8290fed` (Dunning persistence foundation — closes PENDING §4c orphaned `TODO(Phase E)` marker). Deployed via single mass-kill recovery (~3 min — typical-fast cascade #20). All 87 suites green, **5053 tests passing**. **Twenty zombie-next-server cascades** total.
-**Aggregator:** 5053 passed across 87 suites in ~7.5s (+59 from prior 4994/86 — new `dunning-foundation` suite locks in the migration + schema + persist surface + admin page contract).
+**Live commit:** `cda2eae91ecc` (Stage 3 batch B chip rollout — FeedbackChip on the 4 shared variant runners). Deployed CLEAN — no cascade, no nudge required. ~46/53 AI tools now have the chip (~87% rollout complete). All 87 suites green, **5065 tests passing**. **Twenty zombie-next-server cascades** total (no new cascade on this commit).
+**Aggregator:** 5065 passed across 87 suites in ~5s (+12 from prior 5053/87 — pilot guard WIRED_TOOLS list extended 10 → 14 entries × 3 cross-checks each).
 
 ### 2026-05-04 — Activation + e2e + tool improvement plan + Tier 1/2 ships
 
@@ -316,6 +316,26 @@ Generate + chat have non-standard UX shapes (PDF base64 download / conversationa
 **Empty table by design.** Today every SKU is a one-shot credit pack — a charge either succeeds (credits land) or fails (no credits, no retry); no recurring contracts means no dunning posture to track. The first row will land when Phase E wires `persistDunningEvent` into webhook-handler.ts on Razorpay `subscription.charged|pending|halted|cancelled` and Paddle `subscription.payment_succeeded|payment_failed|canceled` events.
 
 **Aggregator state:** 5053 passed across **87 suites** in ~7.5s (delta +59 assertions / +1 suite). `npx tsc --noEmit` exit 0.
+
+### 2026-05-04 — Stage 3 batch B chip rollout (commit `cda2eae`) — variants ~87% complete
+
+**4 shared variant runner components** got the FeedbackChip in a single commit, propagating feedback collection to ~36 distinct depth variants in one stroke. Because variants all route through `/api/ai/summarize` and that route was already instrumented in `f7d5a9c`, the chip flows to every variant tool without per-tool edits.
+
+**Components edited:**
+- `SummarizeVariantTool.tsx` — covers ~36 depth variants (key-points, study-notes, eli5, faq, blog, readability, action-items, syllabus, discharge, jd-match, paraphrase, ai-detector, condense, expand, tone-analyze, citations, sentiment, bias, entities, social-thread, newsletter, video-script, improve-writing, proofread, ats-resume, cover-letter, nda, employment, salary-slip, research-paper, insurance, loan-bundle, partnership-deed, chart-to-table, stamp-duty, ...)
+- `StructuredVariantTool.tsx` — flashcards + quiz (chip on both render branches)
+- `MindmapPdfTool.tsx` — chip on the mind-map result card
+- `BloodTestTool.tsx` — chip on the blood-test report card
+
+Each component: imports `FeedbackChip`, extends `meta`/`Result` type with `aiUsageId` / `providerId` / `model`, captures those fields from response body, renders `<FeedbackChip operation="summarize" ... />` at the bottom of the result card with a top border separator.
+
+**Operation aggregation choice:** all four use `operation="summarize"` matching `recordAiUsage` on the route. `/admin/ai-feedback` rolls them up under one bucket; per-variant slicing is implicit on `ai_usage.prompt_version` (joined later when prompt registry A/B work ships).
+
+**Stage 3 batch B is ~87% complete.** WIRED_TOOLS list extended 10 → 14 entries. Remaining ~7 tools are the specialist tools (`CourtOrderTool` etc) routing through dedicated AI helpers, not `/api/ai/summarize` — those need route-level instrumentation first (Stage 3 batch C).
+
+**Deploy was CLEAN** — no cascade, no nudge required. Auto-pull was stubborn for ~10 min on this push (similar lag pattern to earlier in the arc), but eventually picked up `cda2eae` and Passenger respawned smoothly.
+
+**Aggregator state:** 5065 passed across 87 suites in ~5s (delta +12 from 5053/87). `npx tsc --noEmit` exit 0.
 
 ### 2026-05-03 mid-day — post-plan gap closure (Gap #1 + Gap #3)
 
