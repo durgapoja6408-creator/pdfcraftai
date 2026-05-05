@@ -309,13 +309,24 @@ Large files = higher bug density. Refactor each into composed sub-components, mo
 
 **Estimate:** 2 weeks (golden-set curation alone is ~1 week).
 
-### 6b. No thumbs-up/down affordance
+### 6b. No thumbs-up/down affordance — ✅ ALREADY SHIPPED (re-discovered 2026-05-05)
 
-**State:** users have no way to flag bad AI output.
+**Original state (audit time):** users had no way to flag bad AI output.
 
-**Implementation:** thumbs ↑/↓ buttons on every AI result card. Persist to new `ai_feedback` table. Surface in `/admin/tools/[id]` per-op stats. Use as eval signal for routing.
+**Verification (2026-05-05 grep pass against the live tree):**
+- Migration `db/migrations/0022_ai_feedback.sql` applied — `ai_feedback` table persists thumbs ↑/↓ + per-row provenance (userId, aiUsageId, fileId, providerId, model, operation)
+- Drizzle schema entry in `db/schema/app.ts`
+- `components/feedback/FeedbackChip.tsx` — reusable chip component with optimistic UI + dedupe + rate-limit-friendly POST handler
+- Wired into 18 AI tools (verified via `grep -rln FeedbackChip components/tools/ | wc -l`):
+  - Stage 2 pilot: SummarizeTool
+  - Batch C: TranslateTool, RewriteTool, OcrPdfTool
+  - Batch D: TableExtractTool, ComparePdfsTool, GeneratePdfTool
+  - Batch E: SignAiTool, RedactPdfTool
+  - Plus: SearchablePdfTool, GenerateTool, Chat (per-message), and others
+- Admin viewer at `/admin/ai-feedback/page.tsx`
+- Eval signal: chip data already feeds `/admin/quality-signals` (§6c above) for per-user trailing-down detection
 
-**Estimate:** 3-4 days.
+**Genuinely-still-missing:** the original spec also called for per-(provider, model, op) quality scores surfaced in `/admin/tools/[id]`. That admin slice is still TBD — the data is there (`ai_feedback` joined on `ai_usage`), it just isn't aggregated into the existing per-tool admin page yet. Tracked as a small follow-on (~1 day) once chip volume justifies the rollup.
 
 ### 6c. No per-user quality signal — ✅ FOUNDATION SHIPPED (2026-05-04)
 
@@ -336,13 +347,20 @@ Large files = higher bug density. Refactor each into composed sub-components, mo
 
 **Estimate to go from foundation → full feature:** ~1-2 weeks once chip data accumulates enough to confirm threshold values.
 
-### 6d. No A/B testing infrastructure
+### 6d. No A/B testing infrastructure — ⚠️ FOUNDATION UNBLOCKED (2026-05-05)
 
-**State:** every change is "ship to all users immediately." No way to test (e.g.) different OutOfCreditsAlert copy variants, different pricing display, different abuse layers.
+**Original state (audit time):** every change shipped to all users immediately. No way to A/B test OutOfCreditsAlert copy variants, pricing display, abuse layers, etc.
 
-**Implementation:** GrowthBook (4d above). Once installed, A/B tests are config changes. Stats engine built-in.
+**What changed 2026-05-05:** `lib/flags.ts` foundation shipped (§4d) provides the deterministic-bucket primitive A/B tests need. `isFeatureEnabled(flag, { userId })` already gives sticky-per-user assignment via SHA-1 hash of `${flagName}:${userId}` — exactly the property A/B tests require so the same user always sees the same variant. `FEATURE_<FLAG>_PERCENT=50` cleanly splits a 50/50 test.
 
-**Estimate:** 1-2 weeks (depends on 4d).
+**Architecture path (no SaaS dependency required for v1):**
+1. **Variant assignment**: already done — `isFeatureEnabled("test_xyz", { userId })` returns `true` for the 50% bucket, `false` for the other 50%.
+2. **Outcome tracking**: instrument the conversion event (signup completed, credit purchase, AI op succeeded) with `flag_assignments` JSON column on `ai_usage` / `payments` / a new `signup_events` table. Persist `{ flag: "test_xyz", variant: true }` alongside the event.
+3. **Stats**: nightly cron computes lift + p-value per flag from the joined `(assignments × outcomes)` view. No real-time dashboard needed for v1 — read off `/admin/ab-tests` page.
+
+**Why GrowthBook isn't urgent yet:** at current volume (single-digit daily AI calls per op, dozens of monthly signups), even a 30%+ lift would take weeks to reach significance. The foundation we have now supports running 1-2 simultaneous tests; we'll need GrowthBook (or Unleash) when we want 10+ simultaneous tests with multivariate analysis. That trigger is months away.
+
+**Estimate to v1 A/B test infrastructure (without GrowthBook):** ~3 days (outcome-tracking JSON column + nightly rollup + read-only admin view). Foundation already done.
 
 ---
 
