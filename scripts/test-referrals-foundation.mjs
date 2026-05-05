@@ -806,8 +806,14 @@ if (fs.existsSync(AUTH)) {
 }
 
 // ---------------------------------------------------------------------------
-// Section K: app/register/page.tsx — referral param + cookie set
+// Section K: app/register/page.tsx — referral param + conditional copy
 // ---------------------------------------------------------------------------
+//
+// 2026-05-05 fix: cookies().set() throws "Cookies can only be modified
+// in a Server Action or Route Handler" when called from a server-
+// component render path (verified via prod 500 on commit a9e006f).
+// The cookie write moved to middleware.ts; this page now only reads
+// the param to vary the copy.
 
 const REGISTER = path.join(ROOT, "app/register/page.tsx");
 assert(fs.existsSync(REGISTER), "K1: app/register/page.tsx exists");
@@ -816,23 +822,114 @@ if (fs.existsSync(REGISTER)) {
 
   assert(
     /export\s+const\s+dynamic\s*=\s*"force-dynamic"/.test(registerSrc),
-    "K2: register page is force-dynamic (cookies().set requires dynamic render)",
+    "K2: register page is force-dynamic (reads searchParams)",
   );
   assert(
-    /export\s+const\s+runtime\s*=\s*"nodejs"/.test(registerSrc),
-    "K3: register page runs on nodejs (cookies API not available on Edge)",
-  );
-  assert(
-    /searchParams\s*:\s*SearchParams|searchParams\.ref/.test(registerSrc),
-    "K4: page reads searchParams.ref",
+    /searchParams\.ref|searchParams:\s*SearchParams/.test(registerSrc),
+    "K3: page reads searchParams.ref",
   );
   assert(
     /isValidReferralCode\(refRaw\)/.test(registerSrc),
-    "K5: page validates the ref code BEFORE setting the cookie",
+    "K4: page validates the ref code (used for conditional subtitle copy)",
+  );
+  // Page MUST NOT call setReferralCookie — it would throw at render
+  // time. Cookie write is in middleware. Filter out comment-mentions
+  // by stripping line comments before checking.
+  const registerSrcStripped = registerSrc
+    .split("\n")
+    .filter((line) => !/^\s*\/\//.test(line))
+    .join("\n");
+  assert(
+    !/setReferralCookie\s*\(/.test(registerSrcStripped),
+    "K5: page does NOT call setReferralCookie (forbidden in render — moved to middleware)",
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Section L: middleware.ts — cookie write + auth-gate re-implementation
+// ---------------------------------------------------------------------------
+
+const MIDDLEWARE = path.join(ROOT, "middleware.ts");
+assert(fs.existsSync(MIDDLEWARE), "L1: middleware.ts exists");
+if (fs.existsSync(MIDDLEWARE)) {
+  const mwSrc = fs.readFileSync(MIDDLEWARE, "utf8");
+
+  // Edge-safe alphabet copy. Must match REFERRAL_CODE_ALPHABET in
+  // codes.ts EXACTLY — pin both via this guard.
+  const codesSrcMatch = fs
+    .readFileSync(CODES, "utf8")
+    .match(/REFERRAL_CODE_ALPHABET\s*=\s*"([^"]+)"/);
+  const codesAlpha = codesSrcMatch ? codesSrcMatch[1] : "";
+  const mwAlphaMatch = mwSrc.match(
+    /REFERRAL_CODE_ALPHABET_EDGE\s*=\s*"([^"]+)"/,
+  );
+  const mwAlpha = mwAlphaMatch ? mwAlphaMatch[1] : "";
+  assert(
+    codesAlpha.length > 0 && mwAlpha === codesAlpha,
+    `L2: middleware alphabet matches codes.ts (codes='${codesAlpha}', mw='${mwAlpha}')`,
+  );
+
+  // Cookie name must match what auth.ts reads.
+  assert(
+    /REFERRAL_COOKIE_NAME_EDGE\s*=\s*"pdfcraft_ref"/.test(mwSrc),
+    "L3: middleware uses cookie name 'pdfcraft_ref' (matches auth.ts reader)",
+  );
+
+  // Cookie attributes — security-relevant.
+  assert(
+    /httpOnly:\s*true/.test(mwSrc),
+    "L4: middleware sets httpOnly=true on the cookie",
   );
   assert(
-    /setReferralCookie\(refRaw\)/.test(registerSrc),
-    "K6: page calls setReferralCookie when validation passes",
+    /sameSite:\s*"lax"/.test(mwSrc),
+    "L5: middleware sets sameSite=lax",
+  );
+  assert(
+    /secure:\s*process\.env\.NODE_ENV\s*===\s*"production"/.test(mwSrc),
+    "L6: middleware sets secure=production-only",
+  );
+  assert(
+    /30\s*\*\s*24\s*\*\s*60\s*\*\s*60/.test(mwSrc),
+    "L7: middleware sets maxAge=30 days",
+  );
+
+  // Auth gates — re-implementation must mirror authConfig.authorized
+  // because wrapping replaces it.
+  assert(
+    /isAppRoute\s*=\s*pathname\s*===\s*"\/app"\s*\|\|\s*pathname\.startsWith\("\/app\/"\)/.test(
+      mwSrc,
+    ),
+    "L8: middleware re-implements /app/* gate from authConfig.authorized",
+  );
+  assert(
+    /AUTH_PAGES_EDGE\s*=\s*\[[^\]]*"\/login"[^\]]*"\/register"[^\]]*"\/signup"[^\]]*"\/forgot-password"\]/.test(
+      mwSrc,
+    ),
+    "L9: middleware lists same auth pages as authConfig (login/register/signup/forgot-password)",
+  );
+  assert(
+    /pathname\.startsWith\("\/reset-password\/"\)/.test(mwSrc),
+    "L10: middleware handles /reset-password/* dynamic children (matches authConfig)",
+  );
+
+  // callbackUrl preservation when redirecting unauthenticated /app/*
+  // users to /login. Mirrors the same UX as the rest of the auth
+  // funnel (which preserves callbackUrl per Task #49).
+  assert(
+    /callbackUrl/.test(mwSrc),
+    "L11: middleware preserves callbackUrl when redirecting unauthenticated /app/* requests",
+  );
+
+  // Cookie set is /register-specific.
+  assert(
+    /pathname\s*===\s*"\/register"/.test(mwSrc),
+    "L12: cookie set is gated to pathname === '/register'",
+  );
+
+  // Wrapped auth() pattern — using `export default auth((req) => ...)`.
+  assert(
+    /export\s+default\s+auth\s*\(/.test(mwSrc),
+    "L13: middleware uses wrapped auth(fn) pattern (replaces authConfig.authorized)",
   );
 }
 

@@ -1,21 +1,16 @@
 // app/register/page.tsx — Create-account page.
 //
 // PENDING §3e Phase E (2026-05-05): reads the optional `?ref=CODE`
-// query param and persists it as a server-side cookie so the
-// `events.signIn` handler in auth.ts can resolve attribution after
-// user creation. Without this, the attribution chain breaks at
-// step 1: the URL param is on the GET that loads the form, but the
-// user record is created on the credentials POST and Google OAuth
-// callback — neither of which sees the original URL.
+// query param to show conditional referral copy. The actual cookie
+// write (so events.signIn can resolve attribution) lives in middleware
+// because Next.js 14 forbids `cookies().set()` from a server-component
+// render path — see middleware.ts for the cookie-write logic.
 
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { RegisterForm } from "@/components/auth/RegisterForm";
-import {
-  isValidReferralCode,
-  setReferralCookie,
-} from "@/lib/referrals/cookie";
+import { isValidReferralCode } from "@/lib/referrals/cookie";
 
 export const metadata: Metadata = {
   title: "Create account",
@@ -23,9 +18,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Reading searchParams to set a cookie requires a dynamic render —
-// without `force-dynamic` Next.js tries to statically generate and
-// the `cookies()` write throws.
+// Reading searchParams to vary the page copy makes this dynamic.
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -39,19 +32,16 @@ export default function RegisterPage({
   searchParams: SearchParams;
 }) {
   // Normalize multi-value query params (Next.js passes string[] when
-  // a key appears multiple times; we accept the FIRST one and ignore
-  // the rest — typical UA behavior).
+  // a key appears multiple times; we accept the FIRST one).
   const refRaw = Array.isArray(searchParams.ref)
     ? searchParams.ref[0]
     : searchParams.ref;
   const refValid =
     typeof refRaw === "string" && isValidReferralCode(refRaw);
-  if (refValid && typeof refRaw === "string") {
-    // Persist the referral code in a server-side cookie. Caught +
-    // persisted regardless of whether the user actually completes
-    // signup. 30-day TTL (see cookie.ts).
-    setReferralCookie(refRaw);
-  }
+  // NOTE: the cookie itself is set by middleware.ts before this
+  // page renders — see the /register?ref= branch there. We can't
+  // call setReferralCookie() from here because Next.js forbids
+  // cookies().set() in server-component render paths.
 
   return (
     <AuthShell
