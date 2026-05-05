@@ -425,6 +425,111 @@ if (alphaConstMatch && lengthConstMatch && generatorMatch) {
 }
 
 // ---------------------------------------------------------------------------
+// Section G: /app/refer user-facing page (PENDING §3e Phase E, 2026-05-05)
+// ---------------------------------------------------------------------------
+
+const REFER_PAGE = path.join(ROOT, "app/app/refer/page.tsx");
+const REFER_BUTTONS = path.join(ROOT, "app/app/refer/ReferralCopyButtons.tsx");
+
+assert(fs.existsSync(REFER_PAGE), "G1: app/app/refer/page.tsx exists");
+assert(
+  fs.existsSync(REFER_BUTTONS),
+  "G2: app/app/refer/ReferralCopyButtons.tsx exists",
+);
+
+if (fs.existsSync(REFER_PAGE)) {
+  const referSrc = fs.readFileSync(REFER_PAGE, "utf8");
+
+  assert(
+    /export\s+default\s+async\s+function\s+ReferPage/.test(referSrc),
+    "G3: ReferPage is the default export",
+  );
+  assert(
+    /export\s+const\s+dynamic\s*=\s*"force-dynamic"/.test(referSrc),
+    "G4: dynamic = force-dynamic (lazy-creates code on first visit; per-user)",
+  );
+  assert(
+    /export\s+const\s+runtime\s*=\s*"nodejs"/.test(referSrc),
+    "G5: runtime = nodejs (mysql2 driver requires Node)",
+  );
+
+  // Auth gate before any DB work
+  assert(
+    /const\s+session\s*=\s*await\s+auth\(\)/.test(referSrc),
+    "G6: page awaits auth() before reading or writing referral data",
+  );
+  assert(
+    /redirect\(\s*"\/login\?callbackUrl=%2Fapp%2Frefer"/.test(referSrc),
+    "G7: page redirects to /login with callbackUrl preserving the destination",
+  );
+
+  // Helper usage — confirms the page actually wires through to the
+  // foundation library, not a separate inline implementation that
+  // could drift from the schema.
+  assert(
+    /getOrCreateReferralCode\s*\(\s*userId\s*\)/.test(referSrc),
+    "G8: page calls getOrCreateReferralCode(userId)",
+  );
+  assert(
+    /loadReferrerStats\s*\(\s*userId\s*\)/.test(referSrc),
+    "G9: page calls loadReferrerStats(userId)",
+  );
+  assert(
+    /isReferralsEnabled\s*\(\s*\)/.test(referSrc),
+    "G10: page checks isReferralsEnabled() to branch enabled/staging copy",
+  );
+
+  // Honest staging copy when flag is OFF — without this users see
+  // confident "you'll get credits" copy that won't actually pay out
+  // until Phase E lands the writers.
+  assert(
+    /Beta|staging|testing|retroactive/i.test(referSrc),
+    "G11: page surfaces honest 'beta / not yet auto-granting' copy when flag is off",
+  );
+
+  // Defensive try/catch around the DB read — page should degrade to a
+  // graceful error card rather than 500.
+  assert(
+    /try\s*\{[\s\S]*?getOrCreateReferralCode/.test(referSrc),
+    "G12: getOrCreateReferralCode is wrapped in try/catch for prod robustness",
+  );
+
+  // Referral URL format. Must match what the (future) signup-flow
+  // attribution writer parses out of the request URL. If page shows
+  // ?refcode= but the writer reads ?ref=, attributions silently
+  // fail.
+  assert(
+    /\?ref=\$\{code\}/.test(referSrc),
+    "G13: shareable URL uses ?ref=<code> query param",
+  );
+}
+
+if (fs.existsSync(REFER_BUTTONS)) {
+  const buttonsSrc = fs.readFileSync(REFER_BUTTONS, "utf8");
+
+  // Client component — required because clipboard API needs window.
+  assert(
+    /^"use client"/m.test(buttonsSrc),
+    "G14: ReferralCopyButtons is a client component",
+  );
+  assert(
+    /navigator\.clipboard\.writeText/.test(buttonsSrc),
+    "G15: copy buttons use navigator.clipboard (modern, secure-context API)",
+  );
+  // Two buttons — code and full URL. Some users want one, some the
+  // other; both pin in one regex so a refactor that drops either
+  // catches.
+  assert(
+    /Copy code/.test(buttonsSrc),
+    "G16: 'Copy code' button is present",
+  );
+  assert(
+    /Copy share link/.test(buttonsSrc),
+    "G17: 'Copy share link' button is present",
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------------
 

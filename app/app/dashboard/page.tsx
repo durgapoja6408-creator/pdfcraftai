@@ -93,6 +93,13 @@ export default async function DashboardPage() {
           hint="Your paid charges"
           cta={{ href: "/app/receipts", text: "View" }}
         />
+        <StatCard
+          icon="Sparkle"
+          label="Refer"
+          value="→"
+          hint="Your share link & stats"
+          cta={{ href: "/app/refer", text: "Open" }}
+        />
       </div>
 
       <section>
