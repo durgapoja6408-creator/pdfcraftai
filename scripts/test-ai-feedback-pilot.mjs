@@ -129,6 +129,39 @@ const WIRED_TOOLS = [
     route: "app/api/ai/chat/route.ts",
     operation: "chat_turn",
   },
+  // 2026-05-04 — Stage 3 batch B kicked off. SummarizeVariantTool is
+  // the shared runner for ~36 distinct depth variants (key-points,
+  // study-notes, faq, blog, action-items, mindmap, paraphrase,
+  // ai-detector, jd-match, etc.). All variants route through
+  // /api/ai/summarize so operation="summarize" matches recordAiUsage.
+  // Adding the chip on this single component flows feedback collection
+  // to every variant tool — much higher leverage than per-tool wire-ups.
+  // Same operation literal as SummarizePdfTool entry above (intentional —
+  // /admin/ai-feedback aggregates all summarize-rail variants under
+  // one bucket; depth is implicit on the ai_usage row's prompt_version).
+  {
+    component: "components/tools/SummarizeVariantTool.tsx",
+    route: "app/api/ai/summarize/route.ts",
+    operation: "summarize",
+  },
+  // StructuredVariantTool covers flashcards + quiz; same backend rail.
+  {
+    component: "components/tools/StructuredVariantTool.tsx",
+    route: "app/api/ai/summarize/route.ts",
+    operation: "summarize",
+  },
+  // MindmapPdfTool + BloodTestTool also route via /api/ai/summarize
+  // with their own depth values (mindmap, blood-test).
+  {
+    component: "components/tools/MindmapPdfTool.tsx",
+    route: "app/api/ai/summarize/route.ts",
+    operation: "summarize",
+  },
+  {
+    component: "components/tools/BloodTestTool.tsx",
+    route: "app/api/ai/summarize/route.ts",
+    operation: "summarize",
+  },
 ];
 
 // ============================================================================

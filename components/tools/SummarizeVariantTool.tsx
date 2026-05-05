@@ -34,6 +34,14 @@ import { track } from "@/lib/analytics";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import { fetchAiWithRetry } from "@/lib/client/fetch-ai-with-retry";
 import { UploadedFilePreview } from "./UploadedFilePreview";
+// 2026-05-04 (PENDING §6b Stage 3 batch B) — variant chip wire-up.
+// SummarizeVariantTool is the shared runner for ~36 distinct depth
+// variants (key-points, study-notes, eli5, faq, blog, action-items,
+// jd-match, paraphrase, ai-detector, etc.). Adding the chip here
+// flows feedback collection to every variant in one component edit.
+// All variants route through /api/ai/summarize so operation="summarize"
+// matches what recordAiUsage persisted.
+import { FeedbackChip } from "@/components/feedback/FeedbackChip";
 
 type Depth =
   | "key-points"
@@ -89,6 +97,15 @@ type Result = {
   newBalance?: number;
   pageCount?: number;
   wasTruncated?: boolean;
+  // 2026-05-04 (PENDING §6b Stage 3 batch B) — provenance for the
+  // FeedbackChip rendered below the markdown. aiUsageId is the
+  // server-side recordAiUsage row id (null on idempotent replay or
+  // pre-instrumentation responses). providerId / model are
+  // denormalized for the chip's POST so /admin/ai-feedback can slice
+  // by (provider, model) without joining ai_usage.
+  aiUsageId?: string | null;
+  providerId?: string;
+  model?: string;
 };
 
 export function SummarizeVariantTool(props: {
@@ -225,6 +242,9 @@ export function SummarizeVariantTool(props: {
           newBalance: typeof body.newBalance === "number" ? body.newBalance : undefined,
           pageCount,
           wasTruncated: Boolean(body.wasTruncated),
+          aiUsageId: typeof body.aiUsageId === "string" ? body.aiUsageId : null,
+          providerId: typeof body.providerId === "string" ? body.providerId : undefined,
+          model: typeof body.model === "string" ? body.model : undefined,
         });
         // Task #87 — tool_run_success event. Funnel step 3 of 3.
         track({
@@ -243,6 +263,9 @@ export function SummarizeVariantTool(props: {
           markdown: String(body.markdown ?? ""),
           creditCost: credit,
           wasTruncated: Boolean(body.wasTruncated),
+          aiUsageId: typeof body.aiUsageId === "string" ? body.aiUsageId : null,
+          providerId: typeof body.providerId === "string" ? body.providerId : undefined,
+          model: typeof body.model === "string" ? body.model : undefined,
         });
         // 207 = compute succeeded, persist failed. Still a successful
         // run from the user's perspective.
@@ -437,6 +460,32 @@ export function SummarizeVariantTool(props: {
               window.
             </div>
           )}
+          {/*
+            2026-05-04 (PENDING §6b Stage 3 batch B) — FeedbackChip on
+            every variant. operation="summarize" matches what the
+            /api/ai/summarize route persists via recordAiUsage; the
+            depth (props.depth) is implicit in the fileId / aiUsageId
+            denormalization on the ai_feedback row, so /admin/ai-
+            feedback can join + slice by depth without changing the
+            chip props. fileId nullable on 207 (persist failed); chip
+            still records feedback — aiUsageId is what links to the
+            usage row that DID persist.
+          */}
+          <div
+            style={{
+              marginTop: 12,
+              paddingTop: 12,
+              borderTop: "1px solid var(--border)",
+            }}
+          >
+            <FeedbackChip
+              operation="summarize"
+              aiUsageId={result.aiUsageId ?? null}
+              fileId={result.fileId ?? null}
+              providerId={result.providerId}
+              model={result.model}
+            />
+          </div>
         </div>
       )}
 

@@ -44,6 +44,10 @@ import { useToolTracking } from "./useToolTracking";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import { fetchAiWithRetry } from "@/lib/client/fetch-ai-with-retry";
 import { UploadedFilePreview } from "./UploadedFilePreview";
+// 2026-05-04 (PENDING §6b Stage 3 batch B) — chip on flashcards + quiz.
+// StructuredVariantTool also routes through /api/ai/summarize, so
+// operation="summarize" matches what recordAiUsage persists.
+import { FeedbackChip } from "@/components/feedback/FeedbackChip";
 
 type Flashcard = { q: string; a: string; page: number };
 type QuizItem = {
@@ -147,6 +151,11 @@ export function StructuredVariantTool(props: {
     newBalance?: number;
     fileId?: string;
     rawMarkdown: string;
+    // 2026-05-04 (PENDING §6b Stage 3 batch B) — provenance for the
+    // FeedbackChip rendered next to the flashcards / quiz cards.
+    aiUsageId?: string | null;
+    providerId?: string;
+    model?: string;
   } | null>(null);
 
   const onFiles = useCallback((files: File[]) => {
@@ -241,6 +250,9 @@ export function StructuredVariantTool(props: {
           newBalance: typeof body.newBalance === "number" ? body.newBalance : undefined,
           fileId: typeof body.fileId === "string" ? body.fileId : undefined,
           rawMarkdown: markdown,
+          aiUsageId: typeof body.aiUsageId === "string" ? body.aiUsageId : null,
+          providerId: typeof body.providerId === "string" ? body.providerId : undefined,
+          model: typeof body.model === "string" ? body.model : undefined,
         });
         trackTool.success({ creditCost: credit, depth: props.depth, processingMs });
         return;
@@ -400,6 +412,22 @@ export function StructuredVariantTool(props: {
               </details>
             ))}
           </div>
+          {/* 2026-05-04 (PENDING §6b Stage 3 batch B) — chip on flashcards card */}
+          <div
+            style={{
+              marginTop: 16,
+              paddingTop: 12,
+              borderTop: "1px solid var(--border)",
+            }}
+          >
+            <FeedbackChip
+              operation="summarize"
+              aiUsageId={meta?.aiUsageId ?? null}
+              fileId={meta?.fileId ?? null}
+              providerId={meta?.providerId}
+              model={meta?.model}
+            />
+          </div>
         </div>
       )}
 
@@ -462,6 +490,22 @@ export function StructuredVariantTool(props: {
               </li>
             ))}
           </ol>
+          {/* 2026-05-04 (PENDING §6b Stage 3 batch B) — chip on quiz card */}
+          <div
+            style={{
+              marginTop: 16,
+              paddingTop: 12,
+              borderTop: "1px solid var(--border)",
+            }}
+          >
+            <FeedbackChip
+              operation="summarize"
+              aiUsageId={meta?.aiUsageId ?? null}
+              fileId={meta?.fileId ?? null}
+              providerId={meta?.providerId}
+              model={meta?.model}
+            />
+          </div>
         </div>
       )}
 

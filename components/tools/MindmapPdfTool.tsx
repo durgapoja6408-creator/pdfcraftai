@@ -30,6 +30,9 @@ import { useToolTracking } from "./useToolTracking";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import { fetchAiWithRetry } from "@/lib/client/fetch-ai-with-retry";
 import { UploadedFilePreview } from "./UploadedFilePreview";
+// 2026-05-04 (PENDING §6b Stage 3 batch B) — Mindmap also routes via
+// /api/ai/summarize so operation="summarize" matches recordAiUsage.
+import { FeedbackChip } from "@/components/feedback/FeedbackChip";
 
 type TreeNode = {
   label: string;
@@ -163,7 +166,14 @@ export function MindmapPdfTool() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mindmap, setMindmap] = useState<MindMap | null>(null);
-  const [meta, setMeta] = useState<{ creditCost: number; newBalance?: number } | null>(null);
+  const [meta, setMeta] = useState<{
+    creditCost: number;
+    newBalance?: number;
+    fileId?: string;
+    aiUsageId?: string | null;
+    providerId?: string;
+    model?: string;
+  } | null>(null);
 
   const onFiles = useCallback((files: File[]) => {
     const f = files[0];
@@ -231,6 +241,10 @@ export function MindmapPdfTool() {
         setMeta({
           creditCost: Number(body.creditCost ?? 0),
           newBalance: typeof body.newBalance === "number" ? body.newBalance : undefined,
+          fileId: typeof body.fileId === "string" ? body.fileId : undefined,
+          aiUsageId: typeof body.aiUsageId === "string" ? body.aiUsageId : null,
+          providerId: typeof body.providerId === "string" ? body.providerId : undefined,
+          model: typeof body.model === "string" ? body.model : undefined,
         });
         trackTool.success({ creditCost: Number(body.creditCost ?? 0), depth: "mindmap", processingMs });
         return;
@@ -410,6 +424,22 @@ export function MindmapPdfTool() {
               {mindmap.root}
             </div>
             <TreeList nodes={mindmap.branches} />
+          </div>
+          {/* 2026-05-04 (PENDING §6b Stage 3 batch B) — chip on mindmap card */}
+          <div
+            style={{
+              marginTop: 16,
+              paddingTop: 12,
+              borderTop: "1px solid var(--border)",
+            }}
+          >
+            <FeedbackChip
+              operation="summarize"
+              aiUsageId={meta?.aiUsageId ?? null}
+              fileId={meta?.fileId ?? null}
+              providerId={meta?.providerId}
+              model={meta?.model}
+            />
           </div>
         </div>
       )}

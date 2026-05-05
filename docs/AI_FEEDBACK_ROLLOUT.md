@@ -120,8 +120,20 @@ the id. No data migration needed.
 | Stage 3 batch A — finish (table + compare) | 6 / 53 | 11.3% | `ff54b07` |
 | Stage 3 batch A — sign + redact (newly unlocked by Batch 3 ai_usage) | 8 / 53 | 15.1% | `1684741` |
 | Stage 3 — Generate (last markdown-rendering AI tool) | 9 / 53 | 17.0% | `94db9e1` |
-| Stage 3 — Chat (per-message in conversational UX) | 10 / 53 | 18.9% | _this commit_ |
-| Stage 3 batch B — variants | — | — | pending |
+| Stage 3 — Chat (per-message in conversational UX) | 10 / 53 | 18.9% | `cb013ab` |
+| Stage 3 batch B — variants (Summarize/Structured/Mindmap/BloodTest) | ~46 / 53 | ~87% | _this commit_ |
 | Stage 3 batch C — specialist + tail | — | — | pending |
 
 Update this table as batches ship.
+
+## Batch B notes (this commit)
+
+Batch B targets the four shared variant runner components — they collectively cover ~36 depth variants of the Summarize backend plus flashcards/quiz/mindmap/blood-test. Wiring the chip into the four shared components means **every variant** (key-points, study-notes, eli5, faq, blog, readability, action-items, syllabus, discharge, jd-match, paraphrase, ai-detector, condense, expand, tone-analyze, citations, sentiment, bias, entities, social-thread, newsletter, video-script, improve-writing, proofread, ats-resume, cover-letter, nda, employment, salary-slip, research-paper, insurance, loan-bundle, partnership-deed, chart-to-table, stamp-duty, plus flashcards / quiz / mindmap / blood-test) inherits the chip without per-variant edits.
+
+**Why this is one commit, not 36:** the variant routing is already in place — every variant POSTs to `/api/ai/summarize`. The route already surfaces `aiUsageId` (instrumented in commit `f7d5a9c` via Batch 1 of the AI_USAGE_INSTRUMENTATION_GAP rollout). The only structural change needed was the Result-type extension + capture in the four shared components. Per-variant SEO landings + tool registry entries don't need to know about the chip.
+
+**Files changed:** 4 components (`SummarizeVariantTool.tsx`, `StructuredVariantTool.tsx`, `MindmapPdfTool.tsx`, `BloodTestTool.tsx`) + `scripts/test-ai-feedback-pilot.mjs` WIRED_TOOLS list extended 10 → 14 (entries map components, all four to operation `summarize` matching the route's `recordAiUsage` value).
+
+**Operation aggregation:** all variants share `operation="summarize"` on the chip (matches what `recordAiUsage` persists). `/admin/ai-feedback` rolls them up under the `summarize` op bucket. Per-variant slicing is implicit on the ai_usage row's `prompt_version` field — when the prompt registry A/B work ships, slicing by depth becomes a join, not a chip prop change.
+
+**What's left:** Stage 3 batch C (specialist + long-tail tools). The remaining ~7 tools in the registry that route through their own dedicated AI helper (not `/api/ai/summarize`) — primarily the specialist tools (`CourtOrderTool` etc) that need their own routes to surface `aiUsageId` first.
