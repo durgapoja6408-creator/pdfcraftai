@@ -1,24 +1,27 @@
 # Next session — pick up here
 
-**Updated 2026-05-04 late-night (latest live commit `2a459f3`).**
+**Updated 2026-05-04 late-night (latest live commit `81087df`).**
 Multi-day arc complete. Production observability rollout 100% done.
 **FeedbackChip rollout structurally complete on AI-using component
 side: 19/19 wired** (Stage 3 batches A + B + C all closed). PENDING
-§11a (webhook audit ordering) and §4c (dunning persistence
-foundation) both closed in this arc.
+§11a (webhook audit ordering), §4c (dunning persistence foundation),
+and §6c (per-user quality-signal foundation) all closed in this arc.
 
 **Status snapshot:**
-- Latest live commit: `2a459f3` (Stage 3 batch C — chip on 5
-  specialist tools)
-- Last code-bearing deploy: `2a459f3` (same — code-bearing)
-- Aggregator: **5080/5080 tests passing across 87 suites** in ~5.4s
+- Latest live commit: `81087df` (Per-user quality-signal foundation —
+  PENDING §6c closed)
+- Last code-bearing deploy: same
+- Aggregator: **5119/5119 tests passing across 88 suites** in ~5.3s
 - `tsc --noEmit` exit 0
 - 21 cascade events survived; recovery playbook holds; cascades
-  #20 + #21 both typical-fast (~3 min via single mass-kill)
+  #20 + #21 both typical-fast (~3 min via single mass-kill); 81087df
+  itself deployed CLEAN (no cascade)
 - Production: all systems active, all 10 AI ops audited, /admin/margin
   sees 100% of fleet, /admin/ai-feedback collects ↑/↓ across all
-  19 AI-using component surfaces, /admin/dunning ready for Phase E
-  (empty table by design today)
+  19 AI-using component surfaces, /admin/quality-signals derives
+  per-user trailing-thumbs-down streaks from accumulated chip data,
+  /admin/dunning ready for Phase E (both quality-signal and dunning
+  empty by design today)
 
 ## Read first
 
@@ -47,7 +50,7 @@ foundation) both closed in this arc.
 |---|---|---|
 | ~~Stage 3 Batch B chip rollout (SummarizeVariantTool family)~~ | ~~~1 day~~ | ✅ DONE (commit `cda2eae`). 4 shared variant runners → ~36 depth variants get the chip via shared component. |
 | ~~Stage 3 Batch C chip rollout (specialist + tail tools)~~ | ~~~2 days~~ | ✅ DONE (commit `2a459f3`). 5 specialist tools wired. Original "blocked on route instrumentation" framing was wrong — all 5 already route through instrumented endpoints. **WIRED_TOOLS now 19/19 = 100% on AI-using components.** |
-| Per-user negative feedback signal (PENDING §6c) | ~1 week | Detect "user X has 3+ consecutive thumbs-down on AI ops" and either re-route or surface to admin. Depends on chip data accumulating across the wired 8 tools first. Worth ~1-2 weeks of real traffic before building. |
+| ~~Per-user negative feedback signal (PENDING §6c)~~ | ~~~1 week~~ | ✅ FOUNDATION SHIPPED (commit `81087df`). Pure classifier + read helpers + /admin/quality-signals viewer. Auto-routing wire-up gated on 1-2 weeks of accumulated chip data to confirm the (2, 4) thresholds aren't producing too many false positives. |
 | Mobile UI hardening (PENDING §5f / T1-4) | 3-5 days | Playwright mobile spec across the 13 visual editors. Fix touch behavior issues. ~40% of typical PDF tool traffic is mobile. |
 
 ### Tier 3 — large (multi-week)
@@ -151,7 +154,7 @@ The infrastructure groundwork is structurally complete on these axes:
 ```bash
 cd /sessions/gifted-funny-franklin/pdfcraftai-work
 npx tsc --noEmit                                # exit 0?
-node scripts/run-all-tests.mjs 2>&1 | tail -3   # 5053/0 across 87?
+node scripts/run-all-tests.mjs 2>&1 | tail -3   # 5119/0 across 88?
 curl -s https://pdfcraftai.com/api/health | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['commit'], d['uptimeSec'])"
 ```
 

@@ -4,8 +4,8 @@ _Single source of truth for what's done, what's pending, and who owns each item.
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
 **Last updated:** 2026-05-04 (17 ship items + Batch 2 instrumentation + Batch A FeedbackChip finish — table/compare wired).
-**Live commit:** `2a459f3280c6` (Stage 3 batch C — chip on 5 specialist tools; **rollout structurally complete on AI-using component side**, 19/19). Deployed via single mass-kill recovery (~3 min — typical-fast cascade #21). All 87 suites green, **5080 tests passing**. **Twenty-one zombie-next-server cascades** total.
-**Aggregator:** 5080 passed across 87 suites in ~5.4s (+15 from prior 5065/87 — pilot guard WIRED_TOOLS list extended 14 → 19 entries × 3 cross-checks each).
+**Live commit:** `81087dfdfe27` (Per-user quality-signal foundation — PENDING §6c closed; pure classifier + read helpers + admin viewer). Deployed CLEAN — no cascade. All 88 suites green, **5119 tests passing**. **Twenty-one zombie-next-server cascades** total (no new cascade on this commit).
+**Aggregator:** 5119 passed across 88 suites in ~5.3s (+39 from prior 5080/87 — new `quality-signal-foundation` suite locks in the lib surface, pure-function semantics including the trailing-streak break + flagged-before-watch ordering invariants, admin page contract, layout NAV, and cross-file bucket-name agreement).
 
 ### 2026-05-04 — Activation + e2e + tool improvement plan + Tier 1/2 ships
 
@@ -353,6 +353,32 @@ Closes the FeedbackChip rollout on the AI-using component side. The original "ba
 **Cascade #21 — typical-fast.** 503 hit at push. SSH ConnectTimeout=15 + single mass-kill recovered within ~3 min — uptime came back at 5s on commit `2a459f3280c6`. Back to nominal range.
 
 **Aggregator state:** 5080 passed across 87 suites in ~5.4s (delta +15 from 5065/87). `npx tsc --noEmit` exit 0.
+
+### 2026-05-04 — Per-user quality-signal foundation (commit `81087df`) — PENDING §6c closed
+
+Closes the §6c "no per-user quality signal" gap on the foundation side. Same staging discipline as dunning (`76a0c82`) and ai-feedback (`d74fefe`): pure helpers + read-side queries + admin viewer + CI guard land together; the auto-routing wire-up that consumes this stays gated by `TODO(automation)` until accumulated chip data confirms the right threshold values.
+
+**No migration** — derives from the existing `ai_feedback` table (migration 0022) on every read. Zero cache-vs-truth de-sync risk between a stored "flagged" state and the underlying verdict log.
+
+**Surface (6 files / +940 / -4):**
+- `lib/ai/quality-signal.ts` (316 lines) — `QualityBucket` literal union, `QUALITY_SIGNAL_POLICY` constants (watchThreshold=2, flaggedThreshold=4, recentWindow=20), three pure helpers (`computeConsecutiveNegative` with break-on-non-down to count trailing streak only, `classifyQualitySignal` with flagged-before-watch ordering, `newDunningRow`-style typed shape), two read-side queries (`loadUserQualitySignal` ordering desc + capping at recentWindow; `listFlaggedUsers` two-stage candidates+per-user with the N+1 trade-off documented inline).
+- `app/admin/quality-signals/page.tsx` (313 lines) — read-only admin viewer. Three summary cards (total / flagged / watch), full table with bucket chip + streak count + recent-ops chips + "in window" stat, caveat copy explaining "read-only today, automation later", empty-state copy noting first-day quietness is by design.
+- `app/admin/layout.tsx` — new "Quality signals" entry under Ops, between "AI feedback" and "Dunning".
+- `scripts/test-quality-signal-foundation.mjs` (39 assertions across 5 sections — A: lib surface, B: pure-function semantics with explicit invariant checks for break-on-non-down + flagged-before-watch ordering + desc()-ordered query, C: admin page contract, D: layout NAV, E: cross-file bucket-name + PENDING anchor invariants).
+- `scripts/run-all-tests.mjs` — wired `quality-signal-foundation` suite directly after `dunning-foundation`.
+- `docs/PENDING_WORK_ANALYSIS.md §6c` — marked ✅ FOUNDATION SHIPPED with follow-up estimate (1-2 weeks once chip data accumulates) for the auto-routing flip.
+
+**Two pure-function traps worth flagging in the guard:**
+- `computeConsecutiveNegative` MUST break on the first non-"down" verdict — using `.filter(v => v === "down").length` would over-count non-trailing thumbs-down (a user with `[up, down, up, down, up]` should be 0, not 2).
+- `classifyQualitySignal` MUST check `>= flaggedThreshold` BEFORE `>= watchThreshold`, otherwise a streak of 5 with thresholds (2, 4) gets caught by the watch branch and incorrectly bucketed as `watch` instead of `flagged`.
+
+Both invariants pinned in Section B of the CI guard.
+
+**Empty-by-design today.** Stage 3 of the FeedbackChip rollout completed in commit `2a459f3` ~30 min ago; the first day or two of the surface will be quiet because chip data is still accumulating. The empty-state copy explicitly calls this out so operators don't assume the read path is broken.
+
+**Deploy was CLEAN** — no cascade, no nudge required. First fully-clean deploy since `cda2eae` (the batch B chip rollout). Auto-pull picked up `81087df` within ~3 min of push and Passenger respawned smoothly.
+
+**Aggregator state:** 5119 passed across **88 suites** in ~5.3s (delta +39 assertions / +1 suite). `npx tsc --noEmit` exit 0.
 
 ### 2026-05-03 mid-day — post-plan gap closure (Gap #1 + Gap #3)
 
