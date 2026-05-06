@@ -304,6 +304,126 @@ assert(
 );
 
 // ---------------------------------------------------------------------------
+// Section E: writer module (Phase G partial, 2026-05-05)
+// ---------------------------------------------------------------------------
+
+const WRITER = path.join(ROOT, "lib/ai/eval/human-grade-writer.ts");
+assert(fs.existsSync(WRITER), "E1: lib/ai/eval/human-grade-writer.ts exists");
+if (fs.existsSync(WRITER)) {
+  const writerSrc = fs.readFileSync(WRITER, "utf8");
+
+  assert(
+    /export\s+async\s+function\s+recordHumanGrade\b/.test(writerSrc),
+    "E2: recordHumanGrade is exported async",
+  );
+  assert(
+    /export\s+async\s+function\s+replaceGrade\b/.test(writerSrc),
+    "E3: replaceGrade is exported async (explicit overwrite path)",
+  );
+  assert(
+    /export\s+class\s+HumanGradeWriteError\s+extends\s+Error\b/.test(
+      writerSrc,
+    ),
+    "E4: HumanGradeWriteError class is exported",
+  );
+
+  // 1..5 Likert validation — reject out-of-range
+  assert(
+    /value\s*<\s*1\s*\|\|\s*value\s*>\s*5/.test(writerSrc),
+    "E5: validateScore rejects values outside 1..5 (no silent clamp)",
+  );
+  assert(
+    /Number\.isInteger/.test(writerSrc),
+    "E6: validateScore requires integer (no 3.5 sneaking through)",
+  );
+
+  // Duplicate-key handling — translate ER_DUP_ENTRY to typed
+  // exception, not silent failure.
+  assert(
+    /Duplicate entry|ER_DUP_ENTRY/.test(writerSrc),
+    "E7: recordHumanGrade catches MySQL duplicate-key (the 5-col unique)",
+  );
+  assert(
+    /"DUPLICATE"/.test(writerSrc),
+    "E8: duplicate path throws HumanGradeWriteError with code 'DUPLICATE'",
+  );
+
+  // replaceGrade uses a transaction (DELETE + INSERT must be atomic)
+  assert(
+    /db\.transaction\(\s*async\s*\(\s*tx\s*\)/.test(writerSrc),
+    "E9: replaceGrade wraps DELETE+INSERT in a transaction",
+  );
+
+  // Both writer functions exist; pin that they hit the eval table.
+  // tx.delete may be split across lines (chained ./delete on next
+  // line) — multiline-friendly match.
+  assert(
+    /tx[\s\S]*?\.delete\(\s*schema\.evalHumanGrades/.test(writerSrc) &&
+      /tx\.insert\(\s*schema\.evalHumanGrades/.test(writerSrc),
+    "E10: replaceGrade transaction does delete-then-insert on evalHumanGrades",
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Section F: admin POST handler /api/admin/evals/grade
+// ---------------------------------------------------------------------------
+
+const ROUTE = path.join(ROOT, "app/api/admin/evals/grade/route.ts");
+assert(fs.existsSync(ROUTE), "F1: app/api/admin/evals/grade/route.ts exists");
+if (fs.existsSync(ROUTE)) {
+  const routeSrc = fs.readFileSync(ROUTE, "utf8");
+
+  assert(
+    /export\s+async\s+function\s+POST\b/.test(routeSrc),
+    "F2: POST handler is exported",
+  );
+  assert(
+    /export\s+const\s+runtime\s*=\s*"nodejs"/.test(routeSrc),
+    "F3: runtime = nodejs",
+  );
+
+  // Auth gate — admin email check
+  assert(
+    /isAdminEmail/.test(routeSrc),
+    "F4: route uses isAdminEmail() admin-allowlist gate",
+  );
+  assert(
+    /not_authenticated/.test(routeSrc) && /forbidden/.test(routeSrc),
+    "F5: route returns 401 not_authenticated + 403 forbidden",
+  );
+
+  // graderUserId from session — NEVER from body. Load-bearing:
+  // trusting the body would let an admin attribute grades to other
+  // admins.
+  assert(
+    /graderUserId:\s*userId/.test(routeSrc),
+    "F6: graderUserId is taken from session.user.id (NEVER from body — anti-impersonation)",
+  );
+  assert(
+    !/graderUserId:\s*body\.graderUserId/.test(routeSrc),
+    "F7: route does NOT read graderUserId from body (would allow grade impersonation)",
+  );
+
+  // Error code → HTTP status mapping
+  assert(
+    /code\s*===\s*"DUPLICATE"/.test(routeSrc) &&
+      /status\s*=\s*409/.test(routeSrc),
+    "F8: DUPLICATE writer error maps to 409 Conflict",
+  );
+  assert(
+    /code\s*===\s*"INVALID_SCORE"/.test(routeSrc) &&
+      /status\s*=\s*400/.test(routeSrc),
+    "F9: INVALID_SCORE writer error maps to 400 Bad Request",
+  );
+
+  // replace flag handling
+  assert(
+    /body\.replace\s*===\s*true/.test(routeSrc),
+    "F10: route reads body.replace boolean (explicit overwrite opt-in)",
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------------
 

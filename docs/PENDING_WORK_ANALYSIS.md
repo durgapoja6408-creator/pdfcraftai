@@ -422,9 +422,12 @@ Large files = higher bug density. Refactor each into composed sub-components, mo
 
 **Same staging discipline** as the other 8 foundations: storage + read paths land NOW; writers + grader UI come later (Phase G). Empty-by-design today (no rows until Phase G adds the interactive grader UI). The "0 grades / 0 active graders" empty state itself is useful — confirms the read path works end-to-end against real prod schema.
 
-**Remaining (Phase G):**
-- Writer module (`recordHumanGrade`, `replaceGrade` with the unique-constraint acknowledgment) ~1 day
-- `/admin/evals/grade` interactive form: golden-set fixture + AI output side-by-side + 4 Likert sliders + notes textarea + submit. Loads existing grades from `loadGradesForCombo` so the operator sees what other graders said. ~2 days
+**Phase G writer + API shipped 2026-05-05** (this session):
+- ✅ `lib/ai/eval/human-grade-writer.ts` — `recordHumanGrade` (INSERT, throws DUPLICATE on the 5-col unique) + `replaceGrade` (transactional DELETE+INSERT for explicit overwrite). 1..5 Likert validation rejects out-of-range or non-integer scores (no silent clamp). HumanGradeWriteError class with codes INVALID_SCORE / EMPTY_REQUIRED / DUPLICATE / ROW_NOT_FOUND / DB_ERROR.
+- ✅ `app/api/admin/evals/grade/route.ts` — POST handler. Auth-gated by admin email allowlist (mirrors /api/admin/reconcile pattern). graderUserId taken from session.user.id, **never from body** (load-bearing anti-impersonation guard pinned in CI Section F). Error codes mapped to HTTP status: INVALID_SCORE → 400, DUPLICATE → 409 Conflict (so client can retry with replace=true), DB_ERROR → 500. Replace-flag opt-in via `body.replace === true`.
+
+**Remaining (Phase G UI):**
+- `/admin/evals/grade` interactive form: golden-set fixture + AI output side-by-side + 4 Likert sliders + notes textarea + submit. Loads existing grades from `loadGradesForCombo` so the operator sees what other graders said. POSTs to the now-shipped `/api/admin/evals/grade`. ~2 days
 - `/admin/evals/<id>` per-grade drilldown (full output excerpt + grader notes) ~half day
 - Per-op trend chart over time on `/admin/evals` ~half day
 - Slack alerter when a (provider × model × op) overall average crosses below `HUMAN_GRADE_FLOOR` (depends on §2a Slack webhook)
