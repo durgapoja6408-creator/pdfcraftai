@@ -691,6 +691,109 @@ if (fs.existsSync(ORG_ACTIONS)) {
 }
 
 // ---------------------------------------------------------------------------
+// Section I: Phase F-4 writers — changeRole / removeMember /
+// transferOwnership
+// ---------------------------------------------------------------------------
+
+if (fs.existsSync(WRITERS)) {
+  const writersSrc = fs.readFileSync(WRITERS, "utf8");
+
+  // Three new writers + role-rank table
+  assert(
+    /export\s+async\s+function\s+changeRole\b/.test(writersSrc),
+    "I1: changeRole is exported async",
+  );
+  assert(
+    /export\s+async\s+function\s+removeMember\b/.test(writersSrc),
+    "I2: removeMember is exported async",
+  );
+  assert(
+    /export\s+async\s+function\s+transferOwnership\b/.test(writersSrc),
+    "I3: transferOwnership is exported async",
+  );
+
+  // Role-rank table — pin owner > admin > member ordering. A regression
+  // that flipped the ranks would silently break every permission check.
+  assert(
+    /owner:\s*3,\s*\n\s*admin:\s*2,\s*\n\s*member:\s*1/.test(writersSrc),
+    "I4: ROLE_RANK has owner=3 > admin=2 > member=1 (load-bearing for permission checks)",
+  );
+
+  // changeRole rejects newRole='owner' — owner role can ONLY be set
+  // via transferOwnership. This is a security property: an admin
+  // shouldn't be able to promote themselves to owner via changeRole.
+  assert(
+    /newRole\s*!==\s*"admin"\s*&&\s*newRole\s*!==\s*"member"/.test(writersSrc),
+    "I5: changeRole rejects newRole !== 'admin' && !== 'member' (no 'owner' via changeRole)",
+  );
+
+  // changeRole rejects self-targeting
+  assert(
+    /targetUserId\s*===\s*byUserId/.test(writersSrc),
+    "I6: changeRole rejects self-targeting (you can't change your own role)",
+  );
+
+  // changeRole strict-outrank check
+  assert(
+    /actorRank\s*<=\s*targetRank/.test(writersSrc),
+    "I7: changeRole requires actor STRICTLY outranks target (admins can't change other admins)",
+  );
+
+  // changeRole authority-to-grant check
+  assert(
+    /actorRank\s*<\s*newRoleRank/.test(writersSrc),
+    "I8: changeRole requires actor's rank >= newRole rank (admins can't promote to admin level)",
+  );
+
+  // removeMember owner protection — owner cannot be removed
+  assert(
+    /target\.role\s*===\s*"owner"/.test(writersSrc),
+    "I9: removeMember rejects target with role='owner' (use transferOwnership first)",
+  );
+
+  // removeMember allows self-removal of non-owners (members can leave)
+  assert(
+    /targetUserId\s*!==\s*byUserId/.test(writersSrc),
+    "I10: removeMember allows self-leave (non-owner) — strict-outrank check is conditional on target !== actor",
+  );
+
+  // transferOwnership atomicity — must be wrapped in db.transaction
+  assert(
+    /transferOwnership[\s\S]*?db\.transaction\(\s*async\s*\(\s*tx\s*\)/.test(
+      writersSrc,
+    ),
+    "I11: transferOwnership wraps the 3-write swap in a transaction",
+  );
+
+  // transferOwnership verifies fromUserId matches CURRENT owner column
+  // (not just role=owner) — paranoid check against inconsistent state
+  assert(
+    /orgRows\[0\]!\.ownerUserId\s*!==\s*fromUserId/.test(writersSrc),
+    "I12: transferOwnership verifies fromUserId matches organizations.owner_user_id (paranoid against inconsistent state)",
+  );
+
+  // transferOwnership requires toUserId to already be a member
+  assert(
+    /Target user must already be a member/.test(writersSrc),
+    "I13: transferOwnership requires toUserId is already a member (no auto-invite)",
+  );
+
+  // transferOwnership rejects self-transfer
+  assert(
+    /fromUserId\s*===\s*toUserId/.test(writersSrc),
+    "I14: transferOwnership rejects self-transfer (fromUserId === toUserId)",
+  );
+
+  // transferOwnership demotes the former owner to admin (not removed)
+  assert(
+    /role:\s*"admin"[\s\S]*?fromRow\.id|fromRow\.id[\s\S]*?role:\s*"admin"/.test(
+      writersSrc,
+    ),
+    "I15: transferOwnership demotes the former owner to 'admin' (not removed — they likely want to keep using the org)",
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------------
 

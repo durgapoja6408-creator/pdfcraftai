@@ -424,6 +424,329 @@ export async function acceptInvite(
 }
 
 // ---------------------------------------------------------------------------
+// changeRole / removeMember / transferOwnership (Phase F-4, 2026-05-05)
+// ---------------------------------------------------------------------------
+
+/**
+ * Role rank for permission comparison. Higher number = more
+ * authority. Used in changeRole + removeMember to enforce "you can
+ * only act on roles strictly below your own" — prevents admins
+ * from demoting other admins or members from removing the owner.
+ */
+const ROLE_RANK: Record<string, number> = {
+  owner: 3,
+  admin: 2,
+  member: 1,
+};
+
+function rankOf(role: string): number {
+  return ROLE_RANK[role] ?? 0;
+}
+
+export interface ChangeRoleInput {
+  organizationId: string;
+  /** The member whose role is being changed. */
+  targetUserId: string;
+  /** New role for the target. Cannot be 'owner' (use transferOwnership). */
+  newRole: "admin" | "member";
+  /** The user performing the change. Must outrank the target both
+   *  before AND after — i.e. an admin can demote a member but
+   *  cannot promote a member to admin (because that creates a peer,
+   *  not a subordinate). Owner can change anyone. */
+  byUserId: string;
+}
+
+/**
+ * Change a member's role. Permission rules:
+ *   - byUserId must be a member of the org
+ *   - byUserId's role must STRICTLY OUTRANK the target's CURRENT role
+ *     (admins can't change other admins; members can't change anyone)
+ *   - byUserId's role must be GREATER THAN OR EQUAL TO newRole
+ *     (admins can't promote anyone to admin level — only owner can do
+ *     that)
+ *   - newRole cannot be 'owner' — use transferOwnership for that
+ *
+ * Self-targeting is rejected (you can't change your own role; ask
+ * someone with higher authority OR transfer ownership first if
+ * you're the owner trying to step down).
+ */
+export async function changeRole(
+  input: ChangeRoleInput,
+): Promise<{ ok: true } | null> {
+  if (!isMultiSeatEnabled()) {
+    return null;
+  }
+
+  const organizationId = requireNonEmpty(
+    "organizationId",
+    input.organizationId,
+  );
+  const targetUserId = requireNonEmpty("targetUserId", input.targetUserId);
+  const byUserId = requireNonEmpty("byUserId", input.byUserId);
+  const newRole = input.newRole;
+
+  if (newRole !== "admin" && newRole !== "member") {
+    throw new OrgWriteError(
+      `newRole must be 'admin' or 'member' (got '${newRole}'). Use transferOwnership to change ownership.`,
+      "EMPTY_REQUIRED",
+    );
+  }
+
+  if (targetUserId === byUserId) {
+    throw new OrgWriteError(
+      "You can't change your own role.",
+      "EMPTY_REQUIRED",
+    );
+  }
+
+  return await db.transaction(async (tx) => {
+    // Read both rows in one pass. We need both the actor's role
+    // (to check authority) and the target's current role (to check
+    // we strictly outrank them).
+    const memberRows = await tx
+      .select()
+      .from(schema.organizationMembers)
+      .where(eq(schema.organizationMembers.organizationId, organizationId));
+
+    const actor = memberRows.find((m) => m.userId === byUserId);
+    const target = memberRows.find((m) => m.userId === targetUserId);
+
+    if (!actor) {
+      throw new OrgWriteError(
+        "You're not a member of this organization.",
+        "ALREADY_MEMBER", // re-using; semantically: "no membership"
+      );
+    }
+    if (!target) {
+      throw new OrgWriteError(
+        "Target user is not a member of this organization.",
+        "ALREADY_MEMBER",
+      );
+    }
+
+    const actorRank = rankOf(actor.role);
+    const targetRank = rankOf(target.role);
+
+    // Strict outrank on the target's current role
+    if (actorRank <= targetRank) {
+      throw new OrgWriteError(
+        `You don't have permission to change ${target.role} roles.`,
+        "EMPTY_REQUIRED",
+      );
+    }
+
+    // Authority to grant the new role: actor's rank must be >= newRole
+    // rank. Admin (2) granting admin (2): rejected. Admin granting
+    // member (1): allowed. Owner (3) granting admin (2): allowed.
+    const newRoleRank = rankOf(newRole);
+    if (actorRank < newRoleRank) {
+      throw new OrgWriteError(
+        `You don't have permission to grant the '${newRole}' role.`,
+        "EMPTY_REQUIRED",
+      );
+    }
+
+    // Apply the change.
+    await tx
+      .update(schema.organizationMembers)
+      .set({ role: newRole })
+      .where(eq(schema.organizationMembers.id, target.id));
+
+    return { ok: true as const };
+  });
+}
+
+export interface RemoveMemberInput {
+  organizationId: string;
+  targetUserId: string;
+  byUserId: string;
+}
+
+/**
+ * Remove a member from the org. Permission rules:
+ *   - byUserId must strictly OUTRANK the target's role
+ *   - target cannot be the OWNER (use transferOwnership first if you
+ *     want to leave an org you own)
+ *
+ * Self-removal of non-owner roles is allowed (members can leave the
+ * org). Self-removal of owner is rejected — owner must transfer first.
+ */
+export async function removeMember(
+  input: RemoveMemberInput,
+): Promise<{ ok: true } | null> {
+  if (!isMultiSeatEnabled()) {
+    return null;
+  }
+
+  const organizationId = requireNonEmpty(
+    "organizationId",
+    input.organizationId,
+  );
+  const targetUserId = requireNonEmpty("targetUserId", input.targetUserId);
+  const byUserId = requireNonEmpty("byUserId", input.byUserId);
+
+  return await db.transaction(async (tx) => {
+    const memberRows = await tx
+      .select()
+      .from(schema.organizationMembers)
+      .where(eq(schema.organizationMembers.organizationId, organizationId));
+
+    const actor = memberRows.find((m) => m.userId === byUserId);
+    const target = memberRows.find((m) => m.userId === targetUserId);
+
+    if (!actor) {
+      throw new OrgWriteError(
+        "You're not a member of this organization.",
+        "ALREADY_MEMBER",
+      );
+    }
+    if (!target) {
+      throw new OrgWriteError(
+        "Target user is not a member of this organization.",
+        "ALREADY_MEMBER",
+      );
+    }
+
+    if (target.role === "owner") {
+      throw new OrgWriteError(
+        "The organization owner cannot be removed. Transfer ownership first.",
+        "EMPTY_REQUIRED",
+      );
+    }
+
+    // Self-leave is allowed (target === actor, target.role !== owner).
+    // Otherwise require strict outrank.
+    if (targetUserId !== byUserId) {
+      const actorRank = rankOf(actor.role);
+      const targetRank = rankOf(target.role);
+      if (actorRank <= targetRank) {
+        throw new OrgWriteError(
+          `You don't have permission to remove ${target.role} members.`,
+          "EMPTY_REQUIRED",
+        );
+      }
+    }
+
+    await tx
+      .delete(schema.organizationMembers)
+      .where(eq(schema.organizationMembers.id, target.id));
+
+    return { ok: true as const };
+  });
+}
+
+export interface TransferOwnershipInput {
+  organizationId: string;
+  /** The current owner — must match the org's owner_user_id. */
+  fromUserId: string;
+  /** The new owner. Must already be a member of the org. */
+  toUserId: string;
+}
+
+/**
+ * Transfer ownership of the org. Atomic: all three writes happen
+ * in a single transaction so a partial failure can't leave the
+ * org with two owners or no owner.
+ *
+ * Writes:
+ *   1. organizations.owner_user_id = toUserId
+ *   2. organization_members[fromUserId].role = 'admin' (former
+ *      owner becomes admin, NOT removed — they likely want to keep
+ *      using the org)
+ *   3. organization_members[toUserId].role = 'owner'
+ *
+ * Permission: only the current owner can initiate transfer.
+ * fromUserId must match the org's current owner_user_id (not just
+ * "have role=owner" — paranoid check matches the column rather than
+ * the role to defend against an inconsistent state where two rows
+ * have role=owner).
+ *
+ * toUserId must already be a member. We don't auto-invite — that
+ * would create a flow where transferring ownership creates a member
+ * row, which is more state for the caller to track. UI gates on the
+ * existing-membership precondition.
+ */
+export async function transferOwnership(
+  input: TransferOwnershipInput,
+): Promise<{ ok: true } | null> {
+  if (!isMultiSeatEnabled()) {
+    return null;
+  }
+
+  const organizationId = requireNonEmpty(
+    "organizationId",
+    input.organizationId,
+  );
+  const fromUserId = requireNonEmpty("fromUserId", input.fromUserId);
+  const toUserId = requireNonEmpty("toUserId", input.toUserId);
+
+  if (fromUserId === toUserId) {
+    throw new OrgWriteError(
+      "fromUserId and toUserId must differ — can't transfer ownership to yourself.",
+      "EMPTY_REQUIRED",
+    );
+  }
+
+  return await db.transaction(async (tx) => {
+    // Read the org row to verify fromUserId is currently the owner.
+    const orgRows = await tx
+      .select()
+      .from(schema.organizations)
+      .where(eq(schema.organizations.id, organizationId))
+      .limit(1);
+    if (orgRows.length === 0) {
+      throw new OrgWriteError(
+        "Organization not found.",
+        "ALREADY_MEMBER",
+      );
+    }
+    if (orgRows[0]!.ownerUserId !== fromUserId) {
+      throw new OrgWriteError(
+        "Only the current owner can transfer ownership.",
+        "EMPTY_REQUIRED",
+      );
+    }
+
+    // Verify toUserId is already a member
+    const memberRows = await tx
+      .select()
+      .from(schema.organizationMembers)
+      .where(eq(schema.organizationMembers.organizationId, organizationId));
+
+    const fromRow = memberRows.find((m) => m.userId === fromUserId);
+    const toRow = memberRows.find((m) => m.userId === toUserId);
+    if (!fromRow) {
+      throw new OrgWriteError(
+        "From-user has no membership row (data inconsistency — contact support).",
+        "ALREADY_MEMBER",
+      );
+    }
+    if (!toRow) {
+      throw new OrgWriteError(
+        "Target user must already be a member of the organization. Invite them first.",
+        "ALREADY_MEMBER",
+      );
+    }
+
+    // Three writes, atomic
+    await tx
+      .update(schema.organizations)
+      .set({ ownerUserId: toUserId })
+      .where(eq(schema.organizations.id, organizationId));
+    await tx
+      .update(schema.organizationMembers)
+      .set({ role: "admin" })
+      .where(eq(schema.organizationMembers.id, fromRow.id));
+    await tx
+      .update(schema.organizationMembers)
+      .set({ role: "owner" })
+      .where(eq(schema.organizationMembers.id, toRow.id));
+
+    return { ok: true as const };
+  });
+}
+
+// ---------------------------------------------------------------------------
 // shared validation
 // ---------------------------------------------------------------------------
 
