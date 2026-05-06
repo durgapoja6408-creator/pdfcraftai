@@ -1310,6 +1310,20 @@ const SUITES = [
     name: "orgs-foundation",
     file: "test-orgs-foundation.mjs",
   },
+  // 2026-05-05 (PENDING §6a foundation) — human eval grading layer.
+  // Sits beside the automated eval infra from Phase A Task #14
+  // (golden-set + rubric + runner + ai_eval_runs). New table
+  // eval_human_grades stores 4-dimension Likert scores from weekly
+  // grading sessions. Pin migration 0026 DDL (4 score tinyints,
+  // unique on 5-col combo, 3 indexes), Drizzle schema parity, query
+  // module public surface (read-only, sorts worst-first, mean-of-4
+  // overall), HUMAN_GRADE_FLOOR=3.5, admin viewer Page export shape
+  // + read-only invariant + threshold pin. 66 assertions across
+  // sections A-D.
+  {
+    name: "eval-human-grades-foundation",
+    file: "test-eval-human-grades-foundation.mjs",
+  },
   // 2026-05-05 (PENDING §5a foundation) — PDF compress route guard.
   // Locks the Ghostscript wrapper invariants (level→preset map,
   // required gs flags, mkdtemp + finally{} cleanup, SIGKILL on

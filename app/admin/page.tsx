@@ -151,6 +151,7 @@ export default async function AdminOverviewPage() {
           ["Prompts library", "/admin/prompts"],
           ["AI feedback (↑↓)", "/admin/ai-feedback"],
           ["Quality signals (per-user)", "/admin/quality-signals"],
+          ["Human eval grades", "/admin/evals"],
         ]}
       />
 

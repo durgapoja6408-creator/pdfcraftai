@@ -391,13 +391,27 @@ Large files = higher bug density. Refactor each into composed sub-components, mo
 
 ## 6. AI quality + observability (4 measurement gaps)
 
-### 6a. No human eval loop
+### 6a. No human eval loop — ✅ FOUNDATION SHIPPED (2026-05-05)
 
-**State:** AI outputs quality is measured only at the structured level (JSON shape compliance, response length sanity). No subjective quality grading.
+**State pre-foundation:** Phase A Task #14 (commit `f02c5b3`) shipped the AUTOMATED eval layer (golden-set fixtures + deterministic rubric checks + `ai_eval_runs` table + `scripts/run-ai-evals.mjs` CLI). What was missing was the SUBJECTIVE human-grading layer for weekly review.
 
-**Implementation:** golden-set per op, weekly human grading (rubric: relevance, completeness, faithfulness, actionability). Compute per-(provider, model, op) quality score, recomputed daily.
+**Foundation shipped** in this session:
+- Migration 0026 (`eval_human_grades` table) applied pre-push to prod via SSH HEREDOC. One row per (golden-set fixture × provider × model × op × grader-user) combo with 4 score tinyints (relevance / completeness / faithfulness / actionability, each 1..5 Likert), free-text notes, 4KB output excerpt, app-layer ref to `ai_eval_runs.id` (nullable). UNIQUE on the 5-col combo, plus 3 indexes for the common admin queries.
+- Drizzle schema entry — `evalHumanGrades` exported with `tinyint("…", { unsigned: true }).notNull()` for the 4 score columns.
+- `lib/ai/eval/human-grades.ts` — read-side helpers: `listRecentHumanGrades(limit)`, `loadPerOpAverages({lookbackDays})` (sorted worst-first so red-flag combos surface immediately), `loadGraderActivity({lookbackDays})` (drives "is the team actually grading?" health card), `loadGradesForCombo(...)` (for the future Phase G grader UI), and `HUMAN_GRADE_FLOOR = 3.5` constant.
+- `/admin/evals` admin viewer with 3 summary cards (total grades 30d / combos flagged red / active graders 7d), per-(provider × model × op) averages table sorted worst-first with red/neutral/green color coding pinned to `HUMAN_GRADE_FLOOR`, grader activity table with stale-cadence warning when 0 grades in 7 days, and recent grades audit table (200 latest).
+- 66-assertion CI guard covering migration DDL (4 score tinyints, 5-col unique, 3 indexes, no DROP/MODIFY), Drizzle schema parity (per-field tinyint/notNull pin, unique on the 5-col combo), queries module public surface (read-only invariant, mean-of-4 overall calc, sort-ASC on overallAvg, default lookbacks), and admin viewer Page shape + read-only constraint + HUMAN_GRADE_FLOOR threshold pin.
 
-**Estimate:** 2 weeks (golden-set curation alone is ~1 week).
+**Same staging discipline** as the other 8 foundations: storage + read paths land NOW; writers + grader UI come later (Phase G). Empty-by-design today (no rows until Phase G adds the interactive grader UI). The "0 grades / 0 active graders" empty state itself is useful — confirms the read path works end-to-end against real prod schema.
+
+**Remaining (Phase G):**
+- Writer module (`recordHumanGrade`, `replaceGrade` with the unique-constraint acknowledgment) ~1 day
+- `/admin/evals/grade` interactive form: golden-set fixture + AI output side-by-side + 4 Likert sliders + notes textarea + submit. Loads existing grades from `loadGradesForCombo` so the operator sees what other graders said. ~2 days
+- `/admin/evals/<id>` per-grade drilldown (full output excerpt + grader notes) ~half day
+- Per-op trend chart over time on `/admin/evals` ~half day
+- Slack alerter when a (provider × model × op) overall average crosses below `HUMAN_GRADE_FLOOR` (depends on §2a Slack webhook)
+
+**Estimate Phase G → fully usable for weekly review:** ~3-4 days of focused work. The grading loop (humans actually entering grades) requires golden-set curation in parallel — Phase A Task #14 shipped 6 ops × 1-2 fixtures each as v1 coverage; getting to 3+ fixtures per op for statistical signal is ~1 week of curation work that can happen alongside Phase G code.
 
 ### 6b. No thumbs-up/down affordance — ✅ ALREADY SHIPPED (re-discovered 2026-05-05)
 

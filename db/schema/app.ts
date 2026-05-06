@@ -31,6 +31,7 @@ import {
   mysqlTable,
   varchar,
   int,
+  tinyint,
   bigint,
   text,
   mediumtext,
@@ -1222,6 +1223,99 @@ export const organizationInvites = mysqlTable(
       t.acceptedAt,
     ),
     emailIdx: index("organization_invites_email_idx").on(t.email),
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// Human eval grades (PENDING §6a foundation, 2026-05-05)
+// ---------------------------------------------------------------------------
+//
+// Sits beside `ai_eval_runs` (Phase A Task #14, automated rubric layer).
+// This table records HUMAN judgment on the same golden-set fixtures
+// — relevance / completeness / faithfulness / actionability scores that
+// the team enters during weekly review. Same staging discipline as the
+// other foundations: storage + read paths land NOW; writers + grader UI
+// come later (Phase G).
+//
+// Why a separate table from ai_eval_runs:
+//   - ai_eval_runs tracks AUTOMATED rubric runs (deterministic checks
+//     with pass/fail booleans). One row per (op, fixture, run) tuple.
+//   - eval_human_grades tracks SUBJECTIVE human judgments on Likert
+//     scales. Multiple rows per fixture (one per grader) — we keep
+//     all opinions and aggregate at read time.
+// Forcing both into one table with nullable score/check columns
+// would make every aggregate query awkward.
+//
+// Migration: db/migrations/0026_eval_human_grades.sql.
+
+/**
+ * Human-graded eval row. References the golden-set fixture by its
+ * code-defined id (no DB FK because the golden-set lives in
+ * lib/ai/eval/golden-set.ts — code-as-source-of-truth).
+ *
+ * Scores are 1..5 Likert scales per rubric dimension:
+ *   - relevance:    answers what was asked
+ *   - completeness: covers everything important from the source
+ *   - faithfulness: doesn't hallucinate / stays grounded in source
+ *   - actionability: would the user actually act on this?
+ *
+ * `ai_output_excerpt` captures a sample of what the grader saw, so
+ * weekly reviews can re-read the output without re-running the AI
+ * (which would be non-deterministic). Truncated to 4KB at write
+ * time by the (future Phase G) writer.
+ */
+export const evalHumanGrades = mysqlTable(
+  "eval_human_grades",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    // App-layer reference to lib/ai/eval/golden-set.ts fixture id.
+    goldenSetId: varchar("golden_set_id", { length: 64 }).notNull(),
+    // Op enum mirrors ai_usage.operation. varchar (not enum) so a
+    // future op addition doesn't require ALTER TABLE.
+    operation: varchar("operation", { length: 32 }).notNull(),
+    providerId: varchar("provider_id", { length: 32 }).notNull(),
+    model: varchar("model", { length: 128 }).notNull(),
+    // Optional app-layer reference to ai_eval_runs.id. NULL means
+    // this grade was on a fresh regenerate-and-grade rather than an
+    // existing automated run row.
+    evalRunId: varchar("eval_run_id", { length: 36 }),
+    graderUserId: varchar("grader_user_id", { length: 255 }).notNull(),
+    scoreRelevance: tinyint("score_relevance", { unsigned: true }).notNull(),
+    scoreCompleteness: tinyint("score_completeness", {
+      unsigned: true,
+    }).notNull(),
+    scoreFaithfulness: tinyint("score_faithfulness", {
+      unsigned: true,
+    }).notNull(),
+    scoreActionability: tinyint("score_actionability", {
+      unsigned: true,
+    }).notNull(),
+    notes: text("notes"),
+    aiOutputExcerpt: text("ai_output_excerpt"),
+    createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
+  },
+  (t) => ({
+    // One grade per (fixture × provider × model × op × grader).
+    // Re-grading requires deleting the prior row first — the unique
+    // constraint forces the writer to acknowledge it's overwriting.
+    uniqueGrade: uniqueIndex("eval_human_grades_unique").on(
+      t.goldenSetId,
+      t.providerId,
+      t.model,
+      t.operation,
+      t.graderUserId,
+    ),
+    opCreatedIdx: index("eval_human_grades_op_created_idx").on(
+      t.operation,
+      t.createdAt,
+    ),
+    providerModelOpIdx: index(
+      "eval_human_grades_provider_model_op_idx",
+    ).on(t.providerId, t.model, t.operation),
+    graderCreatedIdx: index("eval_human_grades_grader_created_idx").on(
+      t.graderUserId,
+      t.createdAt,
+    ),
   }),
 );
 
