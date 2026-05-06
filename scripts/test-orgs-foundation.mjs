@@ -1700,6 +1700,58 @@ if (fs.existsSync(ORG_PAGE)) {
 }
 
 // ---------------------------------------------------------------------------
+// Section P: Phase F-4 admin polish — Organizations section on
+// /admin/users/[id]. PENDING §3b, 2026-05-06.
+//
+// Ops needed a way to answer "is this user paying via an org or a
+// personal sub" without cross-referencing /admin/orgs. The user-
+// detail page now renders an Organizations table with role +
+// billing mode, hidden when the user has zero memberships (no
+// empty card just to say "no orgs").
+// ---------------------------------------------------------------------------
+
+const ADMIN_USER_DETAIL = path.join(
+  ROOT,
+  "app/admin/users/[id]/page.tsx",
+);
+
+if (fs.existsSync(ADMIN_USER_DETAIL)) {
+  const detailSrc = fs.readFileSync(ADMIN_USER_DETAIL, "utf8");
+
+  assert(
+    /import\s*\{\s*loadOrgsForUser\s*\}\s*from\s*"@\/lib\/orgs\/queries"/.test(
+      detailSrc,
+    ),
+    "P1: admin user-detail page imports loadOrgsForUser",
+  );
+
+  // Calls loadOrgsForUser with the user's id (not undefined or a
+  // session-scoped value)
+  assert(
+    /loadOrgsForUser\(params\.id\)/.test(detailSrc),
+    "P2: admin user-detail page calls loadOrgsForUser(params.id)",
+  );
+
+  // Section gates on userOrgs.length > 0 — empty section hidden
+  assert(
+    /userOrgs\.length\s*>\s*0\s*\?/.test(detailSrc),
+    "P3: Organizations section gates on userOrgs.length > 0 (empty section hidden)",
+  );
+
+  // Each row links to /app/org/<slug> so admins can drill in
+  assert(
+    /href=\{`\/app\/org\/\$\{entry\.org\.slug\}`\}/.test(detailSrc),
+    "P4: each org row links to /app/org/<slug> (admin drill-down)",
+  );
+
+  // Renders billing_mode column (helps ops segment org payment paths)
+  assert(
+    /entry\.org\.billingMode/.test(detailSrc),
+    "P5: section renders billing_mode column for ops segmentation",
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------------
 

@@ -10,8 +10,13 @@
 // emails" export; that belongs behind a separate explicit admin
 // action (not shipped in Task #18).
 
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getUserDetail } from "@/lib/admin/queries";
+// Phase F-4 admin polish (2026-05-06): show org memberships on the
+// per-user detail page so ops can answer "is this user paying via
+// an org or a personal sub" without cross-referencing /admin/orgs.
+import { loadOrgsForUser } from "@/lib/orgs/queries";
 import {
   bpsToPercent,
   formatBool,
@@ -44,6 +49,14 @@ export default async function AdminUserDetailPage({
   if (!data.user && !error) {
     notFound();
   }
+
+  // Org memberships for this user. loadOrgsForUser is membership-
+  // scoped + safe to call even when MULTI_SEAT is off (returns []
+  // because no orgs exist). Section gates on .length below so
+  // users with zero org memberships don't get an empty section.
+  const userOrgs = data.user
+    ? await loadOrgsForUser(params.id)
+    : [];
 
   const lifetimeMarginBps =
     data.lifetime.netRevenueMicros > 0
@@ -185,6 +198,70 @@ export default async function AdminUserDetailPage({
             <div className="muted" style={{ fontSize: 12, marginTop: 16 }}>
               See <a href="/admin/abuse-signals" style={{ color: "var(--accent)" }}>/admin/abuse-signals</a> for cross-user clustering.
             </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* Organizations — Phase F-4 admin polish, 2026-05-06.
+          Surfaces this user's org memberships with role + slug.
+          Section hidden entirely when user has no memberships
+          (don't render an empty card just to say "no orgs"). */}
+      {userOrgs.length > 0 ? (
+        <section style={{ marginBottom: 24 }}>
+          <SectionTitle>Organizations ({userOrgs.length})</SectionTitle>
+          <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+            <table style={tableStyle}>
+              <thead>
+                <tr>
+                  <Th>Name</Th>
+                  <Th>Slug</Th>
+                  <Th>Role</Th>
+                  <Th>Billing mode</Th>
+                  <Th>Joined</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {userOrgs.map((entry) => (
+                  <tr key={entry.org.id}>
+                    <Td>
+                      <Link
+                        href={`/app/org/${entry.org.slug}`}
+                        style={{ color: "var(--accent)" }}
+                      >
+                        {entry.org.name}
+                      </Link>
+                    </Td>
+                    <Td>
+                      <code style={{ fontSize: 12 }}>{entry.org.slug}</code>
+                    </Td>
+                    <Td>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          padding: "2px 6px",
+                          borderRadius: 4,
+                          fontWeight: 600,
+                          letterSpacing: 0.4,
+                          textTransform: "uppercase",
+                          color:
+                            entry.role === "owner"
+                              ? "#4caf50"
+                              : entry.role === "admin"
+                              ? "var(--accent)"
+                              : "var(--fg-subtle)",
+                        }}
+                      >
+                        {entry.role}
+                      </span>
+                    </Td>
+                    <Td>
+                      <code style={{ fontSize: 11 }}>{entry.org.billingMode}</code>
+                    </Td>
+                    <Td>{formatUtcDate(entry.org.createdAt)}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
       ) : null}
