@@ -650,6 +650,110 @@ if (fs.existsSync(ADMIN_PAGE)) {
 }
 
 // ---------------------------------------------------------------------------
+// Section H: personal-stats panel on /admin/evals/grade
+// (PENDING §6a polish, 2026-05-06).
+//
+// Small motivational panel: "you've entered N grades in the last
+// 7 days, last one Xh ago". Pulls eval_human_grades scoped to the
+// current grader via loadGraderActivityForUser. Empty-state copy
+// nudges toward first grade.
+// ---------------------------------------------------------------------------
+
+const GRADER_PAGE = path.join(ROOT, "app/admin/evals/grade/page.tsx");
+
+if (fs.existsSync(QUERIES)) {
+  const queriesSrc = fs.readFileSync(QUERIES, "utf8");
+
+  assert(
+    /export\s+async\s+function\s+loadGraderActivityForUser\b/.test(
+      queriesSrc,
+    ),
+    "H1: loadGraderActivityForUser is exported (per-user grader stats helper)",
+  );
+  // Filters by graderUserId AND createdAt >= cutoff
+  assert(
+    /loadGraderActivityForUser[\s\S]*?eq\(\s*schema\.evalHumanGrades\.graderUserId/.test(
+      queriesSrc,
+    ),
+    "H2: helper filters by graderUserId (per-user scope)",
+  );
+  assert(
+    /loadGraderActivityForUser[\s\S]*?gte\(\s*schema\.evalHumanGrades\.createdAt,\s*cutoff/.test(
+      queriesSrc,
+    ),
+    "H3: helper applies cutoff via gte(createdAt, cutoff)",
+  );
+  // Returns BOTH count + lastGradedAt (the form needs both for
+  // "you've graded N items, last one Xh ago" copy)
+  assert(
+    /gradeCount:\s*Number\(/.test(queriesSrc) &&
+      /lastGradedAt:\s*row\?\.lastAt/.test(queriesSrc),
+    "H4: helper returns BOTH gradeCount + lastGradedAt (caller renders 'last one Xh ago')",
+  );
+  // Empty-string graderUserId guard
+  assert(
+    /graderUserId\.length\s*===\s*0/.test(queriesSrc),
+    "H5: helper short-circuits on empty graderUserId (defensive — auth-gated callers shouldn't hit this but pin it anyway)",
+  );
+}
+
+assert(
+  fs.existsSync(GRADER_PAGE),
+  "H6: app/admin/evals/grade/page.tsx exists",
+);
+if (fs.existsSync(GRADER_PAGE)) {
+  const gpSrc = fs.readFileSync(GRADER_PAGE, "utf8");
+
+  // Imports + calls
+  assert(
+    /import\s*\{\s*loadGraderActivityForUser\s*\}\s*from\s*"@\/lib\/ai\/eval\/human-grades"/.test(
+      gpSrc,
+    ),
+    "H7: grader page imports loadGraderActivityForUser",
+  );
+  assert(
+    /loadGraderActivityForUser\(\s*graderUserId/.test(gpSrc),
+    "H8: grader page calls loadGraderActivityForUser with graderUserId from session",
+  );
+
+  // graderUserId from session, NEVER from input or query param —
+  // anti-impersonation invariant for the stats lookup itself
+  assert(
+    /\(session\.user\s+as\s+\{\s*id\?\s*:\s*string\s*\}\)\.id/.test(
+      gpSrc,
+    ),
+    "H9: graderUserId pulled from session.user.id (anti-impersonation)",
+  );
+
+  // Empty-state branch
+  assert(
+    /myStats\.gradeCount\s*===\s*0/.test(gpSrc),
+    "H10: grader page handles empty-state (gradeCount === 0 branch with first-grade nudge copy)",
+  );
+
+  // Singular/plural copy correctness
+  assert(
+    /myStats\.gradeCount\s*===\s*1\s*\?\s*"grade"\s*:\s*"grades"/.test(
+      gpSrc,
+    ),
+    "H11: stats panel uses singular/plural copy correctly",
+  );
+
+  // fmtRelative helper for last-graded timestamp
+  assert(
+    /function\s+fmtRelative\(/.test(gpSrc),
+    "H12: page defines fmtRelative helper for human-readable timestamps",
+  );
+
+  // The "last one Xh ago" string is gated on lastRel — null when
+  // no grades, so the copy doesn't say "last one null ago"
+  assert(
+    /lastRel\s*\?\s*`,\s*last one \$\{lastRel\}`/.test(gpSrc),
+    "H13: 'last one Xh ago' copy is null-gated (no 'last one null ago' regression)",
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------------
 

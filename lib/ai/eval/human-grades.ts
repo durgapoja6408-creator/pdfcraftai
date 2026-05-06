@@ -133,6 +133,49 @@ export async function loadPerOpAverages(
  * actually grading?" health card on /admin/evals — if no grades have
  * landed in the last 7 days, the weekly cadence has lapsed.
  */
+/**
+ * Personal stats for a single grader: total grade count + most-
+ * recent grade timestamp within the lookback window. Used by the
+ * /admin/evals/grade page to render a "you've graded N items in
+ * the last 7 days" panel — small motivational nudge for graders
+ * doing weekly review sessions.
+ *
+ * Differs from loadGraderActivity (which aggregates across all
+ * graders) by scoping to a single graderUserId.
+ *
+ * Returns { gradeCount: 0, lastGradedAt: null } when the user
+ * has no grades in the window — caller can render an empty-state
+ * "you haven't graded anything yet" copy.
+ */
+export async function loadGraderActivityForUser(
+  graderUserId: string,
+  options: { lookbackDays?: number } = {},
+): Promise<{ gradeCount: number; lastGradedAt: Date | null }> {
+  if (typeof graderUserId !== "string" || graderUserId.length === 0) {
+    return { gradeCount: 0, lastGradedAt: null };
+  }
+  const lookbackDays = Math.max(1, options.lookbackDays ?? 7);
+  const cutoff = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
+
+  const [row] = await db
+    .select({
+      count: sql<number>`COUNT(*)`,
+      lastAt: sql<Date | null>`MAX(${schema.evalHumanGrades.createdAt})`,
+    })
+    .from(schema.evalHumanGrades)
+    .where(
+      and(
+        eq(schema.evalHumanGrades.graderUserId, graderUserId),
+        gte(schema.evalHumanGrades.createdAt, cutoff),
+      ),
+    );
+
+  return {
+    gradeCount: Number(row?.count ?? 0),
+    lastGradedAt: row?.lastAt ?? null,
+  };
+}
+
 export async function loadGraderActivity(
   options: { lookbackDays?: number } = {},
 ): Promise<Array<{ graderUserId: string; gradeCount: number }>> {
