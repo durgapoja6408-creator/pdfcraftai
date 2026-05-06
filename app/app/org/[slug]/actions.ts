@@ -28,6 +28,7 @@ import { auth } from "@/auth";
 import { canManageMembers, getMemberRole } from "@/lib/orgs/queries";
 import {
   OrgWriteError,
+  cancelInvite,
   changeRole,
   inviteMember,
   removeMember,
@@ -317,6 +318,69 @@ export async function transferOwnershipAction(
       return { ok: false, error: err.message };
     }
     console.error("[transferOwnershipAction] unexpected error:", err);
+    return {
+      ok: false,
+      error: "Something went wrong on our side. Try again.",
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// cancelInviteAction (Phase F-4 — 2026-05-05)
+// ---------------------------------------------------------------------------
+
+export interface CancelInviteActionInput {
+  orgId: string;
+  inviteId: string;
+}
+
+export type CancelInviteActionResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export async function cancelInviteAction(
+  input: CancelInviteActionInput,
+): Promise<CancelInviteActionResult> {
+  const session = await auth();
+  const userId = session?.user
+    ? (session.user as { id?: string }).id
+    : undefined;
+  if (typeof userId !== "string") {
+    return { ok: false, error: "You need to be signed in." };
+  }
+
+  // Outer-layer check: actor must be owner or admin. Writer also
+  // re-checks via membership query inside the tx. The writer
+  // additionally verifies the invite belongs to THIS org so an
+  // admin in org A can't pass in an invite id from org B.
+  const canManage = await canManageMembers(input.orgId, userId);
+  if (!canManage) {
+    return {
+      ok: false,
+      error:
+        "You don't have permission to cancel invites in this organization.",
+    };
+  }
+
+  try {
+    const result = await cancelInvite({
+      organizationId: input.orgId,
+      inviteId: input.inviteId,
+      byUserId: userId,
+    });
+    if (result === null) {
+      return {
+        ok: false,
+        error:
+          "Invite management isn't available on your account yet.",
+      };
+    }
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof OrgWriteError) {
+      return { ok: false, error: err.message };
+    }
+    console.error("[cancelInviteAction] unexpected error:", err);
     return {
       ok: false,
       error: "Something went wrong on our side. Try again.",

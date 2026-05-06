@@ -1015,6 +1015,156 @@ if (fs.existsSync(ORG_PAGE)) {
 }
 
 // ---------------------------------------------------------------------------
+// Section K: Phase F-4 cancelInvite — closes the pending-invites
+// loop so admins can revoke a typoed invite (PENDING §3b, 2026-05-05)
+//
+// Writer: lib/orgs/writers.ts:cancelInvite (gated by canManageMembers
+// at action layer; writer ALSO re-checks role-from-membership inside
+// the tx; cross-org confusion attack defense via organizationId
+// match).
+// Action: app/app/org/[slug]/actions.ts:cancelInviteAction
+// UI: app/app/org/[slug]/CancelInviteButton.tsx
+// ---------------------------------------------------------------------------
+
+const CANCEL_BUTTON = path.join(
+  ROOT,
+  "app/app/org/[slug]/CancelInviteButton.tsx",
+);
+
+if (fs.existsSync(WRITERS)) {
+  const writersSrc = fs.readFileSync(WRITERS, "utf8");
+
+  // ----- Writer exists + flag-gated -----
+  assert(
+    /export\s+async\s+function\s+cancelInvite\b/.test(writersSrc),
+    "K1: cancelInvite is exported async",
+  );
+  // Flag check inside cancelInvite — same isMultiSeatEnabled() gate
+  // every other writer uses.
+  assert(
+    /cancelInvite[\s\S]*?isMultiSeatEnabled\(\)[\s\S]*?return null/.test(
+      writersSrc,
+    ),
+    "K2: cancelInvite returns null when MULTI_SEAT flag is off (matches other writers' staging discipline)",
+  );
+
+  // ----- Cross-org confusion defense -----
+  // Writer must verify the invite belongs to the org the caller
+  // claims; otherwise an admin in org A could cancel an invite
+  // belonging to org B by passing the invite id directly.
+  assert(
+    /invite\.organizationId\s*!==\s*organizationId/.test(writersSrc),
+    "K3: cancelInvite verifies invite.organizationId === input.organizationId (cross-org confusion defense)",
+  );
+
+  // ----- Permission re-check inside writer tx -----
+  // Even though the action layer re-checks canManageMembers, the
+  // writer must also reject non-owners + non-admins inside the tx.
+  assert(
+    /actorRole\s*!==\s*"owner"\s*&&\s*actorRole\s*!==\s*"admin"/.test(
+      writersSrc,
+    ),
+    "K4: cancelInvite re-checks actor role inside the tx (defense-in-depth)",
+  );
+
+  // ----- No-op on already-accepted -----
+  assert(
+    /invite\.acceptedAt\s*!==\s*null/.test(writersSrc),
+    "K5: cancelInvite rejects already-accepted invites with a clear error",
+  );
+
+  // ----- DELETE the row -----
+  assert(
+    /cancelInvite[\s\S]*?tx\s*\.delete\(\s*schema\.organizationInvites\s*\)/.test(
+      writersSrc,
+    ),
+    "K6: cancelInvite DELETEs the invite row (token in URL becomes 404 if anyone follows it)",
+  );
+}
+
+if (fs.existsSync(ORG_ACTIONS)) {
+  const actionsSrc = fs.readFileSync(ORG_ACTIONS, "utf8");
+
+  // ----- Action surface -----
+  assert(
+    /export\s+async\s+function\s+cancelInviteAction\b/.test(actionsSrc),
+    "K7: cancelInviteAction is exported async",
+  );
+
+  // ----- Anti-impersonation: actor identity from session -----
+  assert(
+    /cancelInvite\([\s\S]*?byUserId:\s*userId/.test(actionsSrc),
+    "K8: cancelInviteAction passes byUserId from session userId (anti-impersonation)",
+  );
+
+  // ----- Permission re-check at action layer -----
+  // Outer layer must call canManageMembers before invoking the writer.
+  assert(
+    /cancelInviteAction[\s\S]*?canManageMembers\(/.test(actionsSrc),
+    "K9: cancelInviteAction calls canManageMembers (defense-in-depth)",
+  );
+
+  // ----- OrgWriteError mapping -----
+  assert(
+    /cancelInviteAction[\s\S]*?err\s+instanceof\s+OrgWriteError/.test(
+      actionsSrc,
+    ),
+    "K10: cancelInviteAction catches OrgWriteError and surfaces err.message",
+  );
+}
+
+assert(
+  fs.existsSync(CANCEL_BUTTON),
+  "K11: app/app/org/[slug]/CancelInviteButton.tsx exists",
+);
+
+if (fs.existsSync(CANCEL_BUTTON)) {
+  const btnSrc = fs.readFileSync(CANCEL_BUTTON, "utf8");
+
+  assert(
+    /^"use client"/m.test(btnSrc),
+    "K12: CancelInviteButton is a client component",
+  );
+
+  // confirm() before destructive action
+  assert(
+    /confirm\(/.test(btnSrc),
+    "K13: CancelInviteButton confirms before firing the cancel",
+  );
+
+  assert(
+    /cancelInviteAction\(/.test(btnSrc),
+    "K14: CancelInviteButton calls cancelInviteAction",
+  );
+
+  // router.refresh() on success so the page re-renders without the
+  // cancelled invite
+  assert(
+    /router\.refresh\(\)/.test(btnSrc),
+    "K15: CancelInviteButton calls router.refresh() on success",
+  );
+}
+
+// Page wire-up: page imports + renders CancelInviteButton in the
+// pending-invites loop (only inside the canManage gate, since the
+// pending-invites section itself is gated)
+if (fs.existsSync(ORG_PAGE)) {
+  const pageSrc = fs.readFileSync(ORG_PAGE, "utf8");
+  assert(
+    /import\s*\{\s*CancelInviteButton\s*\}\s*from\s*"\.\/CancelInviteButton"/.test(
+      pageSrc,
+    ),
+    "K16: page imports CancelInviteButton",
+  );
+  assert(
+    /<CancelInviteButton[\s\S]*?orgId=\{org\.id\}[\s\S]*?inviteId=\{inv\.id\}/.test(
+      pageSrc,
+    ),
+    "K17: page renders CancelInviteButton with orgId + inviteId from the loop variable",
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------------
 

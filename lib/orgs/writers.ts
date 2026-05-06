@@ -747,6 +747,104 @@ export async function transferOwnership(
 }
 
 // ---------------------------------------------------------------------------
+// cancelInvite (Phase F-4 — 2026-05-05)
+// ---------------------------------------------------------------------------
+
+export interface CancelInviteInput {
+  organizationId: string;
+  inviteId: string;
+  byUserId: string;
+}
+
+/**
+ * Cancel a pending invite. Permission rules:
+ *   - byUserId must have canManageMembers permission on the org (admin
+ *     or owner; checked by caller, but writer ALSO double-checks via
+ *     the membership query).
+ *   - Invite must belong to organizationId (caller-supplied; we
+ *     re-verify so a malicious admin in org A can't pass an invite
+ *     id from org B).
+ *   - Invite must NOT be accepted yet (acceptedAt IS NULL); cancelling
+ *     an already-accepted invite is a no-op and would be confusing
+ *     UX (the member is already in the org).
+ *
+ * Cancellation = DELETE the invite row. The token in the URL becomes
+ * a 404 if anyone follows it.
+ */
+export async function cancelInvite(
+  input: CancelInviteInput,
+): Promise<{ ok: true } | null> {
+  if (!isMultiSeatEnabled()) {
+    return null;
+  }
+
+  const organizationId = requireNonEmpty(
+    "organizationId",
+    input.organizationId,
+  );
+  const inviteId = requireNonEmpty("inviteId", input.inviteId);
+  const byUserId = requireNonEmpty("byUserId", input.byUserId);
+
+  return await db.transaction(async (tx) => {
+    // Membership + permission re-check inside the tx — the action
+    // layer already calls canManageMembers, but a hostile path that
+    // bypassed the action surface would still be blocked here.
+    const memberRows = await tx
+      .select()
+      .from(schema.organizationMembers)
+      .where(
+        and(
+          eq(schema.organizationMembers.organizationId, organizationId),
+          eq(schema.organizationMembers.userId, byUserId),
+        ),
+      )
+      .limit(1);
+    if (memberRows.length === 0) {
+      throw new OrgWriteError(
+        "You're not a member of this organization.",
+        "ALREADY_MEMBER",
+      );
+    }
+    const actorRole = memberRows[0]!.role;
+    if (actorRole !== "owner" && actorRole !== "admin") {
+      throw new OrgWriteError(
+        "You don't have permission to cancel invites in this organization.",
+        "EMPTY_REQUIRED",
+      );
+    }
+
+    // Verify the invite belongs to THIS org (cross-org confusion
+    // attack defense). Also confirm it's still pending.
+    const inviteRows = await tx
+      .select()
+      .from(schema.organizationInvites)
+      .where(eq(schema.organizationInvites.id, inviteId))
+      .limit(1);
+    if (inviteRows.length === 0) {
+      throw new OrgWriteError("Invite not found.", "ALREADY_MEMBER");
+    }
+    const invite = inviteRows[0]!;
+    if (invite.organizationId !== organizationId) {
+      // Don't leak that the invite exists in another org; just say
+      // not-found.
+      throw new OrgWriteError("Invite not found.", "ALREADY_MEMBER");
+    }
+    if (invite.acceptedAt !== null) {
+      throw new OrgWriteError(
+        "This invite has already been accepted; the member is already in the organization.",
+        "ALREADY_MEMBER",
+      );
+    }
+
+    await tx
+      .delete(schema.organizationInvites)
+      .where(eq(schema.organizationInvites.id, inviteId));
+
+    return { ok: true as const };
+  });
+}
+
+// ---------------------------------------------------------------------------
 // shared validation
 // ---------------------------------------------------------------------------
 

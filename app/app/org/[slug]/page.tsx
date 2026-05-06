@@ -48,6 +48,7 @@ import {
   loadOrgInvites,
   loadOrgMembers,
 } from "@/lib/orgs/queries";
+import { CancelInviteButton } from "./CancelInviteButton";
 import { InviteMemberForm } from "./InviteMemberForm";
 import { MemberActions } from "./MemberActions";
 
@@ -284,14 +285,21 @@ export default async function OrgLandingPage({
                       ({inv.role}) · expires {fmtDate(inv.expiresAt)}
                     </span>
                   </div>
-                  <code
-                    style={{
-                      fontSize: 11,
-                      color: "var(--fg-subtle)",
-                    }}
-                  >
-                    invited {fmtDate(inv.createdAt)}
-                  </code>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <code
+                      style={{
+                        fontSize: 11,
+                        color: "var(--fg-subtle)",
+                      }}
+                    >
+                      invited {fmtDate(inv.createdAt)}
+                    </code>
+                    <CancelInviteButton
+                      orgId={org.id}
+                      inviteId={inv.id}
+                      email={inv.email}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
