@@ -178,16 +178,36 @@ export async function loadGraderActivityForUser(
 
 export async function loadGraderActivity(
   options: { lookbackDays?: number } = {},
-): Promise<Array<{ graderUserId: string; gradeCount: number }>> {
+): Promise<
+  Array<{
+    graderUserId: string;
+    gradeCount: number;
+    graderEmail: string | null;
+    graderName: string | null;
+  }>
+> {
   const lookbackDays = options.lookbackDays ?? 7;
   const cutoff = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
 
+  // leftJoin on users so the admin table can render email/name
+  // instead of opaque user-id fragments. leftJoin (not innerJoin)
+  // is defensive: if a user row went missing the grade still
+  // shows up — the page falls back to shortUser(graderUserId).
+  // Aggregate by graderUserId (the stable identifier); MAX() on
+  // email/name returns the same single value for all rows in the
+  // group since users.id is unique.
   const rows = await db
     .select({
       graderUserId: schema.evalHumanGrades.graderUserId,
       gradeCount: sql<number>`COUNT(*)`,
+      graderEmail: sql<string | null>`MAX(${schema.users.email})`,
+      graderName: sql<string | null>`MAX(${schema.users.name})`,
     })
     .from(schema.evalHumanGrades)
+    .leftJoin(
+      schema.users,
+      eq(schema.users.id, schema.evalHumanGrades.graderUserId),
+    )
     .where(gte(schema.evalHumanGrades.createdAt, cutoff))
     .groupBy(schema.evalHumanGrades.graderUserId)
     .orderBy(sql`COUNT(*) DESC`);
@@ -195,6 +215,8 @@ export async function loadGraderActivity(
   return rows.map((r) => ({
     graderUserId: r.graderUserId,
     gradeCount: Number(r.gradeCount),
+    graderEmail: r.graderEmail ?? null,
+    graderName: r.graderName ?? null,
   }));
 }
 

@@ -252,16 +252,33 @@ export default async function AdminEvalsPage() {
               </tr>
             </thead>
             <tbody>
-              {activity.map((a) => (
-                <tr key={a.graderUserId}>
-                  <Td>
-                    <code style={{ fontSize: 12 }}>
-                      {shortUser(a.graderUserId)}
-                    </code>
-                  </Td>
-                  <Td>{a.gradeCount}</Td>
-                </tr>
-              ))}
+              {activity.map((a) => {
+                // Phase G-2 polish (PENDING §6a): leftJoin on users
+                // gives email + name. Falls back to shortUser when
+                // the users row went missing (defensive).
+                const label =
+                  a.graderEmail && a.graderEmail.length > 0
+                    ? a.graderEmail
+                    : a.graderName && a.graderName.length > 0
+                    ? a.graderName
+                    : shortUser(a.graderUserId);
+                return (
+                  <tr key={a.graderUserId}>
+                    <Td>
+                      <span style={{ fontSize: 13 }}>{label}</span>
+                      {a.graderEmail && a.graderName ? (
+                        <span
+                          className="muted"
+                          style={{ fontSize: 11, marginLeft: 8 }}
+                        >
+                          {a.graderName}
+                        </span>
+                      ) : null}
+                    </Td>
+                    <Td>{a.gradeCount}</Td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

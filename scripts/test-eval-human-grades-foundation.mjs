@@ -754,6 +754,58 @@ if (fs.existsSync(GRADER_PAGE)) {
 }
 
 // ---------------------------------------------------------------------------
+// Section I: loadGraderActivity leftJoin on users — admin Grader
+// activity table now shows email/name instead of opaque user-id
+// fragments (PENDING §6a polish, 2026-05-06).
+// ---------------------------------------------------------------------------
+
+if (fs.existsSync(QUERIES)) {
+  const queriesSrc = fs.readFileSync(QUERIES, "utf8");
+
+  // Now leftJoins on users — picks up email + name
+  assert(
+    /loadGraderActivity[\s\S]*?\.leftJoin\(\s*schema\.users/.test(
+      queriesSrc,
+    ),
+    "I1: loadGraderActivity leftJoins on users (email/name in result)",
+  );
+  // MAX() aggregation on email/name (since GROUP BY graderUserId
+  // requires aggregate functions on non-grouped columns)
+  assert(
+    /MAX\(\$\{schema\.users\.email\}\)/.test(queriesSrc),
+    "I2: loadGraderActivity uses MAX(users.email) — required for GROUP BY graderUserId aggregation",
+  );
+  // Result projection includes graderEmail + graderName with
+  // null fallbacks
+  assert(
+    /graderEmail:\s*r\.graderEmail\s*\?\?\s*null/.test(queriesSrc),
+    "I3: result projects graderEmail with `?? null` fallback",
+  );
+  assert(
+    /graderName:\s*r\.graderName\s*\?\?\s*null/.test(queriesSrc),
+    "I4: result projects graderName with `?? null` fallback",
+  );
+}
+
+// ----- /admin/evals page renders email/name in Grader activity table -----
+if (fs.existsSync(ADMIN_PAGE)) {
+  const adminSrc = fs.readFileSync(ADMIN_PAGE, "utf8");
+
+  // Uses graderEmail / graderName instead of just shortUser
+  assert(
+    /a\.graderEmail/.test(adminSrc),
+    "I5: admin page reads a.graderEmail in Grader activity table",
+  );
+  // Defensive fallback chain: email → name → shortUser
+  assert(
+    /a\.graderEmail[\s\S]{0,200}?a\.graderName[\s\S]{0,200}?shortUser\(a\.graderUserId\)/.test(
+      adminSrc,
+    ),
+    "I6: label falls back email → name → shortUser (defensive against missing users-row)",
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------------
 
