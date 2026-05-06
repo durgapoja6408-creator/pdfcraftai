@@ -427,8 +427,8 @@ export default async function OrgLandingPage({
         </section>
       ) : null}
 
-      {/* Back link */}
-      <div>
+      {/* Footer links */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Link
           href="/app/dashboard"
           className="muted"
@@ -436,6 +436,18 @@ export default async function OrgLandingPage({
         >
           ← Back to dashboard
         </Link>
+        {/* Settings link — owner-only (rename + delete are owner-only
+            actions; admins use the management UI on this page for
+            members + invites). */}
+        {role === "owner" ? (
+          <Link
+            href={`/app/org/${org.slug}/settings`}
+            className="muted"
+            style={{ fontSize: 13 }}
+          >
+            Settings →
+          </Link>
+        ) : null}
       </div>
     </div>
   );

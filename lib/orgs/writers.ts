@@ -747,6 +747,167 @@ export async function transferOwnership(
 }
 
 // ---------------------------------------------------------------------------
+// renameOrg (Phase F-4 settings — 2026-05-06)
+// ---------------------------------------------------------------------------
+
+export interface RenameOrgInput {
+  organizationId: string;
+  /** The actor — must currently hold organizations.owner_user_id. */
+  byUserId: string;
+  newName: string;
+}
+
+/**
+ * Rename an organization. Permission rules:
+ *   - byUserId must match organizations.owner_user_id (column-not-role
+ *     check, same paranoid pattern as transferOwnership).
+ *
+ * The slug is intentionally NOT regenerated. Existing /app/org/<slug>
+ * URLs stay valid — bookmarks, shared links, OAuth callback registrations
+ * etc. all continue to work. If a future product decision wants slug
+ * regen, that's a separate writer with its own migration story (since
+ * the old slug becoming a 404 breaks existing browser tabs / external
+ * links).
+ *
+ * Validation: name must be non-empty after trim and ≤255 chars
+ * (organizations.name column width). Same trim-then-check shape as
+ * recordOrgCreate so renaming an org to a name that fails validation
+ * gets the same error as failing to create with that name.
+ */
+export async function renameOrg(
+  input: RenameOrgInput,
+): Promise<{ ok: true } | null> {
+  if (!isMultiSeatEnabled()) {
+    return null;
+  }
+
+  const organizationId = requireNonEmpty(
+    "organizationId",
+    input.organizationId,
+  );
+  const byUserId = requireNonEmpty("byUserId", input.byUserId);
+  const newName = requireNonEmpty("newName", input.newName);
+
+  if (newName.length > 255) {
+    throw new OrgWriteError(
+      "Organization name must be 255 characters or fewer.",
+      "EMPTY_REQUIRED",
+    );
+  }
+
+  return await db.transaction(async (tx) => {
+    const orgRows = await tx
+      .select()
+      .from(schema.organizations)
+      .where(eq(schema.organizations.id, organizationId))
+      .limit(1);
+    if (orgRows.length === 0) {
+      throw new OrgWriteError("Organization not found.", "ALREADY_MEMBER");
+    }
+    if (orgRows[0]!.ownerUserId !== byUserId) {
+      throw new OrgWriteError(
+        "Only the current owner can rename the organization.",
+        "EMPTY_REQUIRED",
+      );
+    }
+
+    await tx
+      .update(schema.organizations)
+      .set({ name: newName })
+      .where(eq(schema.organizations.id, organizationId));
+
+    return { ok: true as const };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// deleteOrg (Phase F-4 settings — 2026-05-06)
+// ---------------------------------------------------------------------------
+
+export interface DeleteOrgInput {
+  organizationId: string;
+  /** The actor — must currently hold organizations.owner_user_id. */
+  byUserId: string;
+}
+
+/**
+ * Permanently delete an organization. Owner-only.
+ *
+ * Cascade behavior
+ * ----------------
+ * The migration 0025 schema does NOT define ON DELETE CASCADE on
+ * organization_members.organization_id or organization_invites
+ * .organization_id (varchar(36) FKs without referential constraints —
+ * see migration comment). So we MANUALLY delete the children inside
+ * the same tx, in this order:
+ *   1. organization_invites WHERE organization_id = ?
+ *   2. organization_members WHERE organization_id = ?
+ *   3. organizations WHERE id = ?
+ *
+ * What does NOT cascade:
+ *   - ai_usage rows: stay attached to the user_id (no organization_id
+ *     column — the cross-org limitation pinned in queries.ts). Users
+ *     keep their personal usage history even after org deletion.
+ *   - credit_ledger rows: no organization_id column today (Phase F-4
+ *     billing wire-up adds this). Existing entries continue to debit
+ *     against user_id — no orphaned-row cleanup needed.
+ *   - files / ai_outputs: scoped to user_id, not organization_id.
+ *
+ * Permission: owner-only (column check on organizations.owner_user_id).
+ * Even an admin who has canManageMembers cannot delete the org — that's
+ * a destructive action reserved for the owner.
+ */
+export async function deleteOrg(
+  input: DeleteOrgInput,
+): Promise<{ ok: true } | null> {
+  if (!isMultiSeatEnabled()) {
+    return null;
+  }
+
+  const organizationId = requireNonEmpty(
+    "organizationId",
+    input.organizationId,
+  );
+  const byUserId = requireNonEmpty("byUserId", input.byUserId);
+
+  return await db.transaction(async (tx) => {
+    const orgRows = await tx
+      .select()
+      .from(schema.organizations)
+      .where(eq(schema.organizations.id, organizationId))
+      .limit(1);
+    if (orgRows.length === 0) {
+      throw new OrgWriteError("Organization not found.", "ALREADY_MEMBER");
+    }
+    if (orgRows[0]!.ownerUserId !== byUserId) {
+      throw new OrgWriteError(
+        "Only the current owner can delete the organization.",
+        "EMPTY_REQUIRED",
+      );
+    }
+
+    // Cascade-delete children in dependency order. invites first so
+    // a stale token can't briefly point at a member-less org during
+    // the tx; members second; org itself last.
+    await tx
+      .delete(schema.organizationInvites)
+      .where(
+        eq(schema.organizationInvites.organizationId, organizationId),
+      );
+    await tx
+      .delete(schema.organizationMembers)
+      .where(
+        eq(schema.organizationMembers.organizationId, organizationId),
+      );
+    await tx
+      .delete(schema.organizations)
+      .where(eq(schema.organizations.id, organizationId));
+
+    return { ok: true as const };
+  });
+}
+
+// ---------------------------------------------------------------------------
 // cancelInvite (Phase F-4 — 2026-05-05)
 // ---------------------------------------------------------------------------
 

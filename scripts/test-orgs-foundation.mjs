@@ -1282,6 +1282,258 @@ if (fs.existsSync(ORG_PAGE)) {
 }
 
 // ---------------------------------------------------------------------------
+// Section M: Phase F-4 settings — renameOrg + deleteOrg
+// (PENDING §3b, 2026-05-06)
+//
+// Owner-only writers + matching server actions + settings page UI.
+// Owner check is enforced at THREE layers:
+//   1. Page render: getMemberRole === "owner" → notFound() else
+//      (notFound not 403 — anti-existence-leak; admins + members
+//      don't even know the settings URL exists)
+//   2. Server Action: outer-layer getMemberRole owner check before
+//      hitting the writer
+//   3. Writer tx: organizations.owner_user_id COLUMN check (paranoid
+//      against role-vs-column drift, same pattern as transferOwnership)
+//
+// Cascade behavior on deleteOrg
+// -----------------------------
+// Migration 0025 has no FK ON DELETE CASCADE on the children tables
+// (varchar(36) FKs without referential constraints). Writer manually
+// deletes invites + members + the org row in dependency order inside
+// one tx so a partial failure can't leave orphans.
+// ---------------------------------------------------------------------------
+
+const SETTINGS_PAGE = path.join(
+  ROOT,
+  "app/app/org/[slug]/settings/page.tsx",
+);
+const SETTINGS_ACTIONS = path.join(
+  ROOT,
+  "app/app/org/[slug]/settings/actions.ts",
+);
+const RENAME_FORM = path.join(
+  ROOT,
+  "app/app/org/[slug]/settings/RenameOrgForm.tsx",
+);
+const DELETE_FORM = path.join(
+  ROOT,
+  "app/app/org/[slug]/settings/DeleteOrgForm.tsx",
+);
+
+if (fs.existsSync(WRITERS)) {
+  const writersSrc = fs.readFileSync(WRITERS, "utf8");
+
+  // ----- renameOrg writer -----
+  assert(
+    /export\s+async\s+function\s+renameOrg\b/.test(writersSrc),
+    "M1: renameOrg is exported async",
+  );
+  // Owner-only via column check on organizations.owner_user_id
+  assert(
+    /renameOrg[\s\S]*?orgRows\[0\]!\.ownerUserId\s*!==\s*byUserId/.test(
+      writersSrc,
+    ),
+    "M2: renameOrg verifies byUserId matches organizations.owner_user_id (column-not-role check)",
+  );
+  // Name-length validation (255 cap, matching column width)
+  assert(
+    /renameOrg[\s\S]*?newName\.length\s*>\s*255/.test(writersSrc),
+    "M3: renameOrg rejects names longer than 255 chars (matches organizations.name column width)",
+  );
+  // Slug NOT touched on rename — pinned via absence of .slug update inside renameOrg
+  assert(
+    /renameOrg[\s\S]*?\.set\(\s*\{\s*name:\s*newName\s*\}\s*\)/.test(
+      writersSrc,
+    ),
+    "M4: renameOrg only updates the name column (slug stays stable so existing URLs keep working)",
+  );
+
+  // ----- deleteOrg writer -----
+  assert(
+    /export\s+async\s+function\s+deleteOrg\b/.test(writersSrc),
+    "M5: deleteOrg is exported async",
+  );
+  assert(
+    /deleteOrg[\s\S]*?orgRows\[0\]!\.ownerUserId\s*!==\s*byUserId/.test(
+      writersSrc,
+    ),
+    "M6: deleteOrg verifies byUserId matches organizations.owner_user_id",
+  );
+  // Cascade-delete pattern: invites + members + org, all inside the
+  // same tx
+  assert(
+    /deleteOrg[\s\S]*?db\.transaction\(/.test(writersSrc),
+    "M7: deleteOrg wraps the cascade in a transaction (atomic)",
+  );
+  assert(
+    /deleteOrg[\s\S]*?\.delete\(\s*schema\.organizationInvites\s*\)[\s\S]*?\.delete\(\s*schema\.organizationMembers\s*\)[\s\S]*?\.delete\(\s*schema\.organizations\s*\)/.test(
+      writersSrc,
+    ),
+    "M8: deleteOrg deletes invites → members → org in dependency order",
+  );
+}
+
+// ----- Settings page -----
+assert(
+  fs.existsSync(SETTINGS_PAGE),
+  "M9: app/app/org/[slug]/settings/page.tsx exists",
+);
+if (fs.existsSync(SETTINGS_PAGE)) {
+  const pageSrc = fs.readFileSync(SETTINGS_PAGE, "utf8");
+
+  assert(
+    /export\s+default\s+async\s+function\s+OrgSettingsPage/.test(pageSrc),
+    "M10: OrgSettingsPage default export",
+  );
+  // Auth gate redirects to /login with callbackUrl preserved
+  assert(
+    /redirect\([\s\S]*?\/login\?callbackUrl=[\s\S]*?\/settings/.test(
+      pageSrc,
+    ),
+    "M11: settings page preserves callbackUrl on /login redirect",
+  );
+  // Owner-only render: role !== "owner" → notFound()
+  assert(
+    /role\s*!==\s*"owner"[\s\S]{0,80}?notFound\(\)/.test(pageSrc),
+    "M12: settings page returns notFound() for non-owners (anti-existence-leak)",
+  );
+  assert(
+    /import\s*\{\s*RenameOrgForm\s*\}\s*from\s*"\.\/RenameOrgForm"/.test(
+      pageSrc,
+    ),
+    "M13: settings page imports RenameOrgForm",
+  );
+  assert(
+    /import\s*\{\s*DeleteOrgForm\s*\}\s*from\s*"\.\/DeleteOrgForm"/.test(
+      pageSrc,
+    ),
+    "M14: settings page imports DeleteOrgForm",
+  );
+}
+
+// ----- Settings actions -----
+assert(
+  fs.existsSync(SETTINGS_ACTIONS),
+  "M15: app/app/org/[slug]/settings/actions.ts exists",
+);
+if (fs.existsSync(SETTINGS_ACTIONS)) {
+  const actionsSrc = fs.readFileSync(SETTINGS_ACTIONS, "utf8");
+
+  assert(
+    /^"use server"/m.test(actionsSrc),
+    "M16: settings actions module is server-action",
+  );
+  assert(
+    /export\s+async\s+function\s+renameOrgAction\b/.test(actionsSrc),
+    "M17: renameOrgAction is exported async",
+  );
+  assert(
+    /export\s+async\s+function\s+deleteOrgAction\b/.test(actionsSrc),
+    "M18: deleteOrgAction is exported async",
+  );
+
+  // ----- Anti-impersonation: byUserId from session -----
+  assert(
+    /byUserId:\s*userId/.test(actionsSrc),
+    "M19: settings actions pass byUserId from session userId (anti-impersonation)",
+  );
+  assert(
+    !/byUserId:\s*input\.byUserId/.test(actionsSrc),
+    "M20: settings actions do NOT read byUserId from input",
+  );
+
+  // ----- Owner check at action layer -----
+  assert(
+    /role\s*!==\s*"owner"/.test(actionsSrc),
+    "M21: settings actions reject callers whose role !== 'owner'",
+  );
+
+  // ----- Typed-name confirmation re-checked at action layer -----
+  // Hostile clients can skip the form's gate; the action must
+  // independently verify the typed name matches expected.
+  assert(
+    /typed\s*!==\s*input\.expectedName/.test(actionsSrc),
+    "M22: deleteOrgAction re-checks typed confirmName === expectedName at action layer (defense-in-depth)",
+  );
+
+  // ----- OrgWriteError mapping -----
+  assert(
+    /err\s+instanceof\s+OrgWriteError/.test(actionsSrc),
+    "M23: settings actions catch OrgWriteError + surface err.message",
+  );
+}
+
+// ----- RenameOrgForm -----
+assert(
+  fs.existsSync(RENAME_FORM),
+  "M24: app/app/org/[slug]/settings/RenameOrgForm.tsx exists",
+);
+if (fs.existsSync(RENAME_FORM)) {
+  const formSrc = fs.readFileSync(RENAME_FORM, "utf8");
+  assert(
+    /^"use client"/m.test(formSrc),
+    "M25: RenameOrgForm is a client component",
+  );
+  assert(
+    /renameOrgAction\(/.test(formSrc),
+    "M26: RenameOrgForm calls renameOrgAction",
+  );
+  // Save-button disabled when name unchanged (avoids no-op writes)
+  assert(
+    /dirty/.test(formSrc) &&
+      /name\.trim\(\)\s*!==\s*currentName\.trim\(\)/.test(formSrc),
+    "M27: RenameOrgForm disables Save when name is unchanged (avoids no-op writes)",
+  );
+}
+
+// ----- DeleteOrgForm -----
+assert(
+  fs.existsSync(DELETE_FORM),
+  "M28: app/app/org/[slug]/settings/DeleteOrgForm.tsx exists",
+);
+if (fs.existsSync(DELETE_FORM)) {
+  const formSrc = fs.readFileSync(DELETE_FORM, "utf8");
+  assert(
+    /^"use client"/m.test(formSrc),
+    "M29: DeleteOrgForm is a client component",
+  );
+
+  // Two-step: armed + typed-name confirm
+  assert(
+    /armed/.test(formSrc) && /confirmName/.test(formSrc),
+    "M30: DeleteOrgForm uses two-step confirmation (arm + typed-name)",
+  );
+
+  // Submit gated on typed name matching org name
+  assert(
+    /confirmName\.trim\(\)\s*!==\s*orgName\.trim\(\)/.test(formSrc),
+    "M31: DeleteOrgForm submit guard verifies confirmName matches orgName before firing the action",
+  );
+
+  // On success: navigate to /app/dashboard (org URL is now 404)
+  assert(
+    /router\.push\("\/app\/dashboard"\)/.test(formSrc),
+    "M32: DeleteOrgForm pushes to /app/dashboard on success (org URL is now 404)",
+  );
+}
+
+// ----- Org page links to settings (owner-only) -----
+if (fs.existsSync(ORG_PAGE)) {
+  const pageSrc = fs.readFileSync(ORG_PAGE, "utf8");
+
+  // Settings link rendered ONLY when role === "owner". Admins +
+  // members shouldn't see the link (they couldn't reach the page
+  // anyway — notFound() on the settings page itself — but hiding
+  // the link keeps the surface honest).
+  assert(
+    /role\s*===\s*"owner"\s*\?\s*\(\s*\n[\s\S]{0,400}?\/app\/org\/\$\{org\.slug\}\/settings/.test(
+      pageSrc,
+    ),
+    "M33: org-landing page renders Settings link only when role === 'owner'",
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------------
 
