@@ -136,6 +136,7 @@ export default async function AdminOverviewPage() {
           ["User P&L", "/admin/users"],
           ["Credit ledger", "/admin/credits"],
           ["Contact submissions", "/admin/contact-submissions"],
+          ["Organizations", "/admin/orgs"],
         ]}
       />
 

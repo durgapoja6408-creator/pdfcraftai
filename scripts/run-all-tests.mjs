@@ -1295,6 +1295,21 @@ const SUITES = [
     name: "referrals-foundation",
     file: "test-referrals-foundation.mjs",
   },
+  // 2026-05-05 (PENDING §3b foundation) — multi-seat / organizations
+  // storage + helper + admin viewer guard. Three tables created in
+  // migration 0025 (organizations + organization_members +
+  // organization_invites). Pin: slug-unique, members-(org,user)-
+  // unique, invites-token-unique, all required columns, Drizzle
+  // schema parity, helper public surface (slugify + generateInviteToken
+  // + 5 read queries + isMultiSeatEnabled), MULTI_SEAT flag pin
+  // (from §4d FEATURE_FLAGS), admin viewer read-only invariant,
+  // expired-invite filter in lookupInvite. 91 assertions. Behind
+  // MULTI_SEAT flag — Phase F flips it + adds writer module +
+  // signup-flow / billing wire-up.
+  {
+    name: "orgs-foundation",
+    file: "test-orgs-foundation.mjs",
+  },
   // 2026-05-05 (PENDING §5a foundation) — PDF compress route guard.
   // Locks the Ghostscript wrapper invariants (level→preset map,
   // required gs flags, mkdtemp + finally{} cleanup, SIGKILL on

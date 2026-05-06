@@ -1103,6 +1103,128 @@ export const referralSignups = mysqlTable(
   }),
 );
 
+// ---------------------------------------------------------------------------
+// Multi-seat / organizations (PENDING §3b foundation, 2026-05-05)
+// ---------------------------------------------------------------------------
+//
+// Three tables (organizations + organization_members + organization_invites)
+// for the team plan. Same staging discipline as referrals/dunning/etc:
+// schema + read paths land NOW behind the MULTI_SEAT feature flag (already
+// in lib/flags.ts §4d). Phase F flips the flag + adds signup-flow + billing
+// + permissions + email-invite wire-up.
+//
+// Migration: db/migrations/0025_organizations.sql.
+
+/**
+ * Organization (team account). One row per team. The `owner_user_id`
+ * is denormalized for fast admin lookup; the source-of-truth for
+ * "who owns this org" is the organizationMembers row with role="owner".
+ *
+ * `billing_mode` reserves the policy choice for Phase F:
+ *   - "central":     owner pays, members consume from central balance
+ *   - "per_seat":    each member has their own pool
+ *   - "credit_pool": shared balance with per-member usage tracking
+ *
+ * Today's foundation reserves the column without enforcing semantics.
+ */
+export const organizations = mysqlTable(
+  "organizations",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    name: varchar("name", { length: 255 }).notNull(),
+    // URL component. Generated from name via slug helper with
+    // collision-retry. Lowercase, hyphen-separated, alphanumeric.
+    slug: varchar("slug", { length: 64 }).notNull(),
+    ownerUserId: varchar("owner_user_id", { length: 255 }).notNull(),
+    // "central" | "per_seat" | "credit_pool" — varchar (not enum) so
+    // adding a future mode doesn't require ALTER TABLE.
+    billingMode: varchar("billing_mode", { length: 16 })
+      .notNull()
+      .default("central"),
+    createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { fsp: 3 })
+      .notNull()
+      .defaultNow()
+      .onUpdateNow(),
+  },
+  (t) => ({
+    slugUnique: uniqueIndex("organizations_slug_unique").on(t.slug),
+    ownerIdx: index("organizations_owner_user_id_idx").on(t.ownerUserId),
+  }),
+);
+
+/**
+ * Membership: links users to organizations. UNIQUE(orgId, userId)
+ * means one membership per user per org — a user can be in multiple
+ * orgs, but only once per org (regardless of role transitions).
+ *
+ * `role` is "owner" | "admin" | "member":
+ *   - owner:  full control + billing + can transfer ownership
+ *   - admin:  invite/remove members, change roles below their own
+ *   - member: use tools, see org-shared resources
+ *
+ * Ownership transfer is a Phase F operation: change the parent
+ * organizations.owner_user_id + flip the prior owner's role to
+ * "admin" + flip the new owner's role to "owner", in a transaction.
+ */
+export const organizationMembers = mysqlTable(
+  "organization_members",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    organizationId: varchar("organization_id", { length: 36 }).notNull(),
+    userId: varchar("user_id", { length: 255 }).notNull(),
+    role: varchar("role", { length: 16 }).notNull().default("member"),
+    joinedAt: timestamp("joined_at", { fsp: 3 }).notNull().defaultNow(),
+  },
+  (t) => ({
+    orgUserUnique: uniqueIndex("organization_members_org_user_unique").on(
+      t.organizationId,
+      t.userId,
+    ),
+    userIdx: index("organization_members_user_id_idx").on(t.userId),
+    orgRoleIdx: index("organization_members_org_role_idx").on(
+      t.organizationId,
+      t.role,
+    ),
+  }),
+);
+
+/**
+ * Pending invitation. Token-based: invite link is /invite/<token>;
+ * the token is the lookup key. accepted_at is NULL while pending,
+ * non-NULL after the invitee accepts and a row is created in
+ * organizationMembers.
+ *
+ * Re-inviting an already-pending email (Phase F): the API replaces
+ * the prior token + bumps expires_at, rather than creating a second
+ * row. Idempotency is enforced by the writer at the application
+ * layer, not a SQL UNIQUE — UNIQUE(org_id, email) would prevent
+ * re-invite-after-rejection workflows.
+ */
+export const organizationInvites = mysqlTable(
+  "organization_invites",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    organizationId: varchar("organization_id", { length: 36 }).notNull(),
+    email: varchar("email", { length: 255 }).notNull(),
+    // 32-char base36 token (random, collision-retry on insert).
+    token: varchar("token", { length: 64 }).notNull(),
+    invitedByUserId: varchar("invited_by_user_id", { length: 255 }).notNull(),
+    role: varchar("role", { length: 16 }).notNull().default("member"),
+    createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { fsp: 3 }).notNull(),
+    acceptedAt: timestamp("accepted_at", { fsp: 3 }),
+  },
+  (t) => ({
+    tokenUnique: uniqueIndex("organization_invites_token_unique").on(t.token),
+    orgAcceptedIdx: index("organization_invites_org_accepted_idx").on(
+      t.organizationId,
+      t.acceptedAt,
+    ),
+    emailIdx: index("organization_invites_email_idx").on(t.email),
+  }),
+);
+
 // --- Phase 6.3 Agent tables — REMOVED on 2026-04-20 ---------------------
 //
 // `agent_runs` + `agent_run_steps` powered the authenticated /app/studio

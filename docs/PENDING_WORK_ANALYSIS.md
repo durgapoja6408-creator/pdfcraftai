@@ -155,11 +155,27 @@ The helper foundation + first consumer migration both lands ahead of the founder
 - (Optional) Wire the `FEATURE_FLAGS.ANNUAL_PLAN` flag (registered in commit `a849c91` for exactly this) to gate the toggle visibility — useful if the founder wants A/B testing or partial rollout in a future commit. Today the toggle is hardcoded-visible. Estimate: ~30 min.
 - (Optional) FAQ copy / pricing page content audit to make sure the "annual = 12× credits at 20% off" framing is consistent everywhere users encounter it.
 
-### 3b. No team / multi-seat plan
+### 3b. No team / multi-seat plan — ✅ FOUNDATION SHIPPED (2026-05-05)
 
-**State:** every seat = separate account = separate credit balance. Real teams want shared credit pool, admin console, audit log, billing consolidation.
+**Original state (audit time):** every seat = separate account = separate credit balance. Real teams wanted shared credit pool, admin console, audit log, billing consolidation. Conversations starting with "we have N employees who need PDF tools" went nowhere beyond `/enterprise` (which captures the lead but doesn't sell anything).
 
-**Estimate:** 2-3 weeks for a real team plan with shared billing + per-seat permissions + SSO via Google Workspace.
+**Foundation shipped** in this session — full storage + helper + admin viewer surface:
+- Migration 0025 (`organizations` + `organization_members` + `organization_invites`) applied pre-push to prod via SSH HEREDOC. Three new tables; zero existing-row impact.
+- Drizzle schema entries with full per-column docstrings.
+- `lib/orgs/codes.ts` — `slugify(name)` (URL-safe slug from org name with collapse-runs/trim/64-char-truncate normalization) + `generateInviteToken()` (32-char base36 token, 36³² namespace). Pure functions.
+- `lib/orgs/queries.ts` — 6 read-side helpers: `loadOrgsForUser` (M:N join through members for /app dashboard org switcher), `loadOrgMembers`, `loadOrgInvites` (filterable on accepted/pending), `lookupInvite` (with expired-invite filter so stale links can't be accepted), `loadAdminOrgStats`, `isMultiSeatEnabled` flag-check helper.
+- `/admin/orgs` — read-only viewer with 4 summary cards (orgs / memberships / pending invites / accepted invites), top-10 leaderboard by member count, and a status banner showing `MULTI_SEAT` flag state.
+- 91-assertion CI guard (`scripts/test-orgs-foundation.mjs`) covering migration DDL (three tables, slug/token/(org,user) uniques, all columns, no DROP/MODIFY/CHANGE), Drizzle schema parity, helper public surface, FEATURE_FLAGS.MULTI_SEAT pin, admin page export shape + read-only invariant, expired-invite filter, plus dynamic execution of `slugify` against 5 normalization invariants.
+
+**Same staging discipline** as feature-flags / referrals / quality-signal: schema + read paths land NOW behind the MULTI_SEAT flag (already registered in lib/flags.ts §4d). Phase F flips the flag + adds:
+- Writer module (`recordOrgCreate`, `inviteMember`, `acceptInvite`, role-change, ownership-transfer) — all flag-gated
+- /app/org/<slug>/* management surfaces (member directory, settings, invite UI)
+- Permission enforcement on tool routes (org-admin can see members' usage; org-member can only see their own)
+- Email invite delivery (depends on SendGrid/Postmark — see §11 follow-on)
+- Billing wire-up: `billing_mode` column has three placeholder values ("central" | "per_seat" | "credit_pool"); Phase F enforces semantics + plumbs the credit_ledger to bill against the org's payment method instead of the individual member's
+- SSO via Google Workspace domain-match for auto-org-assignment (e.g. all `@acme.com` signups join the Acme org by default)
+
+**Estimate Phase F → fully live:** ~2-3 weeks (matches the original audit estimate; no shortcut found, but the foundation removes ~1 week of schema + admin-tooling work that's now done).
 
 ### 3c. No enterprise contact path — ✅ ALREADY SHIPPED (re-discovered 2026-05-05)
 
