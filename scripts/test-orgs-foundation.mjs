@@ -1616,6 +1616,90 @@ if (fs.existsSync(DASHBOARD_PAGE)) {
 }
 
 // ---------------------------------------------------------------------------
+// Section O: Phase F-4 polish — loadOrgMembersWithUsers join (email +
+// name in management UI). PENDING §3b, 2026-05-06.
+//
+// Owners + admins managing the team need to see actual emails when
+// they hit "Make admin" / "Remove" / "Transfer ownership" — opaque
+// user-id fragments are useless for confirming WHO they're acting on.
+// loadOrgMembersWithUsers does a leftJoin on users → returns email +
+// name alongside the membership row.
+//
+// leftJoin (not innerJoin) is intentional: if a user row goes
+// missing (shouldn't happen but defensive), the membership stays
+// visible with email + name as null and the page falls back to
+// shortUser(userId) so the table doesn't silently drop members.
+// ---------------------------------------------------------------------------
+
+if (fs.existsSync(QUERIES)) {
+  const queriesSrc = fs.readFileSync(QUERIES, "utf8");
+
+  assert(
+    /export\s+(?:async\s+)?function\s+loadOrgMembersWithUsers\b/.test(
+      queriesSrc,
+    ),
+    "O1: loadOrgMembersWithUsers is exported (Phase F-4 join helper)",
+  );
+  assert(
+    /export\s+interface\s+OrganizationMemberWithUserRow\b/.test(
+      queriesSrc,
+    ),
+    "O2: OrganizationMemberWithUserRow type exported",
+  );
+
+  // leftJoin (not innerJoin) keeps members visible if the users row
+  // somehow went missing (defensive). Pinned by regex.
+  assert(
+    /loadOrgMembersWithUsers[\s\S]*?\.leftJoin\(\s*schema\.users/.test(
+      queriesSrc,
+    ),
+    "O3: loadOrgMembersWithUsers uses leftJoin (defensive — keeps members visible if users row went missing)",
+  );
+
+  // Selects email + name from users + nullable null-coalesce on the
+  // result projection
+  assert(
+    /loadOrgMembersWithUsers[\s\S]*?email:\s*r\.email\s*\?\?\s*null/.test(
+      queriesSrc,
+    ),
+    "O4: result projects email with `?? null` fallback (matches nullable type)",
+  );
+  assert(
+    /loadOrgMembersWithUsers[\s\S]*?name:\s*r\.name\s*\?\?\s*null/.test(
+      queriesSrc,
+    ),
+    "O5: result projects name with `?? null` fallback",
+  );
+}
+
+if (fs.existsSync(ORG_PAGE)) {
+  const pageSrc = fs.readFileSync(ORG_PAGE, "utf8");
+
+  // Page uses loadOrgMembersWithUsers, not loadOrgMembers
+  assert(
+    /loadOrgMembersWithUsers\(/.test(pageSrc),
+    "O6: org page uses loadOrgMembersWithUsers (Phase F-4 join)",
+  );
+
+  // memberLabel helper exists with the email → name → fragment fallback
+  assert(
+    /function\s+memberLabel\(/.test(pageSrc),
+    "O7: page defines memberLabel helper",
+  );
+  assert(
+    /m\.email[\s\S]{0,60}?return\s+m\.email/.test(pageSrc),
+    "O8: memberLabel prefers email when present",
+  );
+
+  // Member directory uses memberLabel(m), not shortUser(m.userId)
+  // (the directory render path; usage rollup also uses memberLabel)
+  assert(
+    /\{memberLabel\(m\)\}/.test(pageSrc),
+    "O9: member directory renders memberLabel(m) (email/name) instead of opaque user-id fragment",
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------------
 

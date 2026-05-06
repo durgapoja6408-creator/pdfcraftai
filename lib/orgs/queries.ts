@@ -43,6 +43,25 @@ export interface OrganizationMemberRow {
   joinedAt: Date;
 }
 
+/**
+ * Member row joined onto the users table — used by the org-landing
+ * page so owners + admins managing the team see actual emails +
+ * names instead of opaque user-id fragments. Both `email` (from
+ * the users table) and `name` are nullable: `email` should always
+ * be present for active accounts but we type it as `string | null`
+ * to match the schema; `name` is nullable in the schema (NextAuth
+ * users created via OAuth-without-name skip the column).
+ */
+export interface OrganizationMemberWithUserRow {
+  id: string;
+  organizationId: string;
+  userId: string;
+  role: string;
+  joinedAt: Date;
+  email: string | null;
+  name: string | null;
+}
+
 export interface OrganizationInviteRow {
   id: string;
   organizationId: string;
@@ -143,6 +162,51 @@ export async function loadOrgMembers(
     userId: r.userId,
     role: r.role,
     joinedAt: r.joinedAt,
+  }));
+}
+
+/**
+ * List members joined with the users table for human-readable display
+ * in management UIs (Phase F-4 polish, 2026-05-06). Use this when
+ * the page wants email + name instead of just user-id fragments.
+ *
+ * leftJoin on users keeps members visible even if the user row was
+ * somehow soft-deleted (foreign key cascade-delete should prevent
+ * this in practice, but a defensive leftJoin keeps the table-render
+ * honest if the invariant ever breaks). When the users row is
+ * missing, email + name come back as null.
+ *
+ * Same permission semantics as loadOrgMembers — the caller is
+ * responsible for the membership / canManage check before invoking.
+ */
+export async function loadOrgMembersWithUsers(
+  organizationId: string,
+): Promise<OrganizationMemberWithUserRow[]> {
+  const rows = await db
+    .select({
+      id: schema.organizationMembers.id,
+      organizationId: schema.organizationMembers.organizationId,
+      userId: schema.organizationMembers.userId,
+      role: schema.organizationMembers.role,
+      joinedAt: schema.organizationMembers.joinedAt,
+      email: schema.users.email,
+      name: schema.users.name,
+    })
+    .from(schema.organizationMembers)
+    .leftJoin(
+      schema.users,
+      eq(schema.users.id, schema.organizationMembers.userId),
+    )
+    .where(eq(schema.organizationMembers.organizationId, organizationId))
+    .orderBy(desc(schema.organizationMembers.joinedAt));
+  return rows.map((r) => ({
+    id: r.id,
+    organizationId: r.organizationId,
+    userId: r.userId,
+    role: r.role,
+    joinedAt: r.joinedAt,
+    email: r.email ?? null,
+    name: r.name ?? null,
   }));
 }
 

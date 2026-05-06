@@ -46,7 +46,7 @@ import {
   isMultiSeatEnabled,
   loadOrgBySlug,
   loadOrgInvites,
-  loadOrgMembers,
+  loadOrgMembersWithUsers,
   loadOrgMemberUsage,
 } from "@/lib/orgs/queries";
 import { CancelInviteButton } from "./CancelInviteButton";
@@ -72,6 +72,23 @@ function fmtDate(d: Date): string {
 function shortUser(userId: string): string {
   if (userId.length <= 16) return userId;
   return `${userId.slice(0, 8)}…${userId.slice(-4)}`;
+}
+
+/**
+ * Pick the best human-readable label for a member row.
+ * Preference order: email (always present for active accounts) → name
+ * (NextAuth users created without a name skip this column) → user-id
+ * fragment (shouldn't happen post-leftJoin, but defensive fallback in
+ * case the users row went missing).
+ */
+function memberLabel(m: {
+  email: string | null;
+  name: string | null;
+  userId: string;
+}): string {
+  if (m.email && m.email.length > 0) return m.email;
+  if (m.name && m.name.length > 0) return m.name;
+  return shortUser(m.userId);
 }
 
 export default async function OrgLandingPage({
@@ -107,7 +124,11 @@ export default async function OrgLandingPage({
   // -- 4. Load org details --------------------------------------------
   const canManage = await canManageMembers(org.id, userId);
   const [members, pendingInvites, memberUsage] = await Promise.all([
-    loadOrgMembers(org.id),
+    // loadOrgMembersWithUsers joins on the users table so the page
+    // shows email + name in the directory + management UI, not just
+    // opaque user-id fragments. Owners + admins managing the team
+    // need to see who they're promoting/removing.
+    loadOrgMembersWithUsers(org.id),
     canManage ? loadOrgInvites(org.id, { includeAccepted: false }) : [],
     // Per-member usage rollup is owners + admins only — members
     // don't see what other members have spent.
@@ -205,7 +226,17 @@ export default async function OrgLandingPage({
               }}
             >
               <div>
-                <code style={{ fontSize: 12 }}>{shortUser(m.userId)}</code>
+                <span style={{ fontSize: 13, fontWeight: 500 }}>
+                  {memberLabel(m)}
+                </span>
+                {m.email && m.name && m.name !== m.email ? (
+                  <span
+                    className="muted"
+                    style={{ fontSize: 11, marginLeft: 8 }}
+                  >
+                    {m.name}
+                  </span>
+                ) : null}
                 {m.userId === userId ? (
                   <span
                     className="muted"
@@ -317,9 +348,7 @@ export default async function OrgLandingPage({
                       fontSize: 12,
                     }}
                   >
-                    <code style={{ fontSize: 11 }}>
-                      {shortUser(m.userId)}
-                    </code>
+                    <span style={{ fontSize: 12 }}>{memberLabel(m)}</span>
                     <span
                       className={credits === 0 ? "muted" : undefined}
                       style={{
