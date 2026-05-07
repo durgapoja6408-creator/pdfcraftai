@@ -2,7 +2,31 @@
 
 Context: review of the signup → verification → dashboard flow surfaced four honest gaps. This doc tracks the closeout state of each.
 
-## Gap #1 — No 6-digit OTP / code-confirmation alternative ⏳ DEFERRED
+## Gap #1 — No 6-digit OTP / code-confirmation alternative ✅ SHIPPED 2026-05-06
+
+**Closed by the follow-up commit on 2026-05-06.** Full implementation:
+
+- Migration `0027_verification_codes.sql` applied to prod via SSH HEREDOC pipe (same discipline as 0005-0026): new `verification_codes` table with `(id, user_id [UNIQUE], code_hash, attempts, locked_until, expires, created_at)`. Verified shape via `DESCRIBE verification_codes`.
+- Drizzle schema extended in `db/schema/auth.ts:verificationCodes`.
+- `lib/auth/email-verification.ts:createVerificationCode(userId)` — generates 6-digit numeric (crypto.randomBytes uint32 mod 1M, zero-padded), salted hash via `SHA-256(${code}:${userId})`, deletes any existing row before insert (UNIQUE on user_id), 15-min TTL.
+- `lib/auth/email-verification.ts:consumeVerificationCode(userId, code)` — defensive `^\d{6}$` shape guard, lockout check (precedence over valid codes — defends against attempt-burst races), expiry check, hash compare, on-miss attempts++ + lockout-set on 5th miss, on-hit atomic delete-row + set users.email_verified.
+- `POST /api/auth/verify-code` — userId from session anti-impersonation, structured outcomes (200/400/404/410/429), Retry-After header on lockout, fires same signup-bonus + referral-reward side effects as the magic-link path.
+- `app/verify-email/CodeEntryForm.tsx` — single 6-digit input (auto-strip non-digits, auto-submit on full 6, paste-friendly), 3 outcome states (idle / error / locked).
+- `/verify-email` page now shows the OTP form when no `?token=` is present AND user is signed in. Anonymous visitors get a "sign in first" prompt.
+- Email body updated to include both options: the magic link AND the 6-digit code (with monospaced styling for clarity in HTML body).
+
+**Throttle math:**
+- 5 attempts per 15-min window per user. Attacker with valid session (else they couldn't even reach the endpoint) and knowledge of email gets 5 codes per 15min = 480/day.
+- 1M codes / 480 attempts/day ≈ 2,083 days to brute-force one user's code. Well past the 15-min code TTL — codes rotate faster than they can be guessed.
+- DB-leak threat: per-user salt (`code:userId`) means even rainbow-tabled SHA-256 only reveals the code for ONE specific user — attacker still needs to compute hashes per-user, which doesn't scale.
+
+**Constant-time comparison:** SHA-256 hex strings are fixed-length 64 chars; JS `===` on those is constant-time relative to the unverified inputs. Hash both sides before compare so we never compare against the raw user input.
+
+---
+
+### ORIGINAL DEFERRAL DESIGN (kept for historical reference)
+
+The deferral note below was written before the follow-up commit shipped the implementation. Preserved for the design rationale + threat-model walk-through.
 
 **State:** the only verification path is the magic-link in the email. Users who prefer typing a 6-digit code (or whose mail client strips the link) have no alternative. Common pattern on banking + SaaS apps; missing here.
 

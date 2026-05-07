@@ -124,6 +124,165 @@ export async function consumeVerificationToken(
   return { ok: true, userId: row.identifier };
 }
 
+// ---------------------------------------------------------------------------
+// 6-digit OTP path (gap #1, 2026-05-06)
+// ---------------------------------------------------------------------------
+
+const CODE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+const CODE_MAX_ATTEMPTS = 5;
+const CODE_LOCKOUT_MS = 15 * 60 * 1000; // 15-min lockout after 5 misses
+
+/**
+ * Per-user-salted hash of a 6-digit code. SHA-256 of `${code}:${userId}`.
+ * Salting with userId means a DB leak doesn't let an attacker rainbow-
+ * table all 1M possible 6-digit codes — they'd need to know the userId
+ * AND compute hashes per-user.
+ */
+function hashCode(code: string, userId: string): string {
+  return createHash("sha256").update(`${code}:${userId}`).digest("hex");
+}
+
+/**
+ * Generate a fresh 6-digit verification code, store its salted hash,
+ * return the raw code for emailing. Idempotent: re-calling for the
+ * same user invalidates any existing code (old code stops working
+ * the moment the new one is created — prevents a "two valid codes"
+ * window).
+ */
+export async function createVerificationCode(userId: string): Promise<string> {
+  // crypto.randomBytes for a 6-digit code: read 4 bytes (uint32 max
+  // = 4.29B), modulo 1_000_000, zero-pad. Modulo bias is negligible
+  // (4.29B / 1M = 4294 buckets, 4 bias spread across 1M codes).
+  const buf = randomBytes(4);
+  const num = (buf.readUInt32BE(0) % 1_000_000)
+    .toString()
+    .padStart(6, "0");
+  const hashed = hashCode(num, userId);
+  const expires = new Date(Date.now() + CODE_TTL_MS);
+  const id = randomBytes(16).toString("hex");
+
+  // Delete any existing code for this user first. UNIQUE on user_id
+  // would also catch this on insert, but pre-delete keeps the error
+  // path clean.
+  await db
+    .delete(schema.verificationCodes)
+    .where(eq(schema.verificationCodes.userId, userId));
+
+  await db.insert(schema.verificationCodes).values({
+    id,
+    userId,
+    codeHash: hashed,
+    attempts: 0,
+    lockedUntil: null,
+    expires,
+  });
+
+  return num;
+}
+
+/**
+ * Consume a 6-digit verification code. Permission rules:
+ *   - userId comes from session (caller's anti-impersonation
+ *     responsibility — we trust the input)
+ *   - code is the user-typed string
+ *
+ * Outcome:
+ *   - { ok: true, userId } on hit (deletes row, sets email_verified)
+ *   - { ok: false, reason: "invalid" } on miss (increments attempts;
+ *     sets locked_until on the 5th miss)
+ *   - { ok: false, reason: "expired" } on TTL pass
+ *   - { ok: false, reason: "locked_out", retryAfterSeconds } when
+ *     the row is currently locked from a prior burst of misses
+ *   - { ok: false, reason: "no_active_code" } when no row exists
+ *     (user clicked Resend right before typing the old code)
+ *
+ * Constant-time comparison: hash both sides before compare. Plain
+ * string compare on hashed values would still leak timing on the
+ * hash itself, but JS string compare is constant-time relative to
+ * the unverified inputs (the hash output is fixed-length 64 chars).
+ */
+export async function consumeVerificationCode(
+  userId: string,
+  rawCode: string,
+): Promise<
+  | { ok: true; userId: string }
+  | { ok: false; reason: "invalid" }
+  | { ok: false; reason: "expired" }
+  | { ok: false; reason: "locked_out"; retryAfterSeconds: number }
+  | { ok: false; reason: "no_active_code" }
+> {
+  // Defensive input guards — match the OTP shape (6 digits)
+  const trimmed = (rawCode ?? "").replace(/\s+/g, "");
+  if (!/^\d{6}$/.test(trimmed)) {
+    return { ok: false, reason: "invalid" };
+  }
+  if (typeof userId !== "string" || userId.length === 0) {
+    return { ok: false, reason: "no_active_code" };
+  }
+
+  const now = new Date();
+  const [row] = await db
+    .select()
+    .from(schema.verificationCodes)
+    .where(eq(schema.verificationCodes.userId, userId))
+    .limit(1);
+  if (!row) return { ok: false, reason: "no_active_code" };
+
+  // Lockout takes precedence — even an otherwise-valid code is
+  // rejected during a lockout window (defense against attempt-burst
+  // attacks).
+  if (row.lockedUntil && row.lockedUntil > now) {
+    const retryAfterSeconds = Math.ceil(
+      (row.lockedUntil.getTime() - now.getTime()) / 1000,
+    );
+    return { ok: false, reason: "locked_out", retryAfterSeconds };
+  }
+
+  if (row.expires <= now) {
+    // Expired — delete the row so the next createVerificationCode
+    // call doesn't see a stale row.
+    await db
+      .delete(schema.verificationCodes)
+      .where(eq(schema.verificationCodes.id, row.id));
+    return { ok: false, reason: "expired" };
+  }
+
+  const expectedHash = hashCode(trimmed, userId);
+  if (expectedHash !== row.codeHash) {
+    // Miss. Increment attempts; set lockout if at threshold.
+    const nextAttempts = row.attempts + 1;
+    const lockedUntil =
+      nextAttempts >= CODE_MAX_ATTEMPTS
+        ? new Date(Date.now() + CODE_LOCKOUT_MS)
+        : null;
+    await db
+      .update(schema.verificationCodes)
+      .set({ attempts: nextAttempts, lockedUntil })
+      .where(eq(schema.verificationCodes.id, row.id));
+    if (lockedUntil) {
+      return {
+        ok: false,
+        reason: "locked_out",
+        retryAfterSeconds: Math.ceil(CODE_LOCKOUT_MS / 1000),
+      };
+    }
+    return { ok: false, reason: "invalid" };
+  }
+
+  // Hit. Delete the code row + mark email verified atomically.
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(schema.verificationCodes)
+      .where(eq(schema.verificationCodes.id, row.id));
+    await tx
+      .update(schema.users)
+      .set({ emailVerified: now })
+      .where(eq(schema.users.id, userId));
+  });
+
+  return { ok: true, userId };
+}
+
 /**
  * Send the verification email. Composes a plain-text + HTML message
  * with the verify link.
@@ -132,16 +291,27 @@ export async function sendVerificationEmail(
   email: string,
   userId: string,
 ): Promise<{ ok: boolean; error?: string }> {
+  // Both paths active in parallel: magic-link (24h) AND 6-digit
+  // OTP (15min). User picks whichever is more convenient. Email
+  // includes both. Either consume path independently sets
+  // users.email_verified, so clicking the link or typing the code
+  // achieves the same outcome.
   const token = await createVerificationToken(userId);
   const link = `${siteOrigin()}/verify-email?token=${encodeURIComponent(token)}`;
+  const code = await createVerificationCode(userId);
 
   const text = [
     `Welcome to pdfcraft ai.`,
     ``,
-    `Click the link below to verify your email address. The link is`,
-    `valid for 24 hours.`,
+    `Two ways to verify your email — pick whichever is easier.`,
     ``,
+    `Option 1 — Click the link (valid for 24 hours):`,
     link,
+    ``,
+    `Option 2 — Sign in and enter this 6-digit code (valid for 15 minutes):`,
+    `    ${code.slice(0, 3)} ${code.slice(3)}`,
+    ``,
+    `Code-entry form: ${siteOrigin()}/verify-email`,
     ``,
     `If you didn't create a pdfcraft ai account, you can safely ignore`,
     `this message.`,
@@ -164,9 +334,14 @@ export async function sendVerificationEmail(
 </head>
 <body>
   <h1>Welcome to pdfcraft ai</h1>
-  <p>Click the button below to verify your email address. The link is valid for 24 hours.</p>
+  <p>Two ways to verify — pick whichever is easier.</p>
+  <p><strong>Option 1 — Click the button</strong> (valid for 24 hours):</p>
   <p><a class="btn" href="${link}">Verify email</a></p>
   <p class="muted">Or paste this link into your browser:<br><span class="link">${link}</span></p>
+  <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
+  <p><strong>Option 2 — Enter this 6-digit code</strong> (valid for 15 minutes):</p>
+  <p style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 28px; letter-spacing: 6px; font-weight: 600; color: #0066ff; padding: 12px 18px; background: #f0f5ff; border-radius: 8px; text-align: center; margin: 12px 0;">${code.slice(0, 3)}&nbsp;${code.slice(3)}</p>
+  <p class="muted">Sign in at <a href="${siteOrigin()}/login" style="color:#0066ff">${siteOrigin().replace("https://", "")}/login</a>, then enter the code on the verification page.</p>
   <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
   <p class="muted">If you didn't create a pdfcraft ai account, you can safely ignore this message.</p>
   <p class="muted">— pdfcraft ai · <a href="https://pdfcraftai.com" style="color:#0066ff">pdfcraftai.com</a></p>

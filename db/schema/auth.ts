@@ -125,6 +125,38 @@ export const verificationTokens = mysqlTable(
   })
 );
 
+// Verification codes — 6-digit OTP alternative to magic-link.
+// Migration 0027 (2026-05-06). Pairs with the magic-link path
+// above; both flows can be live simultaneously.
+//
+// Throttle: attempts++ on each miss; locked_until set to now+15min
+// after MAX_ATTEMPTS (5) failures. consumeVerificationCode rejects
+// any consume call while locked_until > NOW(). Lockout is per-row
+// (per-user, since UNIQUE on user_id), not per-IP — pairs the
+// existing per-user session-required posture (see comment on the
+// /api/auth/verify-code route).
+//
+// code_hash = SHA-256(code + ":" + userId). Per-user salting via
+// the userId means a DB leak doesn't let attackers rainbow-table
+// the 1M possible 6-digit codes — they'd need to know the userId
+// AND compute hashes per-user.
+export const verificationCodes = mysqlTable(
+  "verification_codes",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    userId: varchar("user_id", { length: 255 }).notNull(),
+    codeHash: varchar("code_hash", { length: 128 }).notNull(),
+    attempts: int("attempts").notNull().default(0),
+    lockedUntil: timestamp("locked_until", { fsp: 3 }),
+    expires: timestamp("expires", { fsp: 3 }).notNull(),
+    createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userIdUnique: uniqueIndex("verification_codes_user_id_unique").on(t.userId),
+    expiresIdx: index("verification_codes_expires_idx").on(t.expires),
+  }),
+);
+
 // Password reset tokens — single-use, 30-minute TTL, hashed at rest.
 //
 // Flow:

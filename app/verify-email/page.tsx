@@ -18,7 +18,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { auth } from "@/auth";
 import { consumeVerificationToken } from "@/lib/auth/email-verification";
+import { CodeEntryForm } from "./CodeEntryForm";
 import { grantSignupBonus } from "@/lib/payments/signup-bonus";
 // PENDING §3e Phase E final (2026-05-05) — fire the referred-user
 // reward when they verify their email. Idempotent + flag-gated;
@@ -41,21 +43,65 @@ export default async function VerifyEmailPage({
 }) {
   const token = searchParams?.token ?? "";
 
+  // No token in URL? Show the 6-digit OTP code-entry form
+  // (gap #1, 2026-05-06). Requires a session — the OTP path
+  // verifies the code against eval_codes.user_id from the
+  // session, NEVER from input. Anonymous visitors hitting
+  // /verify-email without a token get the "sign in first" copy.
   if (!token) {
+    const session = await auth();
+    const isSignedIn = Boolean(
+      session?.user && (session.user as { id?: string }).id,
+    );
     return (
       <main
         className="container-x"
         style={{ padding: "120px 28px", textAlign: "center" }}
       >
-        <h1 style={{ fontSize: 32, marginBottom: 12 }}>Missing token</h1>
-        <p className="muted" style={{ fontSize: 16, maxWidth: 480, margin: "0 auto 24px" }}>
-          This page needs a verification token in the URL. Check the
-          link in your email — it may have been clipped by your email
-          client.
-        </p>
-        <Link href="/" className="btn btn-lg btn-primary">
-          Back home
-        </Link>
+        <h1 style={{ fontSize: 32, marginBottom: 12 }}>
+          Verify your email
+        </h1>
+        {isSignedIn ? (
+          <>
+            <p
+              className="muted"
+              style={{
+                fontSize: 15,
+                maxWidth: 480,
+                margin: "0 auto 8px",
+                lineHeight: 1.5,
+              }}
+            >
+              Click the link in your verification email — or enter
+              the 6-digit code below.
+            </p>
+            <CodeEntryForm />
+          </>
+        ) : (
+          <>
+            <p
+              className="muted"
+              style={{
+                fontSize: 15,
+                maxWidth: 480,
+                margin: "0 auto 24px",
+                lineHeight: 1.5,
+              }}
+            >
+              Sign in first, then either click the link in your
+              verification email or enter the 6-digit code from
+              the email on this page.
+            </p>
+            <div className="row" style={{ justifyContent: "center", gap: 12 }}>
+              <Link href="/login?callbackUrl=/verify-email" className="btn btn-lg btn-primary">
+                Sign in
+              </Link>
+              <Link href="/" className="btn btn-lg btn-outline">
+                Back home
+              </Link>
+            </div>
+          </>
+        )}
       </main>
     );
   }
