@@ -43,29 +43,56 @@ function siteOrigin(): string {
   return process.env.NEXT_PUBLIC_SITE_URL ?? "https://pdfcraftai.com";
 }
 
-/**
- * Generate a fresh verification token, store its hash, return the raw
- * token for emailing to the user. Idempotent: re-calling for the same
- * user invalidates any existing token (prevents leftover tokens from
- * a botched first attempt staying live for 24h).
- */
-export async function createVerificationToken(userId: string): Promise<string> {
-  const raw = randomBytes(32).toString("hex");
+// ---------------------------------------------------------------------------
+// Internal generate / persist split — Option B clean-fix (2026-05-07)
+//
+// Old flow (had a UX bug): createVerificationToken wrote to DB
+// immediately + returned the raw token, THEN sendEmail ran. If
+// SMTP failed, the token row stayed in DB with a fresh expires
+// timestamp. The resend rate-limit (which infers "last send
+// time" from token age) then blocked the next legit retry even
+// though the user never received an email.
+//
+// New flow: generate raw values in memory (no DB write), let
+// sendVerificationEmail attempt the send, then persist the rows
+// only AFTER a successful send. On send failure, no rows exist
+// and the next resend isn't rate-limited. Cleaner correctness +
+// closes the SMTP-fail-open UX gap.
+// ---------------------------------------------------------------------------
+
+function _generateRawToken(): string {
+  return randomBytes(32).toString("hex");
+}
+
+async function _persistVerificationToken(
+  userId: string,
+  raw: string,
+): Promise<void> {
   const hashed = hashToken(raw);
   const expires = new Date(Date.now() + TOKEN_TTL_MS);
-
-  // Delete any existing tokens for this user first. This makes
-  // "resend verification email" implicitly invalidate the old token.
   await db
     .delete(schema.verificationTokens)
     .where(eq(schema.verificationTokens.identifier, userId));
-
   await db.insert(schema.verificationTokens).values({
     identifier: userId,
     token: hashed,
     expires,
   });
+}
 
+/**
+ * Generate a fresh verification token, store its hash, return the raw
+ * token for emailing to the user. Idempotent: re-calling for the same
+ * user invalidates any existing token.
+ *
+ * Used by code paths that DON'T go through sendVerificationEmail (e.g.
+ * tests, future direct-link flows). For the standard signup flow,
+ * sendVerificationEmail handles generate+persist atomically on
+ * successful SMTP send — see Option B refactor below.
+ */
+export async function createVerificationToken(userId: string): Promise<string> {
+  const raw = _generateRawToken();
+  await _persistVerificationToken(userId, raw);
   return raw;
 }
 
@@ -149,25 +176,24 @@ function hashCode(code: string, userId: string): string {
  * the moment the new one is created — prevents a "two valid codes"
  * window).
  */
-export async function createVerificationCode(userId: string): Promise<string> {
+function _generateRawCode(): string {
   // crypto.randomBytes for a 6-digit code: read 4 bytes (uint32 max
   // = 4.29B), modulo 1_000_000, zero-pad. Modulo bias is negligible
   // (4.29B / 1M = 4294 buckets, 4 bias spread across 1M codes).
   const buf = randomBytes(4);
-  const num = (buf.readUInt32BE(0) % 1_000_000)
-    .toString()
-    .padStart(6, "0");
-  const hashed = hashCode(num, userId);
+  return (buf.readUInt32BE(0) % 1_000_000).toString().padStart(6, "0");
+}
+
+async function _persistVerificationCode(
+  userId: string,
+  raw: string,
+): Promise<void> {
+  const hashed = hashCode(raw, userId);
   const expires = new Date(Date.now() + CODE_TTL_MS);
   const id = randomBytes(16).toString("hex");
-
-  // Delete any existing code for this user first. UNIQUE on user_id
-  // would also catch this on insert, but pre-delete keeps the error
-  // path clean.
   await db
     .delete(schema.verificationCodes)
     .where(eq(schema.verificationCodes.userId, userId));
-
   await db.insert(schema.verificationCodes).values({
     id,
     userId,
@@ -176,8 +202,12 @@ export async function createVerificationCode(userId: string): Promise<string> {
     lockedUntil: null,
     expires,
   });
+}
 
-  return num;
+export async function createVerificationCode(userId: string): Promise<string> {
+  const raw = _generateRawCode();
+  await _persistVerificationCode(userId, raw);
+  return raw;
 }
 
 /**
@@ -296,9 +326,16 @@ export async function sendVerificationEmail(
   // includes both. Either consume path independently sets
   // users.email_verified, so clicking the link or typing the code
   // achieves the same outcome.
-  const token = await createVerificationToken(userId);
+  //
+  // Option B atomicity (2026-05-07): generate raw values in
+  // memory, attempt SMTP send FIRST, only persist token+code rows
+  // AFTER successful delivery. On send failure, no DB rows exist
+  // for the would-be-link/code — so the resend rate-limit
+  // (which infers "last send time" from token age) correctly
+  // ignores failed attempts and lets the user retry immediately.
+  const token = _generateRawToken();
   const link = `${siteOrigin()}/verify-email?token=${encodeURIComponent(token)}`;
-  const code = await createVerificationCode(userId);
+  const code = _generateRawCode();
 
   const text = [
     `Welcome to pdfcraft ai.`,
@@ -348,12 +385,52 @@ export async function sendVerificationEmail(
 </body>
 </html>`;
 
-  return sendEmail({
+  // Send first — Option B (2026-05-07).
+  const result = await sendEmail({
     to: email,
     subject: "Verify your pdfcraft ai email",
     text,
     html,
   });
+
+  // Persist the token + code rows ONLY on successful send. On
+  // failure we return the SMTP error and leave the DB untouched —
+  // the resend path will see "no existing token" and skip the
+  // rate-limit, letting the user retry immediately. The user
+  // never received the email, so there's nothing to "rate-limit
+  // against".
+  //
+  // Tiny race window: if the user opens the email + clicks the
+  // link/types the code in the ~10ms between successful send and
+  // these two writes, they hit "no_active_code" or "expired_or_
+  // unknown". Mitigation: the SMTP latency floor is ~hundreds of
+  // ms, plus mail-server delivery latency (seconds at minimum),
+  // so the user can never beat the DB writes in practice. The
+  // race window is theoretical.
+  if (result.ok) {
+    try {
+      await _persistVerificationToken(userId, token);
+      await _persistVerificationCode(userId, code);
+    } catch (err) {
+      // Persistence failed AFTER successful SMTP send. The user
+      // will receive the email but neither path will work. Log
+      // for ops + return failure so the caller (registerAction
+      // microtask, resend route) surfaces it. Re-trying the
+      // resend will re-send the email — slightly noisy for the
+      // user but recoverable.
+      console.error(
+        JSON.stringify({
+          event: "verification_persist_failed_after_send",
+          userId,
+          error: err instanceof Error ? err.message : String(err),
+          ts: new Date().toISOString(),
+        }),
+      );
+      return { ok: false, error: "persist_failed_after_send" };
+    }
+  }
+
+  return result;
 }
 
 // ---------------------------------------------------------------------------
