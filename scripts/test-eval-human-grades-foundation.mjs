@@ -838,6 +838,26 @@ if (fs.existsSync(QUERIES)) {
     /graderName\?:\s*string\s*\|\s*null/.test(queriesSrc),
     "I11: HumanGradeRow type has optional graderName (typed nullable)",
   );
+
+  // loadGradesForOpCombo also leftJoins users — completes the
+  // polish across all 3 grader-rendering query paths
+  assert(
+    /loadGradesForOpCombo[\s\S]*?\.leftJoin\(\s*schema\.users/.test(
+      queriesSrc,
+    ),
+    "I12: loadGradesForOpCombo leftJoins users (drilldown page rows now show email/name)",
+  );
+}
+
+// Drilldown page renders email/name with same fallback chain
+if (fs.existsSync(DRILLDOWN_PAGE)) {
+  const ddSrc = fs.readFileSync(DRILLDOWN_PAGE, "utf8");
+  assert(
+    /g\.graderEmail[\s\S]{0,200}?g\.graderName[\s\S]{0,200}?shortUser\(g\.graderUserId\)/.test(
+      ddSrc,
+    ),
+    "I13: drilldown page falls back email → name → shortUser (consistent with /admin/evals)",
+  );
 }
 
 // ---------------------------------------------------------------------------

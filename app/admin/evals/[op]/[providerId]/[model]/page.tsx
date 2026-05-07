@@ -435,9 +435,16 @@ export default async function AdminEvalsDrilldownPage({
                       </span>
                     </Td>
                     <Td>
-                      <code style={{ fontSize: 12 }}>
-                        {shortUser(g.graderUserId)}
-                      </code>
+                      {/* loadGradesForOpCombo now leftJoins users —
+                          prefer email, fall back to name, then
+                          shortUser for missing-users-row case. */}
+                      <span style={{ fontSize: 12 }}>
+                        {g.graderEmail && g.graderEmail.length > 0
+                          ? g.graderEmail
+                          : g.graderName && g.graderName.length > 0
+                          ? g.graderName
+                          : shortUser(g.graderUserId)}
+                      </span>
                     </Td>
                     <Td>{g.scoreRelevance}</Td>
                     <Td>{g.scoreCompleteness}</Td>

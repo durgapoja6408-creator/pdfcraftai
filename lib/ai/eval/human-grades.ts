@@ -290,9 +290,21 @@ export async function loadGradesForOpCombo(
   limit: number = 200,
 ): Promise<HumanGradeRow[]> {
   const safeLimit = Math.max(1, Math.min(500, Math.floor(limit)));
+  // leftJoin on users so the drilldown page renders email/name
+  // instead of opaque user-id fragments. Same pattern as
+  // listRecentHumanGrades + loadGraderActivity (commits b2f3a95
+  // and 666e91d).
   const rows = await db
-    .select()
+    .select({
+      grade: schema.evalHumanGrades,
+      email: schema.users.email,
+      name: schema.users.name,
+    })
     .from(schema.evalHumanGrades)
+    .leftJoin(
+      schema.users,
+      eq(schema.users.id, schema.evalHumanGrades.graderUserId),
+    )
     .where(
       and(
         eq(schema.evalHumanGrades.operation, operation),
@@ -302,7 +314,11 @@ export async function loadGradesForOpCombo(
     )
     .orderBy(desc(schema.evalHumanGrades.createdAt))
     .limit(safeLimit);
-  return rows.map(toRow);
+  return rows.map((r) => ({
+    ...toRow(r.grade),
+    graderEmail: r.email ?? null,
+    graderName: r.name ?? null,
+  }));
 }
 
 function toRow(r: typeof schema.evalHumanGrades.$inferSelect): HumanGradeRow {
