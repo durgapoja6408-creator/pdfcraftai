@@ -3,8 +3,8 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-05-06 (Phase F-4 multi-seat closeout — 6 commits shipping the entire owner+admin management surface for organizations).
-**Live commit:** `5165cf1a615f` (dashboard Organizations section). All 101 suites green, **5979 tests passing** (+694 from the 2026-05-04 close-out, of which +111 are direct multi-seat coverage in Sections I/J/K/L/M/N of `test-orgs-foundation.mjs`). **Twenty-four zombie-next-server cascades** total — cascade #24 hit on commit `0f2d0e0` (per-member usage rollup, deploy #4 of the 6-commit run) and recovered cleanly with one mass-kill + Passenger restart per the CLAUDE.md §5 runbook; deploys 5 + 6 went clean.
+**Last updated:** 2026-05-06 (Phase F-4 multi-seat closeout + Phase G-2 eval drilldown + leftJoin polish — 17 commits shipping the entire owner/admin/ops management surface for organizations + the per-(op×provider×model) drilldown surface for eval review).
+**Live commit:** `76ad2787102b` (grader email/name leftJoin on drilldown page — completes the polish across all 3 grader-rendering query paths). All 101 suites green, **6069 tests passing** (+784 from the 2026-05-04 close-out, of which +201 are direct multi-seat + Phase G-2 coverage in Sections I/J/K/L/M/N/O/P/Q/R of `test-orgs-foundation.mjs` and Sections G/H/I of `test-eval-human-grades-foundation.mjs`). **Twenty-six zombie-next-server cascades** total — cascades #24/#25/#26 hit on deploys #4/#13/#15 of the 17-commit run and recovered cleanly with one mass-kill + Passenger restart per the CLAUDE.md §5 runbook; deploys 1–3, 5–12, 14, 16, 17 went clean.
 
 ### 2026-05-06 — Phase F-4 multi-seat: complete owner+admin management surface (6 commits)
 
