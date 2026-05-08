@@ -67,6 +67,35 @@ type AiOutputMeta = {
    * the user knows exactly where the transcription stopped.
    */
   processedPageCount?: number;
+  /**
+   * Phase 5.6 — five new AI tools each persist with their own kind +
+   * meta extras. Fields below are nullable across kinds (e.g. `mode`
+   * is rewrite-only); the JSX below gates each on its owning kind so
+   * we never render a stale value from a different op.
+   */
+  /** Rewrite-specific (Phase 5.6). Free-form per-route mode label. */
+  mode?: string;
+  /** Redaction-specific (Phase 5.6). */
+  findingCount?: number;
+  unmatchedCount?: number;
+  /** Table-specific (Phase 5.6). */
+  tableCount?: number;
+  /** Signing-specific (Phase 5.6). */
+  filledCount?: number;
+  unfilledCount?: number;
+  /**
+   * Generation-specific (Phase 5.6). `sourceName` is the literal string
+   * "prompt" for this kind — meaning the artifact wasn't derived from a
+   * PDF, it was generated from a user prompt — so the JSX special-cases
+   * generation BEFORE the meta.sourceName branch to avoid the awkward
+   * "From prompt" string.
+   */
+  title?: string | null;
+  docType?: string;
+  length?: string;
+  tone?: string;
+  promptChars?: number;
+  pageCount?: number;
 };
 
 export default async function FilePreviewPage({ params }: Params) {
@@ -102,14 +131,28 @@ export default async function FilePreviewPage({ params }: Params) {
   const kind = row.kind;
   const html = renderMarkdown(row.contentMd);
 
-  const kindLabel =
-    kind === "summary"
-      ? "Summary"
-      : kind === "translation"
-        ? "Translation"
-        : kind === "comparison"
-          ? "Comparison"
-          : "OCR";
+  // Mirrors the `kind` enum in db/schema/app.ts. Adding a new kind
+  // requires adding a label here OR the eyebrow renders `undefined`.
+  // The CI guard scripts/test-preview-page-kind-parity.mjs asserts
+  // every member of the schema enum has an entry in this map.
+  //
+  // Original 4-kind ternary chain (summary/translation/comparison/OCR)
+  // was the silent bug: 5 kinds added in Phase 5.6 (rewrite/table/
+  // redaction/generation/signing) all fell through to the trailing
+  // ":" branch and rendered as "AI · OCR" — wrong label, looks broken
+  // when /app/ai-history surfaces an artifact and clicks through here.
+  const KIND_LABELS: Record<typeof row.kind, string> = {
+    summary: "Summary",
+    translation: "Translation",
+    ocr: "OCR",
+    comparison: "Comparison",
+    rewrite: "Rewrite",
+    table: "Table extract",
+    redaction: "Redaction",
+    generation: "Generation",
+    signing: "Signed form",
+  };
+  const kindLabel = KIND_LABELS[kind];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 820 }}>
@@ -145,6 +188,25 @@ export default async function FilePreviewPage({ params }: Params) {
                 : ""}
               {meta.wasTruncated ? " · truncated" : ""}
             </>
+          ) : kind === "generation" ? (
+            // Generation is the only kind whose `meta.sourceName` is the
+            // literal "prompt" — it wasn't derived from a PDF. Branch
+            // before the sourceName check so we don't render the awkward
+            // "From prompt" line.
+            <>
+              {meta.title ? (
+                <>
+                  <span style={{ color: "var(--fg-muted)" }}>{meta.title}</span>
+                  {" · "}
+                </>
+              ) : null}
+              {meta.docType ? `${meta.docType}` : "Generated from prompt"}
+              {meta.tone ? ` · ${meta.tone}` : ""}
+              {typeof meta.pageCount === "number"
+                ? ` · ${meta.pageCount} page${meta.pageCount === 1 ? "" : "s"}`
+                : ""}
+              {meta.wasTruncated ? " · truncated" : ""}
+            </>
           ) : meta.sourceName ? (
             <>
               From <span style={{ color: "var(--fg-muted)" }}>{meta.sourceName}</span>
@@ -162,6 +224,29 @@ export default async function FilePreviewPage({ params }: Params) {
               typeof meta.processedPageCount === "number" &&
               meta.wasTruncated
                 ? ` · first ${meta.processedPageCount} transcribed`
+                : ""}
+              {/* Phase 5.6 kind-specific detail lines. Each gates on
+                  its own kind so a meta field set by one op never
+                  leaks into another op's header. */}
+              {kind === "rewrite" && meta.mode ? ` · ${meta.mode}` : ""}
+              {kind === "table" && typeof meta.tableCount === "number"
+                ? ` · ${meta.tableCount} table${meta.tableCount === 1 ? "" : "s"}`
+                : ""}
+              {kind === "redaction" && typeof meta.findingCount === "number"
+                ? ` · ${meta.findingCount} finding${meta.findingCount === 1 ? "" : "s"}`
+                : ""}
+              {kind === "redaction" &&
+              typeof meta.unmatchedCount === "number" &&
+              meta.unmatchedCount > 0
+                ? ` · ${meta.unmatchedCount} unmatched`
+                : ""}
+              {kind === "signing" && typeof meta.filledCount === "number"
+                ? ` · ${meta.filledCount} field${meta.filledCount === 1 ? "" : "s"} filled`
+                : ""}
+              {kind === "signing" &&
+              typeof meta.unfilledCount === "number" &&
+              meta.unfilledCount > 0
+                ? ` · ${meta.unfilledCount} unfilled`
                 : ""}
               {meta.wasTruncated && kind !== "ocr" ? " · truncated" : ""}
               {kind === "ocr" && meta.wasTruncated ? " · clipped at 50 pages" : ""}

@@ -1419,6 +1419,24 @@ const SUITES = [
     name: "ai-history-page",
     file: "test-ai-history-page.mjs",
   },
+  // 2026-05-08 — preview-page-kind-parity guard. Sister harness to
+  // ai-history-page: AI History surfaces all 9 kinds, then clicking a
+  // row navigates to /app/files/[id]/preview which independently
+  // renders the kind label. Until commit b56120b's follow-on, that
+  // page hard-coded a 4-way ternary chain (summary / translation /
+  // comparison / OCR) so the 5 Phase-5.6 kinds (rewrite / table /
+  // redaction / generation / signing) all rendered as "AI · OCR".
+  // The fix replaces the chain with a `KIND_LABELS: Record<typeof
+  // row.kind, string>` map (TS fail-closed on missing kinds) plus a
+  // generation-special-case so `meta.sourceName === "prompt"` doesn't
+  // surface the awkward "From prompt" line. This guard pins all of
+  // it: KIND_LABELS canonical signature, schema/page kind parity, the
+  // old ternary chain is gone (regression check), and generation is
+  // branched before the sourceName fallback. Pure static parse.
+  {
+    name: "preview-page-kind-parity",
+    file: "test-preview-page-kind-parity.mjs",
+  },
   // 2026-04-30 aggregator-coverage guard: every scripts/test-*.mjs
   // and scripts/test-*.ts must be wired into the SUITES array
   // above. Catches orphan test files that silently never run in
