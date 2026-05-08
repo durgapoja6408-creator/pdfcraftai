@@ -156,7 +156,7 @@ export function CodeEntryForm() {
           role="alert"
           style={{
             marginTop: 12,
-            padding: "8px 12px",
+            padding: "10px 14px",
             borderRadius: 4,
             background: "color-mix(in oklab, #c00 8%, transparent)",
             color: "#c00",
@@ -166,8 +166,23 @@ export function CodeEntryForm() {
           }}
         >
           Too many wrong codes. Try again in{" "}
-          <strong>~{lockoutMin} min</strong>, or use the link in your
-          email.
+          <strong>~{lockoutMin} min</strong>, or:
+          <ul
+            style={{
+              margin: "8px 0 0",
+              padding: 0,
+              listStyle: "none",
+              fontSize: 12,
+            }}
+          >
+            <li>· Click the magic link in your email instead</li>
+            <li>
+              · Sign in at <a href="/login" style={{ color: "#c00", textDecoration: "underline" }}>/login</a>{" "}
+              and click <strong>Resend verification email</strong> on
+              the dashboard for a fresh code (lockout doesn&rsquo;t
+              affect a new code — only the prior one)
+            </li>
+          </ul>
         </div>
       ) : null}
       <button
