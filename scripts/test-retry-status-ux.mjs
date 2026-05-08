@@ -54,6 +54,10 @@ const TOOL_PATHS = [
   path.join(ROOT, "components/tools/TranslatePdfTool.tsx"),
   path.join(ROOT, "components/tools/ComparePdfTool.tsx"),
   path.join(ROOT, "components/tools/RewritePdfTool.tsx"),
+  // 2026-05-08 sweep batch 2 — Generate / OCR / Redact.
+  path.join(ROOT, "components/tools/GeneratePdfTool.tsx"),
+  path.join(ROOT, "components/tools/OcrPdfTool.tsx"),
+  path.join(ROOT, "components/tools/RedactPdfTool.tsx"),
 ];
 
 for (const p of TOOL_PATHS) {

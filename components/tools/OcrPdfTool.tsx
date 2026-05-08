@@ -107,6 +107,9 @@ export function OcrPdfTool() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<OcrResult | null>(null);
+  // Item #5 sweep — retry-status UX (mirrors SummarizePdfTool canary)
+  const [retryAttempt, setRetryAttempt] = useState(0);
+  const [retryMax, setRetryMax] = useState(0);
 
   const addFiles = useCallback((files: File[]) => {
     setError(null);
@@ -211,6 +214,12 @@ export function OcrPdfTool() {
 
           return form;
         },
+        onAttempt: (attempt, max) => {
+          if (attempt > 1) {
+            setRetryAttempt(attempt);
+            setRetryMax(max);
+          }
+        },
       });
 
       const body = (await res.json().catch(() => ({}))) as Record<
@@ -295,12 +304,15 @@ export function OcrPdfTool() {
       trackTool.error({ errorCode: "network_error" });
     } finally {
       setBusy(false);
+      setRetryAttempt(0);
+      setRetryMax(0);
     }
   };
 
   // CTA label reflects the live page-count peek. While peek is in-flight
   // we render "Reading…"; after peek we show the precise credit cost.
   const ctaLabel = (() => {
+    if (retryAttempt > 0) return `Retrying… (${retryAttempt}/${retryMax})`;
     if (busy) return "Transcribing…";
     if (!file) return "OCR";
     if (peekError) return "OCR";
@@ -488,6 +500,7 @@ export function OcrPdfTool() {
               Boolean(peekError)
             }
             onClick={run}
+            aria-busy={busy}
           >
             {ctaLabel}
           </button>

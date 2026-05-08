@@ -123,6 +123,9 @@ export function RedactPdfTool() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RedactResult | null>(null);
+  // Item #5 sweep — retry-status UX (mirrors SummarizePdfTool canary)
+  const [retryAttempt, setRetryAttempt] = useState(0);
+  const [retryMax, setRetryMax] = useState(0);
   // 2026-05-03 plan §8 layer 4 / Day 2.5 — client-side pageCount peek
   // for the estimate badge. Cheap (pdf-lib parses page tree only,
   // no full-text extraction). Same pattern as OcrPdfTool.
@@ -196,6 +199,12 @@ export function RedactPdfTool() {
           form.append("idempotencyKey", idempotencyKey);
 
           return form;
+        },
+        onAttempt: (attempt, max) => {
+          if (attempt > 1) {
+            setRetryAttempt(attempt);
+            setRetryMax(max);
+          }
         },
       });
 
@@ -287,6 +296,8 @@ export function RedactPdfTool() {
       );
     } finally {
       setBusy(false);
+      setRetryAttempt(0);
+      setRetryMax(0);
     }
   };
 
@@ -403,11 +414,16 @@ export function RedactPdfTool() {
             className="btn btn-primary"
             disabled={busy || !file}
             onClick={run}
+            aria-busy={busy}
           >
             {/* Bundle G5 (2026-04-26): was "5 credits" — wrong number AND wrong unit.
                 lib/tools.ts canonical: "~2 credits per page". formatActionCost() output
                 for per-page billing keeps the unit (page count varies per upload). */}
-            {busy ? "Redacting…" : "Redact PDF"}
+            {retryAttempt > 0
+              ? `Retrying… (${retryAttempt}/${retryMax})`
+              : busy
+                ? "Redacting…"
+                : "Redact PDF"}
           </button>
         )}
       </div>
