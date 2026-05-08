@@ -72,7 +72,7 @@ export function Audience() {
   const items: Array<{ t: string; d: string; i: IconKey }> = [
     {
       t: "Legal & finance",
-      d: "Redact PII, extract clauses, e-sign workflows. SOC 2, DPA, private mode.",
+      d: "Redact PII, extract clauses, e-sign workflows. DPA available, private mode, GDPR + DPDP compliant.",
       i: "Shield",
     },
     {
@@ -150,11 +150,11 @@ export function Security() {
   const bullets = [
     "AES-256 at rest, TLS 1.3 in transit",
     "Zero-retention AI endpoints",
-    "SOC 2 Type II & ISO 27001",
+    "SOC 2 Type II + ISO 27001 audit on the roadmap*",
     "DPA available for teams",
     "Private mode: processes in your region",
   ];
-  const badges = ["SOC 2", "ISO 27001", "GDPR", "HIPAA*"];
+  const badges = ["GDPR", "DPDP", "SOC 2*", "ISO 27001*", "HIPAA*"];
 
   return (
     <section className="section">
@@ -216,6 +216,25 @@ export function Security() {
                 </div>
               ))}
             </div>
+            <p
+              style={{
+                fontSize: 11,
+                color: "var(--fg-subtle)",
+                marginTop: 16,
+                opacity: 0.75,
+                lineHeight: 1.5,
+              }}
+            >
+              * SOC 2 / ISO 27001 / HIPAA: audit on the roadmap, gated
+              on ARR (~$15k annual cost — see{" "}
+              <a href="/enterprise" style={{ color: "inherit", textDecoration: "underline" }}>
+                Enterprise
+              </a>{" "}
+              for the honest current posture). DPDP-compliant + GDPR-
+              aligned today: data export, deletion, breach runbook all
+              live. AES-256 at rest + TLS 1.3 in transit + zero-
+              retention AI endpoints are factual.
+            </p>
           </div>
         </div>
       </div>

@@ -100,11 +100,11 @@ export function AuthShell({
             }}
           >
             <span className="row" style={{ gap: 6 }}>
-              <I.Shield size={12} /> SOC 2 · ISO 27001
+              <I.Shield size={12} /> GDPR · DPDP compliant
             </span>
             <span style={{ opacity: 0.4 }}>·</span>
             <span className="row" style={{ gap: 6 }}>
-              <I.Check size={12} /> Files auto-delete in 60 min
+              <I.Check size={12} /> Files processed in-flight, not stored
             </span>
           </div>
         </div>
@@ -256,12 +256,12 @@ export function AuthShell({
             </figcaption>
           </figure>
 
-          {/* Compliance badges */}
+          {/* Compliance badges — see footnote */}
           <div
             className="row"
             style={{ gap: 8, flexWrap: "wrap", color: "var(--fg-subtle)", fontSize: 11 }}
           >
-            {["SOC 2", "ISO 27001", "GDPR", "HIPAA*"].map((b) => (
+            {["GDPR", "DPDP", "SOC 2*", "ISO 27001*", "HIPAA*"].map((b) => (
               <span
                 key={b}
                 className="mono"
@@ -276,6 +276,20 @@ export function AuthShell({
               </span>
             ))}
           </div>
+          <p
+            style={{
+              fontSize: 10,
+              color: "var(--fg-subtle)",
+              marginTop: 8,
+              opacity: 0.75,
+              lineHeight: 1.5,
+            }}
+          >
+            * SOC 2 / ISO 27001 / HIPAA: audit on the roadmap (gated on
+            ARR — see <a href="/enterprise" style={{ color: "inherit", textDecoration: "underline" }}>Enterprise</a>).
+            DPDP-compliant + GDPR-aligned today (data export, deletion,
+            breach runbook all live).
+          </p>
         </div>
       </aside>
 
