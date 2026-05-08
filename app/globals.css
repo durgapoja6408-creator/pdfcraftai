@@ -58,7 +58,14 @@
   /* Dropped from 0.58 → 0.45 so muted text clears WCAG AA 4.5:1 on light backgrounds (a11y fix, 2026-04-20). */
   --fg-subtle: oklch(0.45 0.01 260);
   --accent: oklch(0.66 0.18 35);
-  --accent-fg: oklch(0.99 0.005 35);
+  /* 2026-05-08 (item #13 — WCAG AA contrast audit): flipped from
+     oklch(0.99 ...) to oklch(0.20 ...) because near-white text on
+     the orange accent failed WCAG AA at 3.26:1 (need 4.5:1 for
+     normal-weight body text). Mirrors the dark theme's pattern of
+     dark-text-on-light-accent. The Material Design "white on orange
+     fails" problem — caught programmatically by
+     scripts/test-color-contrast.mjs. */
+  --accent-fg: oklch(0.20 0.05 35);
   --accent-soft: oklch(0.95 0.04 35);
   --blue: oklch(0.56 0.18 240);
   --blue-soft: oklch(0.95 0.04 240);

@@ -1437,6 +1437,24 @@ const SUITES = [
     name: "preview-page-kind-parity",
     file: "test-preview-page-kind-parity.mjs",
   },
+  // 2026-05-08 — color-contrast guard. Pins item #13 of the
+  // improvement analysis: programmatic WCAG AA contrast check on
+  // the design tokens in app/globals.css. Parses oklch(L C H) per
+  // theme, converts oklch → oklab → linear sRGB → relative
+  // luminance via Ottosson's published matrices, computes WCAG
+  // contrast ratio. Asserts canonical token pairs (fg/fg-muted/
+  // fg-subtle on bg-1, accent on bg, accent-fg on accent, etc.)
+  // meet 4.5:1 for body text or 3.0:1 for UI components, in both
+  // dark + light themes. The tokens already had manual fix history
+  // from 2026-04-20 (--fg-subtle bumped 0.55→0.68 dark, 0.58→0.45
+  // light); this guard pins those values + caught a NEW regression
+  // shipped same commit (light --accent-fg flipped 0.99→0.20 to
+  // fix the Material-Design white-on-orange 3.26:1 fail). Pure
+  // math, no deps.
+  {
+    name: "color-contrast",
+    file: "test-color-contrast.mjs",
+  },
   // 2026-05-08 — retry-status-ux guard. Pins item #5 of the
   // improvement analysis: SummarizePdfTool wires fetchAiWithRetry's
   // onAttempt callback into a retryAttempt state so the user sees
