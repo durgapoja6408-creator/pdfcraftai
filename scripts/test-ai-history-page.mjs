@@ -443,6 +443,81 @@ assert(
 );
 
 // ---------------------------------------------------------------------
+// Section I — match highlighting in keyword-filtered excerpts.
+// ---------------------------------------------------------------------
+//
+// When a keyword filter is active, the row excerpts must (1) window
+// around the first match (not slice from doc start, which would hide
+// the actual hit), and (2) wrap every occurrence in <mark> for
+// visible feedback. The render path swaps from the plain
+// `makeExcerpt` to `makeHighlightedExcerpt` based on the
+// `displayKeyword` derivation.
+
+assert(
+  /function\s+makeHighlightedExcerpt\s*\(/.test(PAGE_SRC),
+  "makeHighlightedExcerpt() helper not found. Without it, keyword-" +
+    "filtered rows show the same first-220-char excerpt as " +
+    "unfiltered rows — the user can't see where in the doc the " +
+    "match landed.",
+);
+
+assert(
+  /function\s+escapeForRegex\s*\(/.test(PAGE_SRC),
+  "escapeForRegex() helper not found. The keyword goes into a " +
+    "`new RegExp(...)` constructor — without escaping, a search for " +
+    "`.` matches every character and `(foo)` becomes a capture group.",
+);
+
+// Substring-based check (the canonical replacement string is a
+// known fixed sequence of characters that's easier to literal-match
+// than to regex-match because of the nested escapes).
+assert(
+  PAGE_SRC.includes(`.replace(/[.*+?^\${}()|[\\]\\\\]/g, "\\\\$&")`),
+  "escapeForRegex must use the canonical regex-meta charset " +
+    "`/[.*+?^${}()|[\\]\\\\]/g` with replacement `\\\\$&`. Adding or " +
+    "removing meta chars from this list breaks search for those " +
+    "characters as literals.",
+);
+
+assert(
+  /<mark\s+key=\{i\}\s+style=\{\{[\s\S]*?background:\s*"var\(--accent-soft\)"/.test(
+    PAGE_SRC,
+  ),
+  "Match wrapping must use a styled <mark> tag with --accent-soft " +
+    "background. Default browser styling is neon yellow which clashes " +
+    "with the design tokens.",
+);
+
+assert(
+  /const\s+displayKeyword\s*=[\s\S]*?keywordFilter\s+&&\s+typeof\s+rawQ\s*===\s*"string"\s*\?\s*rawQ\.trim\(\)\s*:\s*null/.test(
+    PAGE_SRC,
+  ),
+  "displayKeyword must be derived as `keywordFilter && rawQ.trim() : null`. " +
+    "Using the LIKE-escaped form for the highlight regex would " +
+    "incorrectly highlight `\\%` instead of `%` when the user " +
+    "searched for a literal percent sign.",
+);
+
+assert(
+  /displayKeyword\s*\?\s*makeHighlightedExcerpt\(\s*r\.contentMd\s*,\s*displayKeyword\s*\)\s*:\s*makeExcerpt\(\s*r\.contentMd\s*\)/.test(
+    PAGE_SRC,
+  ),
+  "Row render must branch on displayKeyword: when set, call " +
+    "makeHighlightedExcerpt(r.contentMd, displayKeyword); otherwise " +
+    "call the plain makeExcerpt. Without this branch, rows always " +
+    "render plain excerpts even when the keyword filter is active.",
+);
+
+assert(
+  /i\s*%\s*2\s*===\s*1/.test(PAGE_SRC),
+  "Highlight render must alternate by index (`i % 2 === 1` for " +
+    "matched parts). String.prototype.split with a capture group " +
+    "interleaves matches at odd indices; testing the regex against " +
+    "the part itself is a known footgun (regex `lastIndex` state " +
+    "leaks across calls).",
+);
+
+// ---------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------
 
