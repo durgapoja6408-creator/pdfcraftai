@@ -43,6 +43,7 @@ const COLS: Col[] = [
     links: [
       ["Privacy", "/privacy"],
       ["Terms", "/terms"],
+      ["Cookies", "/cookies"],
       ["Refund Policy", "/refund-policy"],
       ["Cancellation", "/cancellation-policy"],
       ["Shipping & Delivery", "/shipping-policy"],
@@ -133,7 +134,16 @@ export function Footer() {
         <span className="mono">
           © {new Date().getFullYear()} pdfcraft ai · Operated by Rajasekar Selvam
         </span>
-        <span className="mono">Files deleted after 1h · End-to-end encrypted</span>
+        {/* 2026-05-08 — honesty fix. Previous copy claimed "Files
+            deleted after 1h" — directly contradicting the
+            zero-retention work shipped under items #4 + #22 +
+            commit `1827ebf`. We don't store files for an hour; we
+            don't persist them at all (in-memory processing for AI
+            ops, browser-side processing for free tools). "TLS 1.3
+            in transit" is the factual half of the prior copy worth
+            keeping — encryption-at-rest is not applicable since
+            there's no rest. */}
+        <span className="mono">Zero retention · TLS 1.3 in transit</span>
       </div>
     </footer>
   );

@@ -1437,6 +1437,22 @@ const SUITES = [
     name: "preview-page-kind-parity",
     file: "test-preview-page-kind-parity.mjs",
   },
+  // 2026-05-08 — marketing-honesty guard. Pins items #20 (footer)
+  // and #21 (status page) of the improvement analysis. Catches the
+  // regression class where lies sneak back into marketing copy
+  // ("files deleted after 1h", "updated every 60 seconds from our
+  // monitoring") that contradict the zero-retention work shipped
+  // under items #4 + #22. Sister to test-tool-runner-longform-ai-
+  // parity which pins a different surface; together they form the
+  // "no marketing surface lies about file retention" coverage. Pure
+  // static parse: positive checks for the canonical "Zero retention
+  // · TLS 1.3 in transit" copy + footer /cookies link + status page
+  // probeServiceHealth + force-dynamic + recent-incident inclusion;
+  // negative checks for the regressed copy patterns.
+  {
+    name: "marketing-honesty",
+    file: "test-marketing-honesty.mjs",
+  },
   // 2026-05-08 — tool-dropzone-recovery guard. Pins the new
   // ToolDropzone behavior where oversized-PDF errors surface
   // /tool/compress as a one-click recovery affordance. The
