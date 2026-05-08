@@ -335,6 +335,114 @@ assert(
 );
 
 // ---------------------------------------------------------------------
+// Section H — content keyword search (?q=<term>) safety + wiring.
+// ---------------------------------------------------------------------
+//
+// The keyword search is the third filter axis (after kind + source).
+// It runs LIKE against the mediumtext content_md column. Required:
+//   1. Sanitizer that trims, length-clamps (KEYWORD_MIN/MAX_CHARS),
+//      rejects control chars, AND escapes MySQL LIKE metacharacters
+//      (% and _) so a literal % typed by the user doesn't act as a
+//      wildcard.
+//   2. The query path uses Drizzle's sql template binding with the
+//      wildcards in the OUTER literal — never let the user control
+//      the leading/trailing `%`. Anchored search via input alone is
+//      not a feature; it's either a query language or it isn't.
+//   3. ESCAPE clause names backslash explicitly so the % and _
+//      escapes the sanitizer added are honored as literals, not
+//      meta-chars.
+//   4. Form preserves kind + source on submit (so submitting a new
+//      keyword from a kind-filtered page keeps the kind filter).
+
+assert(
+  /function\s+sanitizeKeyword\s*\(/.test(PAGE_SRC),
+  "sanitizeKeyword() helper not found. The ?q= URL param is user-" +
+    "controlled — without sanitization, a user typing `%` triggers " +
+    "wildcard search instead of a literal `%` match.",
+);
+
+assert(
+  /KEYWORD_MIN_CHARS\s*=\s*\d+[\s\S]*?KEYWORD_MAX_CHARS\s*=\s*\d+/.test(PAGE_SRC) ||
+    /KEYWORD_MAX_CHARS\s*=\s*\d+[\s\S]*?KEYWORD_MIN_CHARS\s*=\s*\d+/.test(PAGE_SRC),
+  "KEYWORD_MIN_CHARS + KEYWORD_MAX_CHARS constants not found. The min " +
+    "rejects single-char queries (too noisy) and the max rejects " +
+    "pathological URL params; both are essential UX hygiene.",
+);
+
+// Match the literal `replaceAll("\\", "\\\\")` in source (where `\\`
+// is a 2-char escape representing one literal backslash). The first
+// argument has 2 backslash chars, the second has 4. In a regex literal
+// each backslash needs `\\` so 2 chars → `\\\\`, 4 chars → `\\\\\\\\`.
+assert(
+  /\.replaceAll\(\s*"\\\\"\s*,\s*"\\\\\\\\"\s*\)/.test(PAGE_SRC),
+  "Sanitizer must escape backslash FIRST via " +
+    "`.replaceAll(\"\\\\\", \"\\\\\\\\\")`. Without that, the % and " +
+    "_ replacements would themselves get escaped on a second pass — " +
+    "you'd end up with `\\\\%` which is a backslash followed by an " +
+    "unescaped % rather than a literal %.",
+);
+
+assert(
+  /\.replaceAll\(\s*"%"\s*,\s*"\\\\%"\s*\)/.test(PAGE_SRC),
+  "Sanitizer must escape `%` to `\\%`. Without this, a literal % in " +
+    "the search input acts as a SQL wildcard, breaking 'find the " +
+    "string with a percent sign in it' searches.",
+);
+
+assert(
+  /\.replaceAll\(\s*"_"\s*,\s*"\\\\_"\s*\)/.test(PAGE_SRC),
+  "Sanitizer must escape `_` to `\\_`. Without this, a literal _ in " +
+    "the search input acts as a single-character wildcard.",
+);
+
+assert(
+  /\$\{schema\.aiOutputs\.contentMd\}\s+LIKE\s+\$\{[^}]+\}\s+ESCAPE\s+'\\\\\\\\'/.test(
+    PAGE_SRC,
+  ),
+  "LIKE clause must use `${schema.aiOutputs.contentMd} LIKE ${...} " +
+    "ESCAPE '\\\\'`. The ESCAPE clause names backslash so the % and _ " +
+    "the sanitizer escaped are honored as literals. Without ESCAPE, " +
+    "MySQL's default escape character is `\\` only on some servers — " +
+    "make it explicit.",
+);
+
+// Negative check — wildcards must be in the OUTER literal, not the
+// inner binding. Catch the regression where someone "simplifies" by
+// inlining `%${keyword}%` directly into the sql template literal
+// (which would interpolate the value into the SQL string instead of
+// binding it).
+assert(
+  !/LIKE\s+['"]%\$\{keywordFilter\}%['"]/.test(PAGE_SRC),
+  "Found `LIKE '%${keywordFilter}%'` with wildcards inside a quoted " +
+    "string — this string-interpolates the user's input. Pass the " +
+    "wrapped pattern via Drizzle's sql template binding (no quotes) " +
+    "as `LIKE ${\"%\" + keywordFilter + \"%\"}`.",
+);
+
+assert(
+  /function\s+KeywordSearchForm\s*\(/.test(PAGE_SRC),
+  "KeywordSearchForm helper not found. Without the form, the keyword " +
+    "filter is reachable only via direct URL editing.",
+);
+
+assert(
+  /method=["']get["']/.test(PAGE_SRC),
+  "Search form must be method='get' (case-insensitive). GET makes " +
+    "the resulting URL shareable + back-button-safe; POST would " +
+    "force re-submission warnings on every navigation.",
+);
+
+assert(
+  /\{kind\s*\?\s*<input\s+type="hidden"\s+name="kind"\s+value=\{kind\}\s*\/>\s*:\s*null\}[\s\S]*?\{source\s*\?\s*<input\s+type="hidden"\s+name="source"\s+value=\{source\}\s*\/>\s*:\s*null\}/.test(
+    PAGE_SRC,
+  ),
+  "KeywordSearchForm must include hidden inputs for kind + source so " +
+    "submitting the form preserves them. Without this, searching " +
+    "from a `?kind=summary` page navigates to `?q=foo` (dropping " +
+    "kind) — annoying axis-clobber.",
+);
+
+// ---------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------
 
