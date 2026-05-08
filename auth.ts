@@ -14,7 +14,7 @@ import { z } from "zod";
 
 import { authConfig } from "./auth.config";
 import { db, schema } from "./db/client";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 // 2026-05-02 plan §2 path D + §8 layer 6 — signup grant for new
 // OAuth users. The helper is idempotent (key = signup_bonus:${userId}),
 // so re-firing on subsequent sign-ins is safe. Default OFF until
@@ -164,10 +164,57 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
   // atomic flip enables it; until then this code path is exercised
   // for type-checking + import safety but credits don't move.
   events: {
-    async signIn({ user, isNewUser }) {
-      if (!isNewUser) return;
+    async signIn({ user, account, profile, isNewUser }) {
       const id = user?.id;
       if (typeof id !== "string" || id.length === 0) return;
+
+      // 2026-05-08 — mark Google OAuth users as email-verified.
+      //
+      // The Phase F-3 verification gate (`assertEmailVerified` in
+      // lib/auth/email-verification.ts) checks `users.emailVerified
+      // !== null` and throws EmailNotVerifiedError when the gate
+      // env flag is on. The Credentials provider sets emailVerified
+      // via the OTP flow (lib/auth/email-verification.ts §147).
+      // Google OAuth had no equivalent step — DrizzleAdapter inserts
+      // the user row but leaves emailVerified NULL, so when the gate
+      // flag flips to "on" every Google user gets locked out of every
+      // /api/ai/* route.
+      //
+      // Fix: rely on Google's own `email_verified` claim from the
+      // OAuth profile. Google verifies email ownership during the
+      // OAuth flow itself — they wouldn't return a token for an
+      // unverified email. Treat their signal as authoritative and
+      // stamp `emailVerified = NOW()` on first OAuth sign-in for the
+      // user.
+      //
+      // The `IS NULL` filter on the UPDATE is the idempotency
+      // guarantee — re-firing on subsequent sign-ins is a no-op
+      // because the row's emailVerified is already non-null. Also
+      // preserves the original verification timestamp for users who
+      // verified via OTP first and later linked Google.
+      //
+      // Errors are logged but never block sign-in — same rationale
+      // as the grantSignupBonus call below: we can't lock the user
+      // out of their account over a bookkeeping failure that the
+      // gate would catch on the next request anyway.
+      if (
+        account?.provider === "google" &&
+        profile &&
+        (profile as { email_verified?: boolean }).email_verified === true
+      ) {
+        try {
+          await db
+            .update(schema.users)
+            .set({ emailVerified: new Date() })
+            .where(
+              and(eq(schema.users.id, id), isNull(schema.users.emailVerified)),
+            );
+        } catch (err) {
+          console.error("[oauth] markEmailVerified failed for", id, err);
+        }
+      }
+
+      if (!isNewUser) return;
       try {
         await grantSignupBonus(id);
       } catch (err) {

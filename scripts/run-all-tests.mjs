@@ -1437,6 +1437,26 @@ const SUITES = [
     name: "preview-page-kind-parity",
     file: "test-preview-page-kind-parity.mjs",
   },
+  // 2026-05-08 — oauth-email-verified guard. Pins the auth.ts
+  // events.signIn fix that stamps users.emailVerified=NOW() for
+  // Google OAuth signups. Without this, when EMAIL_VERIFICATION_GATE=
+  // on flips, every Google user gets locked out of every /api/ai/*
+  // route by `assertEmailVerified` (lib/auth/email-verification.ts).
+  // The Credentials provider sets emailVerified via the OTP flow;
+  // OAuth had no equivalent until this commit. Pure static parse:
+  // asserts the signIn handler accepts account+profile params,
+  // checks provider==="google" specifically (not any provider —
+  // would skip OTP for Credentials), checks Google's email_verified
+  // claim === true (strict, not truthy), UPDATE has the IS NULL
+  // filter for idempotency + timestamp preservation, the WHERE
+  // clause scopes by userId (not all NULL rows), the try/catch is
+  // present so a DB hiccup never blocks sign-in. Plus a cross-file
+  // pin against the gate's read path so a column rename breaks
+  // both surfaces in lockstep.
+  {
+    name: "oauth-email-verified",
+    file: "test-oauth-email-verified.mjs",
+  },
   // 2026-05-08 — ai-output-actions guard. Pins the Copy markdown +
   // Download .md affordances on /app/files/[id]/preview. Critical
   // exit ramps for the AI artifact surface — without them the page

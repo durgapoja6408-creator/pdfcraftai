@@ -750,9 +750,15 @@ if (fs.existsSync(AUTH)) {
 
   // events.signIn handler — the wire point. Must check isNewUser
   // before doing referral work (existing-user signin shouldn't
-  // re-attribute).
+  // re-attribute). Updated 2026-05-08 to accept the OAuth email-
+  // verified expansion: handler now also takes `account` + `profile`
+  // for the Google email_verified stamp (test-oauth-email-verified
+  // pins those). Either shape is acceptable here — what J6 cares
+  // about is that user + isNewUser remain in the destructure.
   assert(
-    /async\s+signIn\(\s*\{\s*user,\s*isNewUser\s*\}\s*\)/.test(authSrc),
+    /async\s+signIn\(\s*\{[^}]*\buser\b[^}]*\bisNewUser\b[^}]*\}\s*\)/.test(
+      authSrc,
+    ),
     "J6: events.signIn destructures user and isNewUser",
   );
   // The grantSignupBonus block already returns early on !isNewUser;
