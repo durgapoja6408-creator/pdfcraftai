@@ -263,13 +263,32 @@ export default async function FilePreviewPage({ params }: Params) {
       {/* Copy / Download actions — exit ramps so users can paste the
           markdown into Slack/Notion/etc. or save the .md alongside
           the source PDF. Server-rendered button row avoids a layout
-          shift while the client component hydrates. */}
-      <AiOutputActions
-        contentMd={row.contentMd}
-        kind={kind}
-        sourceName={meta.sourceName}
-        generatedAtIso={new Date(row.outputCreatedAt).toISOString()}
-      />
+          shift while the client component hydrates.
+
+          The "View all artifacts from <source>" link sits beside the
+          actions when the source name is real (not the literal
+          "prompt" used by generation). Closes the lateral-navigation
+          loop: from a summary of contract.pdf, one click jumps to
+          every other artifact derived from the same source PDF. */}
+      <div className="row" style={{ gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+        <AiOutputActions
+          contentMd={row.contentMd}
+          kind={kind}
+          sourceName={meta.sourceName}
+          generatedAtIso={new Date(row.outputCreatedAt).toISOString()}
+        />
+        {meta.sourceName && meta.sourceName !== "prompt" ? (
+          <Link
+            href={`/app/ai-history?source=${encodeURIComponent(meta.sourceName)}`}
+            className="btn btn-ghost btn-sm"
+            style={{ gap: 6, color: "var(--fg-muted)" }}
+            aria-label={`View all artifacts from ${meta.sourceName}`}
+          >
+            <I.Layers size={13} />
+            View all from this source
+          </Link>
+        ) : null}
+      </div>
 
       {/* Rendered content */}
       <article

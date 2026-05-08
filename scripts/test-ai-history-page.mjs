@@ -257,6 +257,84 @@ assert(
 );
 
 // ---------------------------------------------------------------------
+// Section G — source-name filter (?source=<name>) safety + wiring.
+// ---------------------------------------------------------------------
+//
+// The source filter accepts user-controlled URL input. Defense-in-
+// depth requires:
+//   1. A sanitizer that rejects empty / oversized / control-char inputs
+//      by returning null (= "no filter") rather than echoing.
+//   2. The query path uses Drizzle's sql template binding (so the
+//      value is parameterized — no SQL injection even if the
+//      sanitizer ever gets bypassed).
+//   3. The display path strips "prompt" (generation kind's literal
+//      sourceName placeholder) so the row doesn't render the
+//      meaningless "From prompt" label.
+
+assert(
+  /function\s+sanitizeSourceFilter\s*\(/.test(PAGE_SRC),
+  "sanitizeSourceFilter() helper not found. The ?source= URL param " +
+    "is user-controlled — without sanitization, oversized or " +
+    "control-char inputs make the chip render strangely or generate " +
+    "nonsense queries.",
+);
+
+assert(
+  /SOURCE_NAME_MAX_CHARS\s*=\s*\d+/.test(PAGE_SRC),
+  "SOURCE_NAME_MAX_CHARS constant not found. A length cap on the " +
+    "source filter rejects pathological URL params; without it a " +
+    "16KB sourceName eats query time + chip layout.",
+);
+
+assert(
+  /JSON_UNQUOTE\(JSON_EXTRACT\(\$\{schema\.aiOutputs\.meta\},\s*'\$\.sourceName'\)\)\s*=\s*\$\{sourceFilter\}/.test(
+    PAGE_SRC,
+  ),
+  "Source filter SQL clause not found. Expected " +
+    "`JSON_UNQUOTE(JSON_EXTRACT(${schema.aiOutputs.meta}, '$.sourceName')) = ${sourceFilter}` " +
+    "inside a Drizzle sql template. The sql template is what binds " +
+    "the value as a parameterized arg — string-interpolating the " +
+    "value into the SQL is the regression to catch.",
+);
+
+// Negative check — the source value must not be string-interpolated
+// into the SQL via template literal arithmetic. Catch any regression
+// like `sql\`... = '${sourceFilter}'\`` (extra single-quotes around
+// the binding).
+assert(
+  !/JSON_UNQUOTE[\s\S]*?=\s*'\$\{sourceFilter\}'/.test(PAGE_SRC),
+  "Found single-quoted `'${sourceFilter}'` interpolation in the " +
+    "source-filter clause. Drizzle's sql template binds via `${...}` " +
+    "without quotes — adding quotes turns the binding into a literal " +
+    "string. Either way is wrong shape — remove the surrounding quotes.",
+);
+
+assert(
+  /jsonSourceName\s*:\s*sql<string\s*\|\s*null>/.test(PAGE_SRC),
+  "Row select must include `jsonSourceName: sql<string | null>\\`...\\`` — " +
+    "the original ship pulled `schema.files.name` (the OUTPUT file " +
+    "name) which subtly mislabeled the source. Pulling " +
+    "JSON_UNQUOTE(JSON_EXTRACT(meta, '$.sourceName')) gives the real " +
+    "source PDF filename. The `string | null` type makes the JSX " +
+    "explicitly handle the legacy-row case.",
+);
+
+assert(
+  /sourceName\s*===\s*"prompt"\s*\?\s*"From prompt"/.test(PAGE_SRC),
+  "Generation kind's `sourceName === \"prompt\"` literal must be " +
+    "filtered to a friendlier display ('From prompt') rather than " +
+    "rendering the raw token. Without this, generation rows show " +
+    "the meaningless filename 'prompt'.",
+);
+
+assert(
+  /SourceFilterChip[\s\S]*?function\s+SourceFilterChip\s*\(/.test(PAGE_SRC),
+  "SourceFilterChip helper component not found. The active source " +
+    "filter needs a visible affordance with an X to clear — without " +
+    "it users have to manually edit the URL to drop the filter.",
+);
+
+// ---------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------
 
