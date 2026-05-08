@@ -1303,6 +1303,20 @@ const SUITES = [
   // the flag but never activated for users, and is not on the
   // current product roadmap. The aggregator-coverage guard's allowlist
   // was reduced accordingly.
+  // 2026-05-08 — API keys foundation (Tier 1 #1). Schema was already
+  // shipped (api_keys table); this commit ships the mint/verify/
+  // revoke/list pipeline + management UI. Pins helper public
+  // surface, token format invariants (pck_ prefix, SHA-256 hash,
+  // 68-char raw, 12-char display prefix), anti-DB-leak posture,
+  // soft-delete revoke semantics, fire-and-forget telemetry,
+  // server actions anti-impersonation, manager UI shape (mint
+  // form + active list + revoked-audit list + one-time fresh-key
+  // reveal). Header-verify middleware (wiring keys into AI route
+  // auth) is a follow-up commit. ~30 assertions.
+  {
+    name: "api-keys-foundation",
+    file: "test-api-keys-foundation.mjs",
+  },
   // 2026-05-05 (PENDING §6a foundation) — human eval grading layer.
   // Sits beside the automated eval infra from Phase A Task #14
   // (golden-set + rubric + runner + ai_eval_runs). New table
