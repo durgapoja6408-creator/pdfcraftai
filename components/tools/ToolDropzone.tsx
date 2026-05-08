@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState, type ReactNode } from "react";
 import { I } from "@/components/icons/Icons";
 import { isPdfFile, MAX_FILE_SIZE_BYTES, PDF_ACCEPT, humanSize } from "@/lib/client/pdf-utils";
@@ -14,6 +15,46 @@ type ToolDropzoneProps = {
   prompt?: string;
 };
 
+// 2026-05-08 — when a user drops an oversized PDF the dropzone
+// previously said "X exceeds 50MB limit" and stopped there. Most
+// users don't know what to do with that — they just see a brick
+// wall. Surfacing the Compress tool inline as a one-click recovery
+// path closes the loop: "this file's too big, but here's the tool
+// that fixes that."
+//
+// Stored as a structured error rather than a free-form string so
+// the JSX below can render a Link element next to the prose. The
+// Link goes to /tool/compress (existing free tool) — single-file
+// pdf-lib pipeline that typically halves a scan-heavy PDF and
+// trivially shrinks an over-quota AI upload.
+type DropzoneError =
+  | { kind: "non-pdf"; fileName: string }
+  | { kind: "too-large"; fileName: string; sizeBytes: number; limitBytes: number };
+
+function makeError(error: DropzoneError): { message: string; recovery: ReactNode | null } {
+  if (error.kind === "non-pdf") {
+    return {
+      message: `"${error.fileName}" — only PDF files are supported.`,
+      recovery: null,
+    };
+  }
+  // too-large
+  return {
+    message: `"${error.fileName}" is ${humanSize(error.sizeBytes)} — over the ${humanSize(error.limitBytes)} limit for this tool.`,
+    recovery: (
+      <Link
+        href="/tool/compress-pdf"
+        className="btn btn-ghost btn-sm"
+        style={{ marginLeft: 8, gap: 6, color: "var(--accent)" }}
+        aria-label="Compress this PDF first to shrink it under the limit"
+      >
+        <I.Compress size={13} />
+        Compress this PDF first
+      </Link>
+    ),
+  };
+}
+
 export function ToolDropzone({
   onFiles,
   multiple = false,
@@ -23,7 +64,7 @@ export function ToolDropzone({
 }: ToolDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<DropzoneError | null>(null);
   /**
    * M4 (#193, 2026-04-28): soft notice when the user drops multiple
    * files into a single-file tool. We still take files[0] (preserves
@@ -41,11 +82,16 @@ export function ToolDropzone({
 
     for (const f of files) {
       if (!isPdfFile(f)) {
-        setError(`"${f.name}" — only PDF files are supported.`);
+        setError({ kind: "non-pdf", fileName: f.name });
         return;
       }
       if (f.size > MAX_FILE_SIZE_BYTES) {
-        setError(`"${f.name}" exceeds the ${humanSize(MAX_FILE_SIZE_BYTES)} limit.`);
+        setError({
+          kind: "too-large",
+          fileName: f.name,
+          sizeBytes: f.size,
+          limitBytes: MAX_FILE_SIZE_BYTES,
+        });
         return;
       }
     }
@@ -138,11 +184,25 @@ export function ToolDropzone({
         />
       </div>
 
-      {error && (
-        <p role="alert" style={{ color: "var(--red)", fontSize: 13, marginTop: 12 }}>
-          {error}
-        </p>
-      )}
+      {error && (() => {
+        const { message, recovery } = makeError(error);
+        return (
+          <div
+            role="alert"
+            style={{
+              fontSize: 13,
+              marginTop: 12,
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 4,
+            }}
+          >
+            <span style={{ color: "var(--red)" }}>{message}</span>
+            {recovery}
+          </div>
+        );
+      })()}
       {notice && (
         <p
           role="status"

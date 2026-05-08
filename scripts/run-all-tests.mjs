@@ -1437,6 +1437,24 @@ const SUITES = [
     name: "preview-page-kind-parity",
     file: "test-preview-page-kind-parity.mjs",
   },
+  // 2026-05-08 — tool-dropzone-recovery guard. Pins the new
+  // ToolDropzone behavior where oversized-PDF errors surface
+  // /tool/compress as a one-click recovery affordance. The
+  // structured DropzoneError union (kind + fileName + sizeBytes +
+  // limitBytes for too-large; kind + fileName for non-pdf) is what
+  // lets the JSX branch on kind to render the recovery link OR
+  // not. Pure static parse: asserts the union shape, useState
+  // typing, both setError call-sites pass the right shape,
+  // makeError signature returns { message, recovery }, /tool/compress
+  // is the exact recovery target, "Compress this PDF first" copy
+  // (with load-bearing "first"), aria-label on the iconified Link,
+  // non-pdf path returns recovery: null (different mental model —
+  // no single sensible recovery), JSX destructures + renders both
+  // pieces.
+  {
+    name: "tool-dropzone-recovery",
+    file: "test-tool-dropzone-recovery.mjs",
+  },
   // 2026-05-08 — delete-ai-artifact guard. Pins the Delete button
   // on /app/files/[id]/preview that closes the artifact-management
   // loop (AI History → preview → delete-without-bouncing). Two-click
