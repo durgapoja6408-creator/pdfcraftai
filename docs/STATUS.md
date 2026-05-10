@@ -1378,6 +1378,10 @@ All four doc changes are planning-layer only (zero code deltas, zero runtime imp
 
 ## Done
 
+### 2026-05-11 — Item #17 sweep batch 4: PdfCompressTool (first free tool)
+
+- [x] **feat(tools): URL permalink sweep batch 4 — PdfCompressTool.** Commit `7ab5e71` (2026-05-11). FIRST free tool to get the permalink pattern (prior batches all AI). Confirms the canonical 4-piece pattern transfers cleanly to non-AI tool runners. `?level=<light|balanced|strong>` syncs bidirectionally; default `balanced` omitted. Lets users share `/tool/compress-pdf?level=strong` for ebook-PDF use cases. CI guard +7 assertions in Section H. 41 total in the harness (was 34). Aggregator: 6325 passed, 0 failed across 116 suites (was 6318/116). Verified live at `7ab5e71` after clean deploy. **No deploy gotcha.** **Item #17 progress: 5 of N tools (4 AI + 1 free).**
+
 ### 2026-05-11 — Item #17 sweep batch 3: GeneratePdfTool 3-param sync
 
 - [x] **feat(tools): URL permalink sweep batch 3 — GeneratePdfTool.** Commit `680cc0a` (2026-05-11). Most complex sweep shape so far — 3 params (docType / length / tone) syncing in tandem with `?docType=&length=&tone=`. Single useEffect with `[docType, length, tone]` dep array (NOT three separate effects: history.replaceState doesn't batch within React's render cycle, three separate effects would race and the URL would temporarily drop two of three params). 14 total allowlist values across three fields. All three defaults (other / medium / neutral) omitted from URL via per-param delete branches — typical shared link is `/tool/ai-generate?docType=letter&tone=formal` (2 of 3 specified, length stays default). CI guard +8 assertions in Section G; whitespace-tolerant regex needed for the 7-literal docType allowlist (source has multi-line breaks between OR conjuncts). 34 total in the harness (was 25). Aggregator: 6318 passed, 0 failed across 116 suites (was 6309/116). **Deploy gotcha:** zombie cleanup again. Mass-kill + restart.txt cleared. **Item #17 progress: 4 of N tools wired (Summarize / Translate / Rewrite / Generate).**
