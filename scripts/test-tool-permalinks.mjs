@@ -367,6 +367,64 @@ if (generateEffectMatch) {
 }
 
 // ---------------------------------------------------------------------
+// Section H — PdfCompressTool sweep batch 4 (?level=) — first free tool.
+// ---------------------------------------------------------------------
+//
+// Sweep batch 4 — PdfCompressTool wires `?level=<light|balanced|strong>`.
+// First FREE tool to ship the permalink pattern (the prior batches
+// were all AI tools). Confirms the pattern transfers cleanly to the
+// non-AI tool-runner surface.
+
+const COMPRESS_PATH = path.join(ROOT, "components/tools/PdfCompressTool.tsx");
+assert(fs.existsSync(COMPRESS_PATH), `PdfCompressTool missing at ${COMPRESS_PATH}`);
+const COMPRESS = fs.existsSync(COMPRESS_PATH) ? fs.readFileSync(COMPRESS_PATH, "utf8") : "";
+
+assert(
+  /params\.get\("level"\)/.test(COMPRESS),
+  "PdfCompressTool: mount-effect must call `params.get(\"level\")`.",
+);
+
+assert(
+  /raw\s*===\s*"light"\s*\|\|\s*raw\s*===\s*"balanced"\s*\|\|\s*raw\s*===\s*"strong"/.test(
+    COMPRESS,
+  ),
+  "PdfCompressTool: URL parser must whitelist all 3 CompressLevel " +
+    "literals explicitly. Loosening lets URL-injected garbage flow " +
+    "into setLevel.",
+);
+
+assert(
+  /useEffect\(\(\)\s*=>\s*\{[\s\S]*?history\.replaceState[\s\S]*?\},\s*\[level\]\)/.test(
+    COMPRESS,
+  ),
+  "PdfCompressTool: state → URL sync must live in `useEffect(..., [level])`.",
+);
+
+assert(
+  /level === "balanced"\s*\)\s*\{\s*params\.delete\("level"\)/.test(COMPRESS),
+  "PdfCompressTool: default value `balanced` must be omitted from URL " +
+    "via params.delete. Without this the bare path bloats with " +
+    "`?level=balanced` for the most common case.",
+);
+
+assert(
+  /typeof window === "undefined"/.test(COMPRESS),
+  "PdfCompressTool: permalink effects must guard SSR with `typeof " +
+    "window === \"undefined\"`.",
+);
+
+const compressEffectMatch = COMPRESS.match(
+  /useEffect\(\(\)\s*=>\s*\{([\s\S]*?)\},\s*\[level\]\)/,
+);
+if (compressEffectMatch) {
+  assert(
+    !/pushState/.test(compressEffectMatch[1]),
+    "PdfCompressTool: level-sync effect uses pushState — back-button " +
+      "hell. Use replaceState.",
+  );
+}
+
+// ---------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------
 

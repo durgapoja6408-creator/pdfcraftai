@@ -30,7 +30,7 @@
 // and renders 404 if off. This component only renders when the page
 // has already decided the tool is live.
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
@@ -105,6 +105,36 @@ export function PdfCompressTool() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResult | null>(null);
   const errorRef = useScrollErrorIntoView(error);
+
+  // 2026-05-11 (item #17 sweep batch 4) — first free-tool permalink.
+  // Mirrors SummarizePdfTool canary (commit 69756b4): read ?level=
+  // on mount, write back via history.replaceState when level changes.
+  // Lets users share `/tool/compress-pdf?level=strong`. Default
+  // ("balanced") is omitted from URL.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get("level");
+    if (raw === "light" || raw === "balanced" || raw === "strong") {
+      setLevel(raw);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (level === "balanced") {
+      params.delete("level");
+    } else {
+      params.set("level", level);
+    }
+    const qs = params.toString();
+    const next = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    if (next !== window.location.pathname + window.location.search) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [level]);
 
   const onFiles = useCallback(
     (incoming: File[]) => {
