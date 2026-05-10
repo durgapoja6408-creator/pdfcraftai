@@ -281,6 +281,92 @@ if (modeEffectMatch) {
 }
 
 // ---------------------------------------------------------------------
+// Section G — GeneratePdfTool sweep batch 3 (?docType=&length=&tone=).
+// ---------------------------------------------------------------------
+//
+// Sweep batch 3 — GeneratePdfTool wires the same pattern with THREE
+// params syncing in tandem. The state → URL sync MUST be a single
+// useEffect with a 3-tuple dep array, not three separate effects:
+// history.replaceState doesn't batch within React's render cycle, so
+// three separate effects would race and the URL would temporarily
+// drop two of the three params before the final state lands.
+
+const GENERATE_PATH = path.join(ROOT, "components/tools/GeneratePdfTool.tsx");
+assert(fs.existsSync(GENERATE_PATH), `GeneratePdfTool missing at ${GENERATE_PATH}`);
+const GENERATE = fs.existsSync(GENERATE_PATH) ? fs.readFileSync(GENERATE_PATH, "utf8") : "";
+
+assert(
+  /params\.get\("docType"\)/.test(GENERATE) &&
+    /params\.get\("length"\)/.test(GENERATE) &&
+    /params\.get\("tone"\)/.test(GENERATE),
+  "GeneratePdfTool: mount-effect must read all 3 params (docType / " +
+    "length / tone). A missing branch leaves that field stuck at the " +
+    "default for permalink consumers.",
+);
+
+// Whitespace-tolerant — the source has multi-line breaks between
+// the six `||` conjuncts.
+assert(
+  /rawDocType\s*===\s*"memo"\s*\|\|\s*rawDocType\s*===\s*"report"\s*\|\|\s*rawDocType\s*===\s*"brief"\s*\|\|\s*rawDocType\s*===\s*"letter"\s*\|\|\s*rawDocType\s*===\s*"blog"\s*\|\|\s*rawDocType\s*===\s*"outline"\s*\|\|\s*rawDocType\s*===\s*"other"/.test(
+    GENERATE,
+  ),
+  "GeneratePdfTool: docType allowlist must enumerate all 7 DocType " +
+    "literals. Loosening lets URL-injected values into setDocType.",
+);
+
+assert(
+  /rawLength === "short" \|\| rawLength === "medium" \|\| rawLength === "long"/.test(
+    GENERATE,
+  ),
+  "GeneratePdfTool: length allowlist must enumerate all 3 Length literals.",
+);
+
+assert(
+  /rawTone\s*===\s*"neutral"\s*\|\|\s*rawTone\s*===\s*"formal"\s*\|\|\s*rawTone\s*===\s*"casual"\s*\|\|\s*rawTone\s*===\s*"technical"/.test(
+    GENERATE,
+  ),
+  "GeneratePdfTool: tone allowlist must enumerate all 4 Tone literals.",
+);
+
+assert(
+  /useEffect\(\(\)\s*=>\s*\{[\s\S]*?history\.replaceState[\s\S]*?\},\s*\[docType,\s*length,\s*tone\]\)/.test(
+    GENERATE,
+  ),
+  "GeneratePdfTool: state → URL sync must live in a SINGLE useEffect " +
+    "with `[docType, length, tone]` dep array. Three separate effects " +
+    "would race because history.replaceState doesn't batch within " +
+    "React's render cycle — the URL would temporarily drop 2 of the " +
+    "3 params before the final state lands.",
+);
+
+assert(
+  /docType === "other"\s*\)\s*params\.delete\("docType"\)/.test(GENERATE) &&
+    /length === "medium"\s*\)\s*params\.delete\("length"\)/.test(GENERATE) &&
+    /tone === "neutral"\s*\)\s*params\.delete\("tone"\)/.test(GENERATE),
+  "GeneratePdfTool: each of the 3 defaults (other / medium / neutral) " +
+    "must be omitted from URL via params.delete. Without per-param " +
+    "delete branches, the bare path bloats with `?docType=other&" +
+    "length=medium&tone=neutral` for the most common shape.",
+);
+
+assert(
+  /typeof window === "undefined"/.test(GENERATE),
+  "GeneratePdfTool: permalink effects must guard SSR with `typeof " +
+    "window === \"undefined\"`.",
+);
+
+const generateEffectMatch = GENERATE.match(
+  /useEffect\(\(\)\s*=>\s*\{([\s\S]*?)\},\s*\[docType,\s*length,\s*tone\]\)/,
+);
+if (generateEffectMatch) {
+  assert(
+    !/pushState/.test(generateEffectMatch[1]),
+    "GeneratePdfTool: 3-param sync effect uses pushState — back-button " +
+      "hell. Use replaceState.",
+  );
+}
+
+// ---------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------
 

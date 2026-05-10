@@ -19,7 +19,7 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession, getSession } from "next-auth/react";
@@ -126,6 +126,55 @@ export function GeneratePdfTool() {
   // Item #5 sweep — retry-status UX (mirrors SummarizePdfTool canary)
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [retryMax, setRetryMax] = useState(0);
+
+  // 2026-05-11 (item #17 sweep batch 3) — URL permalink state sync.
+  // Three-param shape: docType + length + tone. Mirrors the
+  // SummarizePdfTool canary pattern (commit 69756b4) but reads/writes
+  // three params from one mount-effect and one sync-effect.
+  // Defaults (other / medium / neutral) are omitted from the URL so
+  // the bare path stays clean for the most common shape.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const rawDocType = params.get("docType");
+    if (
+      rawDocType === "memo" || rawDocType === "report" ||
+      rawDocType === "brief" || rawDocType === "letter" ||
+      rawDocType === "blog" || rawDocType === "outline" ||
+      rawDocType === "other"
+    ) setDocType(rawDocType);
+    const rawLength = params.get("length");
+    if (rawLength === "short" || rawLength === "medium" || rawLength === "long") {
+      setLength(rawLength);
+    }
+    const rawTone = params.get("tone");
+    if (
+      rawTone === "neutral" || rawTone === "formal" ||
+      rawTone === "casual" || rawTone === "technical"
+    ) setTone(rawTone);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync all three fields back to URL whenever any of them changes.
+  // Single effect with [docType, length, tone] dep array — Next.js's
+  // history API doesn't batch within React's render cycle, so calling
+  // replaceState three times across three separate effects would race;
+  // one effect computes the next URL atomically.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (docType === "other") params.delete("docType");
+    else params.set("docType", docType);
+    if (length === "medium") params.delete("length");
+    else params.set("length", length);
+    if (tone === "neutral") params.delete("tone");
+    else params.set("tone", tone);
+    const qs = params.toString();
+    const next = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    if (next !== window.location.pathname + window.location.search) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [docType, length, tone]);
 
   const reset = useCallback(() => {
     setPrompt("");
