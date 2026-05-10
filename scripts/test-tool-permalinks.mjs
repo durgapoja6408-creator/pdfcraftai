@@ -146,6 +146,83 @@ assert(
 );
 
 // ---------------------------------------------------------------------
+// Section E — TranslatePdfTool sweep expansion (?lang=).
+// ---------------------------------------------------------------------
+//
+// Sweep batch 1 — TranslatePdfTool.tsx wires the same pattern as the
+// SummarizePdfTool canary, but for `?lang=<bcp47>`. The dispatch is
+// slightly more complex because Translate uses a two-state shape:
+// `langChoice` (dropdown) flips to OTHER_CODE_SENTINEL when the user
+// picks Other, and `customLang` holds the BCP-47 string in that
+// case. The mount effect must replicate the same dispatch logic
+// applyMacro uses (common → langChoice; arbitrary → SENTINEL +
+// customLang) so permalinks behave identically to manual UI picks.
+
+const TRANSLATE_PATH = path.join(ROOT, "components/tools/TranslatePdfTool.tsx");
+assert(fs.existsSync(TRANSLATE_PATH), `TranslatePdfTool missing at ${TRANSLATE_PATH}`);
+const TRANS = fs.existsSync(TRANSLATE_PATH) ? fs.readFileSync(TRANSLATE_PATH, "utf8") : "";
+
+assert(
+  /URLSearchParams\(window\.location\.search\)/.test(TRANS),
+  "TranslatePdfTool: URL → state sync must read URLSearchParams on mount.",
+);
+
+assert(
+  /params\.get\("lang"\)/.test(TRANS),
+  "TranslatePdfTool: mount-effect must call `params.get(\"lang\")`.",
+);
+
+assert(
+  /BCP47_ISH\.test\(/.test(TRANS),
+  "TranslatePdfTool: URL parser must validate via BCP47_ISH regex. " +
+    "Anything looser lets URL-injected garbage flow into setLangChoice.",
+);
+
+assert(
+  /COMMON_LANG_CODES\.has\(/.test(TRANS),
+  "TranslatePdfTool: mount-effect must dispatch via COMMON_LANG_CODES.has " +
+    "to mirror applyMacro's common-vs-Other branch. Without this the " +
+    "OTHER_CODE_SENTINEL path is unreachable from URL.",
+);
+
+assert(
+  /useEffect\(\(\)\s*=>\s*\{[\s\S]*?history\.replaceState[\s\S]*?\},\s*\[currentTargetLang\]\)/.test(
+    TRANS,
+  ),
+  "TranslatePdfTool: state → URL sync must live in `useEffect(..., " +
+    "[currentTargetLang])`. The dep must be the DERIVED " +
+    "currentTargetLang, not langChoice + customLang separately, so " +
+    "Other-mode mid-typing (invalid BCP-47) doesn't write garbage to " +
+    "the URL.",
+);
+
+assert(
+  /currentTargetLang === null \|\| currentTargetLang === "es"/.test(TRANS),
+  "TranslatePdfTool: default value (es) AND null (invalid Other-mode " +
+    "input) must be omitted from URL via params.delete. Without this, " +
+    "URL bloats with `?lang=es` for the default case OR carries a stale " +
+    "param while the user is mid-typing a custom code.",
+);
+
+assert(
+  /typeof window === "undefined"/.test(TRANS),
+  "TranslatePdfTool: permalink effects must guard SSR with `typeof " +
+    "window === \"undefined\"`.",
+);
+
+// Negative — pushState must NOT appear in the lang-sync effect.
+const langEffectMatch = TRANS.match(
+  /useEffect\(\(\)\s*=>\s*\{([\s\S]*?)\},\s*\[currentTargetLang\]\)/,
+);
+if (langEffectMatch) {
+  assert(
+    !/pushState/.test(langEffectMatch[1]),
+    "TranslatePdfTool: lang-sync effect uses pushState — back-button hell. " +
+      "Use replaceState.",
+  );
+}
+
+// ---------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------
 

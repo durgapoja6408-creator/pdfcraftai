@@ -137,6 +137,38 @@ export function TranslatePdfTool() {
     };
   }, []);
 
+  // 2026-05-08 (item #17 sweep) — URL permalink state sync. Mirrors
+  // SummarizePdfTool canary (commit 69756b4): read ?lang= on mount,
+  // write back via history.replaceState when the effective target
+  // language changes. Lets users share `/tool/ai-translate?lang=ja`.
+  // Default ("es") is omitted from the URL to keep the bare path
+  // clean — Spanish is the most common target for English-source
+  // docs and would otherwise bloat every shared URL.
+  //
+  // Mount-effect, not initial state: parent page is force-dynamic,
+  // so window.location is undefined during SSR. One-frame default
+  // → URL flash on hydration; no SSR mismatch crash.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get("lang");
+    if (typeof raw !== "string" || raw.length === 0) return;
+    const trimmed = raw.trim();
+    if (!BCP47_ISH.test(trimmed)) return;
+    // Same dispatch logic as applyMacro: common → langChoice,
+    // arbitrary BCP-47 → OTHER_CODE_SENTINEL + customLang. Keeps
+    // permalinks behaviorally identical to picking the language
+    // by hand from the dropdown.
+    if (COMMON_LANG_CODES.has(trimmed)) {
+      setLangChoice(trimmed);
+      setCustomLang("");
+    } else {
+      setLangChoice(OTHER_CODE_SENTINEL);
+      setCustomLang(trimmed);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Derive the current effective target-language code for matching
   // against saved macros. Returns null when the user is in "Other…"
   // mode with an empty or invalid code (no macro matches then).
@@ -147,6 +179,24 @@ export function TranslatePdfTool() {
           return trimmed && BCP47_ISH.test(trimmed) ? trimmed : null;
         })()
       : langChoice;
+
+  // Write the effective language back to the URL. Default ("es")
+  // is omitted; null (invalid Other-mode input) is also omitted so
+  // the URL doesn't carry a stale param while the user is mid-typing.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (currentTargetLang === null || currentTargetLang === "es") {
+      params.delete("lang");
+    } else {
+      params.set("lang", currentTargetLang);
+    }
+    const qs = params.toString();
+    const next = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    if (next !== window.location.pathname + window.location.search) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [currentTargetLang]);
 
   const activeMacroId =
     currentTargetLang != null
