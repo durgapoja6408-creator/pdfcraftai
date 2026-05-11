@@ -2509,4 +2509,163 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // pdf-to-markdown — developer-focused, content-pipeline use case
+  // ============================================================
+  "pdf-to-markdown": {
+    title: "PDF to Markdown — how heuristic conversion works, when it shines, and when to reach for AI",
+    intro:
+      "Markdown has quietly become the default container for documentation content — README files, knowledge bases, blog posts, technical specs, AI training datasets. Converting a PDF to markdown is a hugely common preprocessing step, and the right tool depends almost entirely on the structure of the source. Heuristic conversion is fast, free, and produces excellent output for well-typeset documents. AI-driven conversion is slower, costs credits, and handles cases the heuristic cannot. Here is exactly how the free heuristic works, when it gets you what you want, and when you should pay the AI cost.",
+    sections: [
+      {
+        h: "How heuristic markdown extraction works",
+        p: [
+          "The free tool parses each text run in the PDF and records two pieces of metadata: the font size and the font weight (bold / regular). We then build a font-size histogram across the whole document. The mode (most common size) is body text — anything at that size renders as plain markdown paragraphs. Sizes above that mode become headings: ≥1.25× body becomes H3 (###), ≥1.6× becomes H2 (##), and ≥2× becomes H1 (#). Bold runs are wrapped in **markdown bold**. Italic runs become _italic_. Paragraphs are separated by line breaks longer than 1.5× the typical line-height.",
+          "This works remarkably well on documents that follow standard typesetting conventions — research papers, technical docs, well-formatted business docs, ebooks. The output is clean markdown with a recognizable structure that pastes cleanly into Notion, Obsidian, GitHub, or any markdown-aware system.",
+        ],
+      },
+      {
+        h: "When heuristic markdown is the right answer",
+        p: [
+          "Cases where heuristic conversion gets you exactly what you want:",
+        ],
+        list: {
+          items: [
+            { b: "Well-typeset reports, white papers, and research papers.", t: "These follow consistent font hierarchies that the heuristic detects accurately. Output is usually publication-ready with minor cleanup." },
+            { b: "Documentation PDFs going into a markdown KB.", t: "If your team's knowledge base is markdown-based (Notion, Confluence with markdown export, GitHub wiki), heuristic conversion is the fastest path to ingestion." },
+            { b: "AI training data preparation.", t: "RAG and fine-tuning pipelines often want markdown. The structure-aware output is more useful than plain text for chunking strategies that respect headings." },
+            { b: "Blog migration from PDF to web.", t: "Old PDFs to be re-published as blog posts. Markdown is the right intermediate — it carries enough structure for the blog engine to render properly without all the layout baggage of HTML." },
+            { b: "Quick triage of a long document.", t: "Even imperfect markdown output makes a long PDF scannable by headings, which is faster than scrolling through the PDF itself." },
+          ],
+        },
+      },
+      {
+        h: "Three patterns that defeat heuristic conversion",
+        p: [
+          "The cases where the heuristic produces output you have to fix manually — or reach for AI:",
+        ],
+        list: {
+          items: [
+            { b: "Complex tables.", t: "Tables are an inherent layout problem that markdown was not designed to express richly. The heuristic linearizes table content row-by-row, which loses column alignment. For documents with meaningful tables (financial reports, scientific papers, data sheets), use AI · Table Extract first to get the tables out as CSV, then convert the rest of the document to markdown." },
+            { b: "Multi-column layouts.", t: "Two-column research papers and three-column magazine layouts produce text that reads column-1-then-column-2. The heuristic outputs the columns sequentially, which is usually right, but pages with mixed layouts (one-column body with two-column callouts) can produce out-of-order output. AI conversion handles this by reading visually rather than positionally." },
+            { b: "Custom font hierarchies.", t: "If the source document uses non-standard typography — e.g. body text in a large display font with tiny callouts — the heuristic detects the callouts as body and the body as headings. AI conversion reads the visual hierarchy rather than the font-size hierarchy and produces correct output." },
+          ],
+        },
+      },
+      {
+        h: "When to pay the AI cost",
+        p: [
+          "Specific signals that you should run AI · Rewrite (or AI · Summarize with markdown output) instead of the free heuristic:",
+        ],
+        list: {
+          items: [
+            { b: "The source is a scan.", t: "Scanned PDFs have no text layer; the heuristic returns empty output. Run AI · OCR first to add a text layer, then convert. Or use AI · Rewrite end-to-end which folds the OCR + markdown-conversion into one step." },
+            { b: "Tables matter to the output.", t: "Pay for AI to preserve table structure correctly." },
+            { b: "Mixed-column or unusual layouts.", t: "Pay for AI to read the visual order rather than the positional order." },
+            { b: "You want semantic content selection.", t: "AI can extract just the abstract + introduction, or just the methodology section, on demand. The heuristic gives you everything." },
+          ],
+        },
+      },
+      {
+        h: "Output quirks worth knowing",
+        p: [
+          "Three patterns in the heuristic output that catch users on the first pass:",
+        ],
+        list: {
+          items: [
+            { b: "Hyphenated line breaks become hyphens.", t: "Some PDFs use hyphenation to break long words across lines. The heuristic preserves the hyphen, so \"hyphen-ated\" becomes the token \"hyphen-ated\" rather than \"hyphenated\". Most markdown renderers display this correctly, but downstream search indexers may need to handle the hyphen." },
+            { b: "Smart quotes survive as Unicode.", t: "Curly quotes (“”) and apostrophes (’) are preserved as their Unicode characters, not converted to straight ASCII. This is usually right; if your downstream pipeline needs ASCII, post-process with a simple regex." },
+            { b: "Bullet glyphs vary.", t: "PDFs use many different bullet glyphs — •, ■, -, *, →. The heuristic preserves whatever was used. Pure markdown wants \"- \" for list items; you may need a global replace if your renderer is strict." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, PDF-to-markdown handles PDFs up to 100 MB with no page-count cap. PDFium parses each page in your browser via WebAssembly; nothing is uploaded. Output is plain UTF-8 .md with paragraphs separated by blank lines and headings preceded by the right number of # characters.",
+          "Common pairings: PDF Inspector to verify the source has a text layer before converting. AI · OCR for scans. AI · Rewrite for high-fidelity conversion when the heuristic falls short.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // pdf-bookmarks — utility tool, helpful for navigation context
+  // ============================================================
+  "pdf-bookmarks": {
+    title: "PDF bookmarks viewer — how the outline tree works and what to do with it",
+    intro:
+      "Most long PDFs (books, technical manuals, regulatory filings, theses) carry a bookmark tree — a hierarchical outline that lets readers jump to chapters, sections, and sub-sections from the side panel of their PDF reader. Bookmarks are easy to overlook, but for a long document they are the single biggest factor in whether the file is navigable or not. Here is how the bookmark structure works, why some PDFs have it and others do not, and the three places where surfacing the bookmark tree as standalone data is genuinely useful.",
+    sections: [
+      {
+        h: "What a bookmark tree is",
+        p: [
+          "Every PDF can include an /Outlines dictionary — a tree structure where each node has a title, a destination (which page to jump to, where on the page), and zero or more children. PDF readers display this tree in their side panel: Acrobat calls it Bookmarks, Preview calls it Table of Contents, Chrome calls it Document outline. Clicking any entry jumps to the destination.",
+          "The tree is independent of the document's visible content — you can have headings on every page without bookmarks, or bookmarks pointing to specific pages without visible chapter titles. Most well-authored documents have both: visible headings + matching bookmarks. Many auto-generated PDFs have only one or the other.",
+        ],
+      },
+      {
+        h: "Why some PDFs have bookmarks and others don't",
+        p: [
+          "The bookmark tree is opt-in at PDF generation time. The source application has to explicitly create the /Outlines dictionary. Different generation pipelines have different defaults:",
+        ],
+        list: {
+          items: [
+            { b: "Microsoft Word \"Save as PDF\".", t: "Auto-generates bookmarks from Word's heading styles (Heading 1, Heading 2, etc.). If your Word doc uses styled headings, the PDF has bookmarks. If you used bold text without styles, no bookmarks." },
+            { b: "LaTeX with hyperref package.", t: "Auto-generates bookmarks from \\section, \\subsection, \\subsubsection structure. Standard for academic papers and technical books." },
+            { b: "Scanned PDFs.", t: "Almost never have bookmarks — scans are usually image-only with no structural awareness. Add bookmarks manually with Acrobat Pro, or use AI · Mindmap to infer a hierarchy and convert it to a bookmark structure." },
+            { b: "Browser \"Print to PDF\".", t: "Usually no bookmarks. Browsers focus on rendering the page; they do not extract heading structure into the PDF's outline." },
+            { b: "Hand-edited PDFs.", t: "Whatever the original generator produced, minus anything an editor removed. Always worth verifying with this tool after a long edit." },
+          ],
+        },
+      },
+      {
+        h: "What our viewer surfaces",
+        p: [
+          "The PDF Bookmarks viewer parses the /Outlines dictionary and renders it as an indented tree:",
+        ],
+        list: {
+          items: [
+            { b: "Title of each bookmark.", t: "The text that appears in PDF readers' side panel." },
+            { b: "Depth (indentation).", t: "Top-level chapters at depth 0, sections at depth 1, etc. The indentation matches how the reader's bookmark panel would show it." },
+            { b: "Destination page.", t: "Which physical page the bookmark jumps to." },
+            { b: "Total bookmark count.", t: "A quick number to gauge whether the document has comprehensive bookmarks or just a few top-level entries." },
+          ],
+        },
+      },
+      {
+        h: "Three real-world use cases",
+        p: [
+          "Where surfacing the bookmark tree pays off:",
+        ],
+        list: {
+          items: [
+            { b: "Audit before redistribution.", t: "If you are about to share a long PDF, viewing its bookmark tree confirms it is navigable. A 400-page report without bookmarks is a usability disaster; the viewer surfaces this before recipients hit it." },
+            { b: "Build a navigation index for a website.", t: "If you host a PDF for download, copying its bookmark tree into a table-of-contents block on the download page gives visitors a preview of what is inside. The viewer's output makes this a copy-paste step." },
+            { b: "Migrate a long document to web.", t: "Converting a 500-page PDF to a series of web pages? Start by exporting the bookmark tree — it is the natural page-segmentation map. Each top-level bookmark becomes one web page; sub-bookmarks become headings within those pages." },
+          ],
+        },
+      },
+      {
+        h: "Two patterns worth knowing",
+        p: [
+          "Friction points worth knowing before the viewer surprises you:",
+        ],
+        list: {
+          items: [
+            { b: "Bookmark titles don't always match page headings.", t: "The bookmark title is whatever was supplied at generation time. Sometimes it matches the page heading verbatim; sometimes the author shortened it for the side panel. Do not assume the two are identical." },
+            { b: "Empty bookmark trees are valid.", t: "Some PDFs technically have an /Outlines dictionary but with zero entries. The viewer reports \"no bookmarks\" rather than an error. If you expected bookmarks and don't see them, the generator probably didn't create them — not a tool failure." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, the bookmarks viewer handles PDFs up to 100 MB with no bookmark-count cap. Parsing runs in your browser; the file never leaves your machine. Output renders the tree visually and exports as JSON / Markdown / CSV for downstream use.",
+          "Common pairings: Pair with PDF Inspector for a complete document audit (pages + bookmarks + fonts + size). Pair with Extract Pages to slice the document along the bookmark structure when migrating to web or chunking for search.",
+        ],
+      },
+    ],
+  },
 };
