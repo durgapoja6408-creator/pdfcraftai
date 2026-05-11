@@ -1378,6 +1378,10 @@ All four doc changes are planning-layer only (zero code deltas, zero runtime imp
 
 ## Done
 
+### 2026-05-11 — Item #17 sweep batches 16-18 — Split, FormFill+Diff, Booklet+NUp+OddEven permalinks
+
+- [x] **feat(tools): URL permalink batches 16 + 17 + 18.** Commit `27a35fa` (PdfSplitTool) + `dd49664` (PdfFormFillTool + PdfDiffTool) + `bacc357` (Booklet + NUp + OddEven). 6 more tools (8 with the inline batch). Batches introduce three new load-bearing patterns: (a) per-document state exclusion with negative CI assertion (PdfSplitTool's `splits` Set + `advRanges` free-form string both kept out of URL; documents the rule for future refactors); (b) default-FALSE boolean inversion (PdfFormFillTool's `flatten` — mirror-inverse of CsvToPdf's default-TRUE pattern); (c) explicit PII-in-URL prohibition with negative CI assertion (PdfFormFillTool's `values` cannot enter URL — PII leaks to server logs / referrer / analytics). CI guard +41 assertions across Sections T + U + V + W + X + Y. 199 total. Aggregator: 6830 passed, 0 failed across 116 suites. **Item #17 progress: 22 of N tools (4 AI + 18 free); 14 distinct state shapes verified; the pattern is now solid enough that 3-tool batches ship in well under an hour each.**
+
 ### 2026-05-11 — Item #17 sweep batch 15 — PdfBatchProcessTool permalink
 
 - [x] **feat(tools): URL permalink batch 15.** Commit `5cff300` (2026-05-11). PdfBatchProcessTool gets a single-param `?op=` permalink covering the 8-literal BatchOpId enum (rotate-90 / -180 / -270 / page-numbers / watermark / remove-metadata / flatten-forms / strip-links) — largest enum in the sweep so far. `watermarkText` is DELIBERATELY excluded (it's user content; a CI negative-assertion formalizes the rule against future regressions). CI guard +7 assertions in Section S. 158 total. Aggregator: 6789 passed, 0 failed across 116 suites. **Item #17 progress: 16 of N tools; 11 distinct state shapes verified including largest-yet enum + deliberate user-content exclusion.**
