@@ -2058,4 +2058,139 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // add-page-numbers — high-traffic free tool
+  // ============================================================
+  "add-page-numbers": {
+    title: "Add page numbers to a PDF — every position, format, and style decision explained",
+    intro:
+      "Adding page numbers sounds simple — pick a corner, click Apply, done — but the small decisions you make at that step show up in every PDF reader, every printer, and every screen-reader that handles the file. Where the numbers land, how they are formatted, and what they look like signal whether the document feels professional or improvised. Here is how the tool works, the five positions and four formats that cover almost every use case, and the three patterns that catch users on the second-most-popular polish operation on the site.",
+    sections: [
+      {
+        h: "Where to put page numbers — five positions explained",
+        p: [
+          "Page numbers live in margins. The tool offers six anchored positions — left, center, and right at both the bottom and the top. The right pick depends on what kind of document you are producing:",
+        ],
+        list: {
+          items: [
+            { b: "Bottom-center — the safe default.", t: "Used by 70% of books, reports, and contracts. Symmetrical, never collides with running headers, easy to spot. Pick this unless you have a specific reason to do otherwise." },
+            { b: "Bottom-right — single-sided documents.", t: "Common in research papers, white papers, and corporate reports. Right-aligned page numbers feel less formal than center but more efficient for scanning thumb-flips." },
+            { b: "Outer-edge (alternating left/right on odd/even pages).", t: "Standard for booklets and long printed documents that will be bound. The number is always on the edge of the page away from the spine. The tool generates this via two passes: bottom-right on odd pages, bottom-left on even pages." },
+            { b: "Top-right or top-left — academic-paper style.", t: "Some style guides (MLA, Chicago) put page numbers at the top right. Pick this when matching a specific submission requirement." },
+            { b: "Top-center — multi-section documents with chapter titles.", t: "Less common but useful when a chapter title is auto-placed in the footer and you do not want the page number to compete with it." },
+          ],
+        },
+      },
+      {
+        h: "Four format styles — pick by audience",
+        p: [
+          "The tool supports four numbering formats. Each carries a different signal:",
+        ],
+        list: {
+          items: [
+            { b: "Plain (1, 2, 3 …).", t: "Minimal. Looks great in modern reports and short documents. The most common pick for sub-50-page outputs." },
+            { b: "Page 1 (Page 2, Page 3 …).", t: "Slightly more formal. Common in business proposals, RFP responses, and academic submissions. The literal word \"Page\" adds visual weight and clarity in casual reading contexts." },
+            { b: "1 of N (1 of 47, 2 of 47 …).", t: "Useful for any document where the reader benefits from knowing the total length at a glance. Pre-flight checklists, instruction manuals, and printed handouts especially benefit from this format." },
+            { b: "Page 1 of N (Page 1 of 47 …).", t: "The verbose form. Most formal, most space-consuming. Pick this for legal documents and regulated industry deliverables where unambiguous page-count signaling matters." },
+          ],
+        },
+      },
+      {
+        h: "Font size and color — guidelines",
+        p: [
+          "The defaults (9pt, black, regular weight) work for nearly every document. Adjust only when:",
+        ],
+        list: {
+          items: [
+            { b: "Print-only documents at small paper sizes.", t: "If the output paper is A5 or smaller, 9pt page numbers can look chunky. Try 8pt instead." },
+            { b: "Large-format prints (A3, posters with page numbers).", t: "Bump to 11–14pt so the numbers are visible at the document's typical viewing distance." },
+            { b: "Visually-styled documents with custom palettes.", t: "If the rest of your document uses a specific brand color for accents, matching the page-number color (within reason — keep contrast against the page sufficient for accessibility) makes the output feel cohesive." },
+            { b: "Long technical documents.", t: "Bolding the page-number text helps scanning during fast page-flipping in print. Worth toggling on for 100+ page deliverables." },
+          ],
+        },
+      },
+      {
+        h: "Three patterns worth knowing",
+        p: [
+          "Friction points from support tickets:",
+        ],
+        list: {
+          items: [
+            { b: "Existing page numbers in your PDF interfere with new ones.", t: "Some scanners and Word exports already include page numbers as part of the page content. Adding new ones on top produces two sets of numbers per page. The fix: extract the text to find which pages had numbers, then crop or redact the old ones first. Or accept that the old ones stay (most readers ignore the duplicate)." },
+            { b: "Page numbers added to a cropped PDF land at the wrong position.", t: "Page numbers position relative to /CropBox, not /MediaBox. If you cropped before adding page numbers, the numbers land inside the crop. If you crop AFTER adding page numbers, the numbers may land outside the new crop and disappear. Always add page numbers last in a workflow that includes cropping." },
+            { b: "Page numbers don't appear in print preview but appear when actually printed.", t: "A few PDF readers (older Acrobat builds) honor page-number overlays at render time but not at print time. Run a one-page test print before printing a long document to verify." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, page numbers handle PDFs up to 100 MB with no page-count cap. Processing runs in your browser via pdf-lib; the file never leaves your machine. Output is byte-compatible with every PDF viewer; the page-number text is a real text run (not a rasterized overlay), so it remains selectable, searchable, and screen-reader accessible.",
+          "If you want page numbers that exclude the front matter (cover, TOC), the workflow is: extract the front matter to a separate PDF, add page numbers starting from \"1\" to the body PDF, then merge them back together. Two passes, three minutes — and the front matter stays unnumbered while the body counts from page 1.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // extract-images-from-pdf — paired with pdf-to-png
+  // ============================================================
+  "extract-images-from-pdf": {
+    title: "Extract images from a PDF — pulling the source images out vs rasterizing the whole page",
+    intro:
+      "\"Extract images\" sounds like one operation but is actually two — and picking the wrong one wastes a lot of time. Our Extract Images tool pulls the SOURCE images embedded inside the PDF at their original resolution. Our PDF-to-PNG tool, on the other hand, renders every page as a fresh image. The two produce different output for the same input. Here is when each is right, what a PDF's image inventory actually looks like under the hood, and the three cases where extraction either returns less than you expected or more.",
+    sections: [
+      {
+        h: "Source extraction vs page rasterization",
+        p: [
+          "When a PDF contains a photograph, the image data is embedded as a binary stream inside the file — typically as JPEG or PNG bytes. Extract Images parses the PDF, finds every such embedded image stream, and decodes it to PNG at its native resolution. The output is exactly what the author put into the PDF, no more, no less.",
+          "Page rasterization — what PDF-to-PNG does — renders the page exactly as you see it in a viewer, at whatever resolution you pick. The output is one image per page, combining all the text, vectors, and embedded images into a single rasterized bitmap. If a page contains three small photos and a lot of text, page rasterization gives you one page-sized image with everything together; source extraction gives you three small standalone photos.",
+          "The right tool depends on what you need next: source extraction for the photos themselves (to use elsewhere, archive separately, run through an image pipeline), page rasterization for an image of how the page looks (to embed somewhere, archive visually, generate thumbnails).",
+        ],
+      },
+      {
+        h: "When source extraction is the right answer",
+        p: [
+          "Specific cases where the embedded-image format is exactly what you want:",
+        ],
+        list: {
+          items: [
+            { b: "Recovering photos from a phone scan that went to PDF.", t: "If someone sent you a multi-page PDF of photographs taken with their phone, the original JPEGs are still inside the PDF at their full camera resolution. Source extraction recovers them. Page rasterization would re-render them, losing detail." },
+            { b: "Pulling product photos out of a catalog PDF.", t: "Marketing teams often produce a single PDF that contains every product image at print resolution. Source extraction pulls each photo as its own file, ready for the website CMS." },
+            { b: "Auditing what images a vendor PDF contains.", t: "Sometimes you receive a PDF and want to inventory the embedded media (e.g. checking that high-res images are present for a print-ready document). Source extraction surfaces every embedded image with its dimensions and format." },
+            { b: "Extracting medical or technical diagrams.", t: "Scientific papers and medical reports sometimes embed high-resolution diagrams as standalone images. Source extraction preserves the diagram resolution for slide reuse or re-publication." },
+            { b: "Recovering original assets after losing the source files.", t: "If you misplaced the originals but still have the production PDF, source extraction is the recovery path." },
+          ],
+        },
+      },
+      {
+        h: "Three cases where the output surprises you",
+        p: [
+          "Friction points worth knowing before you click extract:",
+        ],
+        list: {
+          items: [
+            { b: "PDFs that are mostly text return zero images.", t: "If the PDF was generated digitally from Word or Google Docs without any embedded photos or screenshots, there are literally no embedded images to extract. The output is empty. This is correct behavior — you wanted page-rasterized images, not source images. Use PDF-to-PNG instead." },
+            { b: "A scanned PDF returns ONE image per page, regardless of visible content.", t: "Scanned PDFs are usually image-only — each page is a single large rasterized image of the original paper. Extract Images returns those page-sized rasters. If you wanted the diagrams or photos inside a page extracted as separate images, you cannot do that from a scan; the scan only has one image per page by construction. Run OCR first if you need text-level access." },
+            { b: "Vector graphics aren't returned.", t: "PDF supports vector graphics as path objects, not as images. Logos, line drawings, and charts created in tools like Adobe Illustrator are typically vector and not part of the image inventory. They render perfectly in PDF viewers but cannot be \"extracted\" as raster images. If you need them as raster, use PDF-to-PNG (page rasterization) and then crop." },
+          ],
+        },
+      },
+      {
+        h: "What the output looks like",
+        p: [
+          "Each extracted image becomes a separate PNG file. The PNG is decoded from the source embedded stream — JPEGs are decoded to PNG so the output is uniformly PNG (this is by design; raw JPEG sometimes carries embedded color profiles or progressive-encoding flags that confuse downstream tools). File size of each output matches the input image's pixel count and content type.",
+          "Filenames carry the source page number so you can see the order at a glance. If a page has multiple images, they are suffixed with an index (page-3-image-1.png, page-3-image-2.png, etc.). The default UI lets you download each image individually; the Download All button bundles every extracted image into a single .zip.",
+        ],
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, Extract Images handles PDFs up to 100 MB with no page-count cap and no image-count cap. PDFium runs in WebAssembly in your browser; nothing is uploaded. Rare codecs (JBIG2 under encryption, certain JPX/JPEG2000 variants) can fail to decode — when that happens we log and skip the offending image rather than failing the whole extraction, so you still get every image that did decode.",
+          "Common pairings: Pair with Extract Pages to focus on a subset of pages first if you only want images from a specific section. Pair with PDF Inspector to preview the image inventory (count + resolution per page) before clicking extract.",
+        ],
+      },
+    ],
+  },
 };
