@@ -99,6 +99,49 @@ export function ImagesToPdfTool({
   const [result, setResult] = useState<ResultState | null>(null);
   const [pageSize, setPageSize] = useState<PaperSize>("letter");
   const [landscape, setLandscape] = useState(false);
+
+  // 2026-05-11 (item #17 sweep batch 6) — URL permalink state sync.
+  // Two-param shape (pageSize + landscape boolean). Single useEffect
+  // with [pageSize, landscape] dep array — separate effects would race
+  // because history.replaceState doesn't batch (same load-bearing
+  // detail as GeneratePdfTool's 3-param sync). Lets users share
+  // `/tool/images-to-pdf?pageSize=a4&landscape=1`. Defaults
+  // ("letter" + false) omitted from URL.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const rawSize = params.get("pageSize");
+    if (
+      rawSize === "letter" || rawSize === "a4" || rawSize === "a3" ||
+      rawSize === "a5" || rawSize === "legal" || rawSize === "fit"
+    ) {
+      setPageSize(rawSize);
+    }
+    // Boolean flag: "1" / "true" both accept; "0" / "false" / missing
+    // → default false. Conservative — only the explicit-truthy strings
+    // flip the state.
+    const rawLand = params.get("landscape");
+    if (rawLand === "1" || rawLand === "true") {
+      setLandscape(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (pageSize === "letter") params.delete("pageSize");
+    else params.set("pageSize", pageSize);
+    // Write "1" rather than "true" for the URL — shorter, and our
+    // mount-effect accepts both forms.
+    if (!landscape) params.delete("landscape");
+    else params.set("landscape", "1");
+    const qs = params.toString();
+    const next = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    if (next !== window.location.pathname + window.location.search) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [pageSize, landscape]);
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   // M16 — scroll the error region into view whenever error transitions

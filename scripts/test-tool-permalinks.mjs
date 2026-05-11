@@ -492,6 +492,86 @@ if (rasterEffectMatch) {
 }
 
 // ---------------------------------------------------------------------
+// Section J — ImagesToPdfTool sweep batch 6 (?pageSize=&landscape=).
+// ---------------------------------------------------------------------
+//
+// Sweep batch 6 — ImagesToPdfTool wires `?pageSize=<letter|a4|a3|a5|
+// legal|fit>&landscape=<1>`. Mixed-type 2-param shape: string-literal
+// enum + boolean. Single useEffect with [pageSize, landscape] dep
+// array — separate effects would race per the replaceState non-
+// batching invariant (same load-bearing detail as Generate's 3-param
+// sync).
+
+const IMG2PDF_PATH = path.join(ROOT, "components/tools/ImagesToPdfTool.tsx");
+assert(fs.existsSync(IMG2PDF_PATH), `ImagesToPdfTool missing at ${IMG2PDF_PATH}`);
+const IMG2PDF = fs.existsSync(IMG2PDF_PATH) ? fs.readFileSync(IMG2PDF_PATH, "utf8") : "";
+
+assert(
+  /params\.get\("pageSize"\)/.test(IMG2PDF) && /params\.get\("landscape"\)/.test(IMG2PDF),
+  "ImagesToPdfTool: mount-effect must read both `pageSize` and " +
+    "`landscape` params.",
+);
+
+assert(
+  /rawSize\s*===\s*"letter"\s*\|\|\s*rawSize\s*===\s*"a4"\s*\|\|\s*rawSize\s*===\s*"a3"\s*\|\|\s*rawSize\s*===\s*"a5"\s*\|\|\s*rawSize\s*===\s*"legal"\s*\|\|\s*rawSize\s*===\s*"fit"/.test(
+    IMG2PDF,
+  ),
+  "ImagesToPdfTool: pageSize allowlist must enumerate all 6 PaperSize " +
+    "literals.",
+);
+
+assert(
+  /rawLand === "1" \|\| rawLand === "true"/.test(IMG2PDF),
+  "ImagesToPdfTool: landscape boolean must accept both `1` and `true` " +
+    "URL values — conservative dispatch where only explicit-truthy " +
+    "strings flip the state.",
+);
+
+assert(
+  /useEffect\(\(\)\s*=>\s*\{[\s\S]*?history\.replaceState[\s\S]*?\},\s*\[pageSize,\s*landscape\]\)/.test(
+    IMG2PDF,
+  ),
+  "ImagesToPdfTool: state → URL sync must live in a SINGLE useEffect " +
+    "with `[pageSize, landscape]` dep array. Separate effects would race " +
+    "because history.replaceState doesn't batch within React's render " +
+    "cycle (same load-bearing detail as GeneratePdfTool's 3-param sync).",
+);
+
+assert(
+  /pageSize === "letter"\s*\)\s*params\.delete\("pageSize"\)/.test(IMG2PDF),
+  "ImagesToPdfTool: default `letter` must be omitted from URL.",
+);
+
+assert(
+  /!landscape\s*\)\s*params\.delete\("landscape"\)/.test(IMG2PDF),
+  "ImagesToPdfTool: default `false` for landscape must be omitted via " +
+    "`if (!landscape) params.delete(...)`. The negated check is the " +
+    "right shape because boolean defaults to false.",
+);
+
+assert(
+  /params\.set\("landscape", "1"\)/.test(IMG2PDF),
+  "ImagesToPdfTool: when landscape is true, URL must write `\"1\"` " +
+    "(short form). The mount-effect accepts both `1` and `true` — write " +
+    "the shorter one to keep URLs compact.",
+);
+
+assert(
+  /typeof window === "undefined"/.test(IMG2PDF),
+  "ImagesToPdfTool: permalink effects must guard SSR.",
+);
+
+const img2pdfEffectMatch = IMG2PDF.match(
+  /useEffect\(\(\)\s*=>\s*\{([\s\S]*?)\},\s*\[pageSize,\s*landscape\]\)/,
+);
+if (img2pdfEffectMatch) {
+  assert(
+    !/pushState/.test(img2pdfEffectMatch[1]),
+    "ImagesToPdfTool: sync effect uses pushState — back-button hell.",
+  );
+}
+
+// ---------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------
 
