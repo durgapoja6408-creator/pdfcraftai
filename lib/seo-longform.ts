@@ -1926,4 +1926,136 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // pdf-to-png — paired with pdf-to-jpg, lossless page-to-image
+  // ============================================================
+  "pdf-to-png": {
+    title: "PDF to PNG — when lossless beats small, and how to pick the right scale",
+    intro:
+      "PDF-to-PNG is the right export when you need every pixel preserved exactly — typically for text-heavy pages, screenshots, line art, or anything where JPG's compression artifacts would show up as ringing around character edges. The trade-off is file size: PNG files are typically 3–5× larger than the equivalent JPG. Here is how to think about that trade-off, what scale to pick for which use case, and the two patterns that catch users off-guard.",
+    sections: [
+      {
+        h: "PNG vs JPG — pick by content type",
+        p: [
+          "The simplest decision rule: PNG when the page is mostly text or vector graphics, JPG when the page is mostly photographs. The reason is how each format compresses. PNG uses lossless DEFLATE compression — exactly reconstructs the input — which means hard edges (the side of a letter, the boundary of a logo) stay sharp at any zoom level. JPG uses lossy frequency-domain compression that produces small files for photographic content but adds visible ringing around hard edges in text or line art.",
+          "If you cannot decide, run a one-page test export at both formats at the same scale and look at the output. Open both at 100% and at 200%. The right choice is usually obvious — JPG looks fuzzy around letters, PNG looks crisp; or both look fine and you pick the smaller file.",
+        ],
+      },
+      {
+        h: "Picking the right scale",
+        p: [
+          "The scale multiplier (1×, 2×, 3×) tells the rasterizer how many pixels per PDF point to render. Each step up multiplies the pixel count by 4×, which means the file size also roughly 4×s. Picking the right scale for your end use saves a lot of bytes:",
+        ],
+        list: {
+          items: [
+            { b: "1× — screen preview at native size.", t: "Use when the image will only ever be viewed at its natural page size on a standard-DPI screen. The thumbnail panel in your gallery app, a low-res email preview, a quick check on a phone." },
+            { b: "2× — retina screens and print at 144 DPI.", t: "The most common pick. Modern phones, tablets, and laptops all have hi-DPI displays where 2× looks crisp. Also matches typical office-printer resolution — print quality is good without going overboard on file size." },
+            { b: "3× — archival, hi-res print, marketing assets.", t: "Use when the image will be printed at large physical sizes, used as a hero asset for marketing, or needs to scale beyond its natural size without softening. The file size is 9× the 1× version, which is significant for multi-page exports — only use 3× when you actually need it." },
+          ],
+        },
+      },
+      {
+        h: "When PDF-to-PNG is the right tool",
+        p: [
+          "Cases where you genuinely want PNG output rather than another conversion:",
+        ],
+        list: {
+          items: [
+            { b: "Embedding a page as an image in a slide deck.", t: "PNGs render losslessly inside PowerPoint or Keynote. The page's text stays crisp at any slide zoom." },
+            { b: "Generating thumbnails for a gallery.", t: "Convert every page at 1× scale; use the resulting PNGs as previews in a document library or CMS." },
+            { b: "Building a long social-media carousel from a deck or report.", t: "LinkedIn, X, and Instagram all want individual images per slide. Export each page as PNG and upload as a carousel." },
+            { b: "Archiving a one-pager for environments that don't render PDF.", t: "Some legacy systems display images but not PDFs. Convert to PNG and embed." },
+            { b: "Pre-processing for a different image pipeline.", t: "Need to run each page through a custom image-filter chain, OCR engine, or AI image model? Export to PNG first; downstream tools handle PNG more universally than PDF." },
+          ],
+        },
+      },
+      {
+        h: "Two patterns that catch people out",
+        p: [
+          "The friction points that show up in support tickets:",
+        ],
+        list: {
+          items: [
+            { b: "Files larger than expected.", t: "A 50-page PDF exported at 3× PNG can easily be 200+ MB. If you're going to publish, archive, or share at that scale, run a separate compression pass on the PNGs (oxipng, pngquant) afterward — those tools can typically reduce PNG size by 30-60% with no visible quality loss. Or drop to 2× scale, which is almost always sufficient." },
+            { b: "PNG transparency is preserved, even for white backgrounds.", t: "If your PDF page has a transparent background (rare, but it happens with some printer outputs), the resulting PNG will be transparent too. That looks weird in viewers that expect a white background. If you need a guaranteed white background, flatten the PDF before rasterizing — our Compress tool with the Smaller preset flattens transparency as part of its pass." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, PDF-to-PNG handles files up to 100 MB with no page-count cap. PDFium runs in WebAssembly in your browser; nothing is uploaded. Output PNGs are plain RGBA images compatible with every viewer, every editor, every CMS, every social platform.",
+          "Download individual pages or use the Download All option to save every page at once. Zipping the output is on the roadmap; for now the per-page downloads land in your default browser-downloads folder with predictable filenames.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // png-to-pdf — paired with jpg-to-pdf, image-to-pdf flow
+  // ============================================================
+  "png-to-pdf": {
+    title: "PNG to PDF — the right tool for screenshot bundles and what to do about transparency",
+    intro:
+      "PNG-to-PDF is one of the most-used tools on the site, especially for users assembling screenshot-heavy documentation, multi-page receipts, scanned photos, and quick share-with-anyone bundles. The conversion itself is straightforward — every image becomes one PDF page — but two factors deserve attention before you click convert: how transparency is handled, and how the page dimensions are picked. Get either wrong and the output looks unexpectedly off. Here is what the converter does, the three things worth thinking about before exporting, and when PNG-to-PDF beats the alternatives.",
+    sections: [
+      {
+        h: "How the conversion works",
+        p: [
+          "Every PNG you drop in becomes exactly one page in the output PDF. The page size is picked by the page-size setting you choose (Letter, A4, or fit-to-image). The image lands on the page either at its native size (\"fit to image\" mode produces a page that exactly matches the image) or scaled to fit inside the page margins. Aspect ratio is always preserved — we never stretch.",
+          "The PNG bytes are embedded directly in the PDF — no re-encoding, no quality loss. If your input was a 4000×3000 screenshot, the PDF embeds that exact image. Vector content inside the PNG (if any) is not extracted; PNGs are raster images, so it all stays raster. Multi-page PDFs are produced by concatenating the input images in the order you arranged them (drag to reorder before clicking convert).",
+        ],
+      },
+      {
+        h: "Transparency — what happens and how to control it",
+        p: [
+          "PNG supports an alpha channel; PDF supports transparency too but most viewers render transparent content differently. By default, our converter flattens transparency against a white background. That makes the output look consistent across Acrobat, Preview, Chrome, Firefox, and every other viewer. If you would rather preserve the alpha channel — for example because you intend to overlay the PDF onto a colored background in a print workflow — toggle the option off before converting.",
+          "Three specific patterns to watch:",
+        ],
+        list: {
+          items: [
+            { b: "Anti-aliased text on transparent background.", t: "Screenshots from design tools often have anti-aliased text with semi-transparent edge pixels. Flattening to white preserves the look in most viewers; preserving alpha can produce subtle fringing in some viewers." },
+            { b: "Drop shadows.", t: "Drop shadows are alpha-channel effects. Flattening renders them correctly. Preserving alpha keeps them as alpha and looks right in PDF readers that support transparency (most modern ones)." },
+            { b: "Logos on transparent backgrounds.", t: "A logo PNG meant to be placed over different colors needs alpha preserved. A logo PNG meant for a single-color document looks the same flattened." },
+          ],
+        },
+      },
+      {
+        h: "Picking page size and orientation",
+        p: [
+          "Three settings control how the image lands on the page:",
+        ],
+        list: {
+          items: [
+            { b: "Fit to image.", t: "The output page is exactly the size of the image. Useful for screenshots where any white margin would feel awkward. Each page in a multi-image PDF can be a different size — the converter does not force uniformity in this mode." },
+            { b: "Letter / A4 with center placement.", t: "The output page is standard paper size. The image is scaled to fit within margins, centered horizontally and vertically. Looks like a proper printed document. Pick Letter if your audience is US-based, A4 if international." },
+            { b: "Portrait vs landscape.", t: "The converter auto-rotates the page to match the image's aspect ratio in fit-to-image mode. In Letter / A4 modes, it picks whichever orientation fits the image better while preserving aspect ratio. Override the auto-pick from the Options panel if you have a specific output orientation in mind." },
+          ],
+        },
+      },
+      {
+        h: "When PNG-to-PDF beats the alternatives",
+        p: [
+          "Cases where this is genuinely the right tool:",
+        ],
+        list: {
+          items: [
+            { b: "Bundling screenshots into one shareable file.", t: "Sending five PNGs in an email is messy. Bundling them into one PDF is one attachment, one click for the recipient." },
+            { b: "Submitting documents that were photographed instead of scanned.", t: "Most portals accept PDF; many do not accept JPG / PNG. Convert your phone photos of an ID or document to PDF before uploading." },
+            { b: "Creating a multi-image PDF for printing.", t: "Photo printers and copy shops standardize on PDF for multi-image jobs. PNG-to-PDF builds the bundle in the order you want." },
+            { b: "Archiving a long-form Twitter / LinkedIn thread.", t: "Screenshot each tweet, drop them in order, get a PDF you can save to your knowledge management system." },
+            { b: "Producing a PDF cover image for an ebook.", t: "Many ebook generators want a PDF cover. PNG-to-PDF wraps a single image with the right page dimensions in one step." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, PNG-to-PDF accepts up to 50 PNG files per output PDF, each up to 100 MB. Drag-reorder before converting to set the page order. Conversion runs in your browser via pdf-lib; nothing is uploaded.",
+          "Output is PDF 1.7-compatible (Acrobat 8 and later), opens in every reader, and converts cleanly to PDF/A in a separate pass if you need archival format. The output is searchable only if the PNGs contained scanned text and you run OCR afterward — PNGs do not carry a text layer themselves.",
+        ],
+      },
+    ],
+  },
 };
