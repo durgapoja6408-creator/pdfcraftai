@@ -7,7 +7,7 @@
 // bases don't apply. Text-input exemption codified in
 // test-live-tool-standardization.mjs's NON_PDF_INPUT_TOOLS allowlist.
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { I } from "@/components/icons/Icons";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { downloadBytes } from "@/lib/client/download";
@@ -52,10 +52,67 @@ export function CsvToPdfTool() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ResultState | null>(null);
-  const [pageSize, setPageSize] = useState<CsvPaperSize>("letter-landscape");
-  const [fontSize, setFontSize] = useState(10);
-  const [hasHeader, setHasHeader] = useState(true);
-  const [delimiter, setDelimiter] = useState<"," | "\t" | ";">(",");
+  // 2026-05-11 (item #17 batch 13) — URL permalinks for sharing
+  // table-export templates. Same default-omit + replaceState
+  // single-effect pattern as the 13 tools wired previously.
+  // Default values are NOT written to the URL so a vanilla landing
+  // stays clean.
+  //
+  // Defaults: pageSize=letter-landscape, fontSize=10, hasHeader=true,
+  // delimiter=','.
+  //
+  // pageSize literals (4): letter / a4 / letter-landscape / a4-landscape
+  // fontSize bounded number: 6..16 (table copy — narrower than body)
+  // hasHeader boolean
+  // delimiter literals (3): , (default) / "\t" / ;
+  //   The tab character is URL-encoded as %09 by URLSearchParams
+  //   transparently. The allowlist matches the raw decoded char.
+  const initialFromQs = (() => {
+    if (typeof window === "undefined")
+      return { pageSize: "letter-landscape" as CsvPaperSize, fontSize: 10, hasHeader: true, delimiter: "," as "," | "\t" | ";" };
+    const qs = new URLSearchParams(window.location.search);
+    const ps = qs.get("pageSize");
+    const fs = qs.get("fontSize");
+    const hh = qs.get("hasHeader");
+    const dl = qs.get("delimiter");
+    const fsNum = fs ? parseInt(fs, 10) : NaN;
+    return {
+      pageSize:
+        ps === "letter" || ps === "a4" || ps === "letter-landscape" || ps === "a4-landscape"
+          ? (ps as CsvPaperSize)
+          : ("letter-landscape" as CsvPaperSize),
+      fontSize:
+        Number.isFinite(fsNum) && fsNum >= 6 && fsNum <= 16 ? fsNum : 10,
+      hasHeader: hh === "false" ? false : true,
+      delimiter:
+        dl === "," || dl === "\t" || dl === ";" ? (dl as "," | "\t" | ";") : (",") as "," | "\t" | ";",
+    };
+  })();
+  const [pageSize, setPageSize] = useState<CsvPaperSize>(initialFromQs.pageSize);
+  const [fontSize, setFontSize] = useState(initialFromQs.fontSize);
+  const [hasHeader, setHasHeader] = useState(initialFromQs.hasHeader);
+  const [delimiter, setDelimiter] = useState<"," | "\t" | ";">(initialFromQs.delimiter);
+
+  // Write the 4-tuple to URL via a SINGLE useEffect — replaceState
+  // is non-batching, so separate effects per param would race and
+  // drop intermediate states. Defaults are omitted from the URL.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (pageSize === "letter-landscape") params.delete("pageSize");
+    else params.set("pageSize", pageSize);
+    if (fontSize === 10) params.delete("fontSize");
+    else params.set("fontSize", String(fontSize));
+    if (hasHeader === true) params.delete("hasHeader");
+    else params.set("hasHeader", "false");
+    if (delimiter === ",") params.delete("delimiter");
+    else params.set("delimiter", delimiter);
+    const qs = params.toString();
+    const next = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    if (next !== window.location.pathname + window.location.search) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [pageSize, fontSize, hasHeader, delimiter]);
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const errorRef = useScrollErrorIntoView(error);

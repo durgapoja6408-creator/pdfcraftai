@@ -1083,6 +1083,114 @@ if (batesEffectMatch) {
 }
 
 // ---------------------------------------------------------------------
+// Section Q — CsvToPdfTool sweep batch 13 (4-param mixed types).
+// ---------------------------------------------------------------------
+//
+// Introduces the FIRST boolean-in-URL and the FIRST tab-character
+// allowlist member. Three new wrinkles to verify:
+//   1. hasHeader=false on default-true — URL writes "false", reads
+//      "false" → false / anything-else → true (most permissive read,
+//      strictest write).
+//   2. delimiter="\t" — URLSearchParams encodes tab as %09 on write,
+//      decodes back to "\t" on read. The allowlist matches the raw
+//      decoded character (not %09).
+//   3. fontSize 6..16 — narrower than the 4..72 body-copy bounds
+//      because CSV→PDF is table copy, not paragraphs.
+
+const CSV = fs.readFileSync(
+  path.join(ROOT, "components", "tools", "CsvToPdfTool.tsx"),
+  "utf8",
+);
+
+// Allow either the `params` (legacy) or `qs` (newer-batch) alias for
+// the read-side URLSearchParams binding — both patterns are in use.
+assert(
+  /(params|qs)\.get\("pageSize"\)/.test(CSV) &&
+    /(params|qs)\.get\("fontSize"\)/.test(CSV) &&
+    /(params|qs)\.get\("hasHeader"\)/.test(CSV) &&
+    /(params|qs)\.get\("delimiter"\)/.test(CSV),
+  "CsvToPdfTool: mount-effect must read all 4 params.",
+);
+
+assert(
+  /ps === "letter"\s*\|\|\s*ps === "a4"\s*\|\|\s*ps === "letter-landscape"\s*\|\|\s*ps === "a4-landscape"/.test(
+    CSV,
+  ),
+  "CsvToPdfTool: pageSize allowlist must enumerate all 4 CsvPaperSize literals.",
+);
+
+assert(
+  /Number\.isFinite\(fsNum\)\s*&&\s*fsNum >= 6\s*&&\s*fsNum <= 16/.test(CSV),
+  "CsvToPdfTool: fontSize bounds 6..16 — table copy is denser than " +
+    "body copy; narrower bounds keep the grid readable. Outside this " +
+    "range tables either lose readability (below 6) or overflow rows " +
+    "(above 16).",
+);
+
+assert(
+  /hh === "false" \? false : true/.test(CSV),
+  "CsvToPdfTool: hasHeader read must default to TRUE — only the string " +
+    "literal `\"false\"` flips it. This pairs with the write side " +
+    "(default-true omits the param) so a vanilla URL = header-on.",
+);
+
+assert(
+  /dl === ","\s*\|\|\s*dl === "\\t"\s*\|\|\s*dl === ";"/.test(CSV),
+  "CsvToPdfTool: delimiter allowlist must include the raw tab " +
+    "character (`\"\\t\"`) not the URL-encoded `%09`. URLSearchParams " +
+    "decodes %09 → \\t transparently — the allowlist matches the " +
+    "decoded form.",
+);
+
+assert(
+  /useEffect\(\(\)\s*=>\s*\{[\s\S]*?history\.replaceState[\s\S]*?\},\s*\[pageSize,\s*fontSize,\s*hasHeader,\s*delimiter\]\)/.test(
+    CSV,
+  ),
+  "CsvToPdfTool: state → URL sync must live in a SINGLE useEffect " +
+    "with `[pageSize, fontSize, hasHeader, delimiter]` 4-tuple dep per " +
+    "the replaceState non-batching invariant. Four separate effects " +
+    "would race.",
+);
+
+assert(
+  /pageSize === "letter-landscape"\s*\)\s*params\.delete\("pageSize"\)/.test(
+    CSV,
+  ),
+  "CsvToPdfTool: default pageSize `letter-landscape` must be omitted.",
+);
+
+assert(
+  /fontSize === 10\s*\)\s*params\.delete\("fontSize"\)/.test(CSV),
+  "CsvToPdfTool: default fontSize `10` must be omitted.",
+);
+
+assert(
+  /hasHeader === true\s*\)\s*params\.delete\("hasHeader"\)/.test(CSV),
+  "CsvToPdfTool: default hasHeader `true` must be omitted. Only " +
+    "false makes it into the URL — the read side compensates.",
+);
+
+assert(
+  /delimiter === ","\s*\)\s*params\.delete\("delimiter"\)/.test(CSV),
+  "CsvToPdfTool: default delimiter `,` (CSV) must be omitted.",
+);
+
+assert(
+  /typeof window === "undefined"/.test(CSV),
+  "CsvToPdfTool: permalink effects must guard SSR.",
+);
+
+const csvEffectMatch = CSV.match(
+  /useEffect\(\(\)\s*=>\s*\{([\s\S]*?)\},\s*\[pageSize,\s*fontSize,\s*hasHeader,\s*delimiter\]\)/,
+);
+if (csvEffectMatch) {
+  assert(
+    !/pushState/.test(csvEffectMatch[1]),
+    "CsvToPdfTool: 4-param sync effect uses pushState — back-button hell.",
+  );
+}
+
+// ---------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------
 
