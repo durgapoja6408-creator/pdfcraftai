@@ -1337,4 +1337,71 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // rotate-pdf — high-traffic free tool, added 2026-05-11
+  // ============================================================
+  "rotate-pdf": {
+    title: "How to rotate a PDF the right way — lossless, in seconds, no quality loss",
+    intro:
+      "Rotating a PDF is the single most-searched fix for paper that was scanned in the wrong direction. The right tool does it in milliseconds, preserves the original bytes intact, and produces a file that opens cleanly in every reader. The wrong tool re-renders each page as an image and triples your file size. Here is what the rotation step actually does, when it works perfectly, and the two situations where you need a different tool.",
+    sections: [
+      {
+        h: "How rotation works under the hood",
+        p: [
+          "Every page in a PDF has a small piece of metadata called the /Rotate attribute. It carries a single number — 0, 90, 180, or 270 — that tells the viewer how to orient the page at display time. The actual page content (text, vectors, images) stays in its original coordinate system; the viewer applies the rotation when it renders. That is why our tool can change a page's orientation by editing only that one attribute, leaving the entire page content stream untouched.",
+          "The practical result is that rotating 500 pages takes about as long as rotating one. There is no re-rendering, no re-encoding, no quality loss. Text stays selectable. Links stay clickable. Hyperlinks, bookmarks, form fields, and embedded media all keep working. File size barely budges — typically you lose a few hundred bytes per rotated page because we tighten the dictionary.",
+        ],
+      },
+      {
+        h: "When to reach for Rotate PDF",
+        p: [
+          "These are the workflows where the lossless rotation is genuinely the right answer:",
+        ],
+        list: {
+          items: [
+            { b: "A scanner that fed pages the wrong way.", t: "Document feeders flip pages 180° or 90° relative to whatever you actually want to read. The rotation fixes it in one pass." },
+            { b: "Mixed-orientation reports.", t: "A landscape spreadsheet stuck inside a portrait monthly review. Select just those pages and rotate them so the whole document scrolls cleanly in one orientation." },
+            { b: "PDFs created from photos.", t: "Phone cameras embed orientation EXIF that survives into the PDF as /Rotate. Sometimes the EXIF is wrong; rotating the PDF takes one click instead of editing the source images." },
+            { b: "Forms that were scanned upside-down.", t: "Especially common with hand-scanned tax forms, immigration paperwork, and medical records where the form ended up on the platen face-up by accident." },
+            { b: "Print-ready files for a press shop.", t: "Some print shops require all pages to be portrait-up regardless of layout. Rotate first; the press accepts the bundle." },
+          ],
+        },
+      },
+      {
+        h: "The two cases where you need a different tool",
+        p: [
+          "Rotation is a 90° increment operation. There are two situations where it cannot help and a different tool is the right call:",
+        ],
+        list: {
+          items: [
+            { b: "Scanner skew — a slight angle that is not 90°.", t: "Pages that came out 2°, 5°, or 12° off don't need rotation; they need deskew. Deskew has to re-render the page bitmap to apply a sub-90° rotation, which means it re-rasterizes (and loses a small amount of detail). Our AI · Deskew tool handles this — but use it only when actual skew is present, not for the 90° rotations that the free rotate tool covers losslessly." },
+            { b: "Mirrored or flipped pages.", t: "A scanner with a faulty mirror can produce horizontally-flipped pages. /Rotate cannot flip; it can only rotate. You either need to rescan or run the page through an image-flip step in a raster editor. There is no lossless fix because the underlying PDF coordinate system is right-handed; flipping inverts it." },
+          ],
+        },
+      },
+      {
+        h: "Five tips for the cleanest rotation result",
+        p: [
+          "These small habits make the rotation step go faster and produce more polished output:",
+        ],
+        list: {
+          items: [
+            { b: "Render the thumbnails before deciding.", t: "Our tool shows every page as a thumbnail so you can see at a glance which need rotation. Trust the picture, not the page number — readers describe rotation problems incorrectly all the time." },
+            { b: "Range-select with Shift-click.", t: "If pages 3 through 12 all need the same rotation, click page 3, then Shift-click page 12 to highlight the whole range in one move. Much faster than ten individual clicks." },
+            { b: "Mix rotations in successive applies.", t: "Need pages 1-3 turned 90° and pages 4-5 turned 180°? Select the first set, apply 90°, then download the intermediate. Re-drop and apply 180° to the second set. The file size penalty is zero because the operations are stacked, not redone." },
+            { b: "Pair with Sort Pages for messy scans.", t: "If your scanner produced both wrong order and wrong rotation, run Sort Pages first to get the order right, then Rotate to fix orientation. Doing both in one tool would require modeling page-level dependency that no scanner-fix tool actually needs." },
+            { b: "Verify in the browser before sharing.", t: "Some viewers (older Acrobat builds) ignore /Rotate when printing but honor it on screen. Open the rotated PDF in Chrome or Firefox to see exactly what it will look like on screen, and run a one-page test print if it matters." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, rotation handles PDFs up to 100 MB with no page-count cap. The rotation runs entirely in your browser via pdf-lib; nothing is uploaded. Output is byte-for-byte compatible with every viewer since Acrobat 5 (2001), every browser PDF viewer, every printer that takes PDF, and every cloud storage provider that lets you upload PDFs. The rotated file is still PDF/A-compatible if the input was; we do not strip metadata.",
+          "Because /Rotate is a metadata-only change, downstream tools like merge, split, extract-pages, and OCR all see the rotated page in its visual orientation rather than its underlying coordinate system. That is the right behavior — if you rotated a page so the text reads correctly, OCR should read the text in that orientation too.",
+        ],
+      },
+    ],
+  },
 };
