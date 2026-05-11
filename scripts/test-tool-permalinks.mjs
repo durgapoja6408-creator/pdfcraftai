@@ -1334,6 +1334,107 @@ if (batchEffectMatch) {
 }
 
 // ---------------------------------------------------------------------
+// Section T — PdfSplitTool sweep batch 16 (?uiMode=&advMode=&advChunkSize=).
+// ---------------------------------------------------------------------
+//
+// 3-param shape (uiMode + advMode + advChunkSize) with formal
+// exclusions for per-document state. Two state fields are
+// DELIBERATELY excluded from the URL:
+//   - `splits` Set (per-page selection on the CURRENT PDF — doesn't
+//     carry across documents)
+//   - `advRanges` (free-form "1-5, 6-10" string keyed to a
+//     particular page count)
+// Both negative assertions formalize the "per-document state vs
+// preset" distinction so future refactors can't accidentally widen
+// the URL surface to include them.
+
+const SPLIT = fs.readFileSync(
+  path.join(ROOT, "components", "tools", "PdfSplitTool.tsx"),
+  "utf8",
+);
+
+assert(
+  /(params|qs)\.get\("uiMode"\)/.test(SPLIT) &&
+    /(params|qs)\.get\("advMode"\)/.test(SPLIT) &&
+    /(params|qs)\.get\("advChunkSize"\)/.test(SPLIT),
+  "PdfSplitTool: mount-effect must read all 3 params.",
+);
+
+assert(
+  /ui === "visual"\s*\|\|\s*ui === "advanced"/.test(SPLIT),
+  "PdfSplitTool: uiMode allowlist must enumerate both UIMode literals.",
+);
+
+assert(
+  /am === "every"\s*\|\|\s*am === "range"\s*\|\|\s*am === "size"/.test(SPLIT),
+  "PdfSplitTool: advMode allowlist must enumerate all 3 SplitMode literals.",
+);
+
+assert(
+  /Number\.isFinite\(csNum\)\s*&&\s*csNum >= 1\s*&&\s*csNum <= 100/.test(SPLIT),
+  "PdfSplitTool: advChunkSize bounds 1..100 — typical chunk sizes for " +
+    "the size-mode split. Outside this range the segment count gets " +
+    "absurd (1-page chunks of a 500-page PDF) or the chunks don't " +
+    "actually split (>100 pages per chunk on most inputs).",
+);
+
+assert(
+  /useEffect\(\(\)\s*=>\s*\{[\s\S]*?history\.replaceState[\s\S]*?\},\s*\[uiMode,\s*advMode,\s*advChunkSize\]\)/.test(
+    SPLIT,
+  ),
+  "PdfSplitTool: state → URL sync must live in a SINGLE useEffect " +
+    "with `[uiMode, advMode, advChunkSize]` 3-tuple dep per the " +
+    "replaceState non-batching invariant.",
+);
+
+assert(
+  /uiMode === "visual"\s*\)\s*params\.delete\("uiMode"\)/.test(SPLIT),
+  "PdfSplitTool: default uiMode `visual` must be omitted from URL.",
+);
+
+assert(
+  /advMode === "every"\s*\)\s*params\.delete\("advMode"\)/.test(SPLIT),
+  "PdfSplitTool: default advMode `every` must be omitted from URL.",
+);
+
+assert(
+  /advChunkSize === 2\s*\)\s*params\.delete\("advChunkSize"\)/.test(SPLIT),
+  "PdfSplitTool: default advChunkSize `2` must be omitted from URL.",
+);
+
+// Negative assertions — per-document state must NOT enter the URL.
+assert(
+  !/(params|qs)\.get\("splits"\)/.test(SPLIT) &&
+    !/params\.set\("splits"/.test(SPLIT),
+  "PdfSplitTool: `splits` (Set<number> per-page selection) must NOT " +
+    "be in the URL. It's per-document state — meaningless across " +
+    "different PDFs and would bloat the URL with `splits=0,3,7,12,...`.",
+);
+
+assert(
+  !/(params|qs)\.get\("advRanges"\)/.test(SPLIT) &&
+    !/params\.set\("advRanges"/.test(SPLIT),
+  "PdfSplitTool: `advRanges` (free-form '1-5, 6-10' string) must NOT " +
+    "be in the URL. It's user content uniquely keyed to a particular " +
+    "page count.",
+);
+
+assert(
+  /typeof window === "undefined"/.test(SPLIT),
+  "PdfSplitTool: permalink effect must guard SSR.",
+);
+
+const splitEffectMatch = SPLIT.match(
+  /useEffect\(\(\)\s*=>\s*\{([\s\S]*?)\},\s*\[uiMode,\s*advMode,\s*advChunkSize\]\)/,
+);
+if (splitEffectMatch) {
+  assert(
+    !/pushState/.test(splitEffectMatch[1]),
+    "PdfSplitTool: 3-param sync effect uses pushState — back-button hell.",
+  );
+}
+
+// ---------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------
 

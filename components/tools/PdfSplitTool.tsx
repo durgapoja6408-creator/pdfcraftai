@@ -22,7 +22,7 @@
 //   know exactly what they want and don't need thumbnails — and huge
 //   PDFs (>200 pages) render slowly enough that text-mode is faster.
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
@@ -73,17 +73,74 @@ export function PdfSplitTool() {
   const applyAbortRef = useRef<AbortController | null>(null);
   const cancelApply = useCallback(() => applyAbortRef.current?.abort(), []);
 
+  // 2026-05-11 (item #17 batch 16) — URL permalinks for sharing
+  // split presets. Three params permalinked: uiMode + advMode +
+  // advChunkSize. The `splits` Set is DELIBERATELY excluded — it's
+  // per-document state (the user's per-page selection on THIS PDF
+  // they just uploaded) that doesn't carry meaning across documents.
+  // advRanges (free-form "1-5, 6-10" string) is also user content
+  // and uniquely-keyed to a particular page count, so it's also
+  // excluded. Both negative assertions enforced by CI guard.
+  //
+  // Defaults: uiMode=visual, advMode=every, advChunkSize=2.
+  // uiMode literals (2): visual / advanced
+  // advMode literals (3): every / range / size
+  // advChunkSize bounded number: 1..100 (typical pdf-split-chunk sizes)
+  const initialFromQs = (() => {
+    if (typeof window === "undefined")
+      return {
+        uiMode: "visual" as UIMode,
+        advMode: "every" as SplitMode,
+        advChunkSize: 2,
+      };
+    const qs = new URLSearchParams(window.location.search);
+    const ui = qs.get("uiMode");
+    const am = qs.get("advMode");
+    const cs = qs.get("advChunkSize");
+    const csNum = cs ? parseInt(cs, 10) : NaN;
+    return {
+      uiMode:
+        ui === "visual" || ui === "advanced" ? (ui as UIMode) : ("visual" as UIMode),
+      advMode:
+        am === "every" || am === "range" || am === "size"
+          ? (am as SplitMode)
+          : ("every" as SplitMode),
+      advChunkSize:
+        Number.isFinite(csNum) && csNum >= 1 && csNum <= 100 ? csNum : 2,
+    };
+  })();
   // UI state
-  const [uiMode, setUiMode] = useState<UIMode>("visual");
+  const [uiMode, setUiMode] = useState<UIMode>(initialFromQs.uiMode);
   // Visual-mode state: set of 0-based indices AFTER which to split.
   // `splits.has(2)` means "split after page 3 (index 2)" → segments
   // [0..2] and [3..end].
+  // NOT permalinked — per-document selection, not a sharable preset.
   const [splits, setSplits] = useState<Set<number>>(new Set());
 
   // Advanced-mode state (mirrors the previous text-input flow).
-  const [advMode, setAdvMode] = useState<SplitMode>("every");
+  const [advMode, setAdvMode] = useState<SplitMode>(initialFromQs.advMode);
+  // advRanges NOT permalinked — free-form user content uniquely
+  // keyed to a particular page count.
   const [advRanges, setAdvRanges] = useState<string>("1-5, 6-10");
-  const [advChunkSize, setAdvChunkSize] = useState<number>(2);
+  const [advChunkSize, setAdvChunkSize] = useState<number>(initialFromQs.advChunkSize);
+
+  // Single useEffect writes the 3-tuple to URL — replaceState is
+  // non-batching so separate effects per param would race.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (uiMode === "visual") params.delete("uiMode");
+    else params.set("uiMode", uiMode);
+    if (advMode === "every") params.delete("advMode");
+    else params.set("advMode", advMode);
+    if (advChunkSize === 2) params.delete("advChunkSize");
+    else params.set("advChunkSize", String(advChunkSize));
+    const qs = params.toString();
+    const next = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    if (next !== window.location.pathname + window.location.search) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [uiMode, advMode, advChunkSize]);
 
   const onFiles = useCallback(
     async (files: File[]) => {
