@@ -1637,4 +1637,76 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // pdf-to-text — head term, very high search volume
+  // ============================================================
+  "pdf-to-text": {
+    title: "PDF to text — what extraction actually pulls out and what it can't",
+    intro:
+      "Extracting the text from a PDF sounds like one of the most basic operations imaginable — and for text-based PDFs it really is. The complication is that PDFs come in two structurally different forms, and only one of them has \"text\" in any meaningful sense. Pointing the extract tool at the wrong kind silently produces an empty file. Here is how to tell them apart, what the extraction actually returns, and the two patterns that catch new users off guard.",
+    sections: [
+      {
+        h: "The two kinds of PDFs and what each yields",
+        p: [
+          "Every PDF was either generated digitally (Word, Google Docs, LaTeX, InDesign, browser print-to-PDF) or scanned from a piece of paper. The first kind has a real text layer — each character has a font, a position, and a Unicode codepoint. Extracting text from those PDFs is a fast lookup; you get every word in reading order with high accuracy.",
+          "The second kind — scanned PDFs — is structurally a stack of images. There is no text inside the file, just rasterized pixels that happen to look like text to a human eye. Running PDF-to-text on a scan returns an empty file because there is nothing to extract. The fix is to run AI · OCR first to recognize the pixels and produce a searchable PDF, then run PDF-to-text on the result.",
+        ],
+      },
+      {
+        h: "How to tell which kind you have",
+        p: [
+          "Three reliable signals you can check before running the tool:",
+        ],
+        list: {
+          items: [
+            { b: "Try selecting text in your PDF reader.", t: "Open the file in Preview, Acrobat, or a browser. Click and drag to select a paragraph. If the selection highlights individual words, you have a text-based PDF. If it highlights the whole page rectangle, you have a scan." },
+            { b: "Try Ctrl-F / Cmd-F to search.", t: "Search for a word you can see on the page. If the find function highlights matches, the PDF has a text layer. If it says \"no matches\" for a word that is plainly visible, the PDF is a scan." },
+            { b: "Run PDF Inspector first.", t: "Our PDF Inspector tool reports whether the file has a text layer, what fonts are embedded, and how much extractable text is on each page. Five seconds saves you the wrong-tool round trip." },
+          ],
+        },
+      },
+      {
+        h: "What the output looks like",
+        p: [
+          "The extracted text comes back as a plain UTF-8 .txt file. Layout is flattened to reading order — multi-column pages are linearized, so a two-column research paper reads column-1-then-column-2 rather than line-by-line across the gutter. Tables are extracted in row-by-row order; if the cell content fits, you get something usable, but complex tables can produce jumbled output (use PDF-to-Excel instead for those).",
+          "Page breaks are marked with a form-feed character (\\f, ASCII 0x0C) by default, so you can split the output into per-page sections. Headers and footers are usually pulled out; if a particular header or footer is rendered as a vector decoration (image, line drawing), it is not part of the text layer and does not appear in the extract.",
+        ],
+      },
+      {
+        h: "When PDF-to-text is the right tool",
+        p: [
+          "The cases where plain text is exactly what you need:",
+        ],
+        list: {
+          items: [
+            { b: "Feeding a search index.", t: "Most search engines and RAG systems ingest plain text. PDF-to-text is the canonical extraction step before chunking and embedding." },
+            { b: "Word-counting or readability scoring.", t: "Need to know how long a document is? Extract to text, then word-count. Faster and more reliable than asking a PDF reader." },
+            { b: "Pasting a section into a doc.", t: "When you need to quote a paragraph from a PDF into a Word doc, extracting to text gives you clean prose without the PDF's formatting baggage." },
+            { b: "Diffing two text documents.", t: "If you want to compare two PDFs by content rather than appearance, extract both to text and run a normal text diff. Faster than a visual diff for substantive change detection." },
+            { b: "Pre-processing for AI.", t: "Whenever you want to send a PDF's content to an LLM as context, plain text is the densest and most reliable format. The model ignores positional information anyway." },
+          ],
+        },
+      },
+      {
+        h: "Two patterns that surprise people",
+        p: [
+          "The friction points that show up in support tickets:",
+        ],
+        list: {
+          items: [
+            { b: "Decorative headers come out as Unicode garbage.", t: "If a PDF used a custom decorative font (a logotype, an icon-font headline) without proper Unicode mappings, those glyphs show up in the extract as private-use-area characters or empty boxes. The fix is upstream — embed Unicode-compliant fonts when generating the PDF — or run AI · OCR on a rendered copy of the PDF, which transcribes from the visible pixels and produces clean Unicode." },
+            { b: "Hyphenated line breaks become hyphens-plus-spaces.", t: "PDFs that justify long lines often hyphen-break a word across two lines. The extractor preserves the hyphen and the line break, so \"hyphen-ated\" comes out as two tokens. Most search systems handle this; if yours doesn't, post-process the text to rejoin words split across newlines." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, PDF-to-text handles files up to 100 MB with no page-count cap. PDFium runs in WebAssembly in your browser — nothing leaves your machine. Output is plain UTF-8 .txt that opens cleanly in every editor, every search-engine indexer, and every programming language's standard library.",
+          "If the input is a scan (no text layer), the tool tells you so and points you to AI · OCR. If you want both a searchable PDF and a plain-text export, run AI · OCR first to produce the searchable PDF, then run PDF-to-text on the output for the .txt.",
+        ],
+      },
+    ],
+  },
 };
