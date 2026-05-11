@@ -4702,4 +4702,162 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // blood-report-analyzer — medical AI tool
+  // ============================================================
+  "blood-report-analyzer": {
+    title: "Blood Report Analyzer — extracting lab values from PDF reports and what the out-of-range flags actually mean",
+    intro:
+      "Lab reports are dense, jargon-heavy, and structured differently across labs. Reading a CBC or a Lipid Panel as a patient often feels like decoding a foreign language. The blood report analyzer extracts every test value with its unit, reference range, and out-of-range flag, then groups them by panel for easier scanning. It is not a diagnostic tool — interpretation belongs to your doctor — but the structured extraction makes a confusing PDF into something a patient can actually read and ask informed questions about. Here is what the analyzer extracts, the six panel types it groups by, and the boundary between data extraction and medical interpretation.",
+    sections: [
+      {
+        h: "What the analyzer extracts",
+        p: [
+          "The tool reads every page of the lab report, identifies each test entry, and pulls out a structured record: test name (verbatim from the report), value, unit (mg/dL, mmol/L, %, IU/L, etc.), reference range as printed on the report, and the lab's own flag (normal / low / high / critical / unknown). Each test is also assigned to the panel it belongs to — CBC, Lipid, LFT (Liver Function), KFT (Kidney Function), Thyroid, Glucose, or Other.",
+          "Crucially, we extract verbatim. The value is whatever the lab printed; the unit is whatever the lab used; the reference range is exactly as it appears on the report. Different labs use different reference ranges depending on their methodology, instrument calibration, and population they serve. The analyzer does not normalize across labs — comparing your report to internet-published reference ranges is a category error that we don't introduce.",
+        ],
+      },
+      {
+        h: "Six panel types we group by",
+        p: [
+          "Lab reports usually contain panels — collections of related tests run together. The grouping makes scanning easier:",
+        ],
+        list: {
+          items: [
+            { b: "CBC (Complete Blood Count).", t: "Hemoglobin, RBC count, WBC count, platelets, hematocrit, MCV, MCH, MCHC, differential counts (neutrophils, lymphocytes, monocytes, eosinophils, basophils). The general-health screen. Usually 12-15 tests." },
+            { b: "Lipid Panel.", t: "Total cholesterol, HDL, LDL, triglycerides, VLDL, cholesterol/HDL ratio. Cardiovascular-risk screen. Usually 5-7 tests." },
+            { b: "LFT (Liver Function Test).", t: "Total/direct/indirect bilirubin, SGOT/AST, SGPT/ALT, alkaline phosphatase, total protein, albumin, globulin, A/G ratio. Liver-health screen. Usually 8-10 tests." },
+            { b: "KFT (Kidney Function Test).", t: "Urea, BUN, creatinine, uric acid, sodium, potassium, chloride, calcium, phosphorus, eGFR. Kidney-health + electrolyte screen. Usually 6-10 tests." },
+            { b: "Thyroid Panel.", t: "TSH, T3, T4, free T3, free T4, anti-TPO antibodies. Thyroid-function screen. Usually 3-6 tests depending on order." },
+            { b: "Glucose Panel.", t: "Fasting glucose, post-meal glucose, HbA1c, sometimes glucose tolerance. Diabetes-related screen." },
+            { b: "Other.", t: "Anything outside the standard panels — vitamins (D, B12), iron studies, hormones, tumor markers, infection markers. Surfaced individually." },
+          ],
+        },
+      },
+      {
+        h: "Indian lab conventions worth knowing",
+        p: [
+          "The analyzer handles Indian-lab-specific conventions because most users are testing through Indian diagnostic chains. Three patterns worth understanding:",
+        ],
+        list: {
+          items: [
+            { b: "Unit differences.", t: "Glucose may be reported in mg/dL (typical India) or mmol/L (typical Europe). HbA1c in % (DCCT-aligned) or mmol/mol (IFCC-aligned). The analyzer extracts what the lab printed; we don't convert or guess. If you're comparing reports from different labs, check that units match before drawing conclusions." },
+            { b: "Reference range variation by lab.", t: "SRL's normal range for ALT might be 5-40 IU/L; Dr Lal's might be 0-55 IU/L; Apollo's might be different again. \"Out of range\" at one lab might be \"in range\" at another. The analyzer extracts each lab's specific range; do not compare across labs without normalizing to the same reference standard." },
+            { b: "Indian-specific cutoffs.", t: "ICMR (Indian Council of Medical Research) defines HbA1c diabetes threshold at ≥6.5% — the same as international standards. But Indian labs may flag based on local population norms (Indian populations have different lipid baselines than Western populations). Discuss interpretation with an Indian-trained doctor who knows the local cutoffs." },
+          ],
+        },
+      },
+      {
+        h: "The line between extraction and interpretation",
+        p: [
+          "The analyzer is explicitly a data-extraction tool, not a diagnostic tool. Two important distinctions:",
+        ],
+        list: {
+          items: [
+            { b: "What we do: surface what the lab reported.", t: "Value, unit, reference range, lab's own flag. All verbatim. We rearrange the layout to make it scannable but never change what the lab said." },
+            { b: "What we don't do: interpret what the values mean for you.", t: "An out-of-range value is not automatically a problem. Reference ranges are population-based and may not apply to your context (pregnancy, age, medication, exercise level, recent diet, etc.). A specific pattern of values may indicate one of many possible conditions, none of which the analyzer can diagnose. Discussion with your doctor is essential." },
+          ],
+        },
+      },
+      {
+        h: "Common use cases",
+        p: [
+          "Where the analyzer earns its place:",
+        ],
+        list: {
+          items: [
+            { b: "Pre-appointment preparation.", t: "Before discussing a report with your doctor, run it through the analyzer to understand the structure and flagged values. You'll ask better questions." },
+            { b: "Tracking trends across reports.", t: "Run multiple reports through. Compare values for the same test across dates. Trend visualization is a roadmap item; the structured JSON export already lets you build trends in your spreadsheet of choice today." },
+            { b: "Family caregiver review.", t: "If you're managing reports for an elderly parent, the structured output is much easier to scan than the original PDF — especially if the parent's prescribing doctor's office sends multi-page reports." },
+            { b: "Insurance claim preparation.", t: "Some insurers need a structured summary of lab results for claim processing. The analyzer's JSON output is the structured form they typically want." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "Blood Report Analyzer charges 15 credits per report. The tool handles PDFs up to 25 MB from any major Indian lab chain (SRL, Dr Lal PathLabs, Thyrocare, Metropolis, Apollo Diagnostics, hospital-side labs) and most international labs. Processing runs on our servers; the report is in memory only during analysis and is never persisted.",
+          "Important: Not medical advice. The tool extracts data; interpretation belongs to your prescribing doctor.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // discharge-summary-explainer — paired medical AI tool
+  // ============================================================
+  "discharge-summary-explainer": {
+    title: "Discharge Summary Explainer — translating medical Latin into plain language for patients and family",
+    intro:
+      "Hospital discharge summaries are written for doctors. They use Latin abbreviations, brand-name shorthand, dosing notation that only pharmacists know how to parse, and clinical phrasing that assumes the reader has medical training. The patient and the patient's family rarely have that training. The result is post-discharge confusion — medications taken at the wrong times, warning signs missed, follow-up appointments skipped because nobody understood when they were due. The discharge explainer rewrites the summary in plain language without changing the underlying medicine. Here is what it does, the four sections it always surfaces, and the precise boundary between language translation and medical interpretation.",
+    sections: [
+      {
+        h: "What the explainer rewrites",
+        p: [
+          "The tool reads the full discharge summary, then rewrites it section-by-section in plain Indian English aimed at a patient or family member who has no medical training. Medical Latin becomes everyday words (\"acute myocardial infarction\" becomes \"a heart attack\"). Brand-name medications get explained (\"Tab Pan-D 40 mg\" becomes \"Pantoprazole 40 mg — a stomach-acid reducer\"). Indian dosing shorthand gets translated (\"1-0-1\" becomes \"one tablet in the morning and one at night\"; \"BD\" becomes \"twice daily\"; \"TDS\" becomes \"three times daily\"; \"SOS\" becomes \"only if needed\").",
+          "Crucially, the rewrite is a translation, not an interpretation. We do not add diagnoses the doctor didn't write. We do not change dosages. We do not suggest skipping or substituting medications. The medical content is preserved exactly; only the language changes.",
+        ],
+      },
+      {
+        h: "Four sections the explainer always surfaces",
+        p: [
+          "Indian discharge summaries vary in layout but always carry these four blocks. The explainer ensures each is prominent in the output:",
+        ],
+        list: {
+          items: [
+            { b: "Diagnosis.", t: "What the doctor said is wrong, in plain language. \"Coronary artery disease with stable angina\" becomes \"narrowing of the heart's blood vessels causing chest pain.\" Medical terminology is kept once with the plain-language explanation alongside, so family members can recognize the technical terms in future appointments." },
+            { b: "Treatment given during admission.", t: "What was done while in the hospital — surgeries, procedures, medications administered. Translated so the family understands what happened, not just what the bill itemizes." },
+            { b: "Medications going home.", t: "Each medication: generic name, brand, dose, timing in everyday language, what it does, what to watch for. Indian dosing shorthand (1-0-1, BD, TDS, OD, SOS, PRN) translated to plain instructions. Critical for post-discharge compliance — most medication errors happen because the patient or family didn't understand the schedule." },
+            { b: "Follow-up plan + warning signs.", t: "When the next appointment is, what tests to redo when, and the warning-sign list (when to rush back to the hospital vs when to call the doctor vs when something is normal). Surfaced prominently because this is the highest-stakes information in the entire summary." },
+          ],
+        },
+      },
+      {
+        h: "Indian-specific patterns the tool handles",
+        p: [
+          "Three patterns specific to Indian medical practice:",
+        ],
+        list: {
+          items: [
+            { b: "Indian prescribing shorthand.", t: "1-0-1, 1-1-1, BD, TDS, QID, SOS, PRN, HS. The shorthand is universal in Indian prescriptions but unfamiliar to non-doctors. Pre-encoded in the explainer." },
+            { b: "Brand-name medications.", t: "Indian prescriptions often use brand names (Pan-D for Pantoprazole, Calpol for Paracetamol, Telma for Telmisartan). The explainer surfaces both the brand the doctor wrote and the generic name, so the patient can verify they're picking up the right medication at the pharmacy." },
+            { b: "Hindi / regional language overlays.", t: "Some discharge summaries from regional hospitals mix Hindi or local-language instructions with English medical content. The explainer handles mixed-language input gracefully — the output is plain English with the regional terms surfaced where helpful." },
+          ],
+        },
+      },
+      {
+        h: "What this tool deliberately doesn't do",
+        p: [
+          "Three safety boundaries:",
+        ],
+        list: {
+          items: [
+            { b: "Doesn't change doses.", t: "If the doctor prescribed 40 mg Pantoprazole once daily, the explainer says 40 mg once daily. We don't suggest higher or lower based on body weight or interpretation." },
+            { b: "Doesn't substitute medications.", t: "Cheaper alternatives, similar-class drugs, over-the-counter substitutes — none of these come up. The medication list is exactly what the doctor wrote." },
+            { b: "Doesn't diagnose or predict.", t: "The output is a translation of the doctor's diagnoses, not new diagnoses. Predictions about recovery time, prognosis, complications — all stay with the doctor." },
+          ],
+        },
+      },
+      {
+        h: "When to use this vs talk to the doctor directly",
+        p: [
+          "Two use signals:",
+        ],
+        list: {
+          items: [
+            { b: "Use the explainer immediately after discharge.", t: "Before the family leaves the hospital is ideal — explainer-clarified questions can be asked to the discharging doctor while they're still available. The 10-credit cost is much cheaper than a follow-up call." },
+            { b: "Always call the doctor for anything unclear.", t: "If a warning sign is happening, if a medication dose seems wrong, if the timing isn't matching the explainer's interpretation — call. The explainer is a translation aid, not a substitute for medical contact." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "Discharge Summary Explainer charges 10 credits per summary. The tool handles PDFs up to 25 MB from any Indian hospital. Processing runs on our servers; the summary is in memory only during analysis and is never persisted.",
+          "Important: Not medical advice. The tool is a language translation aid. The medications, doses, and treatment plan are exactly what the doctor wrote. Discuss any unclear instructions with the prescribing doctor directly.",
+        ],
+      },
+    ],
+  },
 };
