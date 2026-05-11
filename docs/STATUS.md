@@ -1378,6 +1378,10 @@ All four doc changes are planning-layer only (zero code deltas, zero runtime imp
 
 ## Done
 
+### 2026-05-11 — Item #17 sweep batches 13+14 — CSV + Overlay permalinks
+
+- [x] **feat(tools): URL permalink batches 13 + 14.** Commit `2fc9015` (CsvToPdfTool) + `9a31ccf` (PdfOverlayTool). 4-param + 3-param shapes added to the sweep. Batch 13 introduces the FIRST boolean-default-true ("asymmetric default" — URL only carries it when false) and the FIRST raw-tab character in the allowlist (URLSearchParams decodes %09 → \t transparently). Batch 14 layers on the same opacity 0..100 bounded-int pattern from PdfStampTool batch 11. CI guard +22 assertions across Sections Q + R. 151 total. Aggregator: 6782 passed, 0 failed across 116 suites. **Item #17 progress: 15 of N tools (4 AI + 11 free); 10 distinct state shapes verified including boolean-default-true and raw-tab allowlist.**
+
 ### 2026-05-11 — Item #8 sweep COMPLETE — every tool runner now ships inline explainer
 
 - [x] **feat(tools): inline ToolHowItWorks sweep COMPLETE.** Commits `373abac` (batch 11) + `693b5c4` (batch 12) + `d09330a` (batch 13). All 116 CI suites green at 6760/0 across 342 ToolHowItWorks assertions. Total tools wired: 61 entries in SWEEP_FREE_TOOLS covering every direct tool runner + every shared base (PdfSimpleOpsTool / PageEditorTool / PdfChecklistTool / PdfReadOpsTool / PageGridTool / SummarizeVariantTool / StructuredVariantTool) — the variant bases ship a single canonical explainer that applies across their ~38 wrapper variants automatically. **Item #8: SHIPPED. Every surface gets the inline explainer.**
