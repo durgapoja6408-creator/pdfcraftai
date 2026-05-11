@@ -5186,4 +5186,167 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // insurance-policy-analyzer — Indian insurance AI
+  // ============================================================
+  "insurance-policy-analyzer": {
+    title: "Insurance Policy Analyzer — the clauses Indian buyers miss before signing or renewing",
+    intro:
+      "Indian insurance policies are dense, structured for legal accuracy rather than reader understanding, and frequently signed without anyone reading past the premium. The friction with that pattern is that the most operationally important clauses — room-rent capping, sub-limits, waiting periods, exclusions — live deep in the policy and never get explained at the point of sale. The analyzer surfaces all of them with severity-rated flags so you know what you're actually buying. Here is what it parses, the six clauses Indian health-insurance buyers most often miss, and the boundary between policy parsing and insurance advice.",
+    sections: [
+      {
+        h: "What the analyzer audits",
+        p: [
+          "The tool reads the full policy document and surfaces a structured audit: coverage type (individual / family floater / group), sum insured, premium breakdown, sub-limits per category (room, ICU, ambulance, doctor consult, OT charges, day-care procedures), waiting periods (pre-existing disease / specific-disease / initial), permanent exclusions, claim process and cashless network, renewability and portability terms, no-claim bonus (NCB) earned, restoration benefits if any.",
+          "Each finding is anchored to the section of the policy where it was identified. Flag-bearing clauses (room-rent capping below market, high co-pay, missing day-care list, no restoration) get severity ratings — high (will materially reduce claim payout), medium (will affect specific scenarios), low (worth knowing but rarely binds). Plus a claim-document checklist so when you do need to claim, you know what to gather.",
+        ],
+      },
+      {
+        h: "Six clauses Indian health-insurance buyers miss",
+        p: [
+          "The patterns the analyzer catches most often:",
+        ],
+        list: {
+          items: [
+            { b: "Room-rent capping.", t: "Most Indian health policies cap room rent at 1% or 2% of sum insured per day. If you stay in a higher-category room, the proportionate-deduction clause reduces EVERY other charge — doctor's fees, investigations, OT charges — by the same proportion. Worst-case you can lose 30-50% of your claim from a single room upgrade. The analyzer flags low room-rent caps as high-severity." },
+            { b: "Sub-limits per procedure.", t: "Specific procedures (cataract, hernia, joint replacement) often have separate caps below the overall sum insured. A ₹10-lakh sum insured policy with a ₹40,000 cataract sub-limit doesn't actually cover a typical cataract surgery. Flagged when sub-limits are materially below typical procedure costs." },
+            { b: "Pre-existing disease waiting period.", t: "Conditions diagnosed before you bought the policy aren't covered until the waiting period expires — typically 2-4 years. The analyzer surfaces the exact period and which conditions it applies to." },
+            { b: "Specific-disease waiting period.", t: "Certain procedures (hernia, cataract, joint replacement, hysterectomy) have 1-2 year initial waiting periods even for new patients. Common surprise during the first year of a new policy." },
+            { b: "Permanent exclusions.", t: "Cosmetic surgery, infertility treatment, dental (except accident-related), addiction treatment, alternative medicine. Standard list across most policies, but each policy adds its own — the analyzer surfaces non-standard additions explicitly." },
+            { b: "Co-payment and deductible.", t: "Senior-citizen policies often have 10-20% co-pay (you pay this slice of every claim). Health-policy variants for younger buyers sometimes have voluntary deductibles. Both reduce your effective coverage; the analyzer surfaces the exact percentages." },
+          ],
+        },
+      },
+      {
+        h: "Policy types the tool handles",
+        p: [
+          "Specific Indian insurance contexts covered:",
+        ],
+        list: {
+          items: [
+            { b: "Health (individual / family floater / group employer).", t: "The largest category. Auditor surfaces the floater-specific traps (single sum insured across the family, which someone else's hospitalization can exhaust before yours)." },
+            { b: "Life and term.", t: "Premium / sum-assured ratio, renewability, lapse-and-revival terms, loan-against-policy provisions, surrender value table for traditional plans." },
+            { b: "Motor (own-damage + third-party).", t: "IDV, NCB, depreciation grid for parts, repair-vs-replace cap. The single biggest motor-claim gotcha is partial-loss depreciation; the analyzer surfaces this." },
+            { b: "Home.", t: "Building vs contents split, valuation method (reinstatement vs market value), excluded perils (earthquake / flood / terrorism as standard add-ons not standard coverage)." },
+            { b: "Travel.", t: "Trip cancellation triggers, medical emergency caps, baggage / passport-loss limits, pre-existing-condition rules for travel." },
+          ],
+        },
+      },
+      {
+        h: "What to do with the analyzer output",
+        p: [
+          "Three patterns for using the findings:",
+        ],
+        list: {
+          items: [
+            { b: "At purchase decision.", t: "Compare the analyzer outputs across multiple quotes. The premium is one input; the sub-limits and waiting periods are equally important — a cheaper policy with hard sub-limits often pays out dramatically less." },
+            { b: "At renewal.", t: "Compare this year's policy to last year's. Insurers sometimes change room-rent caps, add new exclusions, or raise co-pays at renewal. The analyzer surfaces year-over-year changes when you run sequential policies." },
+            { b: "Before claim.", t: "Review the claim-document checklist before going to the hospital. Missing documents is a major reason claims get delayed; having the list ready prevents that." },
+          ],
+        },
+      },
+      {
+        h: "Portability vs renewal",
+        p: [
+          "One specific decision the analyzer informs:",
+        ],
+        list: {
+          items: [
+            { b: "Renewal stays with the current insurer.", t: "Pros: continuity of waiting periods, accumulated NCB, no fresh underwriting. Cons: stuck with whatever sub-limits and exclusions this policy has." },
+            { b: "Portability moves to a different insurer.", t: "Pros: potentially better sub-limits, better network, lower premiums. Cons: re-underwriting, potential loss of NCB, possible new waiting periods on conditions diagnosed during the old policy term. The analyzer surfaces the data; the decision is yours." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "Insurance Policy Analyzer charges 20 credits per policy. The tool handles PDFs up to 25 MB. Processing runs on our servers; the policy is in memory only during analysis and is never persisted.",
+          "Important: Not insurance advice. The tool is a parsing aid. For decisions on switching insurers, claim disputes, or coverage gaps, consult an IRDAI-licensed insurance advisor.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // loan-application-bundler — Indian retail finance AI
+  // ============================================================
+  "loan-application-bundler": {
+    title: "Loan Application Document Bundler Audit — the lender checklist and what's missing from your stack",
+    intro:
+      "Indian retail loans — home, personal, business, car, education — share a similar document checklist across HDFC, SBI, ICICI, Axis, Bajaj, and dozens of NBFCs. The list is well-known to bank relationship managers and DSAs (Direct Sales Agents) but rarely written down anywhere a first-time applicant can find. The result is a familiar pattern: you submit your stack, the bank comes back asking for documents you didn't include, you spend a week gathering them, the sanction process restarts. The bundler audit short-circuits that loop by running your document stack against the same checklist banks use. Here is what it checks, the five eligibility-affecting flags that derail more applications than missing documents, and where the audit ends and lender-side underwriting begins.",
+    sections: [
+      {
+        h: "What the audit checks",
+        p: [
+          "The tool reads your concatenated loan-document bundle (the recommended workflow is to merge all documents with our free Merge PDF tool first). It detects the loan type from the document mix — a stack with property documents and Form 26AS plus salary slips is a home loan; a stack with just bank statements and salary slips is a personal loan; a stack with GST returns and business bank statements is a business loan. The detection is usually unambiguous.",
+          "Once the loan type is identified, the auditor runs the document checklist for that type: KYC (PAN, Aadhaar), income proof (salary slips, ITR, Form 16, bank statements showing salary credits, GST returns for business), property documents for secured loans (title deed, encumbrance certificate, approved plan), guarantor documents if needed. Output is a per-document status: present, present-but-partial (e.g. only 3 months of statements when 6 are required), or missing.",
+        ],
+      },
+      {
+        h: "Five eligibility-affecting flags",
+        p: [
+          "Beyond \"are the documents present,\" the audit surfaces flags that affect whether the loan will actually sanction. These derail more applications than missing documents:",
+        ],
+        list: {
+          items: [
+            { b: "Bounced EMI in the last 12 months.", t: "Any EMI bounce on existing loans in the recent past is a major red flag for any new sanction. The analyzer reads bank statements and surfaces bounced EMIs explicitly. If found, addressing them (or waiting for them to age out) before applying is more productive than applying and getting rejected." },
+            { b: "Salary credit gaps.", t: "Your salary should show up in your bank statement consistently. Two missed months in a row signal employment instability — a sanction-killer. The analyzer surfaces missing-month patterns from the statement." },
+            { b: "FOIR over 50%.", t: "Fixed Obligation to Income Ratio — your existing EMIs as a percentage of your income. Over 50% typically means rejection regardless of credit score. The analyzer estimates FOIR from your salary slips and existing-EMI patterns in the bank statement." },
+            { b: "Recent loan applications.", t: "Multiple recent hard inquiries on your CIBIL signal credit hunger. The analyzer can't see your CIBIL directly but surfaces the loan-disbursement entries in your bank statement that suggest recent borrowing." },
+            { b: "Income vs lifestyle mismatch.", t: "Bank-statement entries that are inconsistent with your stated income (expenses dramatically higher than salary, large unexplained deposits, frequent cash withdrawals) trigger underwriter scrutiny. The analyzer surfaces these patterns for you to know about before the bank notices." },
+          ],
+        },
+      },
+      {
+        h: "Loan-type-specific checks",
+        p: [
+          "The audit varies by loan type:",
+        ],
+        list: {
+          items: [
+            { b: "Home loan.", t: "Adds property documents (title deed, encumbrance certificate, approved plan, NOC from society if applicable, property tax receipt). Property valuation requirements, builder NOC for under-construction property, conversion certificate if agricultural-to-residential." },
+            { b: "Personal loan.", t: "Lightest checklist: KYC + salary slips + bank statements. Most decided on CIBIL + FOIR." },
+            { b: "Business loan.", t: "GST returns (last 12-24 months), business bank statements, ITR for the business entity, partnership deed / company incorporation docs if applicable, business proof (Shops & Establishment, MSME registration, GST registration)." },
+            { b: "Car loan.", t: "KYC + income proof + the car's quote / invoice. RC book for used-car loans. Insurance copy if pre-existing." },
+            { b: "Education loan.", t: "Admission letter, fee structure, course details, parent/co-applicant KYC + income proof. Collateral docs for loans above the unsecured threshold." },
+          ],
+        },
+      },
+      {
+        h: "Lender-specific variations the analyzer can't fully cover",
+        p: [
+          "The audit is calibrated to the typical Indian retail-lending checklist. Specific lenders sometimes have variations:",
+        ],
+        list: {
+          items: [
+            { b: "NBFC vs bank.", t: "Some NBFCs accept lighter documentation (no Form 26AS, no 6-month statements, etc.) for speed. Bank checklists are typically stricter. Verify with the specific lender." },
+            { b: "Cooperative banks.", t: "Sometimes have unique additional requirements (member shareholding, branch-relationship history). The analyzer's general checklist misses these." },
+            { b: "Government schemes (PMAY, MUDRA).", t: "Subsidized schemes have their own additional documentation (income certificate, EWS/LIG certificate, etc.). Verify with the bank running the scheme." },
+          ],
+        },
+      },
+      {
+        h: "Privacy considerations",
+        p: [
+          "Loan documents are sensitive — they contain PAN, Aadhaar, bank statements, salary information. The analyzer processes them in memory only and deletes server-side temporary copies after 60 minutes. For DSAs and brokers handling many clients, the Pro tier offers per-client folders with audit logs.",
+          "Three habits worth knowing:",
+        ],
+        list: {
+          items: [
+            { b: "Redact PAN / Aadhaar before sharing the audit output.", t: "If you're forwarding the analyzer's output to a DSA or family member, the audit may reference PAN / Aadhaar that you do not want to forward. Use AI Redact to scrub before sharing." },
+            { b: "Strip metadata.", t: "The bundle PDF you uploaded may carry metadata from the original DOCX or XLSX sources. Run Remove Metadata before sharing the audit alongside the bundle." },
+            { b: "Sanitize attachments.", t: "Some loan-document PDFs carry hidden attachments. Run Extract Attachments to verify what's inside, and strip any unintended additions." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "Loan Application Bundler charges 15 credits per audit. The tool handles PDFs up to 100 MB (large bundles are common). Processing runs on our servers with 60-minute retention; nothing persisted beyond.",
+          "Important: This is a checklist-completeness aid, not loan pre-approval. Final eligibility depends on the lender's underwriting based on CIBIL, FOIR, employment stability, and credit appetite. The audit makes sure you don't waste a sanction-day with incomplete docs.",
+        ],
+      },
+    ],
+  },
 };
