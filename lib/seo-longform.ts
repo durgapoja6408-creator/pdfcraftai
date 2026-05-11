@@ -1788,4 +1788,142 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // excel-to-pdf — head term, Office conversion family
+  // ============================================================
+  "excel-to-pdf": {
+    title: "Excel to PDF — what conversion preserves, what it loses, and how to keep your tables readable",
+    intro:
+      "Excel-to-PDF is one of the simpler-sounding conversions that hides real friction in the details. The output is a static snapshot of your workbook — formulas become their last-computed values, dynamic charts become flat images, and the page boundaries that Excel chose at render time are baked in. Most of the time, that is exactly what you want. The other times, knowing what is happening lets you fix the output instead of redoing the conversion. Here is what the converter does, what it can't do, and the five settings inside Excel that have outsized impact on the resulting PDF.",
+    sections: [
+      {
+        h: "What the conversion actually preserves",
+        p: [
+          "Every worksheet in your file becomes one or more pages in the output PDF. The order matches the order of tabs in the workbook. Within each sheet, the converter walks every used cell and renders text, number, formula result, formatting (bold / italic / font / color), borders, fills, and merged cells exactly as Excel would print them. Print area settings (File → Print Area) are honored — if you defined a print area on a sheet, only that region appears in the PDF. Sheets that are hidden in Excel are skipped by default.",
+          "Charts and shapes embedded on a worksheet render as static images at their on-screen size. Pivot tables become their currently-displayed snapshot — the underlying data and filter state are gone from the output. Data-validation drop-downs are flattened to whatever value the cell currently contains. Conditional formatting is rendered as plain formatting at the moment of export, not as live rules.",
+        ],
+      },
+      {
+        h: "What conversion can't preserve",
+        p: [
+          "Some Excel features simply do not have a PDF equivalent. Knowing this list ahead of time prevents an hour of debugging \"why is my PDF missing X\":",
+        ],
+        list: {
+          items: [
+            { b: "Live formulas.", t: "PDFs are not spreadsheets. Formulas become their currently-computed values. Open the source XLSX if you need to change inputs and re-export." },
+            { b: "Macros and VBA code.", t: "Any automation in the workbook is dropped — PDF has no execution model. If your workbook depends on a macro to display certain views, run the macro before converting." },
+            { b: "External data connections.", t: "If your workbook pulls from a SQL database, web query, or another file via links, the converter uses the cached snapshot. Refresh the data inside Excel before exporting to PDF so the snapshot is current." },
+            { b: "Pivot table interactivity.", t: "Pivots collapse to their current display. The PDF reader cannot drill in, change rows/columns, or re-filter." },
+            { b: "Form controls and ActiveX.", t: "Buttons, checkboxes, sliders, and similar controls render as static images of their current visual state." },
+          ],
+        },
+      },
+      {
+        h: "Five Excel settings that fix 90% of conversion problems",
+        p: [
+          "Most \"the PDF looks bad\" complaints trace back to settings inside Excel that were never adjusted. Spending two minutes on these before exporting is dramatically faster than fighting the output:",
+        ],
+        list: {
+          items: [
+            { b: "Page Layout → Scaling → Fit to Width.", t: "Without this, tables wider than the paper get split across multiple pages with awkward continuation. \"Fit Sheet to One Page\" works for small tables; \"Fit All Columns to One Page\" plus default row scaling works for most. Pick the one that keeps your numbers readable." },
+            { b: "Page Layout → Print Titles → Rows to repeat at top.", t: "Set this to your header row so it repeats at the top of every page. Without it, page 2 of a long table has no column labels — anyone reading the PDF has to flip back to page 1 to remember what column means what." },
+            { b: "Page Layout → Margins → Custom Margins → Horizontally / Vertically center.", t: "Centers smaller tables on the page rather than nesting them in the top-left corner. Looks dramatically more professional." },
+            { b: "Page Layout → Page Setup → Sheet → Gridlines (off).", t: "By default Excel exports the gray gridlines from the worksheet, which look messy in a final deliverable. Apply real borders to the cells you want bordered, then turn gridline export off." },
+            { b: "File → Properties → set Title and Author.", t: "These travel into the PDF metadata. Useful when the recipient saves the PDF and you want the file to surface with a proper name in their indexer rather than \"Book1.xlsx\"." },
+          ],
+        },
+      },
+      {
+        h: "When Excel-to-PDF is the right tool — and when it isn't",
+        p: [
+          "Useful contexts where the snapshot is genuinely what you want:",
+        ],
+        list: {
+          items: [
+            { b: "Distributing a final figure to people who shouldn't edit it.", t: "Quarterly earnings, audited results, board-pack numbers. Static is the point." },
+            { b: "Submitting a financial model alongside a narrative document.", t: "Lenders, regulators, and government portals usually require PDF. Convert each sheet, merge them with your narrative." },
+            { b: "Printing a workbook.", t: "If the destination is paper, PDF is the right intermediate. Excel's direct-print sometimes paginates differently than the PDF; converting first lets you preview." },
+            { b: "Archiving for compliance.", t: "PDF/A is the format regulators and archivists want for long-term retention. Convert to PDF, then run through our PDF/A converter." },
+          ],
+        },
+        // Continuation paragraph would normally go in p[], but we keep the body concise.
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "The converter handles XLSX, XLS, and the OpenDocument format ODS up to 100 MB per file. Multiple sheets fold into a single multi-page PDF. Output opens cleanly in every PDF reader since Acrobat 5 and is PDF/A-compatible after a separate PDF/A conversion pass.",
+          "For larger workbooks, hundreds of sheets, or repeated conversions in a pipeline, the API exposes a batch endpoint that streams workbooks through without per-sheet rendering overhead and supports preserving cell-level hyperlinks where they exist.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // powerpoint-to-pdf — head term, paired Office family
+  // ============================================================
+  "powerpoint-to-pdf": {
+    title: "PowerPoint to PDF — exactly what gets baked in and how to keep the deck legible",
+    intro:
+      "Converting a PowerPoint deck to PDF is mostly about making the deck shareable with people who do not have PowerPoint — and turning every dynamic element into its static visual form. Animations stop animating, transitions vanish, embedded videos become poster-frame thumbnails, and your speaker notes either come along (if you ask) or stay hidden (the default). Knowing exactly which elements survive what conversion saves rounds of \"why does the PDF look different from my slides?\". Here is the precise list, plus three speaker-note patterns most users overlook.",
+    sections: [
+      {
+        h: "How slide-to-page mapping works",
+        p: [
+          "Every slide in your deck becomes exactly one page in the output PDF. Slide order is preserved; the PDF page count matches your slide count. The page dimensions match the slide dimensions — a 16:9 deck produces a 16:9 PDF, a 4:3 deck produces a 4:3 PDF, a custom-size deck produces a custom-size PDF. Slide masters and layouts are flattened: by the time the content reaches the PDF, there is no \"master\" layer — every visual element is on the page directly. Hidden slides are skipped by default; toggle the option in the converter if you want them included.",
+          "Text on each slide renders as real selectable text in the PDF (so a reader can search and copy quotes from your deck). Fonts are embedded so the PDF looks identical on every device, even when the recipient does not have your custom fonts installed. Vector shapes stay sharp at any zoom level. Raster images preserve their source resolution.",
+        ],
+      },
+      {
+        h: "What animation, transitions, and media become",
+        p: [
+          "PDFs do not animate. Every dynamic element converts to its visual end-state:",
+        ],
+        list: {
+          items: [
+            { b: "Builds and animations.", t: "If a slide has an animation that reveals bullets one by one, the PDF shows the final state with every bullet visible. There is no intermediate state. If you want a build-by-build PDF, you have to duplicate the slide once per build inside PowerPoint and convert that expanded deck." },
+            { b: "Transitions between slides.", t: "Transitions are page-to-page effects; PDFs do not have them. The reader just turns to the next page." },
+            { b: "Embedded video and audio.", t: "Replaced by a single poster frame (the first or current frame of the video). Audio is stripped. If your deck depends on a video to make a point, include a link to the video in your speaker notes and have the converter include them in the PDF." },
+            { b: "Hyperlinks.", t: "External URL hyperlinks survive untouched and are clickable in the PDF. Internal slide-to-slide hyperlinks (like a navigation menu) survive too, remapped to point at the right pages." },
+            { b: "Embedded Excel and Word objects.", t: "Render as static images of their current visual state. The underlying spreadsheet or doc is gone from the PDF." },
+          ],
+        },
+      },
+      {
+        h: "Three speaker-note patterns worth knowing",
+        p: [
+          "Speaker notes are off by default in the conversion. That makes sense for sharing the deck publicly. But there are three layouts users frequently want and rarely remember to turn on:",
+        ],
+        list: {
+          items: [
+            { b: "Notes-pages layout — slide above, notes below, one slide per page.", t: "Click Options → Include speaker notes before converting. The PDF then has each slide rendered at half-page size with the notes underneath. Ideal for printing handouts for an audience or for archiving a fully-narrated deck." },
+            { b: "Handout layout — multiple slides per page.", t: "If you want the printed handout to fit 3 or 6 slides per page (the classic conference-handout layout) convert to PDF first, then run the result through our N-up tool to repack 3 or 6 slides onto each page. Faster than fighting PowerPoint's handout master." },
+            { b: "Notes-only PDF.", t: "Sometimes you want just the narration, not the slides — for example to read on a walk before a talk. Open the deck in Notes Page view, select all the notes, paste into a doc, save as PDF. Or wait for our upcoming Speaker Notes → PDF AI tool, which strips just the narration from any deck." },
+          ],
+        },
+      },
+      {
+        h: "When PowerPoint-to-PDF is the right tool",
+        p: [
+          "Cases where the static export is genuinely the right deliverable:",
+        ],
+        list: {
+          items: [
+            { b: "Sending a deck to someone without PowerPoint.", t: "PDFs open in any reader on any device. No font substitution headaches, no missing-media errors, no version-compatibility surprises." },
+            { b: "Posting a deck publicly.", t: "PDFs are crawlable by Google and indexable by search engines in a way that PPTX files are not. If you want the deck to surface in search, publish the PDF." },
+            { b: "Submitting a deck to a portal.", t: "Most conference, grant, and procurement portals want PDF. Convert before submitting." },
+            { b: "Archiving a final deliverable.", t: "Once the deck is final, PDF is the right archival format. PDFs do not silently change when the source app updates." },
+            { b: "Generating thumbnails or page images.", t: "Pair the PDF output with our Rasterize tool to produce per-slide JPEGs or PNGs for blog posts, social previews, or LinkedIn carousels." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "The converter accepts PPTX, PPT, and OpenDocument ODP up to 100 MB. Keynote files (.key) need to be exported from Keynote as PPTX first; we do not read the native Apple format. Output is PDF 1.7-compatible, opens in every reader, and converts cleanly to PDF/A in a separate pass.",
+          "The converter preserves the deck's slide-size dimensions exactly — there is no resize or aspect-ratio change. If you need a different output paper size (Letter, A4) for a print job, convert to PDF first, then use our Resize Pages tool. That two-step approach keeps the slide-correct intermediate around in case you change your mind about paper size.",
+        ],
+      },
+    ],
+  },
 };
