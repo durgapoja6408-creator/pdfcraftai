@@ -888,6 +888,92 @@ if (md2pdfEffectMatch) {
 }
 
 // ---------------------------------------------------------------------
+// Section O — PdfStampTool sweep batch 11 (?position=&opacity=&fontSize=).
+// ---------------------------------------------------------------------
+//
+// Sweep batch 11 — PdfStampTool 3-param sync with TWO new wrinkles:
+// (a) `opacity` is the first 0..100 bounded number (other tools used
+// 4..24 or 4..72), and (b) `fontSize` carries an empty-string
+// sentinel for auto-size — URL omits it when the user wants auto,
+// emits a numeric value when they override. `text` and `color` are
+// deliberately NOT synced (user content vs hex-string quirks).
+
+const STAMP_PATH = path.join(ROOT, "components/tools/PdfStampTool.tsx");
+assert(fs.existsSync(STAMP_PATH), `PdfStampTool missing at ${STAMP_PATH}`);
+const STAMP = fs.existsSync(STAMP_PATH) ? fs.readFileSync(STAMP_PATH, "utf8") : "";
+
+assert(
+  /params\.get\("position"\)/.test(STAMP) &&
+    /params\.get\("opacity"\)/.test(STAMP) &&
+    /params\.get\("fontSize"\)/.test(STAMP),
+  "PdfStampTool: mount-effect must read all 3 params (position / " +
+    "opacity / fontSize).",
+);
+
+assert(
+  /rawPos\s*===\s*"diagonal"\s*\|\|\s*rawPos\s*===\s*"center"\s*\|\|\s*rawPos\s*===\s*"top-center"\s*\|\|\s*rawPos\s*===\s*"bottom-center"/.test(
+    STAMP,
+  ),
+  "PdfStampTool: position allowlist must enumerate all 4 StampPosition literals.",
+);
+
+assert(
+  /Number\.isFinite\(n\)\s*&&\s*n >= 0\s*&&\s*n <= 100/.test(STAMP),
+  "PdfStampTool: opacity must validate 0..100 bounds (first percent-" +
+    "based bounded number in the sweep). Without these, ?opacity=200 " +
+    "would render an over-saturated stamp; ?opacity=-50 would invert.",
+);
+
+assert(
+  /Number\.isFinite\(n\)\s*&&\s*n >= 8\s*&&\s*n <= 400/.test(STAMP),
+  "PdfStampTool: fontSize must validate 8..400 bounds — much wider " +
+    "than body-copy tools (TextToPdf 4..72) because stamps render as " +
+    "full-page diagonal banners.",
+);
+
+assert(
+  /useEffect\(\(\)\s*=>\s*\{[\s\S]*?history\.replaceState[\s\S]*?\},\s*\[position,\s*opacity,\s*fontSize\]\)/.test(
+    STAMP,
+  ),
+  "PdfStampTool: state → URL sync must live in a SINGLE useEffect " +
+    "with `[position, opacity, fontSize]` 3-tuple dep per the " +
+    "replaceState non-batching invariant.",
+);
+
+assert(
+  /position === "diagonal"\s*\)\s*params\.delete\("position"\)/.test(STAMP),
+  "PdfStampTool: default `diagonal` must be omitted from URL.",
+);
+
+assert(
+  /opacity === 30\s*\)\s*params\.delete\("opacity"\)/.test(STAMP),
+  "PdfStampTool: default opacity `30` must be omitted from URL.",
+);
+
+assert(
+  /fontSize === ""\s*\|\|\s*fontSize === 0\s*\)\s*params\.delete\("fontSize"\)/.test(STAMP),
+  "PdfStampTool: fontSize empty-string sentinel (auto-size) AND 0 must " +
+    "be omitted from URL. The empty-string check handles the typical " +
+    "default; the 0 check handles the edge case where a user clears the " +
+    "input and React's number coercion lands on 0.",
+);
+
+assert(
+  /typeof window === "undefined"/.test(STAMP),
+  "PdfStampTool: permalink effects must guard SSR.",
+);
+
+const stampEffectMatch = STAMP.match(
+  /useEffect\(\(\)\s*=>\s*\{([\s\S]*?)\},\s*\[position,\s*opacity,\s*fontSize\]\)/,
+);
+if (stampEffectMatch) {
+  assert(
+    !/pushState/.test(stampEffectMatch[1]),
+    "PdfStampTool: 3-param sync effect uses pushState — back-button hell.",
+  );
+}
+
+// ---------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------
 

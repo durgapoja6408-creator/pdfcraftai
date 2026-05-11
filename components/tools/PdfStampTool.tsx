@@ -38,6 +38,62 @@ export function PdfStampTool() {
   const [fontSize, setFontSize] = useState<number | "">("");
   const [color, setColor] = useState("#888888");
 
+  // 2026-05-11 (item #17 sweep batch 11) — URL permalink state sync.
+  // 3-param shape: position (4 literals) + opacity (0..100 number) +
+  // fontSize (number | "" with empty-string sentinel for auto-size).
+  // `text` and `color` are NOT synced — `text` is user content not
+  // config ("CONFIDENTIAL" doesn't belong in a shared template link);
+  // `color` is a hex string with quirks (#888 vs #888888) better
+  // synced in a follow-up if needed.
+  //
+  // fontSize sentinel handling: empty string "" means auto-size based
+  // on position. URL omits the param entirely in that case. Bounds
+  // 8..400 — stamps span tiny overlay to giant diagonal banner.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const rawPos = params.get("position");
+    if (
+      rawPos === "diagonal" || rawPos === "center" ||
+      rawPos === "top-center" || rawPos === "bottom-center"
+    ) setPosition(rawPos);
+    const rawOp = params.get("opacity");
+    if (rawOp) {
+      const n = parseInt(rawOp, 10);
+      if (Number.isFinite(n) && n >= 0 && n <= 100) {
+        setOpacity(n);
+      }
+    }
+    const rawSize = params.get("fontSize");
+    if (rawSize) {
+      const n = parseInt(rawSize, 10);
+      // 8..400 — much wider than body-copy tools (TextToPdf 4..72)
+      // because stamps render as full-page diagonal banners.
+      if (Number.isFinite(n) && n >= 8 && n <= 400) {
+        setFontSize(n);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (position === "diagonal") params.delete("position");
+    else params.set("position", position);
+    if (opacity === 30) params.delete("opacity");
+    else params.set("opacity", String(opacity));
+    // Empty-string sentinel (auto) and 0 are both omitted —
+    // anything else is the user's numeric override.
+    if (fontSize === "" || fontSize === 0) params.delete("fontSize");
+    else params.set("fontSize", String(fontSize));
+    const qs = params.toString();
+    const next = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    if (next !== window.location.pathname + window.location.search) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [position, opacity, fontSize]);
+
   const preview = useFirstPagePreview(pdfBytes);
 
   const onFiles = useCallback(
