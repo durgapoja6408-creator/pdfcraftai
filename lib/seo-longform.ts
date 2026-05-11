@@ -3942,4 +3942,222 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // pdf-fonts-inspector — print-prep critical
+  // ============================================================
+  "pdf-fonts-inspector": {
+    title: "PDF font inspector — embedded, subsetted, missing, and why a print shop cares about every distinction",
+    intro:
+      "Most users do not think about fonts inside a PDF until something goes wrong: text reflows on a colleague's screen, the print shop calls back asking about \"missing fonts,\" or a regulatory submission gets rejected for non-compliance. By the time you notice, the document has already been distributed and the fix means going back to the source and re-exporting. The font inspector exists to catch font problems before distribution. Here is how PDF font references actually work, what \"embedded\" really means under the hood, and the three categories of font problem the inspector surfaces.",
+    sections: [
+      {
+        h: "How PDFs reference fonts",
+        p: [
+          "Every text element in a PDF references a font by an internal name. The PDF's /Resources dictionary on each page lists which fonts that page uses, and each font reference points to a font dictionary somewhere in the document. The font dictionary has metadata — the font's PostScript name, its encoding, its FontDescriptor (with metrics like ascent / descent / bounding box). Critically, the FontDescriptor may or may not contain a /FontFile* entry — a stream of the actual font bytes.",
+          "If the FontFile is present, the font is embedded: the document carries the actual font bytes inside it, so any viewer can render it correctly regardless of what fonts the viewer's machine has installed. If the FontFile is absent, the font is referenced but not included: viewers have to find a matching font on the local machine, or substitute. That substitution is where things go wrong.",
+        ],
+      },
+      {
+        h: "What 'embedded' really means",
+        p: [
+          "The inspector reports a font as embedded if the document carries its bytes. Three sub-cases worth distinguishing:",
+        ],
+        list: {
+          items: [
+            { b: "Fully embedded.", t: "The complete font file is in the PDF. Every glyph the font defines is available, even glyphs not used in the document. File size is bigger but the document is fully portable." },
+            { b: "Subsetted.", t: "Only the glyphs actually used in the document are embedded. Identified by a 6-letter random prefix on the font name (e.g. ABCDEF+TimesNewRoman). Saves significant file size — typical fonts have 500-2000 glyphs, but a document might only use 80. Subset = those 80 only." },
+            { b: "Standard 14.", t: "The PDF spec defines 14 fonts (Helvetica, Times, Courier, Symbol, ZapfDingbats and variants) that are guaranteed to be present in every conformant PDF reader without embedding. Documents referencing only Standard 14 fonts can skip embedding entirely with no portability risk. Modern best practice embeds everything anyway." },
+          ],
+        },
+      },
+      {
+        h: "Three font-problem categories the inspector surfaces",
+        p: [
+          "Each category has different downstream impact:",
+        ],
+        list: {
+          items: [
+            { b: "Non-embedded non-Standard-14 fonts.", t: "The dangerous case. The PDF references a custom font but does not carry its bytes. Recipients without that font installed see a substituted font with different metrics — text reflows, page count may change, layout breaks. The inspector flags these in red." },
+            { b: "Non-embedded Standard 14 fonts.", t: "Acceptable per spec, but flagged with a yellow caution. Some workflows (print shops, PDF/A archives) require ALL fonts embedded regardless. If your destination workflow has that requirement, treat yellow as actionable." },
+            { b: "Embedded but not subsetted.", t: "Just an inefficiency flag, not a problem per se. The font is fully embedded so portability is fine, but the file is bigger than it needs to be. Re-export from source with subsetting enabled to shrink." },
+          ],
+        },
+      },
+      {
+        h: "When font embedding really matters",
+        p: [
+          "Five workflows where non-embedded fonts cause genuine pain:",
+        ],
+        list: {
+          items: [
+            { b: "Print production.", t: "Print shops universally require embedded fonts. Without them, the press substitutes whatever it has, which is rarely what the design intended. Reject-rate from print shops on this single issue is high." },
+            { b: "PDF/A archival.", t: "PDF/A explicitly requires all fonts embedded. A non-compliant PDF fails the validator before it ever reaches the archive." },
+            { b: "PDF/X print exchange.", t: "Same requirement for print-exchange formats. The spec is explicit." },
+            { b: "Cross-platform sharing.", t: "If your audience is mixed Windows / Mac / Linux, the chances of every viewer having every custom font installed is essentially zero. Embedding is the only fix." },
+            { b: "Long-term distribution.", t: "Fonts go out of print. A PDF from 2005 referencing a custom font that the manufacturer no longer ships cannot be rendered correctly today. Embedding makes the PDF self-contained for the long haul." },
+          ],
+        },
+      },
+      {
+        h: "How to fix non-embedded fonts",
+        p: [
+          "Three paths, ordered by speed:",
+        ],
+        list: {
+          items: [
+            { b: "Re-export from source with 'Embed all fonts'.", t: "The cleanest fix. Word, Google Docs, InDesign, LaTeX, every modern publisher has an embed-all option. Re-export, replace the PDF." },
+            { b: "Run through Acrobat Pro's font-embed pass.", t: "If you do not have the source, Acrobat Pro can embed fonts it finds on your machine. Only fonts installed on your machine can be embedded this way — if the original used a font you don't have, this doesn't help." },
+            { b: "Substitute the unembedded font with one you do have.", t: "Last resort. Edit the PDF in a tool that can remap font references. Results vary; the substitution may look fine or may look terrible depending on metric similarity." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, font inspection handles PDFs up to 100 MB. Parsing runs in your browser via byte-level parsing; nothing is uploaded. Output lists every font with embed status, subset flag, encoding, page usage. Exportable as JSON / CSV for downstream auditing.",
+          "Common pairings: Font Inspector → re-export with embedding for distribution-ready PDFs. Font Inspector → PDF/A check to verify compliance after embedding. Font Inspector → Compress for the smallest fully-embedded final file.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // pdf-attachments-viewer + extract-pdf-attachments — paired
+  // ============================================================
+  "pdf-attachments-viewer": {
+    title: "PDF attachments viewer — the hidden files inside a PDF and why they matter for compliance and security",
+    intro:
+      "Most users do not realize PDFs can carry embedded files. Open a typical PDF in Acrobat and the attachments panel is empty; open certain regulatory filings, ZUGFeRD e-invoices, or technical reports and the panel surfaces multiple files inside — XML data, supplementary spreadsheets, source documents, original photos. Embedded files are a feature of the PDF spec but a surprise for users who do not know to look. Here is what the attachments viewer surfaces, the three categories of PDF where embedded files are common, and why compliance and security audits care about every attachment.",
+    sections: [
+      {
+        h: "How embedded files work in PDF",
+        p: [
+          "The PDF spec lets a document carry arbitrary file attachments — any byte stream, with any MIME type, attached either at document level (in the /Names tree's /EmbeddedFiles entry) or at annotation level (a single page can carry attachment annotations). Each attachment has metadata: filename, MIME type, description, size, embedded bytes themselves (often compressed).",
+          "The attachments viewer parses both the document-level /EmbeddedFiles tree and any annotation-level attachments, then surfaces them as a structured list. You see what's inside the PDF without having to open it in Acrobat or run external tools.",
+        ],
+      },
+      {
+        h: "Three categories where embedded files are common",
+        p: [
+          "Most PDFs have zero attachments. The cases where they DO are specific:",
+        ],
+        list: {
+          items: [
+            { b: "E-invoice formats (ZUGFeRD, Factur-X).", t: "EU-standard hybrid invoice formats embed structured XML invoice data inside a human-readable PDF. The PDF is what you see; the XML is what your accounting system reads. Two views of the same invoice in one file. Common in B2B billing across Europe." },
+            { b: "Technical reports with source data.", t: "Research papers, lab reports, and engineering documents often embed the source data (CSV, JSON, raw measurements) so the methodology is reproducible. The PDF is the readable report; the data is right there inside for reanalysis." },
+            { b: "Archive packages.", t: "PDF/A-3 explicitly supports embedded files for archival. A PDF/A package might carry the original source document (DOCX, XLSX), supplementary exhibits, related PDFs, all in one archival container." },
+          ],
+        },
+      },
+      {
+        h: "Why compliance audits care",
+        p: [
+          "Embedded files are invisible by default in most readers, but they travel with the document. Three audit-relevant concerns:",
+        ],
+        list: {
+          items: [
+            { b: "PII leakage.", t: "An embedded file might carry sensitive information that the visible PDF did not. If you're redacting a PDF and forget the attachments, the redaction is incomplete." },
+            { b: "Tracking origin.", t: "Some PDFs embed the original Word doc as an attachment for reference. That source doc carries its own metadata — authors, tracked changes, comments — that may reveal information the published PDF was supposed to hide." },
+            { b: "PDF/A compliance gates.", t: "PDF/A-1 forbids embedded files; PDF/A-2 forbids them in compliance mode (but allows in PDF/A-3 with relaxed rules). Auditors check whether attachments are present and what they are." },
+          ],
+        },
+      },
+      {
+        h: "Why security review cares",
+        p: [
+          "An embedded file in a PDF is a file. If you open the PDF and then double-click the attachment in Acrobat, your default application opens that file. Three threat patterns:",
+        ],
+        list: {
+          items: [
+            { b: "Malicious payloads.", t: "An attached .docx with a macro, or a .js that triggers when opened. Some phishing campaigns hide payloads in PDF attachments because email scanners check the PDF itself but not what's inside." },
+            { b: "Steganographic data.", t: "Attached files might carry data hidden in image bytes, archive layers, or unused fields. Surfacing the attachment list lets reviewers scan for unexpected file types." },
+            { b: "Encrypted attachments.", t: "Some attachments are themselves password-protected. Surfacing them lets reviewers see what kinds of files are inside, even if they cannot read the content." },
+          ],
+        },
+      },
+      {
+        h: "Viewer vs Extract — when to use each",
+        p: [
+          "Two related tools serve different needs:",
+        ],
+        list: {
+          items: [
+            { b: "Attachments Viewer — list metadata.", t: "Surfaces filename, MIME, size, description. Read-only. Use when you want to know what's inside without pulling the bytes out. Fastest for audit and security review." },
+            { b: "Extract Attachments — pull the actual files.", t: "Decodes each attachment stream and saves the bytes to your disk. Use when you actually need to open or process the attached files." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, attachments viewer handles PDFs up to 100 MB with no attachment-count cap. Parsing runs in your browser via byte-level parsing; nothing is uploaded. Output lists every attachment with full metadata, exportable as JSON.",
+          "Common pairings: Attachments Viewer → Extract Attachments to pull bytes. Attachments Viewer → AI · Redact if attachments reveal PII patterns that also need redacting in the main document.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // extract-pdf-attachments — paired byte-extraction
+  // ============================================================
+  "extract-pdf-attachments": {
+    title: "Extract PDF attachments — pulling the embedded files out, in the format they were stored in",
+    intro:
+      "Where the Attachments Viewer surfaces the metadata of every embedded file inside a PDF, Extract Attachments pulls the actual bytes out and saves them to your disk as standalone files. The difference matters when you actually need to use the embedded content: open the e-invoice's XML in your accounting system, read the research paper's source data in Excel, run the archive package's source documents through their native applications. Here is how extraction works, the three common workflows where pulling attachments out is the load-bearing operation, and the patterns that catch users on first use.",
+    sections: [
+      {
+        h: "How extraction works",
+        p: [
+          "The tool parses the PDF's /Names tree's /EmbeddedFiles entry, identifies every file stream, decodes any compression filters (FlateDecode is most common), and writes each decoded stream out as a file. Filenames come from the PDF's /F or /UF entries — UF (Unicode filename) is preferred when present; F (PDFDocEncoding) is the fallback. MIME types are inferred from extensions: .xlsx → application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, .xml → application/xml, etc.",
+          "Output is a single .zip containing every extracted file with its original filename preserved. Filenames that contained path separators (\"/\" or \"\\\") get sanitized — embedded paths are usually irrelevant and sometimes a vector for path-traversal attacks if the user blindly trusts them.",
+        ],
+      },
+      {
+        h: "Three workflows where extraction is the load-bearing operation",
+        p: [
+          "Specific cases that benefit:",
+        ],
+        list: {
+          items: [
+            { b: "Processing e-invoices (ZUGFeRD / Factur-X).", t: "European hybrid e-invoices embed structured XML data inside the visible PDF. Your accounting system reads the XML, not the PDF. Extract pulls the XML out so the accounting system can process it directly without a separate vendor-supplied data extractor." },
+            { b: "Reanalyzing research data.", t: "Many scientific papers embed source data (CSVs, JSON, raw measurements). Extracting them lets you reanalyze with your own statistical pipeline rather than trusting the paper's chart interpretation." },
+            { b: "Recovering source documents from PDF/A-3 archives.", t: "A PDF/A-3 archive package preserves the original source document(s) alongside the rendered PDF. If the archive's PDF version is no longer satisfactory and you have the original Word / Excel / Photoshop file embedded, extraction recovers it." },
+          ],
+        },
+      },
+      {
+        h: "Two patterns that catch users",
+        p: [
+          "Surprises worth knowing:",
+        ],
+        list: {
+          items: [
+            { b: "Some PDFs have no extractable attachments despite seeming to.", t: "PDFs can include image objects, form widgets, or annotations that look like attachments in a UI but aren't tracked in /EmbeddedFiles. If the Attachments Viewer surfaces nothing, there's nothing for Extract to pull. For image extraction use Extract Images; for form-data extraction use the Form Fields inspector." },
+            { b: "Rare compression filters may fail to decode.", t: "Common: FlateDecode (basically Zlib). Less common: LZWDecode, ASCII85Decode chained — these decode fine. Rare: JBIG2Decode or custom proprietary filters where the encoder used an unusual variant. The tool reports the failure with the offending attachment name; you can usually open the source PDF in Acrobat and save the attachment manually." },
+          ],
+        },
+      },
+      {
+        h: "Security note",
+        p: [
+          "Extracted attachments are just files — they have whatever payload was embedded. If the source PDF came from an unknown sender, treat the extracted attachments with the same caution you would treat any email attachment from that sender:",
+        ],
+        list: {
+          items: [
+            { b: "Scan with anti-malware before opening.", t: "Especially .docx, .xlsx, .js, .exe, .bat extensions. These can carry executable payloads." },
+            { b: "Open in a sandbox first.", t: "If your platform supports application sandboxing (macOS Sandbox, Windows Sandbox), open suspicious extracted files there first." },
+            { b: "Verify against the sender's expected attachment list.", t: "If the sender said \"the PDF contains the invoice XML,\" extraction should produce one .xml. If you get six files including .exe, something is wrong." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, extraction handles PDFs up to 100 MB with no attachment-count cap. Decoding runs in your browser; nothing is uploaded. Output is a single .zip containing every extracted file with original filenames preserved (path-sanitized).",
+          "Common pairings: Attachments Viewer first to verify what's inside before extracting. Extract Attachments → Remove Metadata + AI · Redact on the main PDF to sanitize after attachments are extracted (the source PDF may still carry references to the attachments even after the bytes are extracted).",
+        ],
+      },
+    ],
+  },
 };
