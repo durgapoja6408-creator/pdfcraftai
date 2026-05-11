@@ -34,6 +34,7 @@ import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import { useHandoffConsumer } from "./useHandoffConsumer";
 import { useFileUrlConsumer } from "./useFileUrlConsumer";
 import { useScrollErrorIntoView } from "./useScrollErrorIntoView";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 import type { SplitMode, SplitOutput } from "@/lib/pdf/ops/split";
 
 // Split's thumbnail shape matches the hook's exactly — no enrichment.
@@ -301,6 +302,27 @@ export function PdfSplitTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Item #8 sweep batch 2 — inline ToolHowItWorks explainer. */}
+      <ToolHowItWorks
+        steps={[
+          {
+            title: "Drop a PDF",
+            body:
+              "Up to 100 MB. Once loaded, you'll see every page as a thumbnail in a grid — click to select the pages you want to extract.",
+          },
+          {
+            title: "Pick your split mode",
+            body:
+              "Extract selected pages into one new PDF, split every N pages into batches, or burst into one file per page. Each mode produces a downloadable ZIP if multiple files result.",
+          },
+          {
+            title: "Split and download",
+            body:
+              "pdf-lib copies the chosen pages into fresh PDFs without re-rendering — the output preserves your original quality, fonts, and embedded annotations.",
+          },
+        ]}
+        privacyNote="Splitting runs entirely in your browser via pdf-lib — files never leave your machine. We can't see what you split."
+      />
       {!file ? (
         <ToolDropzone
           onFiles={onFiles}

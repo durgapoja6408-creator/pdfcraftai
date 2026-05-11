@@ -40,6 +40,7 @@ import { useScrollErrorIntoView } from "./useScrollErrorIntoView";
 import { useHandoffConsumer } from "./useHandoffConsumer";
 import { useFileUrlConsumer } from "./useFileUrlConsumer";
 import { HandoffSuggestions } from "./HandoffSuggestions";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 // mapPdfOpError isn't directly used here (the server route returns
 // categorized error codes, not pdf-lib exception strings) but the
 // import + reference satisfies the live-tool-standardization guard's
@@ -237,6 +238,29 @@ export function PdfCompressTool() {
 
   return (
     <div>
+      {/* Item #8 sweep batch 2 — inline ToolHowItWorks explainer. */}
+      <div style={{ marginBottom: 16 }}>
+        <ToolHowItWorks
+          steps={[
+            {
+              title: "Drop a PDF",
+              body:
+                "Up to 50 MB. Scanned PDFs with embedded JPGs shrink the most (often 50%+); already-optimized text PDFs may not change much.",
+            },
+            {
+              title: "Pick a quality preset",
+              body:
+                "Light keeps near-original quality. Balanced is the sweet spot — usually 30–70% smaller with no visible loss. Strong is aggressive: web-only PDFs where visible image-quality drop is acceptable.",
+            },
+            {
+              title: "Compress and download",
+              body:
+                "Ghostscript re-encodes images and rewrites the file structure. We return the smaller file — or your original if compression didn't actually save bytes.",
+            },
+          ]}
+          privacyNote="Runs on our server because Ghostscript is server-only. Files are processed in-memory and discarded immediately — never persisted on disk. The result is yours and yours alone."
+        />
+      </div>
       {/* Input section */}
       {!file ? (
         <ToolDropzone

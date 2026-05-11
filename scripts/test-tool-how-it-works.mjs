@@ -146,6 +146,78 @@ assert(
 );
 
 // ---------------------------------------------------------------------
+// Section C — Sweep expansion to top free tools (batch 2).
+// ---------------------------------------------------------------------
+//
+// 2026-05-11 — beyond the SummarizePdfTool canary, the explainer
+// pattern is now also wired on the top 3 free tools (merge / split
+// / compress). Each must:
+//   - Import ToolHowItWorks
+//   - Mount with at least 3 steps
+//   - Pass a privacyNote that mentions tool-specific privacy
+//     posture (free tools say "in your browser" or "never leaves
+//     your machine"; the canary AI tool says "never persisted").
+//
+// As tools are added to this sweep, list them here. Adding a tool
+// to the list without wiring fails CI; removing wiring without
+// removing the entry also fails. Both directions correct.
+
+const SWEEP_FREE_TOOLS = [
+  "PdfMergeTool",
+  "PdfSplitTool",
+  "PdfCompressTool",
+];
+
+for (const name of SWEEP_FREE_TOOLS) {
+  const p = path.join(ROOT, `components/tools/${name}.tsx`);
+  if (!fs.existsSync(p)) {
+    assert(false, `${name}: file missing at ${p}`);
+    continue;
+  }
+  const src = fs.readFileSync(p, "utf8");
+
+  assert(
+    /import\s*\{\s*ToolHowItWorks\s*\}\s*from\s*"\.\/ToolHowItWorks"/.test(src),
+    `${name}: must import ToolHowItWorks. Without the import, the " +
+      "mount below fails at compile time.`,
+  );
+
+  assert(
+    /<ToolHowItWorks[\s\S]*?steps=\{\[[\s\S]*?\]\}/.test(src),
+    `${name}: must mount <ToolHowItWorks steps={[...]} />.`,
+  );
+
+  const stepsMatch = src.match(/<ToolHowItWorks[\s\S]*?steps=\{(\[[\s\S]*?\])\}/);
+  const titleCount = stepsMatch
+    ? (stepsMatch[1].match(/title\s*:/g) || []).length
+    : 0;
+  assert(
+    titleCount >= 3,
+    `${name}: <ToolHowItWorks steps={[...]}> has ${titleCount} step(s); ` +
+      "minimum 3 to match the canonical structure.",
+  );
+
+  assert(
+    /<ToolHowItWorks[\s\S]*?privacyNote=/.test(src),
+    `${name}: must pass the privacyNote prop.`,
+  );
+
+  // Free tools say "in your browser" OR "never leaves your machine"
+  // OR "never persisted" (the AI-tool canonical) — any of these
+  // three load-bearing phrases satisfies the privacy-story parity
+  // requirement.
+  assert(
+    /privacyNote=["'][^"']*(in your browser|never leaves|never persisted|Zero retention|discarded immediately)[^"']*["']/i.test(
+      src,
+    ),
+    `${name}: privacyNote must reference a canonical privacy phrase ` +
+      "('in your browser', 'never leaves', 'never persisted', " +
+      "'Zero retention', or 'discarded immediately'). Drift here " +
+      "fragments the privacy story.",
+  );
+}
+
+// ---------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------
 

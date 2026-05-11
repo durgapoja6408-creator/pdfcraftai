@@ -23,6 +23,7 @@ import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import { useHandoffConsumer } from "./useHandoffConsumer";
 import { useFileUrlConsumer } from "./useFileUrlConsumer";
 import { useScrollErrorIntoView } from "./useScrollErrorIntoView";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 import { HandoffSuggestions } from "./HandoffSuggestions";
 
 interface PendingFile {
@@ -241,6 +242,28 @@ export function PdfMergeTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Item #8 sweep batch 2 — inline ToolHowItWorks explainer. */}
+      <ToolHowItWorks
+        steps={[
+          {
+            title: "Drop your PDFs",
+            body:
+              "Two or more files. Drag-and-drop or click to browse. We accept up to 100 MB per file.",
+          },
+          {
+            title: "Arrange the order",
+            body:
+              "Drag the file cards to reorder. The combined PDF will follow the order you set; you can preview the sequence before merging.",
+          },
+          {
+            title: "Merge and download",
+            body:
+              "Click Merge — we stitch the PDFs together and hand you back a single file. No watermarks, no signup.",
+          },
+        ]}
+        privacyNote="Merging runs entirely in your browser via pdf-lib — the files never leave your machine. We can't read what you merge."
+      />
+
       <ToolDropzone
         onFiles={onFiles}
         multiple
