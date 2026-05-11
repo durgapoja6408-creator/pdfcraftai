@@ -70,19 +70,18 @@ const INLINE_RESULT_TOOLS_WIRED = [
   "ResumeParserTool",
   "BloodTestTool",
   "SemanticSearchPdfTool",
-];
-
-// Tools that still render results inline AND don't yet have aria-live.
-// Tracked here as known follow-up; per-file inspection still needed
-// to identify the result-region <div>. NOT a regression — just scope
-// deferred. As tools migrate, they move from this list to
-// INLINE_RESULT_TOOLS_WIRED above.
-const INLINE_RESULT_TOOLS_DEFERRED = [
+  // 2026-05-11 batch 3 — final 4 inline tools closed.
   "CourtOrderTool",
   "SearchablePdfTool",
   "StructuredVariantTool",
   "SummarizeVariantTool",
 ];
+
+// Empty list now that every inline-result tool has been wired.
+// Kept as a deliberate empty allowlist (not removed entirely) so a
+// future inline-result tool added to the codebase has an obvious
+// home and the "deferred" tracking pattern stays visible.
+const INLINE_RESULT_TOOLS_DEFERRED = [];
 
 for (const name of RESULT_CARD_TOOLS) {
   const p = path.join(ROOT, `components/tools/${name}.tsx`);
@@ -160,14 +159,10 @@ for (const name of INLINE_RESULT_TOOLS_WIRED) {
   );
 }
 
-// Sanity: deferred list isn't empty (there's known follow-up work)
-// AND the deferred-tool files still exist (file rename would silently
-// drop them from coverage tracking).
-assert(
-  INLINE_RESULT_TOOLS_DEFERRED.length > 0,
-  "INLINE_RESULT_TOOLS_DEFERRED is empty — if all tools were converted " +
-    "to ResultCard pattern, move them into RESULT_CARD_TOOLS instead.",
-);
+// Sanity: every deferred-tool file still exists (file rename would
+// silently drop coverage tracking). Empty deferred list is FINE —
+// it's the goal state. Kept as an allowlist for future inline-result
+// tools to have a documented home.
 for (const name of INLINE_RESULT_TOOLS_DEFERRED) {
   const p = path.join(ROOT, `components/tools/${name}.tsx`);
   assert(

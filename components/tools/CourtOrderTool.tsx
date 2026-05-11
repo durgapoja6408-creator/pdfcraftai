@@ -374,7 +374,14 @@ function CourtOrderReport({
   meta: { creditCost: number; newBalance?: number } | null;
 }) {
   return (
-    <div className="card" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 20 }}>
+    <div
+      // Item #14 follow-up sweep — announce result arrival to AT.
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      className="card"
+      style={{ padding: 20, display: "flex", flexDirection: "column", gap: 20 }}
+    >
       <ResultHeader meta={meta} />
 
       {/* Plain-English summary — the most user-visible block, surfaced first */}

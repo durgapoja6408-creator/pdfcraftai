@@ -417,6 +417,10 @@ export function SummarizeVariantTool(props: {
 
       {result && (
         <div
+          // Item #14 follow-up sweep — announce result arrival to AT.
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
           className="card"
           style={{
             padding: 20,

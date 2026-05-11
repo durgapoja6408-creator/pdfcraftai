@@ -384,7 +384,14 @@ export function StructuredVariantTool(props: {
       )}
 
       {flashcards && (
-        <div className="card" style={{ padding: 20, borderColor: "var(--accent)", background: "var(--accent-soft)" }}>
+        <div
+          // Item #14 follow-up sweep — announce result arrival to AT.
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="card"
+          style={{ padding: 20, borderColor: "var(--accent)", background: "var(--accent-soft)" }}
+        >
           <div className="row" style={{ gap: 12, alignItems: "flex-start", marginBottom: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: 8, background: "var(--accent)", color: "var(--bg-1)", display: "grid", placeItems: "center" }}>
               <I.Check size={18} />
@@ -443,7 +450,14 @@ export function StructuredVariantTool(props: {
       )}
 
       {quizItems && (
-        <div className="card" style={{ padding: 20, borderColor: "var(--accent)", background: "var(--accent-soft)" }}>
+        <div
+          // Item #14 follow-up sweep — announce result arrival to AT.
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="card"
+          style={{ padding: 20, borderColor: "var(--accent)", background: "var(--accent-soft)" }}
+        >
           <div className="row" style={{ gap: 12, alignItems: "flex-start", marginBottom: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: 8, background: "var(--accent)", color: "var(--bg-1)", display: "grid", placeItems: "center" }}>
               <I.Check size={18} />
