@@ -14,6 +14,7 @@ import { humanSize } from "@/lib/client/pdf-utils";
 import { downloadBytes } from "@/lib/client/download";
 import { useTrackToolView } from "./useToolTracking";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 
 interface UnlockResultState {
   outputBytes: Uint8Array;
@@ -97,6 +98,27 @@ export function PdfUnlockTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Item #8 sweep batch 3 — inline ToolHowItWorks explainer. */}
+      <ToolHowItWorks
+        steps={[
+          {
+            title: "Drop a locked PDF",
+            body:
+              "Up to 100 MB. Owner-password protected PDFs unlock without needing the password — pdf-lib reads the file with ignoreEncryption: true and rewrites it clean.",
+          },
+          {
+            title: "Enter user password if needed",
+            body:
+              "User-password protected PDFs (the kind that prompt before letting you VIEW the file) need the password since pdf-lib has to actually decrypt content. You only enter it on your machine; the password is never sent to our server.",
+          },
+          {
+            title: "Unlock and download",
+            body:
+              "We rewrite the file without the encryption metadata. Owner restrictions (print, copy, modify) come off too. The output is a normal unencrypted PDF you can pass to any tool that didn't support locked files.",
+          },
+        ]}
+        privacyNote="Unlocking runs entirely in your browser via pdf-lib — files and passwords never leave your machine. We can't decrypt what we can't see."
+      />
       {!file ? (
         <ToolDropzone
           onFiles={onFiles}

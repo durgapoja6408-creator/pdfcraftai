@@ -30,6 +30,7 @@ import { downloadBytes } from "@/lib/client/download";
 import { useTrackToolView } from "./useToolTracking";
 import { usePdfThumbnails, type PdfThumbnail } from "./usePdfThumbnails";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 
 // Rotate enriches the base PdfThumbnail with a `rotation` field
 // (0/90/180/270) tracked per-page — same enrich-on-top pattern as
@@ -190,6 +191,27 @@ export function PdfRotateTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Item #8 sweep batch 3 — inline ToolHowItWorks explainer. */}
+      <ToolHowItWorks
+        steps={[
+          {
+            title: "Drop a PDF",
+            body:
+              "Up to 100 MB. Once loaded, every page renders as a thumbnail you can rotate individually or in bulk.",
+          },
+          {
+            title: "Rotate pages",
+            body:
+              "Click a thumbnail's rotate button to spin it 90° clockwise. Bulk-rotate all pages at once via the All right / All left buttons. The thumbnails update live as you go.",
+          },
+          {
+            title: "Apply and download",
+            body:
+              "Hit Apply — pdf-lib writes the rotation metadata into the file without re-rendering pages. The output preserves original quality, fonts, and embedded annotations.",
+          },
+        ]}
+        privacyNote="Rotation runs entirely in your browser via pdf-lib — files never leave your machine. We can't see what you rotate."
+      />
       {!file ? (
         <ToolDropzone
           onFiles={onFiles}

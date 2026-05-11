@@ -166,6 +166,9 @@ const SWEEP_FREE_TOOLS = [
   "PdfMergeTool",
   "PdfSplitTool",
   "PdfCompressTool",
+  // 2026-05-11 sweep batch 3 — Rotate + Unlock.
+  "PdfRotateTool",
+  "PdfUnlockTool",
 ];
 
 for (const name of SWEEP_FREE_TOOLS) {
