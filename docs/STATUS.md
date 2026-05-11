@@ -1378,6 +1378,10 @@ All four doc changes are planning-layer only (zero code deltas, zero runtime imp
 
 ## Done
 
+### 2026-05-11 — Item #17 sweep batch 6: ImagesToPdfTool 2-param mixed
+
+- [x] **feat(tools): URL permalink sweep batch 6 — ImagesToPdfTool.** Commit `6a507c2` (2026-05-11). First MIXED-TYPE batch in the sweep — string-literal enum (pageSize, 6 PaperSize values) paired with boolean flag (landscape). URL shape `?pageSize=<letter|a4|a3|a5|legal|fit>&landscape=<1>`. Single useEffect with `[pageSize, landscape]` dep array per the replaceState non-batching invariant. Boolean dispatch on mount accepts both `"1"` and `"true"` forms (conservative — only explicit-truthy flips state); write side emits short `"1"` form. Both defaults (`letter` + `false`) omitted from URL. CI guard +10 assertions in Section J. 59 total. Aggregator: 6360 passed, 0 failed across 116 suites (was 6350/116). Verified live at `6a507c2` after clean deploy. **No deploy gotcha.** **Item #17 progress: 7 of N tools (4 AI + 3 free).** Pattern handles 1-state literal, 2-state-with-sentinel, N-state tuple, numeric literal, AND mixed-type 2-param shapes.
+
 ### 2026-05-11 — Item #17 sweep batch 5: PdfRasterizeTool numeric ?scale=
 
 - [x] **feat(tools): URL permalink sweep batch 5 — PdfRasterizeTool numeric ?scale=.** Commit `46c46cf` (2026-05-11). First NUMERIC variant in the #17 sweep. State is `useState<1 | 2 | 3>(2)` — numeric union type requires explicit string-compared branch dispatch (`raw === "1"` → `setScale(1)`, etc.) rather than parseInt which would widen back to `number` and lose the literal types. Write side uses `String(scale)` for the URLSearchParams.set call — TS sometimes wants the explicit conversion; the cast also future-proofs if Scale grows. Default `2` omitted from URL. CI guard +8 assertions in Section I. 49 total. Aggregator: 6350 passed, 0 failed across 116 suites (was 6342/116). **Deploy gotcha:** zombie cleanup. Mass-kill + restart.txt cleared. **Item #17 progress: 6 of N tools (4 AI + 2 free).**
