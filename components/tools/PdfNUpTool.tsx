@@ -12,13 +12,33 @@
 // for free. Same deal as PdfResizeTool — both unlocked by the
 // configPanel slot in PdfSimpleOpsTool.
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { NUpLayout } from "@/lib/pdf/ops/n-up";
 import { PdfSimpleOpsTool } from "./PdfSimpleOpsTool";
 import { ToolHowItWorks } from "./ToolHowItWorks";
 
 export function PdfNUpTool() {
-  const [layout, setLayout] = useState<NUpLayout>("2");
+  // 2026-05-11 (item #17 batch 18) — URL permalink for layout.
+  // Default `"2"` omitted.
+  const initialLayout = (() => {
+    if (typeof window === "undefined") return "2" as NUpLayout;
+    const qs = new URLSearchParams(window.location.search);
+    const l = qs.get("layout");
+    return l === "2" || l === "4" ? (l as NUpLayout) : ("2" as NUpLayout);
+  })();
+  const [layout, setLayout] = useState<NUpLayout>(initialLayout);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (layout === "2") params.delete("layout");
+    else params.set("layout", layout);
+    const qs = params.toString();
+    const next = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    if (next !== window.location.pathname + window.location.search) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [layout]);
 
   return (
     <PdfSimpleOpsTool

@@ -1541,6 +1541,127 @@ assert(
 );
 
 // ---------------------------------------------------------------------
+// Section W — PdfBookletTool sweep batch 18 (?paper=&foldLine=).
+// ---------------------------------------------------------------------
+
+const BOOKLET = fs.readFileSync(
+  path.join(ROOT, "components", "tools", "PdfBookletTool.tsx"),
+  "utf8",
+);
+
+assert(
+  /(params|qs)\.get\("paper"\)/.test(BOOKLET) &&
+    /(params|qs)\.get\("foldLine"\)/.test(BOOKLET),
+  "PdfBookletTool: mount-effect must read both params.",
+);
+
+assert(
+  /p === "letter"\s*\|\|\s*p === "legal"\s*\|\|\s*p === "a4"\s*\|\|\s*p === "a3"/.test(
+    BOOKLET,
+  ),
+  "PdfBookletTool: paper allowlist must enumerate all 4 BookletPaperSize literals.",
+);
+
+assert(
+  /fl === "false" \? false : true/.test(BOOKLET),
+  "PdfBookletTool: foldLine read must default to TRUE — only `\"false\"` flips it.",
+);
+
+assert(
+  /useEffect\(\(\)\s*=>\s*\{[\s\S]*?history\.replaceState[\s\S]*?\},\s*\[paper,\s*foldLine\]\)/.test(
+    BOOKLET,
+  ),
+  "PdfBookletTool: state → URL sync must live in a useEffect with `[paper, foldLine]` 2-tuple dep.",
+);
+
+assert(
+  /paper === "letter"\s*\)\s*params\.delete\("paper"\)/.test(BOOKLET),
+  "PdfBookletTool: default paper `letter` must be omitted.",
+);
+
+assert(
+  /foldLine === true\s*\)\s*params\.delete\("foldLine"\)/.test(BOOKLET),
+  "PdfBookletTool: default foldLine `true` must be omitted.",
+);
+
+assert(
+  /typeof window === "undefined"/.test(BOOKLET),
+  "PdfBookletTool: permalink effect must guard SSR.",
+);
+
+// ---------------------------------------------------------------------
+// Section X — PdfNUpTool sweep batch 18 (?layout=).
+// ---------------------------------------------------------------------
+
+const NUP = fs.readFileSync(
+  path.join(ROOT, "components", "tools", "PdfNUpTool.tsx"),
+  "utf8",
+);
+
+assert(
+  /(params|qs)\.get\("layout"\)/.test(NUP),
+  "PdfNUpTool: mount-effect must read `layout` param.",
+);
+
+assert(
+  /l === "2"\s*\|\|\s*l === "4"/.test(NUP),
+  "PdfNUpTool: layout allowlist must enumerate both NUpLayout literals.",
+);
+
+assert(
+  /useEffect\(\(\)\s*=>\s*\{[\s\S]*?history\.replaceState[\s\S]*?\},\s*\[layout\]\)/.test(
+    NUP,
+  ),
+  "PdfNUpTool: state → URL sync must live in a useEffect with `[layout]` dep.",
+);
+
+assert(
+  /layout === "2"\s*\)\s*params\.delete\("layout"\)/.test(NUP),
+  "PdfNUpTool: default layout `2` must be omitted.",
+);
+
+assert(
+  /typeof window === "undefined"/.test(NUP),
+  "PdfNUpTool: permalink effect must guard SSR.",
+);
+
+// ---------------------------------------------------------------------
+// Section Y — PdfOddEvenPagesTool sweep batch 18 (?parity=).
+// ---------------------------------------------------------------------
+
+const ODDEVEN = fs.readFileSync(
+  path.join(ROOT, "components", "tools", "PdfOddEvenPagesTool.tsx"),
+  "utf8",
+);
+
+assert(
+  /(params|qs)\.get\("parity"\)/.test(ODDEVEN),
+  "PdfOddEvenPagesTool: mount-effect must read `parity` param.",
+);
+
+assert(
+  /p === "odd"\s*\|\|\s*p === "even"/.test(ODDEVEN),
+  "PdfOddEvenPagesTool: parity allowlist must enumerate both Parity literals.",
+);
+
+assert(
+  /useEffect\(\(\)\s*=>\s*\{[\s\S]*?history\.replaceState[\s\S]*?\},\s*\[parity\]\)/.test(
+    ODDEVEN,
+  ),
+  "PdfOddEvenPagesTool: state → URL sync must live in a useEffect with `[parity]` dep.",
+);
+
+assert(
+  /parity === "odd"\s*\)\s*params\.delete\("parity"\)/.test(ODDEVEN),
+  "PdfOddEvenPagesTool: default parity `odd` must be omitted.",
+);
+
+assert(
+  /typeof window === "undefined"/.test(ODDEVEN),
+  "PdfOddEvenPagesTool: permalink effect must guard SSR.",
+);
+
+// ---------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------
 

@@ -4,13 +4,33 @@
 //
 // 2026-05-01 Tier 2: extract just the odd or even pages.
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Parity } from "@/lib/pdf/ops/odd-even-pages";
 import { PdfSimpleOpsTool } from "./PdfSimpleOpsTool";
 import { ToolHowItWorks } from "./ToolHowItWorks";
 
 export function PdfOddEvenPagesTool() {
-  const [parity, setParity] = useState<Parity>("odd");
+  // 2026-05-11 (item #17 batch 18) — URL permalink for parity.
+  // Default `"odd"` omitted.
+  const initialParity = (() => {
+    if (typeof window === "undefined") return "odd" as Parity;
+    const qs = new URLSearchParams(window.location.search);
+    const p = qs.get("parity");
+    return p === "odd" || p === "even" ? (p as Parity) : ("odd" as Parity);
+  })();
+  const [parity, setParity] = useState<Parity>(initialParity);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (parity === "odd") params.delete("parity");
+    else params.set("parity", parity);
+    const qs = params.toString();
+    const next = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    if (next !== window.location.pathname + window.location.search) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [parity]);
 
   return (
     <PdfSimpleOpsTool

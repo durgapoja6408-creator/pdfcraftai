@@ -7,7 +7,7 @@
 // standardized hooks: track / errors / scroll / handoff suggestions
 // / handoff consumer / file-url consumer / suffixed filename).
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { BookletPaperSize } from "@/lib/pdf/ops/booklet";
 import { PdfSimpleOpsTool } from "./PdfSimpleOpsTool";
 import { ToolHowItWorks } from "./ToolHowItWorks";
@@ -20,8 +20,39 @@ const PAPERS: Array<{ v: BookletPaperSize; label: string }> = [
 ];
 
 export function PdfBookletTool() {
-  const [paper, setPaper] = useState<BookletPaperSize>("letter");
-  const [foldLine, setFoldLine] = useState(true);
+  // 2026-05-11 (item #17 batch 18) — URL permalink for booklet
+  // paper + foldLine. Same default-omit pattern as previous batches.
+  // foldLine is default-TRUE so URL only carries it when FALSE.
+  const initialFromQs = (() => {
+    if (typeof window === "undefined")
+      return { paper: "letter" as BookletPaperSize, foldLine: true };
+    const qs = new URLSearchParams(window.location.search);
+    const p = qs.get("paper");
+    const fl = qs.get("foldLine");
+    return {
+      paper:
+        p === "letter" || p === "legal" || p === "a4" || p === "a3"
+          ? (p as BookletPaperSize)
+          : ("letter" as BookletPaperSize),
+      foldLine: fl === "false" ? false : true,
+    };
+  })();
+  const [paper, setPaper] = useState<BookletPaperSize>(initialFromQs.paper);
+  const [foldLine, setFoldLine] = useState(initialFromQs.foldLine);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (paper === "letter") params.delete("paper");
+    else params.set("paper", paper);
+    if (foldLine === true) params.delete("foldLine");
+    else params.set("foldLine", "false");
+    const qs = params.toString();
+    const next = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    if (next !== window.location.pathname + window.location.search) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [paper, foldLine]);
 
   return (
     <PdfSimpleOpsTool
