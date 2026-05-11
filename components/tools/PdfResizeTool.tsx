@@ -11,7 +11,7 @@
 // inspect/handoff-suggestions/error-mapping/scroll-error-into-view
 // for free.
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { PaperSize } from "@/lib/pdf/ops/resize";
 import { PdfSimpleOpsTool } from "./PdfSimpleOpsTool";
 
@@ -26,6 +26,43 @@ const SIZES: Array<{ v: PaperSize; label: string; pt: string }> = [
 export function PdfResizeTool() {
   const [size, setSize] = useState<PaperSize>("letter");
   const [landscape, setLandscape] = useState(false);
+
+  // 2026-05-11 (item #17 sweep batch 8) — URL permalink state sync.
+  // Same mixed-type 2-param shape as ImagesToPdfTool (5-literal
+  // PaperSize enum + boolean landscape) — fewer enum members (no
+  // "fit" option here since resize is always to a concrete paper).
+  // Single useEffect with [size, landscape] dep per the replaceState
+  // non-batching invariant.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const rawSize = params.get("size");
+    if (
+      rawSize === "letter" || rawSize === "legal" ||
+      rawSize === "a4" || rawSize === "a3" || rawSize === "a5"
+    ) {
+      setSize(rawSize);
+    }
+    const rawLand = params.get("landscape");
+    if (rawLand === "1" || rawLand === "true") {
+      setLandscape(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (size === "letter") params.delete("size");
+    else params.set("size", size);
+    if (!landscape) params.delete("landscape");
+    else params.set("landscape", "1");
+    const qs = params.toString();
+    const next = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    if (next !== window.location.pathname + window.location.search) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [size, landscape]);
 
   const sizeLabel = SIZES.find((s) => s.v === size)?.label ?? size;
 

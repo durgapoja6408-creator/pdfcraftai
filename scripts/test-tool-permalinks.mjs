@@ -671,6 +671,76 @@ if (pagenumEffectMatch) {
 }
 
 // ---------------------------------------------------------------------
+// Section L — PdfResizeTool sweep batch 8 (?size=&landscape=).
+// ---------------------------------------------------------------------
+//
+// Sweep batch 8 — PdfResizeTool wires the same mixed-type 2-param
+// shape as ImagesToPdfTool (5-literal PaperSize + boolean landscape).
+// Fewer enum members because resize is always to a concrete paper
+// (no "fit" option).
+
+const RESIZE_PATH = path.join(ROOT, "components/tools/PdfResizeTool.tsx");
+assert(fs.existsSync(RESIZE_PATH), `PdfResizeTool missing at ${RESIZE_PATH}`);
+const RESIZE = fs.existsSync(RESIZE_PATH) ? fs.readFileSync(RESIZE_PATH, "utf8") : "";
+
+assert(
+  /params\.get\("size"\)/.test(RESIZE) && /params\.get\("landscape"\)/.test(RESIZE),
+  "PdfResizeTool: mount-effect must read both `size` and `landscape` params.",
+);
+
+assert(
+  /rawSize\s*===\s*"letter"\s*\|\|\s*rawSize\s*===\s*"legal"\s*\|\|\s*rawSize\s*===\s*"a4"\s*\|\|\s*rawSize\s*===\s*"a3"\s*\|\|\s*rawSize\s*===\s*"a5"/.test(
+    RESIZE,
+  ),
+  "PdfResizeTool: size allowlist must enumerate all 5 PaperSize literals.",
+);
+
+assert(
+  /rawLand === "1" \|\| rawLand === "true"/.test(RESIZE),
+  "PdfResizeTool: landscape must accept both `1` and `true` URL forms.",
+);
+
+assert(
+  /useEffect\(\(\)\s*=>\s*\{[\s\S]*?history\.replaceState[\s\S]*?\},\s*\[size,\s*landscape\]\)/.test(
+    RESIZE,
+  ),
+  "PdfResizeTool: state → URL sync must live in a SINGLE useEffect " +
+    "with `[size, landscape]` dep array per the replaceState non-" +
+    "batching invariant.",
+);
+
+assert(
+  /size === "letter"\s*\)\s*params\.delete\("size"\)/.test(RESIZE),
+  "PdfResizeTool: default `letter` must be omitted from URL.",
+);
+
+assert(
+  /!landscape\s*\)\s*params\.delete\("landscape"\)/.test(RESIZE),
+  "PdfResizeTool: default `false` for landscape must be omitted via " +
+    "negated `!landscape` check.",
+);
+
+assert(
+  /params\.set\("landscape", "1"\)/.test(RESIZE),
+  "PdfResizeTool: landscape write side must emit `\"1\"` short form.",
+);
+
+assert(
+  /typeof window === "undefined"/.test(RESIZE),
+  "PdfResizeTool: permalink effects must guard SSR.",
+);
+
+const resizeEffectMatch = RESIZE.match(
+  /useEffect\(\(\)\s*=>\s*\{([\s\S]*?)\},\s*\[size,\s*landscape\]\)/,
+);
+if (resizeEffectMatch) {
+  assert(
+    !/pushState/.test(resizeEffectMatch[1]),
+    "PdfResizeTool: sync effect uses pushState — back-button hell.",
+  );
+}
+
+// ---------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------
 
