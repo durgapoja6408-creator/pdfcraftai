@@ -741,6 +741,91 @@ if (resizeEffectMatch) {
 }
 
 // ---------------------------------------------------------------------
+// Section M — TextToPdfTool sweep batch 9 (?fontFamily=&fontSize=&pageSize=).
+// ---------------------------------------------------------------------
+//
+// Sweep batch 9 — TextToPdfTool 3-param shape combining string-literal
+// enum (3) + bounded number (4..72) + string-literal enum (2). Wider
+// fontSize bounds than PageNumbers (4..24) because text-to-pdf is
+// body copy, not page-number garnish.
+
+const TEXT2PDF_PATH = path.join(ROOT, "components/tools/TextToPdfTool.tsx");
+assert(fs.existsSync(TEXT2PDF_PATH), `TextToPdfTool missing at ${TEXT2PDF_PATH}`);
+const TEXT2PDF = fs.existsSync(TEXT2PDF_PATH) ? fs.readFileSync(TEXT2PDF_PATH, "utf8") : "";
+
+assert(
+  /params\.get\("fontFamily"\)/.test(TEXT2PDF) &&
+    /params\.get\("fontSize"\)/.test(TEXT2PDF) &&
+    /params\.get\("pageSize"\)/.test(TEXT2PDF),
+  "TextToPdfTool: mount-effect must read all 3 params.",
+);
+
+assert(
+  /rawFam === "monospace" \|\| rawFam === "sans" \|\| rawFam === "serif"/.test(
+    TEXT2PDF,
+  ),
+  "TextToPdfTool: fontFamily allowlist must enumerate all 3 TextFontFamily literals.",
+);
+
+assert(
+  /Number\.isFinite\(n\)\s*&&\s*n >= 4\s*&&\s*n <= 72/.test(TEXT2PDF),
+  "TextToPdfTool: fontSize must validate Number.isFinite + bounds (4..72). " +
+    "Wider than PdfPageNumbersTool's 4..24 because text-to-pdf renders " +
+    "body copy at all sizes, not just page-number garnish.",
+);
+
+assert(
+  /rawPage === "letter" \|\| rawPage === "a4"/.test(TEXT2PDF),
+  "TextToPdfTool: pageSize allowlist must enumerate the 2 PaperSize " +
+    "literals for text-to-pdf (letter / a4 only — text rendering doesn't " +
+    "support fit / a3 / a5).",
+);
+
+assert(
+  /useEffect\(\(\)\s*=>\s*\{[\s\S]*?history\.replaceState[\s\S]*?\},\s*\[fontFamily,\s*fontSize,\s*pageSize\]\)/.test(
+    TEXT2PDF,
+  ),
+  "TextToPdfTool: state → URL sync must live in a SINGLE useEffect " +
+    "with `[fontFamily, fontSize, pageSize]` 3-tuple dep per the " +
+    "replaceState non-batching invariant.",
+);
+
+assert(
+  /fontFamily === "monospace"\s*\)\s*params\.delete\("fontFamily"\)/.test(TEXT2PDF),
+  "TextToPdfTool: default `monospace` must be omitted from URL.",
+);
+
+assert(
+  /fontSize === 11\s*\)\s*params\.delete\("fontSize"\)/.test(TEXT2PDF),
+  "TextToPdfTool: default `11` must be omitted from URL.",
+);
+
+assert(
+  /pageSize === "letter"\s*\)\s*params\.delete\("pageSize"\)/.test(TEXT2PDF),
+  "TextToPdfTool: default `letter` must be omitted from URL.",
+);
+
+assert(
+  /params\.set\("fontSize",\s*String\(fontSize\)\)/.test(TEXT2PDF),
+  "TextToPdfTool: non-default fontSize must write via `String(fontSize)`.",
+);
+
+assert(
+  /typeof window === "undefined"/.test(TEXT2PDF),
+  "TextToPdfTool: permalink effects must guard SSR.",
+);
+
+const text2pdfEffectMatch = TEXT2PDF.match(
+  /useEffect\(\(\)\s*=>\s*\{([\s\S]*?)\},\s*\[fontFamily,\s*fontSize,\s*pageSize\]\)/,
+);
+if (text2pdfEffectMatch) {
+  assert(
+    !/pushState/.test(text2pdfEffectMatch[1]),
+    "TextToPdfTool: 3-param sync effect uses pushState — back-button hell.",
+  );
+}
+
+// ---------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------
 

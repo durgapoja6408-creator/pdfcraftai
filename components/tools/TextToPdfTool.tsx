@@ -10,7 +10,7 @@
 // Quality model: see lib/pdf/ops/text-to-pdf.ts header. Output is
 // text-selectable + searchable (no rasterization).
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { I } from "@/components/icons/Icons";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { downloadBytes } from "@/lib/client/download";
@@ -57,6 +57,52 @@ export function TextToPdfTool() {
   const [fontFamily, setFontFamily] = useState<TextFontFamily>("monospace");
   const [fontSize, setFontSize] = useState(11);
   const [pageSize, setPageSize] = useState<PaperSize>("letter");
+
+  // 2026-05-11 (item #17 sweep batch 9) — URL permalink state sync.
+  // 3-param shape: fontFamily (3 literals) + fontSize (number 4-72)
+  // + pageSize (2 literals). Single useEffect with 3-tuple dep per
+  // the replaceState non-batching invariant. Defaults (monospace /
+  // 11 / letter) omitted from URL. Lets users share preset configs
+  // like `/tool/text-to-pdf?fontFamily=sans&fontSize=14` for
+  // documentation templates.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const rawFam = params.get("fontFamily");
+    if (rawFam === "monospace" || rawFam === "sans" || rawFam === "serif") {
+      setFontFamily(rawFam);
+    }
+    const rawSize = params.get("fontSize");
+    if (rawSize) {
+      const n = parseInt(rawSize, 10);
+      // Wider bounds than PageNumbers (4-24) because text-to-pdf is
+      // for body copy: 8pt small print → 72pt poster header.
+      if (Number.isFinite(n) && n >= 4 && n <= 72) {
+        setFontSize(n);
+      }
+    }
+    const rawPage = params.get("pageSize");
+    if (rawPage === "letter" || rawPage === "a4") {
+      setPageSize(rawPage);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (fontFamily === "monospace") params.delete("fontFamily");
+    else params.set("fontFamily", fontFamily);
+    if (fontSize === 11) params.delete("fontSize");
+    else params.set("fontSize", String(fontSize));
+    if (pageSize === "letter") params.delete("pageSize");
+    else params.set("pageSize", pageSize);
+    const qs = params.toString();
+    const next = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    if (next !== window.location.pathname + window.location.search) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [fontFamily, fontSize, pageSize]);
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   // M16 — scroll the error region into view on null→string.
