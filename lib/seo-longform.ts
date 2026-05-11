@@ -1404,4 +1404,77 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // unlock-pdf — high-traffic free tool, added 2026-05-11
+  // ============================================================
+  "unlock-pdf": {
+    title: "Unlock PDF — what \"unlocking\" actually means, and when it works",
+    intro:
+      "\"Unlock PDF\" is one of the most-searched PDF queries on Google, and one of the most misunderstood. There are two completely different kinds of PDF protection, and the right tool depends on which one you are facing. Pick the wrong tool and you waste time on a file the tool cannot help with. Here is what each kind of protection means, when our tool helps, and what to do when it cannot.",
+    sections: [
+      {
+        h: "Two kinds of PDF protection",
+        p: [
+          "Every encrypted PDF has either a user password, an owner password, or both. Knowing which one your file uses determines whether any unlock tool can help.",
+        ],
+        list: {
+          items: [
+            { b: "User password (also called open password).", t: "This is the password the PDF prompts for before showing any content. The file is genuinely encrypted — the entire byte stream is unreadable without the password. No tool can bypass this without the password itself, because there is no way to read what was encrypted. If you do not have the password, you do not have the file's content." },
+            { b: "Owner password (also called permissions password).", t: "This is a restriction layer on a file that opens normally. The file is readable, but the PDF dictionary carries flags that tell viewers to disable printing, copying text, editing, filling forms, or extracting pages. The file is technically not encrypted — those restrictions are an honor system that viewers like Acrobat choose to enforce. Removing those flags restores full functionality." },
+          ],
+        },
+      },
+      {
+        h: "What our Unlock tool does",
+        p: [
+          "Our free Unlock PDF tool removes owner-password restrictions. It parses the PDF's /Encrypt dictionary, strips the permissions flags (no-print, no-copy, no-edit, no-fill-forms, no-extract-pages, no-modify-annotations), and writes a fresh file with no restrictions. The original page contents — text, images, vectors, fonts — are unchanged. File size barely changes; you lose maybe 200 bytes from the dropped dictionary entries.",
+          "The unlocked file opens normally in every viewer because the only thing removed was the restriction metadata. Print quality is identical to the source. Copy-paste works. Form fields fill in. The original page bytes never moved.",
+        ],
+      },
+      {
+        h: "What to do when the file needs a user password",
+        p: [
+          "If your file prompts for a password before showing content, the unlock tool cannot help — but several adjacent tools might:",
+        ],
+        list: {
+          items: [
+            { b: "Ask the document's creator.", t: "Almost every \"locked PDF\" problem turns out to be \"I lost the password.\" Asking the sender is usually faster than any tool. Most enterprise environments have a key escrow for this." },
+            { b: "Try the AI · OCR tool on a printed copy.", t: "If you can open the PDF on a device that has the password cached, print it to PDF and run that copy through OCR. This is legitimate if you own the document and just need access on another device." },
+            { b: "Check whether the password is the document's date or title.", t: "An enormous number of PDFs use predictable patterns: birthdate, filename, last 4 digits of an ID. Especially common with bank statements and utility bills delivered via email." },
+            { b: "Use the actual password if you have it.", t: "Adobe Acrobat (paid), Preview on macOS, Foxit, and many other tools accept a password and produce a decrypted copy. Once decrypted, our other tools can process the file." },
+          ],
+        },
+      },
+      {
+        h: "Legal and ethical considerations",
+        p: [
+          "Removing owner-password restrictions on a PDF you legitimately own is generally legal in most jurisdictions. The DMCA Section 1201 in the United States, and equivalent laws elsewhere, prohibit circumventing technological protection measures on copyrighted works you do not own — that is a serious matter and not something any of our tools is designed for.",
+          "In practice, this means: unlock your own scanned ID for upload to a government portal, fine. Unlock a bank statement you received via email so you can print it, fine. Unlock a third-party ebook or a confidential document you obtained without authorization, not fine — both legally and ethically. Use this tool on files where you are the rightful owner or have explicit permission.",
+        ],
+      },
+      {
+        h: "Five common situations where Unlock is the right tool",
+        p: [
+          "The cases that show up most often in support tickets and search logs:",
+        ],
+        list: {
+          items: [
+            { b: "Cannot print a bank statement.", t: "Banks often issue PDFs with print disabled to discourage redistribution. Unlock restores printing for personal use." },
+            { b: "Cannot copy a quote from a research paper.", t: "Some publishers disable text selection. Unlock removes the restriction; the underlying text was always there." },
+            { b: "Cannot fill a government form's fields.", t: "Older government forms sometimes ship with no-modify restrictions that block typing into form fields. Unlock removes that flag." },
+            { b: "Cannot combine a restricted PDF in a merge.", t: "Some PDF tools refuse to merge a file with restrictions set. Unlock first, then merge." },
+            { b: "Cannot extract pages from a contract for inclusion in another bundle.", t: "Same root cause as the merge case. Unlock to remove the restriction, then extract." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, Unlock handles owner-password PDFs up to 100 MB with no page-count cap. Processing runs entirely in your browser via pdf-lib; the file never leaves your machine. Output is byte-compatible with every viewer that opened the input, and it carries forward every other metadata field (title, author, creation date) untouched.",
+          "The tool refuses to operate on user-password files — if you upload one, you will see an error explaining the difference. That is by design. We are not in the business of breaking encryption, only of removing the honor-system permissions layer that some PDF generators apply to files anyone can already read.",
+        ],
+      },
+    ],
+  },
 };
