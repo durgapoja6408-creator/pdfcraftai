@@ -3629,4 +3629,163 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // grayscale-pdf — print-prep utility, luminance-correct
+  // ============================================================
+  "grayscale-pdf": {
+    title: "Convert PDF to grayscale — luminance math, the right quality level, and what you give up",
+    intro:
+      "Grayscaling a PDF sounds straightforward — make it black and white. Under the hood there are real choices that determine whether the output looks correct or wrong. Pure averaging of RGB channels (R+G+B)/3 makes red and green render at the same intensity, which looks unnatural — humans see green as brighter than red. The right math is luminance-weighted (0.299R + 0.587G + 0.114B), the standard formula from the Rec. 601 color spec. Our tool uses that. Here is how the conversion works, the four quality presets and when to pick each, and the one thing you give up that surprises people.",
+    sections: [
+      {
+        h: "The luminance math and why it matters",
+        p: [
+          "Rec. 601 luminance — the formula 0.299R + 0.587G + 0.114B — captures how the human eye perceives brightness. Green looks brighter to us than red or blue at the same physical intensity. The weights reflect that perception: green contributes 58.7% of the resulting luminance, red 29.9%, blue 11.4%. Convert a green logo with this formula and it looks bright; a red logo of the same RGB intensity looks darker. Both feel correct because they match how those colors appeared in the original.",
+          "Compare with naive averaging — (R+G+B)/3. A pure-green pixel (0,255,0) and a pure-red pixel (255,0,0) both produce gray (85,85,85). Under the human eye, the original green looked dramatically brighter than the original red. Naive averaging flattens that, producing washed-out grayscale that does not match what the original looked like to viewers.",
+        ],
+      },
+      {
+        h: "Four quality presets and when each is right",
+        p: [
+          "The render-quality choice trades file size against visual fidelity. Pick by destination:",
+        ],
+        list: {
+          items: [
+            { b: "Draft (96 DPI).", t: "Screen preview, quick triage, content review. Files are smallest; visual sharpness is sufficient for screen viewing but not for printing." },
+            { b: "Standard (144 DPI).", t: "General-purpose grayscale: shareable with colleagues, attached to emails, posted to internal wikis. Matches typical retina-screen sharpness." },
+            { b: "High (192 DPI).", t: "Clean print output on office laser printers. Text edges look crisp; thin vector lines stay continuous." },
+            { b: "Print (240 DPI).", t: "Archive-quality. Suitable for high-resolution print runs, print shops, large-format reproduction. Files are largest — typically 2-4 MB per page." },
+          ],
+        },
+      },
+      {
+        h: "The trade-off — text selectability",
+        p: [
+          "Grayscale conversion rasterizes every page. The original page's vector text becomes pixel-bitmap text, which means the output PDF is image-only. Three consequences:",
+        ],
+        list: {
+          items: [
+            { b: "Ctrl-F cannot find text in the output.", t: "Searching is dead because there is no extractable text layer in an image-only PDF. If you need both grayscale visuals AND searchable text, run AI · OCR on the grayscale output to add a hidden text layer back." },
+            { b: "Copy-paste produces nothing.", t: "Selecting text in a viewer just selects an image rectangle. Cannot copy specific words or paragraphs out." },
+            { b: "Screen readers cannot read the content.", t: "Accessibility is lost. If the output PDF goes to anyone using assistive technology, this is a hard problem — pair with OCR or use the content-stream-remap path (paid roadmap item, not the free tool)." },
+          ],
+        },
+      },
+      {
+        h: "When grayscale is the right operation",
+        p: [
+          "Five cases where the rasterized grayscale output is genuinely what you want:",
+        ],
+        list: {
+          items: [
+            { b: "B&W laser print prep.", t: "If you're going to print on a B&W laser printer, converting to grayscale first lets you preview exactly what will come off the printer. Some color combinations render unexpectedly on B&W; grayscale-then-print shows you the result." },
+            { b: "Color-restricted submissions.", t: "Some regulatory submissions, court filings, and academic theses are required to be in black and white. Grayscale conversion satisfies the requirement." },
+            { b: "Visual-noise reduction.", t: "Color-coded diagrams can be visually busy. Grayscale tones them down for cases where you want the structure but not the color." },
+            { b: "Toner-saving on print.", t: "Color printing burns through toner. Grayscale reduces toner usage to a single cartridge, which is meaningfully cheaper for high-volume print." },
+            { b: "Archival simplicity.", t: "Some archive systems prefer grayscale-only PDFs for simpler ingestion. The smaller dimensional space makes the archive's indexing faster." },
+          ],
+        },
+      },
+      {
+        h: "Grayscale vs Compress — when each helps",
+        p: [
+          "Common confusion worth clarifying:",
+        ],
+        list: {
+          items: [
+            { b: "Grayscale removes color.", t: "Output is monochrome; file size may go up or down depending on the source — color-rich documents typically shrink when converted to grayscale because three channels collapse to one." },
+            { b: "Compress reduces file size.", t: "Output preserves color (or whatever color profile the source had). Goal is making the file smaller; recompresses images, may downsample." },
+            { b: "Combined: Grayscale → Compress for small B&W files.", t: "Convert to grayscale first to remove color, then compress to shrink the rasterized images further. The smallest visually-acceptable monochrome PDFs come from this pipeline." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, grayscale conversion handles PDFs up to 50 MB. Processing runs in your browser via PDFium WebAssembly; nothing is uploaded. Each page is rasterized sequentially with progress shown — multi-page documents take a few seconds per page at Print quality.",
+          "Common pairings: Grayscale → Compress for small B&W files. Grayscale → AI · OCR to add a searchable text layer back to the rasterized output. Grayscale → Add Page Numbers for final polish on print deliverables.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // csv-to-pdf — paired tabular-data rendering
+  // ============================================================
+  "csv-to-pdf": {
+    title: "CSV to PDF — turning tabular data into a paginated, readable, printable table",
+    intro:
+      "CSV is the universal interchange format for tabular data — every spreadsheet, every database export, every API response can dump CSV. But CSV is for machines: it does not paginate, does not align columns, does not repeat headers across pages, does not handle long cells gracefully. When you need a CSV's data in front of human readers — in a meeting, in a printed report, in an archive — converting to PDF is the right move. Here is what the conversion does, the four configuration choices that determine whether the output is readable or cramped, and the patterns that make tables print well across page breaks.",
+    sections: [
+      {
+        h: "What the converter does",
+        p: [
+          "Drop a CSV file (or paste CSV text directly). The tool detects the delimiter (comma, tab, or semicolon) — most CSV files use comma, but tab-separated (TSV) and semicolon-separated (European Excel default) variants are common. It parses the rows using an RFC-4180-compliant parser that handles quoted fields, escaped quotes (\"\"), and embedded newlines inside cells.",
+          "Once parsed, the data renders as a table on the PDF page. Column widths are auto-fit to content (the longest cell value in each column, capped at ~30% of page width to prevent extreme cases). The header row repeats at the top of every page so readers don't lose their place when scrolling through long tables. Alternating row shading (light gray, white) makes individual rows easier to track. Cells with long content wrap to multiple lines automatically.",
+        ],
+      },
+      {
+        h: "Four configurations that determine readability",
+        p: [
+          "Get any one of these wrong and the output is cramped or illegible. Get all four right and the table reads like a designed deliverable:",
+        ],
+        list: {
+          items: [
+            { b: "Page size + orientation.", t: "A4/Letter/Legal × portrait/landscape. Landscape recommended for tables with 6+ columns. Portrait for 2-5 columns. Legal landscape (or Tabloid if you're in a US print shop) for 8+ columns." },
+            { b: "Font size.", t: "10pt is the canonical pick for body text in tables. 8-9pt for dense tables with many columns. 11-12pt for wider columns where readability matters more than density." },
+            { b: "Header repetition.", t: "Always on by default. Turn off only when the table is short enough to fit on one page (no header repetition needed). Off-by-accident on a long table is one of the most-encountered support-ticket complaints." },
+            { b: "Alternating row shading.", t: "Default on. Helps readers track which row their eyes are on. Turn off for tables that already have row-level color coding (e.g. status indicators) where the shading would compete." },
+          ],
+        },
+      },
+      {
+        h: "Three patterns for tables that print well",
+        p: [
+          "Habits that make CSV-to-PDF output look professional:",
+        ],
+        list: {
+          items: [
+            { b: "Pre-sort rows by the most important column.", t: "PDF tables are static — readers cannot re-sort the way they would in Excel. Pick the sort order that matches how the audience will read the table (typically by date, then by status, then by primary identifier) before converting." },
+            { b: "Truncate or wrap long cells.", t: "A cell with 500 characters of free-text comments produces an awkward table. Either truncate to ~50 chars in the source data, or accept that the table will have unequal row heights as that cell wraps." },
+            { b: "Use header row labels deliberately.", t: "\"customer_id_v2\" works in your database; \"Customer ID\" works in the PDF. Renaming columns in the source CSV before converting saves the reader the cognitive load of decoding internal-system names." },
+          ],
+        },
+      },
+      {
+        h: "What CSV-to-PDF handles vs what it doesn't",
+        p: [
+          "Two patterns worth understanding:",
+        ],
+        list: {
+          items: [
+            { b: "Handles: quoted fields with commas, escaped quotes, embedded newlines.", t: "RFC-4180-compliant parsing covers every standard CSV variant. The same edge cases that trip up naïve Excel imports are handled." },
+            { b: "Doesn't handle: complex cell formatting.", t: "Bold inside a cell, colored text inside a cell, embedded images, formula expressions — none of those survive CSV format itself, so they cannot appear in the output. For richly-formatted tables, render from a source that preserves formatting (XLSX-to-PDF, or paste into a rich-text editor and convert from there)." },
+          ],
+        },
+      },
+      {
+        h: "Five common use cases",
+        p: [
+          "Where CSV-to-PDF earns its place:",
+        ],
+        list: {
+          items: [
+            { b: "Quarterly report appendices.", t: "Detailed data tables that don't fit in slides but need to be in the report. Convert the CSV to PDF, then merge into the main report." },
+            { b: "Audit deliverables.", t: "Auditors prefer PDF over CSV for the obvious tampering-resistance reason. Export your data as CSV, convert to PDF, hand over the PDF." },
+            { b: "Printed handouts for meetings.", t: "A pricing list, an inventory report, a roster — the table form factor is the right one." },
+            { b: "Email attachments.", t: "PDFs render consistently across recipients. CSVs sometimes get opened in Excel with column issues. PDF is the safer choice for cross-platform sharing." },
+            { b: "Archived data snapshots.", t: "When the live data will change, snapshotting to a PDF preserves the state at a specific moment." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, CSV-to-PDF handles inputs up to 50 MB of CSV (or pasted text up to the browser's typical paste-buffer limit). Processing runs in your browser; nothing is uploaded. Tested up to 50,000 rows — above that, generation time grows and output file size becomes large.",
+          "Common pairings: CSV-to-PDF → Compress for the smallest sharable file. CSV-to-PDF → Merge to combine multiple table PDFs into a single report. For tables with rich formatting needs, convert the source to XLSX first and use Excel-to-PDF.",
+        ],
+      },
+    ],
+  },
 };
