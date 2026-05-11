@@ -4541,4 +4541,165 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // nda-analyzer — legal AI workflow
+  // ============================================================
+  "nda-analyzer": {
+    title: "NDA Analyzer — the five clauses that hide in every non-disclosure agreement",
+    intro:
+      "Non-disclosure agreements are signed faster than almost any other legal document. A vendor sends one before the first meeting, an investor sends one before the first pitch, an employee signs one on day one — sometimes after a 30-second skim. The friction with that pattern is that NDAs frequently contain clauses that have nothing to do with non-disclosure: embedded non-competes, IP assignment, exclusive jurisdiction in distant cities, even employment-style restrictions. Here is what the NDA analyzer surfaces, the five most common hidden clauses, and the redline approach that lets a non-lawyer push back confidently.",
+    sections: [
+      {
+        h: "What the analyzer actually checks",
+        p: [
+          "The tool reads the full NDA text, then runs an AI audit pass that compares each clause against a checklist of NDA best-practices and known trap clauses. Output is a risk-flagged clause-by-clause analysis: each finding includes a severity rating (high / medium / low), the verbatim quote of the offending text, an explanation of why it's flagged, and a suggested redline. Plus a missing-clauses section that surfaces standard NDA carveouts (residual knowledge, publicly-known information, government-required disclosure) that should be present but aren't.",
+          "The output is structured for action. You can take the redlines directly into a negotiation with the counterparty, or pass them to your lawyer for review. The verbatim quotes mean you can verify every flag — the AI isn't asking you to trust its summary; it's pointing at the actual text in the document.",
+        ],
+      },
+      {
+        h: "Five clauses that hide in every NDA",
+        p: [
+          "The patterns the analyzer catches most often:",
+        ],
+        list: {
+          items: [
+            { b: "Embedded non-competes.", t: "An NDA shouldn't restrict where you work next. Many do, with 12-24 month post-engagement non-competes buried in the obligations section. In India specifically, Section 27 of the Indian Contract Act makes most post-employment non-competes unenforceable, but having them in writing still chills you. Always flagged high-severity." },
+            { b: "IP assignment.", t: "An NDA shouldn't include IP assignment language (that belongs in an employment / consulting / IP agreement). When found in NDAs, it often gives the counterparty rights to derivatives and improvements — much broader than the disclosure context warrants. Common in founder-investor NDAs as a hidden trap. High severity." },
+            { b: "Mutual vs unilateral mismatch.", t: "Mutual NDAs protect both parties' confidential information; unilateral NDAs only protect one side. The analyzer surfaces which direction the document actually flows. Surprisingly often, a document labeled 'Mutual NDA' has unilateral restrictions buried in the substantive clauses." },
+            { b: "Missing standard carveouts.", t: "Every reasonable NDA carves out: information already publicly known, information independently developed, information required to be disclosed by law, residual knowledge in the recipient's head. Carveouts left out turn an NDA into a perpetual gag. The analyzer flags each missing carveout explicitly." },
+            { b: "Exclusive jurisdiction in distant cities.", t: "An NDA between two parties based in Bangalore shouldn't have exclusive jurisdiction in Delhi or Mumbai (let alone Singapore or Delaware). Distant-jurisdiction clauses make any dispute economically prohibitive — usually the point. Flagged medium-severity with context." },
+          ],
+        },
+      },
+      {
+        h: "The redline approach for non-lawyers",
+        p: [
+          "Each flag in the output comes with a suggested replacement that a non-lawyer can confidently propose to the counterparty:",
+        ],
+        list: {
+          items: [
+            { b: "Quote what's flagged.", t: "'I noticed this clause: [verbatim quote]. This typically belongs in an employment agreement, not an NDA. Could we remove it from the NDA and address IP separately if needed later?'" },
+            { b: "Suggest the replacement.", t: "'I'd propose: [replacement language from the analyzer's output].' Pre-built language is much easier to push than vague objections." },
+            { b: "Reference the standard.", t: "'Standard NDAs typically include carveouts for [list]. Could we add those?' Naming the omitted carveouts directly shifts the conversation from 'you're being difficult' to 'we're aligning to standard practice.'" },
+          ],
+        },
+      },
+      {
+        h: "When to use this tool vs go straight to a lawyer",
+        p: [
+          "Three signals that the analyzer is sufficient:",
+        ],
+        list: {
+          items: [
+            { b: "Low-stakes mutual NDA between equal counterparties.", t: "Vendor-prospect, founder-advisor, exploratory partnership talks. The analyzer's audit usually suffices." },
+            { b: "Standard form NDA from a Fortune 500.", t: "Big-company NDAs are usually variations on a well-known template. The analyzer's pattern-match catches deviations." },
+            { b: "Pre-meeting NDA before a first conversation.", t: "Often signed to enable a 30-minute discovery call. The analyzer's 15-credit cost is dramatically cheaper than a lawyer's review for routine documents." },
+          ],
+        },
+        // The "go-to-lawyer" cases:
+      },
+      {
+        h: "When you should escalate to counsel",
+        p: [
+          "Three signals that suggest a lawyer is worth the cost:",
+        ],
+        list: {
+          items: [
+            { b: "M&A or acquisition discussions.", t: "Pre-deal NDAs often carry standstill provisions, no-shop language, or specific-performance remedies that should be vetted by deal counsel." },
+            { b: "Large vendor or supply-chain relationships.", t: "NDAs governing relationships worth significant revenue should be reviewed in the context of the broader commercial deal — a lawyer doing both at once finds inconsistencies the analyzer alone cannot." },
+            { b: "IP licensing context.", t: "If the NDA is the first step in an IP licensing discussion, the IP assignment + non-compete provisions deserve careful expert review." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "NDA Analyzer charges 15 credits per analysis. The tool handles PDFs up to 25 MB. Processing runs on our servers; the document is in memory only during analysis and is never persisted. Output is the structured risk-flag list plus suggested redlines.",
+          "Important: This is not legal advice. The tool is an audit aid. For NDAs in any of the three escalation categories above, consult an employment / commercial / IP lawyer as appropriate.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // ats-resume-optimizer — recruiting AI
+  // ============================================================
+  "ats-resume-optimizer": {
+    title: "ATS Resume Optimizer — how applicant tracking systems actually parse your resume",
+    intro:
+      "Most job applications today filter through an ATS — Applicant Tracking System — before a human ever sees them. Workday, Greenhouse, Lever, iCIMS, Naukri's filter, hundreds of smaller systems. They parse your resume into structured fields (name, contact, experience, skills, education) and match those fields against the job description. If the parse fails or the match score is low, the application is rejected before recruiters ever review it. Here is how ATS parsing actually works, the seven formatting traps that cause parse failures, and the keyword strategy that beats stuffing.",
+    sections: [
+      {
+        h: "How ATS parsing works",
+        p: [
+          "An ATS receives your resume (usually as PDF or DOCX) and runs a parser that walks the document looking for structured information. It identifies sections (\"Work Experience\", \"Education\", \"Skills\") by their headings, then extracts fields within each section (company names, dates, titles, bullet points). The extracted structure is what the ATS searches against — when a recruiter searches for \"3+ years Python experience,\" the ATS queries the parsed-and-stored database, not the original PDF.",
+          "Parse quality varies dramatically by system. Modern enterprise ATS (Workday, Greenhouse) handle most reasonable resume formats. Legacy systems (some older corporate-careers portals, some Indian ATS) choke on multi-column layouts, custom heading names, embedded images, or any non-standard formatting. The optimizer audits your resume against the lowest-common-denominator parser to maximize pass-through across systems.",
+        ],
+      },
+      {
+        h: "Seven formatting traps",
+        p: [
+          "The most common reasons ATS parsing fails:",
+        ],
+        list: {
+          items: [
+            { b: "Multi-column layouts.", t: "Some legacy ATS read in column-major order, scrambling content. \"Skills\" in column 2 ends up interleaved with \"Work Experience\" from column 1. Single-column is universally parseable." },
+            { b: "Custom section headers.", t: "ATS look for \"Work Experience,\" \"Professional Experience,\" or \"Employment History.\" \"Career Highlights\" or \"My Journey\" — common in modern resume templates — sometimes confuse the parser. Stick to standard headers." },
+            { b: "Non-standard date formats.", t: "\"Jan 2022 - Present\" parses everywhere. \"01/22 - Current\" parses sometimes. \"2022 till date\" parses rarely. Pick the universal format." },
+            { b: "Tables for layout.", t: "Tables for structured data (skills matrix, certifications list) usually parse fine. Tables for layout (using table cells to position content) often scramble. Use simple paragraphs or bullet lists instead." },
+            { b: "Embedded images for content.", t: "A skills bar-chart rendered as an image is invisible to the parser. Same with embedded logos for previous employers. ATS does not OCR images." },
+            { b: "Header / footer with critical info.", t: "Some parsers ignore headers and footers because they often contain page numbers and decorative content. If your name and contact info live only in the header, the parser may miss them entirely." },
+            { b: "Font fallback issues.", t: "Custom fonts that didn't embed properly substitute to a fallback in the parser's environment. Text becomes visible garbage. Stick to standard fonts (Arial, Calibri, Times) that every parser knows." },
+          ],
+        },
+      },
+      {
+        h: "Keyword strategy that beats stuffing",
+        p: [
+          "ATS match scoring looks for keywords from the job description appearing in your resume. The naive approach — copy-paste keywords from the JD into a \"Skills\" section — sometimes works but increasingly triggers ATS keyword-density flags and recruiter-level skepticism. The optimizer takes a different approach:",
+        ],
+        list: {
+          items: [
+            { b: "Surface keywords you ALREADY USED implicitly.", t: "If your bullet point says \"automated weekly data refresh from 3 source systems,\" you already did ETL work. The optimizer suggests adding \"ETL\" or \"data pipeline\" explicitly to that bullet — keywords tied to real experience you have, not stuffed in." },
+            { b: "Add variations of the same skill.", t: "\"JavaScript\" / \"JS\" / \"Node.js\" / \"front-end development\" all map to similar competencies but trigger different ATS keywords. Where natural, add the variations." },
+            { b: "Use the exact terminology from the JD.", t: "If the JD says \"Postgres\" and your resume says \"PostgreSQL,\" the ATS sees them as different terms. Match the JD's spelling unless your resume is being submitted to many different roles." },
+            { b: "Keep the density natural.", t: "If a single skill appears 12 times in a 1-page resume, that's stuffing. ATS keyword-density flags trigger; recruiters notice. The optimizer warns when a keyword's density exceeds reasonable thresholds." },
+          ],
+        },
+      },
+      {
+        h: "Three readiness scores worth knowing",
+        p: [
+          "The optimizer's output includes three scores:",
+        ],
+        list: {
+          items: [
+            { b: "Parse-readiness.", t: "How likely the resume parses correctly across the major ATS systems. Driven by the formatting checks. Aim for 90%+." },
+            { b: "Keyword coverage.", t: "How many likely-relevant keywords appear in the resume. Generic ATS-readiness baseline; not job-specific. Aim for 80%+." },
+            { b: "Polish.", t: "Resume best-practices checks beyond ATS: bullet structure (action verb + quantifiable outcome), section ordering, length appropriateness. Aim for 85%+." },
+          ],
+        },
+      },
+      {
+        h: "ATS Optimizer vs JD Match — when to use each",
+        p: [
+          "Two related tools with different goals:",
+        ],
+        list: {
+          items: [
+            { b: "ATS Optimizer — generic readiness.", t: "Use first, before applying to any specific role. Establishes a baseline-clean resume." },
+            { b: "JD Match — role-specific tuning.", t: "Use after ATS Optimizer, once you have a specific JD in hand. Tunes the resume to match THAT role's keywords and competencies." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "ATS Resume Optimizer charges 10 credits per resume. The tool handles PDFs and DOCX up to 25 MB. Processing runs on our servers; the resume is in memory only during analysis. Output includes the three readiness scores, the formatting-trap audit, and the keyword-coverage suggestions.",
+          "Common pairings: ATS Optimizer → JD Match for role-specific tuning. ATS Optimizer → Cover Letter Generator for a complete application package. Resume Parser when you're a recruiter on the receiving side ingesting many resumes at once.",
+        ],
+      },
+    ],
+  },
 };
