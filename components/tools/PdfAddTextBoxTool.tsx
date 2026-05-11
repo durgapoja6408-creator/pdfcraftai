@@ -14,6 +14,7 @@ import {
   type PageEditorConfigProps,
   type PageEditorResult,
 } from "./PageEditorTool";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 
 interface TextBoxState {
   text: string;
@@ -39,6 +40,28 @@ export function PdfAddTextBoxTool() {
       busyLabel="Adding text…"
       successCta="Add text to another PDF"
       errorCode="add_text_box_failed"
+      howItWorks={
+        <ToolHowItWorks
+          steps={[
+            {
+              title: "Drop a PDF",
+              body:
+                "Up to 100 MB. The first page renders so you can place text visually.",
+            },
+            {
+              title: "Type and click to place",
+              body:
+                "Enter the text and font settings, then click on the page where you want it to land. A live preview shows the placement before you commit.",
+            },
+            {
+              title: "Apply and download",
+              body:
+                "pdf-lib draws the text as a new layer on top of existing page content. Single-page placement — for repeating text on every page, use the Watermark tool.",
+            },
+          ]}
+          privacyNote="Text-box placement runs entirely in your browser via pdf-lib — files never leave your machine."
+        />
+      }
       initialState={INITIAL_STATE}
       disabledReason={(state) => {
         if (!state.text.trim()) return "Type your text first";

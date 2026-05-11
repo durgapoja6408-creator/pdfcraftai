@@ -23,6 +23,7 @@ import {
   type PageEditorConfigProps,
   type PageEditorResult,
 } from "./PageEditorTool";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 
 interface PixelRect {
   x: number;
@@ -57,6 +58,28 @@ export function PdfAddLinksTool() {
       busyLabel="Saving links…"
       successCta="Add links to another PDF"
       errorCode="add_links_failed"
+      howItWorks={
+        <ToolHowItWorks
+          steps={[
+            {
+              title: "Drop a PDF",
+              body:
+                "Up to 100 MB. The page renders as a visual editor for drawing link regions.",
+            },
+            {
+              title: "Drag to draw a link region",
+              body:
+                "Click and drag on the page to create a hyperlink rectangle, then paste the destination URL. The visible region shows a chip preview of the URL. Drag corners to resize, X to remove.",
+            },
+            {
+              title: "Apply and download",
+              body:
+                "pdf-lib stamps clickable /Link annotations on the chosen pages. Output works in Adobe Acrobat, Chrome PDF viewer, and Preview.app — all the major renderers.",
+            },
+          ]}
+          privacyNote="Link creation runs entirely in your browser via pdf-lib — files and URLs never leave your machine."
+        />
+      }
       initialState={INITIAL_STATE}
       multiPage={true}
       hasEdits={(s) => s.saved.length > 0}

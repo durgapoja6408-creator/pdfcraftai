@@ -177,6 +177,13 @@ const SWEEP_FREE_TOOLS = [
   // + PageEditorTool now thread a `howItWorks` prop) unblocked these.
   "PdfBatesNumbersTool",
   "PdfHighlightTool",
+  // 2026-05-11 sweep batch 6 — bulk migration of 5 more PageEditorTool
+  // consumers (Crop / FreeDraw / AddLinks / AddTextBox / RedactTool-free).
+  "PdfCropTool",
+  "PdfFreeDrawTool",
+  "PdfAddLinksTool",
+  "PdfAddTextBoxTool",
+  "PdfRedactTool",
 ];
 
 for (const name of SWEEP_FREE_TOOLS) {

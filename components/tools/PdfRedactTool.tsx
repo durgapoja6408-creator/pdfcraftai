@@ -19,6 +19,7 @@ import {
   type PageEditorConfigProps,
   type PageEditorResult,
 } from "./PageEditorTool";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 
 interface PixelRect {
   x: number;
@@ -55,6 +56,28 @@ export function PdfRedactTool() {
       busyLabel="Applying redactions…"
       successCta="Redact another PDF"
       errorCode="redact_failed"
+      howItWorks={
+        <ToolHowItWorks
+          steps={[
+            {
+              title: "Drop a PDF",
+              body:
+                "Up to 100 MB. The page renders as a visual editor for marking redaction regions.",
+            },
+            {
+              title: "Drag to mark regions",
+              body:
+                "Click and drag on the page to draw black rectangles over text you want to hide. Navigate pages to redact across the document. Drag corners to resize, X to remove a region.",
+            },
+            {
+              title: "Apply, flatten, download",
+              body:
+                "pdf-lib draws opaque black rectangles AND flattens the page form to fold the boxes into the content stream. CAVEAT: this visually redacts but doesn't cryptographically remove text — for high-stakes redaction (FOIA, legal production) use AI Redact which detects + removes text from the underlying stream.",
+            },
+          ]}
+          privacyNote="Free Redact runs entirely in your browser via pdf-lib — files never leave your machine. For cryptographic redaction at the stream level, /tool/ai-redact (credit-gated) is the upgrade path."
+        />
+      }
       initialState={INITIAL_STATE}
       multiPage={true}
       hasEdits={(s) => realRects(s.rects).length > 0}

@@ -19,6 +19,7 @@ import {
   type PageEditorEditorProps,
   type PageEditorResult,
 } from "./PageEditorTool";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 
 interface PixelRect {
   x: number;
@@ -43,6 +44,28 @@ export function PdfCropTool() {
       busyLabel="Applying crop…"
       successCta="Crop another PDF"
       errorCode="crop_failed"
+      howItWorks={
+        <ToolHowItWorks
+          steps={[
+            {
+              title: "Drop a PDF",
+              body:
+                "Up to 100 MB. The first page renders so you can define a crop rectangle visually.",
+            },
+            {
+              title: "Drag to define the crop area",
+              body:
+                "Click and drag on the page to mark the keep-region. Anything outside the rectangle gets trimmed. Pages with different sizes all crop to the same proportional region.",
+            },
+            {
+              title: "Apply and download",
+              body:
+                "pdf-lib rewrites every page's MediaBox to the cropped region. The output is smaller and trimmed to the area you defined; original content outside the crop is gone.",
+            },
+          ]}
+          privacyNote="Cropping runs entirely in your browser via pdf-lib — files never leave your machine."
+        />
+      }
       initialState={INITIAL_STATE}
       disabledReason={(state, render) => {
         if (!state.cropPx) return "Drag to define crop area";

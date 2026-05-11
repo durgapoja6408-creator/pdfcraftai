@@ -32,6 +32,7 @@ import {
   type PageEditorConfigProps,
   type PageEditorResult,
 } from "./PageEditorTool";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 
 interface PixelPoint {
   x: number;
@@ -82,6 +83,28 @@ export function PdfFreeDrawTool() {
       busyLabel="Saving drawing…"
       successCta="Draw on another PDF"
       errorCode="free_draw_failed"
+      howItWorks={
+        <ToolHowItWorks
+          steps={[
+            {
+              title: "Drop a PDF",
+              body:
+                "Up to 100 MB. The page renders as a drawing surface where you can sketch with mouse, trackpad, or touchscreen.",
+            },
+            {
+              title: "Pick a color + draw freehand",
+              body:
+                "Choose color and stroke width from the palette. Click-drag to draw smooth strokes. Switch to Move mode to grab and reposition existing strokes; X any stroke to delete it.",
+            },
+            {
+              title: "Apply and download",
+              body:
+                "pdf-lib draws SVG paths onto the chosen pages. Strokes layer on top of existing content as vector overlays — sharp at any zoom level.",
+            },
+          ]}
+          privacyNote="Free-draw runs entirely in your browser via pdf-lib — files and your strokes never leave your machine."
+        />
+      }
       initialState={INITIAL_STATE}
       multiPage={true}
       hasEdits={(s) => realStrokes(s.strokes).length > 0}
