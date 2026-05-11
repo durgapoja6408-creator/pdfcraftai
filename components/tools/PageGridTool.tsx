@@ -25,6 +25,7 @@
 // single source of truth for the page-selection UX.
 
 import { useState, useCallback, useRef } from "react";
+import type React from "react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
 import { humanSize } from "@/lib/client/pdf-utils";
@@ -94,6 +95,14 @@ export interface PageGridToolProps {
   maxSelected?: (total: number) => number;
   /** Tracker error code on failure ("extract_failed" / "delete_failed"). */
   errorCode: string;
+
+  // ---- Explainer slot ----
+  /** 2026-05-11 (item #8 batch 10): optional "How it works" explainer
+   *  rendered above the dropzone. Same slot pattern as the
+   *  PdfSimpleOpsTool / PageEditorTool / PdfChecklistTool /
+   *  PdfReadOpsTool refactors in batches 5-9 — each consumer passes
+   *  its own 3-step + privacyNote ToolHowItWorks block. */
+  howItWorks?: React.ReactNode;
 
   // ---- The actual operation ----
   apply: (
@@ -435,6 +444,7 @@ export function PageGridTool(props: PageGridToolProps) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {props.howItWorks}
       {!file ? (
         <ToolDropzone
           onFiles={onFiles}

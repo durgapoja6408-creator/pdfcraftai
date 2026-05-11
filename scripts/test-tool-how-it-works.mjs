@@ -218,6 +218,19 @@ const SWEEP_FREE_TOOLS = [
   "PdfFormsTool",
   "ExtractContactsTool",
   "ExtractDatesTool",
+  // 2026-05-11 sweep batch 10 — PageGridTool consumers + inline-
+  // dropzone tools. PageGridTool gained a `howItWorks?: React.ReactNode`
+  // prop (same slot pattern as the other 4 base components from
+  // batches 5-9), wiring Delete + Extract Pages. The 4 inline-
+  // dropzone tools (PdfFormFillTool / PdfDiffTool / CsvToPdfTool /
+  // PdfBatchProcessTool) mount ToolHowItWorks directly above their
+  // custom dropzones.
+  "PdfDeletePagesTool",
+  "PdfExtractPagesTool",
+  "PdfFormFillTool",
+  "PdfDiffTool",
+  "CsvToPdfTool",
+  "PdfBatchProcessTool",
 ];
 
 for (const name of SWEEP_FREE_TOOLS) {

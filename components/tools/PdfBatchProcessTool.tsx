@@ -17,6 +17,7 @@ import { useTrackToolView } from "./useToolTracking";
 import { useScrollErrorIntoView } from "./useScrollErrorIntoView";
 import { useHandoffConsumer } from "./useHandoffConsumer";
 import { useFileUrlConsumer } from "./useFileUrlConsumer";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import type { BatchOpId, BatchOutputItem } from "@/lib/pdf/ops/batch";
 
@@ -192,6 +193,23 @@ export function PdfBatchProcessTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <ToolHowItWorks
+        steps={[
+          {
+            title: "Drop in your PDFs",
+            body: "Drop multiple PDFs at once (up to 100 MB each). Files queue up locally — nothing leaves your browser while you set up the run.",
+          },
+          {
+            title: "Pick the operation to apply",
+            body: "Compress, rotate, grayscale, watermark, add page numbers, split — same engines as the single-file tools, applied to every file in the queue.",
+          },
+          {
+            title: "Download as a ZIP",
+            body: "Each output file lands in a single .zip with the operation suffix in its name (foo-compressed.pdf, bar-rotated.pdf …) so you can see at a glance what was applied.",
+          },
+        ]}
+        privacyNote="Your PDFs stay in your browser. Every operation runs client-side — nothing is uploaded or persisted at any step."
+      />
       {!result && (
         <>
           <div

@@ -9,6 +9,7 @@
 // PDF with only the selected pages, in ascending page order.
 
 import { PageGridTool } from "./PageGridTool";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 
 export function PdfExtractPagesTool() {
   return (
@@ -16,6 +17,25 @@ export function PdfExtractPagesTool() {
       toolId="extract-pages"
       toolGroup="Organize"
       dropPrompt="Drop a PDF to extract pages from"
+      howItWorks={
+        <ToolHowItWorks
+          steps={[
+            {
+              title: "Drop in your PDF",
+              body: "Up to 100 MB. PDFium renders the thumbnails locally in your browser so you can see every page before choosing.",
+            },
+            {
+              title: "Click the pages you want to keep",
+              body: "Selected pages get an accent border. The new PDF will contain only those pages, in ascending order — original positions, just the unselected ones removed.",
+            },
+            {
+              title: "Save the new PDF",
+              body: "We rebuild the PDF with only the picked pages — annotations, links, and form fields on those pages travel with them.",
+            },
+          ]}
+          privacyNote="Your PDF never leaves your browser. The extract happens client-side with pdf-lib — nothing is uploaded or persisted."
+        />
+      }
       helperWhenEmpty="Click thumbnails to mark pages for the new PDF."
       helperWhenSelected={(count, total) =>
         `${count} of ${total} pages selected for extraction`

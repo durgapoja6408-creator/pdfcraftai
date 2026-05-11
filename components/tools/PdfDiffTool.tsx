@@ -16,6 +16,7 @@ import { useScrollErrorIntoView } from "./useScrollErrorIntoView";
 import { useHandoffConsumer } from "./useHandoffConsumer";
 import { useFileUrlConsumer } from "./useFileUrlConsumer";
 import { HandoffSuggestions } from "./HandoffSuggestions";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import type { DiffPageStat } from "@/lib/pdf/ops/diff";
 
@@ -145,6 +146,23 @@ export function PdfDiffTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <ToolHowItWorks
+        steps={[
+          {
+            title: "Drop in both PDFs (before + after)",
+            body: "Up to 100 MB each. The diff runs locally in your browser — neither version leaves the page.",
+          },
+          {
+            title: "We line up the text and compare",
+            body: "Page-by-page text extraction + word-level diff surfaces added, removed, and modified passages with line context preserved.",
+          },
+          {
+            title: "Review changes side-by-side",
+            body: "Inline highlights show what moved between versions. Useful for contract redlines, doc-version reviews, or proofreading rounds. Export the changes as JSON for downstream tracking.",
+          },
+        ]}
+        privacyNote="Both PDFs stay in your browser. The diff happens client-side — nothing is uploaded, logged, or persisted."
+      />
       {!result && (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>

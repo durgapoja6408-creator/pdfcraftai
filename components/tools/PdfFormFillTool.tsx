@@ -27,6 +27,7 @@ import { useScrollErrorIntoView } from "./useScrollErrorIntoView";
 import { useHandoffConsumer } from "./useHandoffConsumer";
 import { useFileUrlConsumer } from "./useFileUrlConsumer";
 import { HandoffSuggestions } from "./HandoffSuggestions";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import type {
   FillValue,
@@ -170,6 +171,23 @@ export function PdfFormFillTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <ToolHowItWorks
+        steps={[
+          {
+            title: "Drop in a fillable PDF",
+            body: "Up to 100 MB. The form is parsed locally — your filled values stay in your browser the whole way through.",
+          },
+          {
+            title: "Type your answers right on the page",
+            body: "Text, checkboxes, radio groups, dropdowns — every field surfaces as a normal HTML control with its current value pre-filled if any.",
+          },
+          {
+            title: "Save the filled PDF",
+            body: "We write the values back into the AcroForm dictionary so any PDF reader can re-open and re-save the file with your answers intact.",
+          },
+        ]}
+        privacyNote="Your PDF and the values you type stay in your browser. The fill happens client-side with pdf-lib — nothing is uploaded or persisted."
+      />
       {!file && !result && (
         <div
           role="button"

@@ -14,6 +14,7 @@ import { downloadBytes } from "@/lib/client/download";
 import { useTrackToolView } from "./useToolTracking";
 import { useScrollErrorIntoView } from "./useScrollErrorIntoView";
 import { HandoffSuggestions } from "./HandoffSuggestions";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import type { CsvPaperSize } from "@/lib/pdf/ops/csv-to-pdf";
 
@@ -144,6 +145,23 @@ export function CsvToPdfTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <ToolHowItWorks
+        steps={[
+          {
+            title: "Drop in your CSV, TSV, or TXT",
+            body: "Up to 100 MB. The file is parsed locally — the data never leaves your browser.",
+          },
+          {
+            title: "Pick a paper size and layout",
+            body: "Letter / A4 / Legal, portrait or landscape, font size, header repeat per page. We auto-fit columns to the page width.",
+          },
+          {
+            title: "Save the PDF table",
+            body: "We render each row as a clean grid with header repetition, page numbers, and zebra-striped rows for readability — handy for printing or archiving spreadsheets as fixed documents.",
+          },
+        ]}
+        privacyNote="Your CSV and the generated PDF stay in your browser. The conversion happens client-side — nothing is uploaded or persisted."
+      />
       {!result && (
         <>
           <div

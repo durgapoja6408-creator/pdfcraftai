@@ -14,6 +14,7 @@
 // defensively.
 
 import { PageGridTool } from "./PageGridTool";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 
 export function PdfDeletePagesTool() {
   return (
@@ -21,6 +22,25 @@ export function PdfDeletePagesTool() {
       toolId="delete-pages"
       toolGroup="Organize"
       dropPrompt="Drop a PDF to delete pages from"
+      howItWorks={
+        <ToolHowItWorks
+          steps={[
+            {
+              title: "Drop in your PDF",
+              body: "Up to 100 MB. PDFium renders thumbnails locally in your browser so you can see every page before deciding.",
+            },
+            {
+              title: "Click the pages you want gone",
+              body: "Marked pages get a red border + dimmed preview so it's obvious what's being removed. You can re-click to undo, and the tool prevents you from emptying the document.",
+            },
+            {
+              title: "Save the trimmed PDF",
+              body: "We rebuild the PDF with the remaining pages — original page numbers shift down, but everything else (annotations, links, forms) stays intact.",
+            },
+          ]}
+          privacyNote="Your PDF never leaves your browser. The deletion happens client-side with pdf-lib — nothing is uploaded or persisted."
+        />
+      }
       helperWhenEmpty="Click thumbnails to mark pages for removal."
       helperWhenSelected={(count, total) =>
         `${count} of ${total} pages marked for removal`
