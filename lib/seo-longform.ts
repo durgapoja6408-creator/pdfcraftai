@@ -3788,4 +3788,158 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // search-in-pdf — utility for finding text
+  // ============================================================
+  "search-in-pdf": {
+    title: "Search inside a PDF — how text search actually works and what catches users off-guard",
+    intro:
+      "Searching for a word inside a PDF should be a one-line operation, and for most PDFs it is. But two patterns trip up enough users that they deserve a clear explanation: scanned PDFs where Ctrl-F returns nothing despite the word being plainly visible, and case-sensitivity differences between viewers that change which matches come back. Here is how PDF search actually works, the three search options that determine match quality, and the five workflows where this tool is the right starting point.",
+    sections: [
+      {
+        h: "How search reaches the text",
+        p: [
+          "Every text-based PDF stores its content as a stream of operators that draw glyphs at specific positions on each page. The actual text — the characters, their Unicode codepoints — is part of those operators. Our search reads the text content of every page, normalizes whitespace, and runs a substring or whole-word match against your query. Each match comes back with the page number it appeared on and a snippet of surrounding context so you can see the match in situ.",
+          "The same operation works in Acrobat, Preview, Chrome, Firefox, and any other PDF reader's Ctrl-F. The difference is presentation: our tool shows every match in a list across the document; readers typically highlight matches one at a time. The list view is more useful when you want to scan all matches at once (\"how many places does this contract mention liability?\") rather than jumping between them.",
+        ],
+      },
+      {
+        h: "Three search options that determine what matches",
+        p: [
+          "The defaults work for most queries. Three toggles change behavior in important ways:",
+        ],
+        list: {
+          items: [
+            { b: "Case-sensitive (default off).", t: "Off matches any case combination of the query. On only matches exact case. Use on when searching for proper nouns or specific identifiers where case carries meaning (\"iPhone\" vs \"iphone\")." },
+            { b: "Whole-word (default off).", t: "Off matches substrings — \"act\" matches \"act\", \"action\", \"react\", \"actor\". On only matches when the word is bounded by whitespace or punctuation. Use on when partial matches produce noise." },
+            { b: "Regex (default off, where supported).", t: "Off treats the query literally. On treats the query as a regular expression. Useful for advanced queries — \"\\$\\d+\" finds dollar amounts, \"\\b[A-Z]{2,}\\b\" finds all-caps words. Power-user mode; the default-off keeps casual queries simple." },
+          ],
+        },
+      },
+      {
+        h: "Why scanned PDFs return zero matches",
+        p: [
+          "The single biggest source of \"this is broken\" reports — and it's actually correct behavior. Scanned PDFs are usually image-only PDFs. Each page is a single rasterized bitmap of the original paper. There are no text operators in the content stream; the pixels look like text to humans but the PDF file has no idea what words are on the page.",
+          "Search reads the text content stream. When there is no text content, there are no matches — by construction, not by failure. The fix is to add a text layer: run AI · Make PDF Searchable (or AI · OCR) to recognize the pixels and insert a hidden text layer behind the image. After that, the PDF still LOOKS like the scan but Ctrl-F (and our search) can find words in it.",
+          "PDF Inspector tells you at a glance whether your PDF has a text layer or not — useful pre-check before reaching for search.",
+        ],
+      },
+      {
+        h: "Five workflows where search-in-pdf is the right starting tool",
+        p: [
+          "Cases where the list-of-matches view earns its place:",
+        ],
+        list: {
+          items: [
+            { b: "Contract clause inventory.", t: "\"How many places does this contract say 'indemnify'?\" Search returns every mention with surrounding context. Faster than reading the whole document." },
+            { b: "Spec compliance checks.", t: "Does the technical spec mention 'TLS 1.2'? Search finds every reference, lets you see whether the term appears in the context you care about." },
+            { b: "Citation hunting.", t: "Find every reference to a specific paper, person, or organization across a long document. Useful for legal research and academic-paper review." },
+            { b: "Term-frequency triage.", t: "Quick gauge of how heavily a document focuses on a topic. \"Cost\" mentioned 80 times in a 50-page report = budget-heavy doc. Mentioned 3 times = barely touched." },
+            { b: "Finding edited / inserted content.", t: "Comparing two versions of a document by searching for distinctive phrases is faster than running a full diff for casual checks." },
+          ],
+        },
+      },
+      {
+        h: "Two quirks worth knowing",
+        p: [
+          "Patterns that show up in support questions:",
+        ],
+        list: {
+          items: [
+            { b: "Hyphenated line breaks split words.", t: "Some PDFs hyphenate long words across lines: \"hyphen-\" + linebreak + \"ated\". Search for \"hyphenated\" misses the split occurrence because the actual text in the file is two tokens. Mitigation: search for both halves separately, or use regex (\"hyphen-?ated\") if your search supports it." },
+            { b: "Smart quotes vs straight quotes.", t: "A PDF may use curly quotes (“like this”) while you type straight quotes (\"like this\"). Search for one and the other won't match. If queries fail unexpectedly, copy a working occurrence from the PDF and paste it as your query to see if the apostrophe character is different." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, search handles PDFs up to 100 MB with no page-count cap. Up to 200 matches returned per query — refine the query if you need more. Parsing runs in your browser via PDFium WebAssembly; nothing is uploaded.",
+          "Common pairings: AI · Semantic Search when you want passages that MEAN the same thing rather than match a specific word. Make PDF Searchable to add a text layer to scans before searching. PDF Inspector to verify a text layer exists.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // pdf-form-fields — AcroForm inspector
+  // ============================================================
+  "pdf-form-fields": {
+    title: "PDF form field inspector — what an AcroForm dictionary contains and how to read it",
+    intro:
+      "PDF forms look like simple fill-in-the-blank documents, but underneath every fillable PDF is a structured AcroForm dictionary that lists every interactive field, its type, its constraints, and its current value. Most PDF readers hide this structure; you click into a field and type. But for compliance audits, data extraction pipelines, form-quality reviews, and accessibility checks, getting the structured field list out is exactly what you need. Here is what each AcroForm field type means, the five real workflows where surfacing the structure pays off, and the difference between this inspector and the Fill PDF Form tool.",
+    sections: [
+      {
+        h: "What's in an AcroForm dictionary",
+        p: [
+          "Every fillable PDF has an /AcroForm entry in its catalog that points to a /Fields array. Each entry in that array is a field dictionary — a structured record with a name (/T), a field type (/FT), an optional default value (/DV), an optional current value (/V), and a set of flags (/Ff) that control behavior (required, read-only, no-export, multiline, password, etc.). Fields can have child fields, creating a tree structure that mirrors the form's logical sections.",
+          "Reading the AcroForm tree gives you the form's complete data model: what data the form collects, the types of each field, the validation constraints, and any pre-filled defaults. The inspector walks that tree and surfaces every leaf field with its full set of properties.",
+        ],
+      },
+      {
+        h: "Four field types and what each means",
+        p: [
+          "The PDF spec defines exactly four AcroForm field types — every fillable field is one of these:",
+        ],
+        list: {
+          items: [
+            { b: "Tx — text input.", t: "Single-line or multi-line text fields. Multi-line is signaled by a flag (/Ff bit 13). Password fields are also Tx with a password flag — same type, different display." },
+            { b: "Btn — button.", t: "Includes checkboxes (toggle on/off), radio buttons (mutually exclusive group), and pushbuttons (execute a JS action when clicked). Flags distinguish the subtypes." },
+            { b: "Ch — choice.", t: "Dropdowns and listboxes. The list of options is stored in /Opt. Editable combo-boxes (where users can type a value not in the list) are signaled by a flag." },
+            { b: "Sig — signature.", t: "Placeholder for a cryptographic signature. When signed, the field's /V holds the signature dictionary with certificate, timestamp, and signed-bytes hash." },
+          ],
+        },
+      },
+      {
+        h: "Flags worth knowing",
+        p: [
+          "The /Ff (field-flags) bitmask carries behavioral metadata. The most-asked flags:",
+        ],
+        list: {
+          items: [
+            { b: "Required.", t: "Form-submission processors should reject the form if the field is empty. The inspector surfaces required fields explicitly so you can see which inputs the form considers essential." },
+            { b: "Read-only.", t: "Field cannot be edited via PDF readers. Often used for computed fields that derive from other fields, or for pre-filled fields that should not be changed by the recipient." },
+            { b: "No-export.", t: "Field is filled but its value is excluded from form-data exports. Used for fields that are visual-only (e.g. computed totals that should appear on the rendered PDF but not in extracted data)." },
+            { b: "Multiline (Tx only).", t: "Text field accepts line breaks. Without this flag, even if the field is visually large, the input is a single line that scrolls." },
+            { b: "Password (Tx only).", t: "Display masks the typed characters with bullets. Note: this is display-only — the underlying value is still stored in clear text in the PDF." },
+          ],
+        },
+      },
+      {
+        h: "Five workflows where the inspector pays off",
+        p: [
+          "Cases where you need the field list as data, not as an interactive form:",
+        ],
+        list: {
+          items: [
+            { b: "Form-data extraction pipelines.", t: "Reading filled forms and ingesting the values into a database. The inspector lists field names + types + current values as CSV/JSON, which the pipeline consumes directly. Faster and more reliable than OCR on the rendered form." },
+            { b: "Compliance audits.", t: "\"What data does this intake form collect?\" The inspector surfaces every field, which compliance can review against PII / data-minimization policies." },
+            { b: "Form quality reviews.", t: "Are required-field flags set correctly? Are read-only flags blocking accidental changes? The inspector makes form structure visible for review without filling it." },
+            { b: "Accessibility audits.", t: "Each field's tooltip (/TU) and tab order should be set for screen-reader access. The inspector surfaces both so accessibility reviewers can verify them." },
+            { b: "Multi-form data mapping.", t: "When mapping fields from form A to form B (e.g. for a workflow that auto-fills application B from application A), the inspector's exported field list is the input to the mapping spec." },
+          ],
+        },
+      },
+      {
+        h: "Inspector vs Fill PDF Form — when to use each",
+        p: [
+          "Two related tools, different goals:",
+        ],
+        list: {
+          items: [
+            { b: "Inspector — surface the structure.", t: "Read-only. Output is the field-list as JSON / CSV. Use when you need to see what the form looks like in data form, not when you need to add values to it." },
+            { b: "Fill PDF Form — add values.", t: "Modifies the PDF. Each field gets a value you type. Output is the filled PDF. Use when you actually want to complete the form." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, the form-field inspector handles PDFs up to 100 MB. Parsing runs in your browser via byte-level parsing; nothing is uploaded. Output is a structured list of every AcroForm field with name, type, value, defaults, and flags. Exportable as JSON or CSV.",
+          "Common pairings: Inspector → Fill PDF Form when you want to fill the surveyed form. Inspector → AI · Fill when the source PDF is flat (no AcroForm) and the inspector shows zero fields — that's the trigger to use the visual-detection AI variant.",
+        ],
+      },
+    ],
+  },
 };
