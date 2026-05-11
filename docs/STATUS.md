@@ -1378,6 +1378,10 @@ All four doc changes are planning-layer only (zero code deltas, zero runtime imp
 
 ## Done
 
+### 2026-05-11 — Item #8 sweep batch 3: Rotate + Unlock explainers
+
+- [x] **feat(tools): inline ToolHowItWorks sweep batch 3.** Commit `764e7a5` (2026-05-11). PdfRotateTool + PdfUnlockTool now ship the inline explainer. Both client-side pdf-lib, both carry "never leaves your machine" privacyNote. PdfUnlockTool's step 2 explains the owner-vs-user-password distinction inline — the most-asked support question for that tool (owner-protected unlocks freely; user-protected needs the password but stays on-device). CI guard SWEEP_FREE_TOOLS list grows 3 → 5; 37 assertions total. Aggregator: 6455 passed, 0 failed across 116 suites (was 6445/116). Clean deploy. **Item #8 progress: 6 of N tools (1 AI + 5 free).** **No deploy gotcha.**
+
 ### 2026-05-11 — Item #8 sweep batch 2: ToolHowItWorks on top 3 free tools
 
 - [x] **feat(tools): inline ToolHowItWorks sweep batch 2 — Merge/Split/Compress.** Commit `caa2163` (2026-05-11). Three top free tools (PdfMergeTool / PdfSplitTool / PdfCompressTool) now ship the inline ToolHowItWorks explainer that the Summarize canary introduced (commit `784acc2`). Each tool gets 3-step canonical structure (drop / config / apply) plus tool-specific privacyNote: Merge & Split say "never leaves your machine" (client-side pdf-lib); Compress says "discarded immediately — never persisted on disk" (Ghostscript server-side). Privacy story stays consistent across tool classes — free tools emphasize browser-side processing; AI tools emphasize zero retention. CI guard's privacyNote check accepts any of these canonical phrases. CI guard +15 assertions in Section C — new SWEEP_FREE_TOOLS list loops each tool through 5 invariants. 27 total in the harness (was 12). Aggregator: 6445 passed, 0 failed across 116 suites (was 6430/116). **Deploy gotcha:** zombie cleanup. Mass-kill + restart.txt cleared. **Item #8 progress: 4 of N tools (1 AI canary + 3 free); pattern transfer from AI to free-tool surface validated, privacy-story parity formalized as canonical-phrase allowlist.**
