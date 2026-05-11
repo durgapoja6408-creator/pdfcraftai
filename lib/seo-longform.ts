@@ -6023,4 +6023,173 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // pdf-tldr — short summary AI
+  // ============================================================
+  "pdf-tldr": {
+    title: "PDF TL;DR — when 'just tell me what it says' is the right answer",
+    intro:
+      "Not every PDF deserves a detailed summary. Sometimes you just need a 2-4 sentence read of what's inside before deciding whether to invest the time to read it properly. The TL;DR is the smallest meaningful summary unit on the platform — tighter than Summarize, shorter than Key Points, designed for the triage decision rather than the comprehensive read. Here is what it produces, the four triage scenarios where it earns its 2-credit cost, and the difference between TL;DR and the other summary depths.",
+    sections: [
+      {
+        h: "What TL;DR produces",
+        p: [
+          "Drop any text-based PDF. The tool extracts the page text, runs a single-paragraph summary prompt, and returns a 2-4 sentence answer to the question \"what is this document about?\" The output is deliberately tight. There are no headings, no bullets, no section breakdowns — just the dense executive-summary paragraph.",
+          "The first sentence states the topic. The second sentence (and sometimes third and fourth) state the substantive content — what the document actually argues, finds, or proposes. The output reads like an abstract written by someone who finished the document, in roughly the same time it takes to make coffee.",
+        ],
+      },
+      {
+        h: "Four triage scenarios where TL;DR earns its place",
+        p: [
+          "Cases where 2-4 sentences is exactly the right shape of output:",
+        ],
+        list: {
+          items: [
+            { b: "Email-attachment triage.", t: "You received a PDF in an email and the email body doesn't explain what's inside. Run TL;DR to decide whether the document warrants opening properly, forwarding to someone else, filing for later, or ignoring." },
+            { b: "Search-result preview.", t: "You found a relevant-looking PDF in research, but the title alone doesn't tell you whether the document actually addresses your question. TL;DR gives you the topical answer before you commit to reading." },
+            { b: "Document-pile prioritization.", t: "Faced with a stack of PDFs to read, run TL;DR on each. The summaries tell you which to read first, which to delegate, and which to skip." },
+            { b: "Pre-meeting prep.", t: "A meeting starts in 20 minutes and someone shared a 30-page document. TL;DR in 30 seconds tells you what you need to know to participate meaningfully — full read can happen after the meeting if warranted." },
+          ],
+        },
+      },
+      {
+        h: "TL;DR vs the other summary depths",
+        p: [
+          "Four related tools, each for a different depth:",
+        ],
+        list: {
+          items: [
+            { b: "TL;DR (2 credits).", t: "2-4 sentence paragraph. Use for triage." },
+            { b: "Key Points (3 credits).", t: "6-12 bullet points with page citations. Use when you want the substantive claims surfaced individually but don't need full prose." },
+            { b: "Summarize / Standard (3 credits).", t: "TL;DR + Key Points + section breakdown in prose. Use when you actually want to understand the document without reading the whole thing." },
+            { b: "Summarize / Detailed (3 credits).", t: "Section-by-section detailed summaries that read like an expanded outline. Use when you need to refer back to specific sections later." },
+          ],
+        },
+      },
+      {
+        h: "Three patterns to know",
+        p: [
+          "Specific behaviors:",
+        ],
+        list: {
+          items: [
+            { b: "Length variance.", t: "Most TL;DRs are 3 sentences. Very short documents (1-page abstracts, brief news articles) come back as 2 sentences. Long documents (50+ pages) sometimes come back as 4 sentences to capture the structural complexity. The tool picks based on how much there actually is to say." },
+            { b: "Quoted text preservation.", t: "If the source has a specific quote that's central to the argument, the TL;DR sometimes incorporates it as a direct quote with attribution. The exception to the \"no specifics\" rule is when the specifics ARE the topic." },
+            { b: "Tone matching.", t: "The TL;DR matches the source's register — formal for legal/academic, conversational for blog posts. The summary doesn't shift the tone of the document." },
+          ],
+        },
+      },
+      {
+        h: "When TL;DR isn't enough",
+        p: [
+          "Three signals you should use a deeper summary tool instead:",
+        ],
+        list: {
+          items: [
+            { b: "You'll need to refer back later.", t: "TL;DR is a one-time read. If you'll need the summary as a reference document, use Summarize / Standard so you have section structure to navigate." },
+            { b: "You need to cite specific claims.", t: "TL;DR doesn't carry page citations. If your downstream use requires citing where claims came from in the source, use Key Points (which does cite pages)." },
+            { b: "Document is too long for one paragraph to capture.", t: "A 200-page book doesn't fit in 4 sentences. The TL;DR will give the top-level topic but miss substantive content. Use Summarize / Detailed for long documents." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "PDF TL;DR charges 2 credits per document — the cheapest AI summary tier. The tool handles PDFs up to 25 MB. Processing runs on our servers; the document is in memory only during summarization and is never persisted. Output is a 2-4 sentence paragraph.",
+          "Common pairings: TL;DR for triage → if relevant, escalate to Summarize / Key Points / Study Notes for deeper reading. Scan a folder of PDFs by running TL;DR on each, then pick the ones worth a deeper pass.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // pdf-key-points — bulleted-claims AI
+  // ============================================================
+  "pdf-key-points": {
+    title: "PDF Key Points Extractor — 6-12 bullets with page citations and why citations matter",
+    intro:
+      "Sometimes you don't need a summary. You need the underlying claims, separated, each verifiable against the source. Key Points produces exactly that: a clean bulleted list of the document's substantive claims, each with a page citation so you can verify against the original. Here is how it differs from Summarize and TL;DR, why page citations are the load-bearing feature, and the three workflows where the bulleted-with-citations shape beats any prose summary.",
+    sections: [
+      {
+        h: "What Key Points produces",
+        p: [
+          "Drop a PDF. The tool extracts the page text, runs a claim-extraction prompt, and returns a Markdown bullet list. Each bullet captures one substantive claim, finding, or argument from the document. Every bullet ends with a citation in [p. N] format pointing to the source page where the claim appears.",
+          "There are no intro paragraphs, no closing summary, no \"in conclusion\" prose. Just the claims, individually, scannable in 30 seconds. Total bullet count is typically 6-12 — shorter for brief documents, longer for substantial ones. The tool decides based on how many distinct claims actually exist; there is no fixed cap.",
+        ],
+      },
+      {
+        h: "Why page citations are the load-bearing feature",
+        p: [
+          "The citation suffix on every bullet is what separates Key Points from a generic bullet-summary tool. Three concrete uses:",
+        ],
+        list: {
+          items: [
+            { b: "Verifying the AI's interpretation.", t: "Every bullet is checkable. If a claim seems surprising, jump to that page in the source and verify the AI extracted it correctly. The citation makes verification a one-click operation rather than a search." },
+            { b: "Pulling source-attributed quotes for downstream use.", t: "When you cite the document in your own writing, you need to point to a specific page. Key Points already tells you which page each claim came from." },
+            { b: "Catching hallucinated claims.", t: "If a bullet has no citation (or cites a page that doesn't contain the claim), that's a flag for a fabricated finding. The page-citation discipline forces the model to ground every claim — and when it can't, that's information too." },
+          ],
+        },
+      },
+      {
+        h: "When bullets-with-citations beats prose",
+        p: [
+          "Three workflows where the bulleted shape is the right one:",
+        ],
+        list: {
+          items: [
+            { b: "Building a research summary.", t: "You're compiling findings from multiple documents into a literature review or report. Key Points from each document gives you a citation-ready bullet list to weave into your own synthesis. Prose summaries would require re-extracting individual claims; bullets are already in the right format." },
+            { b: "Note-taking for self-study.", t: "Reading a textbook chapter or research paper for class. Bullet points are easier to revisit than prose summaries. Page citations let you jump back to the source for context when the bullet alone isn't enough." },
+            { b: "Briefing someone else.", t: "Need to brief a colleague on what's in a document. Bullets are scannable; they can read the list in 30 seconds and decide what to ask about. Prose forces them to read sequentially." },
+          ],
+        },
+      },
+      {
+        h: "How the tool decides what's a 'key point'",
+        p: [
+          "Three criteria the model uses:",
+        ],
+        list: {
+          items: [
+            { b: "Substantive claims, not topical mentions.", t: "\"The paper discusses inflation\" is not a key point. \"Inflation rose 3.2% in Q4 2024 [p. 14]\" is. Specifics over generalities." },
+            { b: "Self-contained, not context-dependent.", t: "Each bullet should be readable on its own without requiring the reader to remember the previous bullet. Cross-referential bullets get collapsed or split." },
+            { b: "Decision-relevant, not decoration.", t: "A bullet that captures a finding affecting the reader's understanding or decisions gets kept. Throat-clearing observations get filtered out." },
+          ],
+        },
+      },
+      {
+        h: "When Key Points isn't the right shape",
+        p: [
+          "Three cases where a different summary tool fits better:",
+        ],
+        list: {
+          items: [
+            { b: "You want narrative flow.", t: "If you need the document's argument to flow as a story — context → claim → evidence → conclusion — bullets break the flow. Use Summarize / Standard for connected prose." },
+            { b: "Short triage is enough.", t: "If you only need to decide whether to read the document at all, use TL;DR (2 credits vs Key Points' 3). The bullet structure is overkill for the triage decision." },
+            { b: "Studying for an exam.", t: "Exam prep benefits from spaced-repetition flashcards more than from a bullet list. Use PDF to Flashcards for that workflow." },
+          ],
+        },
+      },
+      {
+        h: "Reading the output critically",
+        p: [
+          "Three habits when working with Key Points output:",
+        ],
+        list: {
+          items: [
+            { b: "Verify high-stakes bullets at the source.", t: "If a bullet captures a claim you'll cite or rely on, click through to the cited page and confirm the bullet captures the source accurately. AI extraction is high-quality but not infallible." },
+            { b: "Watch for missing citations.", t: "Bullets without [p. N] are flags — the model couldn't tie the claim to a single page. Sometimes that's legitimate (multi-page themes), sometimes it's hallucination. Worth verifying explicitly." },
+            { b: "Use the bullet list as a navigation aid.", t: "Beyond reading the bullets, use them as a reverse index. \"I remember a claim about X — here's the bullet — page 47 is where to look in the source.\" Faster than scanning the PDF directly." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "PDF Key Points charges 3 credits per document. The tool handles PDFs up to 25 MB. Processing runs on our servers; the document is in memory only during extraction and is never persisted. Output is a Markdown bullet list with per-bullet page citations.",
+          "Common pairings: Key Points for the bullet-list view; Summarize / Standard for the prose view; PDF Chat for follow-up questions on specific bullets. The three together cover most reading workflows.",
+        ],
+      },
+    ],
+  },
 };
