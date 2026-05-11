@@ -2825,4 +2825,165 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // add-logo-to-pdf — branding workflow, image-watermark
+  // ============================================================
+  "add-logo-to-pdf": {
+    title: "Add a logo or image watermark to a PDF — positioning, opacity, and the rules nobody tells you",
+    intro:
+      "Stamping a logo onto every page of a PDF is one of the most-used branding operations on the site. The mechanics are simple — pick an image, set position, click apply — but the choices that produce a professional-looking output versus an amateur one are not always obvious. Here is what the tool actually does, the nine positions and three opacity ranges that cover essentially every branding workflow, and the four patterns that distinguish a logo overlay that reads as polished from one that reads as slapped-on.",
+    sections: [
+      {
+        h: "How image watermarking works under the hood",
+        p: [
+          "The tool embeds your logo image (PNG or JPEG) into the PDF as a reusable resource, then references that resource from each page's content stream at the position and scale you choose. Because the image is referenced rather than re-embedded per page, a hundred-page PDF with a logo on every page contains the logo bytes only once — file size goes up by roughly the logo's PNG/JPEG size plus a few bytes per page for the reference. The original page contents are untouched; the logo is drawn on top with the opacity you set.",
+          "PNG transparency is honored: a logo with a transparent background draws correctly without a solid backplate. JPEGs are always rectangular; if your logo needs transparency you need a PNG. The drawing happens at vector-quality regardless of the source — PDF embeds the image stream losslessly and lets the viewer handle scaling.",
+        ],
+      },
+      {
+        h: "Nine positions explained",
+        p: [
+          "The tool offers a 3×3 position grid. Each pick has a different visual signal:",
+        ],
+        list: {
+          items: [
+            { b: "Top-left.", t: "Corporate stationery convention. Looks like letterhead." },
+            { b: "Top-center.", t: "Brand-front-and-center. Used for templates where the logo is part of the document identity." },
+            { b: "Top-right.", t: "Subtle branding that does not compete with the page title. Common for reports and white papers." },
+            { b: "Middle-left / Middle-right.", t: "Rare. Used occasionally for sidebar-style branding on landscape pages." },
+            { b: "Center.", t: "Hidden-but-present branding. Combined with low opacity (15-25%) this is the classic \"watermark\" look — large logo at low opacity behind the content." },
+            { b: "Bottom-left.", t: "Quiet branding in the footer area. Common for documents where the bottom-right is reserved for page numbers." },
+            { b: "Bottom-center.", t: "Reserved for the company-info-block — typically used when the logo is part of a footer that also includes address and contact info." },
+            { b: "Bottom-right.", t: "Default for short-document branding. Looks like a sign-off." },
+          ],
+        },
+      },
+      {
+        h: "Three opacity ranges and what they signal",
+        p: [
+          "Opacity is the single biggest difference between a polished result and a sloppy one. Three ranges, each with a different visual purpose:",
+        ],
+        list: {
+          items: [
+            { b: "85-100% — full-intensity branding.", t: "The logo is part of the visual language. Use in the corner of every page on a report or template. Looks intentional and confident." },
+            { b: "40-70% — semi-transparent branding.", t: "The logo is visible but does not compete with content. Common for footer logos on technical docs where the logo should be present but not dominant." },
+            { b: "10-30% — true watermark.", t: "The logo is in the background, often centered, large enough to span much of the page. Reads as a backdrop. Use for confidentiality watermarks (\"DRAFT\", \"INTERNAL\") on documents that need a visual but not content-blocking signal." },
+          ],
+        },
+      },
+      {
+        h: "Four patterns that separate polished from sloppy",
+        p: [
+          "Habits that make logo overlays look intentional:",
+        ],
+        list: {
+          items: [
+            { b: "Pick a scale that respects the page proportions.", t: "Most users default to 100% scale, which often makes the logo too large for the page. Try 30-50% scale first, then bump up only if the logo looks small. The smaller-looking version usually feels more professional." },
+            { b: "Use a transparent-background PNG.", t: "If your logo has a colored background, it looks like a sticker stuck on the page. A transparent-background PNG blends with whatever is underneath. If your logo file only exists as JPEG, run it through a remove-background tool first." },
+            { b: "Match opacity to background contrast.", t: "On a page with mostly white background, a dark logo at 30% opacity is subtle. On a page with mixed content, the same opacity may make the logo barely visible. Test with one page first; the visual result is what matters, not the percentage." },
+            { b: "Apply to all pages, then verify with a scroll-through.", t: "Some pages — full-page images, charts that fill the canvas — interact with logo overlays differently than the average page. A 30-second scroll-through after applying catches the one page where the logo lands on top of important content." },
+          ],
+        },
+      },
+      {
+        h: "Targeting specific pages",
+        p: [
+          "By default the logo applies to every page. Two reasons to override:",
+        ],
+        list: {
+          items: [
+            { b: "Cover page only.", t: "Type \"1\" in the page-range field. The logo lands only on the cover. Useful for documents that already have a separate template for body pages." },
+            { b: "Exclude appendices or front matter.", t: "Type \"1-N\" minus the appendix range, or specify the exact body range (e.g. \"3-47\" to skip the cover and TOC and the trailing appendix). The page-range syntax is the same as Extract / Delete Pages." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, image watermarking handles PDFs up to 100 MB and logo images up to 50 MB. Both PNG (with transparency) and JPEG are supported. Processing runs in your browser via pdf-lib; nothing is uploaded.",
+          "Common pairings: Logo + Page Numbers for a fully-branded report. Logo + Flatten so the recipient cannot remove the logo. Logo + Compress for the smallest final-deliverable file size with branding intact.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // n-up-pdf — printing-workflow, paper-saving
+  // ============================================================
+  "n-up-pdf": {
+    title: "N-up PDF — when packing more pages per sheet saves paper without losing readability",
+    intro:
+      "N-up imposition — packing 2, 4, 6, 8, or 9 source pages onto each output sheet — is one of those quietly-essential print-prep operations. Done right, it cuts paper use in half (or more) while keeping every word readable. Done wrong, it produces output where the text is too small to read or the layout is so awkward that nobody uses it. Here is how N-up actually works, the four layouts that cover every reasonable use case, and the patterns that determine whether a 4-up handout is great or unreadable.",
+    sections: [
+      {
+        h: "How N-up imposition works",
+        p: [
+          "The tool reads each source page, then composes new output sheets where N source pages share one output sheet via a grid layout. Each source page is aspect-fit into one slot in the grid (no stretching, no cropping — just scaling). The result is fewer sheets total with content that stays readable thanks to the aspect-preserved scaling.",
+          "Output is real PDF, not a rasterized snapshot. Text on the tiled source pages remains selectable, searchable, and screen-reader-accessible at the smaller scale. Vector content stays sharp. The output is byte-compatible with every reader.",
+        ],
+      },
+      {
+        h: "Four layouts that cover every reasonable use",
+        p: [
+          "The tool exposes five layouts (2-up, 4-up, 6-up, 8-up, 9-up) but four of them cover almost every real workflow:",
+        ],
+        list: {
+          items: [
+            { b: "2-up — the safe paper-saver.", t: "Two source pages per output sheet. Text stays large enough to read at arm's length. Use for printing draft documents, save-paper handouts, or any case where readability matters more than density." },
+            { b: "4-up — the classic handout.", t: "Four source pages per output sheet (2×2 grid). The standard conference-handout layout: text smaller than the original but still readable at desk-reading distance. Most cited use case for N-up." },
+            { b: "6-up or 8-up — overviews.", t: "Six or eight source pages per output sheet. Text is too small to read at normal distance — these are for visual overview only. Use to see the structure of a long document at a glance, like a contact sheet for a slide deck." },
+            { b: "9-up — the contact sheet.", t: "Nine source pages per output sheet (3×3 grid). Pure visual overview. Used by designers and editors for at-a-glance review of dozens of pages on a single sheet. Not for reading." },
+          ],
+        },
+      },
+      {
+        h: "Three patterns that determine readability",
+        p: [
+          "The settings that distinguish usable N-up output from unusable:",
+        ],
+        list: {
+          items: [
+            { b: "Match output paper to source aspect.", t: "Portrait sources tile naturally onto landscape output — every slot is portrait, every gap looks deliberate. Tiling portrait sources onto portrait output (or landscape onto landscape) leaves awkward whitespace. Pick landscape paper for portrait sources, and vice versa. The tool offers a landscape default for this reason." },
+            { b: "Use margin and gap settings deliberately.", t: "Zero margin and zero gap maximizes content density but reads as crowded. 12-18pt margin and 6-12pt gap reads as professionally laid out. The defaults strike a reasonable balance; only adjust when you have a specific need." },
+            { b: "Verify text size at the destination output.", t: "A 4-up A4 sheet has each source-A4 slot at about half-size. 10pt body text becomes ~7pt at the slot — readable at desk distance but tight. If your source text was already small, 4-up is too dense; drop to 2-up." },
+          ],
+        },
+      },
+      {
+        h: "When N-up is the right move",
+        p: [
+          "Cases where the paper-saving (or paper-using-differently) trade-off is genuinely worth it:",
+        ],
+        list: {
+          items: [
+            { b: "Printing draft documents to review.", t: "Drafts that get marked up and discarded should be 2-up or 4-up. Cuts paper in half without losing the ability to read and annotate." },
+            { b: "Conference handouts.", t: "Six-page slide decks to give attendees at the end of a talk. 4-up at one slide per slot gives a clean printed handout." },
+            { b: "Study materials.", t: "Long-form readings (book chapters, research papers) where students benefit from a compressed printout they can annotate. 2-up or 4-up depending on text density." },
+            { b: "Visual overviews of long documents.", t: "Comparing pages of a long report side-by-side — use 6-up or 9-up to see structure rather than detail." },
+            { b: "Reducing print costs.", t: "Some print contracts charge per page or per sheet. N-up reduces the count proportionally, often by significant amounts on long jobs." },
+          ],
+        },
+      },
+      {
+        h: "When N-up is the wrong tool",
+        p: [
+          "Two situations where you should reach for a different operation:",
+        ],
+        list: {
+          items: [
+            { b: "Booklet imposition (folded saddle-stitch).", t: "Booklet imposition rearranges pages in printer-spread order so a folded stack reads in the correct sequence. N-up is straight grid tiling — it does not handle booklet folding. Use the Booklet PDF tool for that." },
+            { b: "Selecting a subset of pages.", t: "N-up tiles ALL the source pages. If you want only a subset on the output, run Extract Pages first to produce the subset, then N-up that result." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, N-up handles PDFs up to 100 MB. Processing runs in your browser via pdf-lib; nothing is uploaded. Output is byte-compatible with every PDF reader. Text on tiled source pages remains selectable and searchable.",
+          "Common pairings: Extract Pages → N-up to tile a subset. Compress after N-up for the smallest final file. Booklet PDF instead of N-up when the destination is a folded booklet, not a flat handout.",
+        ],
+      },
+    ],
+  },
 };
