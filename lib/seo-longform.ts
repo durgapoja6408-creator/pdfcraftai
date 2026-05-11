@@ -2668,4 +2668,161 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // remove-pdf-metadata — privacy + redaction-adjacent
+  // ============================================================
+  "remove-pdf-metadata": {
+    title: "Remove PDF metadata — what's hidden in your file and why scrubbing matters",
+    intro:
+      "Every PDF carries metadata — names, dates, paths, software versions, sometimes much more — that the visible page contents never reveal. Most of the time this is harmless. Occasionally it leaks information you specifically did not intend to share: the original author's name on an anonymous submission, the file path of a draft on someone's confidential C drive, the authoring application that gives away your internal workflow. Here is exactly what metadata is in a typical PDF, the three categories of leaks worth caring about, and the limits of what scrubbing can actually do.",
+    sections: [
+      {
+        h: "Three places metadata lives in a PDF",
+        p: [
+          "PDFs carry metadata in three structurally distinct locations:",
+        ],
+        list: {
+          items: [
+            { b: "The /Info dictionary.", t: "The classic metadata block: Title, Author, Subject, Keywords, Creator (the source application — e.g. \"Microsoft Word\"), Producer (the PDF-generation library — e.g. \"PDFKit\"), and CreationDate / ModDate timestamps. Every PDF has this; what is in it varies enormously by generator." },
+            { b: "The XMP metadata stream.", t: "An XML-based metadata stream supporting much richer information than the /Info dictionary — Dublin Core fields, custom schemas, version history, contributor lists, embedded color profiles. Mostly populated by professional design and publishing tools (Adobe InDesign, QuarkXPress) and by archival systems (PDF/A producers always embed XMP)." },
+            { b: "Per-element metadata.", t: "Annotations carry an author field. Form fields can carry default-value metadata. Embedded files can carry their own internal metadata. Cryptographic signatures carry signer-identity metadata that is part of the signature's validity proof." },
+          ],
+        },
+      },
+      {
+        h: "What the scrub tool does and doesn't touch",
+        p: [
+          "Our Remove Metadata tool clears the /Info dictionary and the XMP stream completely. Every field becomes empty. The PDF's visible content — text, images, vectors, annotations — is untouched. So is per-element metadata (annotation authors, signer identities). Annotations that carry an Author field require flattening to strip — flatten first, then scrub, for a fully-clean document.",
+          "Cryptographic signatures contain metadata that is part of their validity proof. Removing the signature's metadata would invalidate the signature. The scrub tool intentionally leaves cryptographic signatures alone; if you need to strip a signed document's metadata, remove the signature first (via Acrobat Pro) and then scrub.",
+        ],
+      },
+      {
+        h: "Three categories of metadata leaks worth knowing",
+        p: [
+          "The patterns that show up in real-world embarrassments:",
+        ],
+        list: {
+          items: [
+            { b: "Author name on an anonymous submission.", t: "Conferences with double-blind review, government tip-line submissions, RFP responses where anonymity matters. The /Info dictionary's Author field is often pre-filled from the user's OS login name without their realizing." },
+            { b: "Original file path or filename.", t: "Some generators put the source filename (\"C:\\Users\\jane\\Documents\\confidential.docx\") in the /Info dictionary. This leaks the document's original name and the local user account. Even when you renamed the PDF to share, the metadata still says where it came from." },
+            { b: "Authoring application that reveals workflow.", t: "If your competitive bid says \"Creator: Microsoft Word 2003\" and theirs says \"Creator: Adobe InDesign 2024\", you have just told them you typed your bid in a 20-year-old word processor. Strip the Creator field for a level playing field." },
+          ],
+        },
+      },
+      {
+        h: "When metadata scrubbing alone isn't enough",
+        p: [
+          "Three situations where scrubbing the /Info dictionary is the right START but you need additional steps:",
+        ],
+        list: {
+          items: [
+            { b: "Documents with annotations or comments.", t: "Each annotation carries an author. Flatten the PDF first (Flatten tool), then scrub metadata. After flattening, annotations become page content and their author metadata is gone." },
+            { b: "Documents with embedded files.", t: "Embedded files carry their own internal metadata. Use Extract Attachments to inventory them; remove embedded files you do not need before scrubbing the outer document." },
+            { b: "Documents with hidden text or comments.", t: "PDF supports hidden text (used for OCR text layers behind images). Scrubbing metadata does not affect this. If you need to remove hidden text too, run AI · Redact with the appropriate categories." },
+          ],
+        },
+      },
+      {
+        h: "What scrubbing cannot do",
+        p: [
+          "Two important limits worth knowing:",
+        ],
+        list: {
+          items: [
+            { b: "Scrubbing cannot remove content.", t: "If sensitive information is in the visible text of the PDF, scrubbing metadata does nothing. Use Redact for visible content." },
+            { b: "Scrubbing cannot prevent metadata being re-added later.", t: "Once the metadata is stripped and the file is saved, the result is metadata-free. But if someone else opens that PDF in their editor and saves it back, their editor will re-populate /Info with their own Author name and a new ModDate. Always scrub at the LAST step before distribution." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, metadata scrubbing handles PDFs up to 100 MB. Processing runs in your browser via pdf-lib; nothing is uploaded. Output is byte-compatible with every PDF viewer.",
+          "Common pairings: Flatten → Remove Metadata for fully-clean shareable PDFs. Remove Metadata → Sign for documents that need a fresh cryptographic identity. Compress → Remove Metadata for the smallest, cleanest deliverable.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // batch-process-pdf — high-throughput workflow tool
+  // ============================================================
+  "batch-process-pdf": {
+    title: "Batch process PDFs — when one operation across many files is the right move",
+    intro:
+      "Batch processing is the boring-but-essential operation that turns \"this would take an afternoon\" into \"this takes thirty seconds.\" If you have ever had to apply the same operation to dozens of PDFs — rotating a hundred scans, page-numbering a folder of contract drafts, stripping metadata from a stack of submissions — you have felt the friction of doing it one file at a time. Here is what batch processing does, the five operations that cover almost every real workflow, and the two patterns that determine whether batch is the right choice or whether you need a different shape of tool.",
+    sections: [
+      {
+        h: "What batch processing actually does",
+        p: [
+          "Drop up to 50 PDFs at once. Pick one operation. Click apply. The tool runs that operation on every file in sequence, then bundles the outputs into a single .zip with the original filenames preserved. Settings configured once apply to every file — pick the rotation amount once, type the watermark text once, set the metadata-strip options once.",
+          "The processing is sequential rather than parallel — your browser processes one PDF at a time, then moves to the next. For 10 small files this is essentially instant; for 50 large files it can take a minute or two. A progress bar shows which file is currently processing so you can tell whether the tool is running or stalled.",
+        ],
+      },
+      {
+        h: "Five operations that cover almost every batch need",
+        p: [
+          "The batch tool exposes a focused set of operations that match the common reasons people batch-process PDFs:",
+        ],
+        list: {
+          items: [
+            { b: "Rotate (90° / 180° / 270°).", t: "A scanner produced a folder of pages that all need to be rotated the same direction. Batch-rotate fixes them all in one pass." },
+            { b: "Add page numbers.", t: "A folder of contract drafts that all need consistent page numbers before circulation. One configuration, applied uniformly." },
+            { b: "Add watermark (text or image).", t: "Stamp a confidentiality watermark across a batch of submissions. Or apply a logo overlay to a folder of branded outputs." },
+            { b: "Remove metadata.", t: "Strip /Info dictionaries from a folder of pre-distribution deliverables. The fastest pre-share sanitation pass." },
+            { b: "Flatten form fields.", t: "A folder of filled application forms that all need to be locked down before submission. One click locks them all." },
+            { b: "Strip hyperlinks.", t: "A folder of documents that should not contain clickable links (e.g. for a paper-style submission where links are inappropriate). Remove them in one pass." },
+          ],
+        },
+      },
+      {
+        h: "Batch vs Merge — which to use when",
+        p: [
+          "These two operations look similar but produce different outputs:",
+        ],
+        list: {
+          items: [
+            { b: "Batch process — many in, many out.", t: "Input: N PDFs. Output: N processed PDFs (in a .zip). Use when you want each file processed independently and kept separate." },
+            { b: "Merge — many in, one out.", t: "Input: N PDFs. Output: 1 combined PDF. Use when you want all the files glued together into a single document." },
+          ],
+        },
+      },
+      {
+        h: "When batch processing isn't the right shape",
+        p: [
+          "Three situations where a different tool fits better:",
+        ],
+        list: {
+          items: [
+            { b: "Files need different settings.", t: "If file 1 needs 90° rotation and file 2 needs 180°, batch can't help — every file gets the same configuration. Run the single-file Rotate tool per file." },
+            { b: "Multi-step workflow needed.", t: "If every file needs to be rotated AND watermarked AND have metadata stripped, batch's one-operation-at-a-time model means three passes (run batch with rotate, download zip, re-upload to batch with watermark, download zip, re-upload to batch with metadata strip). For long pipelines, use the API instead — it supports composing operations into a single pass." },
+            { b: "You need per-file naming or routing.", t: "Batch preserves original filenames in the .zip but does not let you customize per-file naming patterns. If you need \"draft-N-watermarked-2026-05.pdf\" naming, post-process the .zip in your local shell." },
+          ],
+        },
+      },
+      {
+        h: "Five batch-mode tips",
+        p: [
+          "Habits that make batch processing land cleaner:",
+        ],
+        list: {
+          items: [
+            { b: "Test with one file first.", t: "Before batching 50 files, run the operation on one sample. Verify the output looks right. Then batch with confidence." },
+            { b: "Drag a folder, not individual files.", t: "Modern browsers accept folder drops. Drag a whole folder of PDFs in one move instead of file-by-file." },
+            { b: "Check the manifest.txt in the output ZIP.", t: "If any file fails (encrypted, malformed, etc.) the zip includes a manifest listing what worked and what didn't. The failed-files list is what you go back and handle manually." },
+            { b: "Use Compress AFTER batch.", t: "Batch operations sometimes expand file size (page numbers, watermarks add bytes). Run Compress on the output zip's contents to bring sizes back down — or compress as a separate batch pass." },
+            { b: "Pair with Bates for legal productions.", t: "Bates numbering is the canonical example of an operation that benefits from batch + continuous numbering across files. The batch tool auto-continues Bates ranges across the whole upload set." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, batch processing handles up to 50 PDFs per submission, each up to 100 MB. Processing runs in your browser via pdf-lib; nothing is uploaded. Output is a .zip containing every processed file plus a manifest.txt listing successes and failures.",
+          "For larger batches or pipelines that need multi-step composition (rotate then watermark then strip-metadata in one pass), the API exposes a batch endpoint that accepts up to 10,000 files per job and supports operation chaining via a pipeline parameter.",
+        ],
+      },
+    ],
+  },
 };
