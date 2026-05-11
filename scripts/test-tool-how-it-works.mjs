@@ -169,6 +169,10 @@ const SWEEP_FREE_TOOLS = [
   // 2026-05-11 sweep batch 3 — Rotate + Unlock.
   "PdfRotateTool",
   "PdfUnlockTool",
+  // 2026-05-11 sweep batch 4 — PageNumbers + Stamp + SortPages.
+  "PdfPageNumbersTool",
+  "PdfStampTool",
+  "PdfSortPagesTool",
 ];
 
 for (const name of SWEEP_FREE_TOOLS) {

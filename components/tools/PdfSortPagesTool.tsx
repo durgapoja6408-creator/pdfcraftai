@@ -25,6 +25,7 @@ import { downloadBytes } from "@/lib/client/download";
 import { useTrackToolView } from "./useToolTracking";
 import { usePdfThumbnails, type PdfThumbnail } from "./usePdfThumbnails";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 import { useHandoffConsumer } from "./useHandoffConsumer";
 import { useFileUrlConsumer } from "./useFileUrlConsumer";
 import { useScrollErrorIntoView } from "./useScrollErrorIntoView";
@@ -226,6 +227,27 @@ export function PdfSortPagesTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Item #8 sweep batch 4 — inline ToolHowItWorks explainer. */}
+      <ToolHowItWorks
+        steps={[
+          {
+            title: "Drop a PDF",
+            body:
+              "Up to 100 MB. Every page renders as a thumbnail in a grid you can rearrange.",
+          },
+          {
+            title: "Drag pages to reorder",
+            body:
+              "Drag-and-drop thumbnails to set the new order. Reverse and Restore-original buttons handle bulk operations. The grid updates live as you go.",
+          },
+          {
+            title: "Apply and download",
+            body:
+              "pdf-lib copyPages into a fresh PDF in the order you set — no re-rendering, original quality preserved.",
+          },
+        ]}
+        privacyNote="Page reordering runs entirely in your browser via pdf-lib — files never leave your machine."
+      />
       {!file ? (
         <ToolDropzone
           onFiles={onFiles}

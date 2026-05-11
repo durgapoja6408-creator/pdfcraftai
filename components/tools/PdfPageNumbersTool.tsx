@@ -17,6 +17,7 @@ import { downloadBytes } from "@/lib/client/download";
 import { useTrackToolView } from "./useToolTracking";
 import { useFirstPagePreview } from "./useFirstPagePreview";
 import type { Position, NumberFormat } from "@/lib/pdf/ops/page-numbers";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 
 interface ResultState {
   outputBytes: Uint8Array;
@@ -170,6 +171,27 @@ export function PdfPageNumbersTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Item #8 sweep batch 4 — inline ToolHowItWorks explainer. */}
+      <ToolHowItWorks
+        steps={[
+          {
+            title: "Drop a PDF",
+            body:
+              "Up to 100 MB. The first-page preview renders so you can see where numbers will land before applying.",
+          },
+          {
+            title: "Pick position + format",
+            body:
+              "Six positions (top/bottom × left/center/right). Four formats: bare numbers (1, 2…), \"1 of N\", \"Page 1\", or \"Page 1 of N\". Font size adjustable 4–24pt.",
+          },
+          {
+            title: "Apply and download",
+            body:
+              "pdf-lib draws the text on every page at the chosen anchor. Original pages are unchanged structurally — the numbers are added as a new layer.",
+          },
+        ]}
+        privacyNote="Page numbering runs entirely in your browser via pdf-lib — files never leave your machine."
+      />
       {!file ? (
         <ToolDropzone
           onFiles={onFiles}

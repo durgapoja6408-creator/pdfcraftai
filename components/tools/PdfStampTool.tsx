@@ -18,6 +18,7 @@ import { downloadBytes } from "@/lib/client/download";
 import { useTrackToolView } from "./useToolTracking";
 import { useFirstPagePreview } from "./useFirstPagePreview";
 import type { StampPosition } from "@/lib/pdf/ops/stamp";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 
 interface ResultState {
   outputBytes: Uint8Array;
@@ -189,6 +190,27 @@ export function PdfStampTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Item #8 sweep batch 4 — inline ToolHowItWorks explainer. */}
+      <ToolHowItWorks
+        steps={[
+          {
+            title: "Drop a PDF",
+            body:
+              "Up to 100 MB. The first-page preview renders so you can position and tune the watermark before applying.",
+          },
+          {
+            title: "Pick the watermark",
+            body:
+              "Type the text (DRAFT, CONFIDENTIAL, your name, etc.), pick a position (diagonal banner / center / top / bottom), and tune opacity and font size. The preview updates live.",
+          },
+          {
+            title: "Apply and download",
+            body:
+              "pdf-lib renders the text on every page at the chosen anchor and opacity. The watermark sits ON TOP of existing content — for content-aware backgrounds you'd want a different tool.",
+          },
+        ]}
+        privacyNote="Watermarking runs entirely in your browser via pdf-lib — files never leave your machine. We can't see what you watermark."
+      />
       {!file ? (
         <ToolDropzone
           onFiles={onFiles}
