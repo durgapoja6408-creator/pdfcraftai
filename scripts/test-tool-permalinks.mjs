@@ -826,6 +826,68 @@ if (text2pdfEffectMatch) {
 }
 
 // ---------------------------------------------------------------------
+// Section N — MarkdownToPdfTool sweep batch 10 (?pageSize=&fontSize=).
+// ---------------------------------------------------------------------
+//
+// Sweep batch 10 — MarkdownToPdfTool 2-param shape: 2-literal
+// MarkdownPaperSize + bounded number fontSize (same 4..72 bounds
+// as TextToPdfTool since both are body copy).
+
+const MD2PDF_PATH = path.join(ROOT, "components/tools/MarkdownToPdfTool.tsx");
+assert(fs.existsSync(MD2PDF_PATH), `MarkdownToPdfTool missing at ${MD2PDF_PATH}`);
+const MD2PDF = fs.existsSync(MD2PDF_PATH) ? fs.readFileSync(MD2PDF_PATH, "utf8") : "";
+
+assert(
+  /params\.get\("pageSize"\)/.test(MD2PDF) && /params\.get\("fontSize"\)/.test(MD2PDF),
+  "MarkdownToPdfTool: mount-effect must read both params.",
+);
+
+assert(
+  /rawPage === "letter" \|\| rawPage === "a4"/.test(MD2PDF),
+  "MarkdownToPdfTool: pageSize allowlist must enumerate the 2 " +
+    "MarkdownPaperSize literals.",
+);
+
+assert(
+  /Number\.isFinite\(n\)\s*&&\s*n >= 4\s*&&\s*n <= 72/.test(MD2PDF),
+  "MarkdownToPdfTool: fontSize bounds (4..72) — same as TextToPdfTool, " +
+    "since both are body-copy use cases.",
+);
+
+assert(
+  /useEffect\(\(\)\s*=>\s*\{[\s\S]*?history\.replaceState[\s\S]*?\},\s*\[pageSize,\s*fontSize\]\)/.test(
+    MD2PDF,
+  ),
+  "MarkdownToPdfTool: state → URL sync must live in a SINGLE useEffect " +
+    "with `[pageSize, fontSize]` dep array.",
+);
+
+assert(
+  /pageSize === "letter"\s*\)\s*params\.delete\("pageSize"\)/.test(MD2PDF),
+  "MarkdownToPdfTool: default `letter` must be omitted from URL.",
+);
+
+assert(
+  /fontSize === 11\s*\)\s*params\.delete\("fontSize"\)/.test(MD2PDF),
+  "MarkdownToPdfTool: default `11` must be omitted from URL.",
+);
+
+assert(
+  /typeof window === "undefined"/.test(MD2PDF),
+  "MarkdownToPdfTool: permalink effects must guard SSR.",
+);
+
+const md2pdfEffectMatch = MD2PDF.match(
+  /useEffect\(\(\)\s*=>\s*\{([\s\S]*?)\},\s*\[pageSize,\s*fontSize\]\)/,
+);
+if (md2pdfEffectMatch) {
+  assert(
+    !/pushState/.test(md2pdfEffectMatch[1]),
+    "MarkdownToPdfTool: 2-param sync effect uses pushState — back-button hell.",
+  );
+}
+
+// ---------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------
 

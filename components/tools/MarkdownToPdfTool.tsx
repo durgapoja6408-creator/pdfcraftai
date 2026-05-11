@@ -14,7 +14,7 @@
 //   - useScrollErrorIntoView ✓
 //   - HandoffSuggestions ✓ (output is PDF)
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { I } from "@/components/icons/Icons";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { downloadBytes } from "@/lib/client/download";
@@ -82,6 +82,42 @@ export function MarkdownToPdfTool() {
   const [fontSize, setFontSize] = useState(11);
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
+
+  // 2026-05-11 (item #17 sweep batch 10) — URL permalink state sync.
+  // 2-param shape: pageSize (2 literals letter/a4) + fontSize (bounded
+  // 4..72, same range as TextToPdfTool — body-copy use case).
+  // Single useEffect with [pageSize, fontSize] dep per the replaceState
+  // non-batching invariant.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const rawPage = params.get("pageSize");
+    if (rawPage === "letter" || rawPage === "a4") {
+      setPageSize(rawPage);
+    }
+    const rawSize = params.get("fontSize");
+    if (rawSize) {
+      const n = parseInt(rawSize, 10);
+      if (Number.isFinite(n) && n >= 4 && n <= 72) {
+        setFontSize(n);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (pageSize === "letter") params.delete("pageSize");
+    else params.set("pageSize", pageSize);
+    if (fontSize === 11) params.delete("fontSize");
+    else params.set("fontSize", String(fontSize));
+    const qs = params.toString();
+    const next = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    if (next !== window.location.pathname + window.location.search) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [pageSize, fontSize]);
   const errorRef = useScrollErrorIntoView(error);
 
   const onFile = useCallback(
