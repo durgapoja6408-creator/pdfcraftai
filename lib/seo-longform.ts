@@ -2351,4 +2351,162 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // bates-stamp-pdf — legal-industry-specific, high-intent traffic
+  // ============================================================
+  "bates-stamp-pdf": {
+    title: "Bates stamp PDF — how legal numbering works, why it matters, and the four configurations that cover every production",
+    intro:
+      "Bates numbering is one of those operations that sounds esoteric until you work on a legal matter, at which point it becomes one of the highest-stakes formatting choices in the whole workflow. The wrong prefix or starting number can make pages uncitable across a deposition. The right configuration makes every page in a production individually addressable for the rest of the matter's life. Here is how Bates numbers actually work, the four configurations that cover virtually every US litigation production, and the patterns that show up specifically in cross-border discovery.",
+    sections: [
+      {
+        h: "What a Bates number is and why it matters",
+        p: [
+          "A Bates number is a unique sequential alphanumeric identifier stamped on every page of a document production. The name comes from the Bates Manufacturing Company, whose mechanical numbering stamps in the late 1800s were ubiquitous in law offices and accounting firms. Today the mechanical stamp is gone, but the convention persists: every page in a production gets a unique number, every reference in a brief or deposition cites that number, every reviewer can find any specific page across millions of pages in seconds.",
+          "The reason Bates numbers are non-negotiable in modern litigation is that productions can run to hundreds of thousands of pages, often divided across many documents, with the same content appearing in multiple files. Without a unique per-page identifier, you cannot reliably cite to a specific page; with one, you can. Most modern document review platforms (Relativity, Everlaw, DISCO, Logikcull) index by Bates number, so the stamp also serves as the primary key for downstream review tooling.",
+        ],
+      },
+      {
+        h: "The four configurations that cover every production",
+        p: [
+          "Most teams overcomplicate Bates numbering. In practice, four configurations handle virtually every situation:",
+        ],
+        list: {
+          items: [
+            { b: "Generic 6-digit (BATES000001).", t: "The most common default. \"BATES\" prefix, 6 digits with leading zeros, starting at 1. Used when the producing party does not want a custom prefix or when a small matter does not warrant one." },
+            { b: "Party-prefixed (SMITH000001 / DEF000001).", t: "When both parties produce in the same matter, prefixes prevent collisions. Either the party's short name (SMITH, DOE) or their role (PL for plaintiff, DEF for defendant). 6 digits is standard; matters with anticipated >999,999 pages bump to 8." },
+            { b: "Matter-prefixed (MATTER-2026-0042-000001).", t: "Large firms with parallel matters use the matter number as the prefix so productions across matters cannot be confused. Verbose, but unambiguous. Standardized at most BigLaw firms." },
+            { b: "Confidentiality-tier-prefixed (CONFIDENTIAL000001 / AEO000001).", t: "When the production includes pages with different confidentiality tiers, each tier gets its own Bates range. Discovery tools can filter by prefix to enforce access controls." },
+          ],
+        },
+      },
+      {
+        h: "Starting numbers and continuing numbering across files",
+        p: [
+          "Two operational patterns to watch:",
+        ],
+        list: {
+          items: [
+            { b: "Continuing numbering across multiple PDFs.", t: "If your production is split across 5 PDFs, you want PDF 1 to end at (say) Bates 12,847 and PDF 2 to start at 12,848. Note the last number after each file is stamped, set the next file's start number accordingly. Or use our Batch Process tool's Bates option, which auto-continues across the whole batch in one pass." },
+            { b: "Reserving ranges for late-arriving documents.", t: "Some teams pre-reserve ranges for documents they expect to add later (e.g. \"Documents 1-50,000 are produced now; 50,001-60,000 reserved for the second wave.\"). The starting-number parameter lets you skip into the reserved range when the second wave arrives." },
+          ],
+        },
+      },
+      {
+        h: "Cross-border and non-US conventions",
+        p: [
+          "Bates is the US convention. Other jurisdictions use similar sequential schemes that this tool also supports:",
+        ],
+        list: {
+          items: [
+            { b: "UK disclosure.", t: "UK Civil Procedure Rules require disclosed documents to be sequentially numbered but do not mandate the Bates format specifically. Common conventions: \"Disc-001\" or \"P-001\" (P for production). Use the prefix parameter to match local convention." },
+            { b: "EU GDPR data-subject-access productions.", t: "Subject Access Request productions need sequential numbering for the requester to cite specific pages in follow-up requests. Common convention: \"SAR-001\" prefix with 3- or 4-digit numbering." },
+            { b: "Indian commercial litigation.", t: "Indian courts increasingly accept Bates-style numbering for discovery. Common convention: matter-prefixed (\"WP-2026-0042-0001\") to align with the writ petition's case number." },
+            { b: "Internal compliance / regulatory submissions.", t: "Many regulators (SEC, FDA, EMA) require sequentially-numbered submissions. The same Bates tool applies; the prefix usually matches the regulator's submission code (e.g. \"FDA-SUB-001\")." },
+          ],
+        },
+      },
+      {
+        h: "Five common Bates mistakes and how to avoid them",
+        p: [
+          "From support tickets and production-mistake postmortems:",
+        ],
+        list: {
+          items: [
+            { b: "Stamping over content.", t: "Bates numbers usually go in the footer margin. If you have wide content that extends close to the page edge, the Bates number can collide with it. Pick a footer position with sufficient margin, or trim the content area before stamping." },
+            { b: "Bates on pages that shouldn't be produced.", t: "Privilege log pages, cover sheets, and table-of-contents pages sometimes get Bates-stamped by accident. Either exclude them from production beforehand or verify the final stamped output before sending." },
+            { b: "Restarting numbering inside a production.", t: "Some teams accidentally restart numbering when adding a new file. The result is duplicate Bates numbers — fatal for review tooling. Always note the last number from the previous file and continue from N+1." },
+            { b: "Wrong number of digits.", t: "If you start at 1 with 4-digit zero-padding and the production grows past 10,000 pages, you run out of numbers. Pick 6 digits (1M pages) as the safe default; bump to 8 for very large productions." },
+            { b: "Bates AFTER redaction.", t: "Sometimes teams Bates-stamp before redacting. Then redaction modifies the page contents (because byte-level redaction rewrites the content stream), and the Bates stamp can shift or be partially covered. Bates last, after all other modifications." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, Bates stamping handles PDFs up to 100 MB per file with no page-count cap. Processing runs in your browser via pdf-lib; production materials never leave your machine — critical for matters under privilege. Output is byte-compatible with every PDF viewer; the Bates text is a real text run, so review platforms can extract and index it directly.",
+          "For productions running into the tens of thousands of pages, use the API which accepts batches and emits production-load files (Concordance .dat, Relativity .opt) alongside the stamped PDFs. The Batch Process tool covers the common case of stamping a directory of PDFs with continuous Bates numbering across the whole batch.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // compare-pdfs-visual — paired with the AI compare longform
+  // ============================================================
+  "compare-pdfs-visual": {
+    title: "Visual PDF compare — what pixel diff catches that text diff doesn't",
+    intro:
+      "Comparing two PDFs is a category, not a single operation. The choice between visual (pixel-level) and semantic (AI text) comparison comes down to whether you care about how the pages look or what the pages say. Both are useful; both miss things the other catches. Here is exactly what visual compare detects, when it is the right tool, and the two patterns where pixel-level diff produces noise instead of signal.",
+    sections: [
+      {
+        h: "What visual comparison catches",
+        p: [
+          "Visual compare renders each page of both PDFs at the same resolution (144 DPI by default), then computes a per-pixel difference. Any region where the two pages produce different pixel colors is highlighted in red on the output. This catches every kind of visible change: text edits, font changes, layout shifts, image swaps, color tweaks, hyperlink underline added or removed, even tiny things like a 1-pixel border thickness change.",
+          "The strength of this approach is that it is content-agnostic. The comparison does not need to know what kind of change happened — text, vector, raster, or all three. If a human looking at the two pages would see a difference, visual compare will highlight it.",
+        ],
+      },
+      {
+        h: "Visual compare vs AI text compare — when to use each",
+        p: [
+          "The two compares answer different questions:",
+        ],
+        list: {
+          items: [
+            { b: "Visual compare — \"do these pages LOOK different?\"", t: "Catches font changes, layout shifts, image swaps, color tweaks, anything visible. Best for design review, brand-guideline conformance, print-proof checks, regression testing for document generation pipelines." },
+            { b: "AI text compare — \"do these documents SAY different things?\"", t: "Reads both PDFs end-to-end, identifies substantive content changes, classifies them by severity. Best for contract review, document version review, redline-style summaries, structured change logs." },
+          ],
+        },
+      },
+      {
+        h: "When visual compare is the right tool",
+        p: [
+          "Specific use cases where pixel-level matters:",
+        ],
+        list: {
+          items: [
+            { b: "Pre-print proofreading.", t: "Comparing a draft layout to a final layout. The visible-layout signals are exactly what you want to verify." },
+            { b: "Brand-guideline conformance.", t: "Two versions of a marketing PDF differ by a 2pt color shift in the header. AI text compare won't notice; visual compare highlights it instantly." },
+            { b: "Document generation regression tests.", t: "Your invoice-generation pipeline emits PDFs. After a code change, run visual compare between an output from before the change and an output from after. Any non-trivial pixel diff is a regression." },
+            { b: "Image / chart change detection.", t: "When the document contains charts or images, the difference might be entirely visual (a chart's bars shifted, a logo updated). Visual compare catches this; text compare doesn't see it at all." },
+            { b: "Cross-version font verification.", t: "If a PDF needs to render identically on different systems, visual compare between two rendering pipelines surfaces any font-substitution issues." },
+          ],
+        },
+      },
+      {
+        h: "Two patterns where pixel compare produces noise",
+        p: [
+          "Cases where visual compare flags differences that don't actually matter for your purpose — and what to do about them:",
+        ],
+        list: {
+          items: [
+            { b: "Anti-aliasing differences across renderers.", t: "If your two PDFs were rendered by different rasterizers (or even the same rasterizer at different DPI), anti-aliased edges around text will produce subtle pixel differences along every glyph edge. The output looks like every word is highlighted because every edge is slightly different. Mitigation: increase the diff threshold (more pixel-color difference required before flagging) or use AI text compare which doesn't care about rendering subtleties." },
+            { b: "Reflowed text from a font substitution.", t: "If one PDF has a font and the other doesn't (and the renderer substituted a different font), every line of text shifts by tiny amounts. Visual compare highlights every line. This is technically a real difference — the layouts ARE different — but if you only care about content, AI text compare will tell you the content is identical and the visible noise is a font-substitution artifact." },
+          ],
+        },
+      },
+      {
+        h: "Tips for cleaner visual diffs",
+        p: [
+          "Habits that produce more readable output:",
+        ],
+        list: {
+          items: [
+            { b: "Match the page counts.", t: "Visual compare expects same page count. If one document has an extra page, the tool flags the mismatch before diffing. Either align the page counts (via Extract or Delete Pages) or use AI text compare which handles mismatched counts." },
+            { b: "Use the threshold slider.", t: "The default threshold (12) catches almost every meaningful change while filtering anti-aliasing noise. Lower it (4-6) for strict pixel-perfect verification; raise it (24-48) when you only care about substantial changes." },
+            { b: "Combine with AI compare for the full picture.", t: "Run both. AI text compare tells you what the documents SAY differently; visual compare tells you what they LOOK like differently. Together they catch the changes both individually miss." },
+            { b: "Use Normalize first for cross-version comparisons.", t: "If your two PDFs were generated by different pipelines or different software versions, normalize them first (same font embedding, same compression) so the visual diff focuses on real content changes rather than encoding artifacts." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, visual compare handles two PDFs of up to 25 MB each with up to 100 pages each. Both documents are rendered in your browser via PDFium; nothing is uploaded. The diff output is a single PDF that places each page side-by-side with the red-highlighted regions overlaid, plus a summary showing the change-density per page.",
+          "For larger comparisons, use the API which handles up to 1,000 pages per document and emits structured JSON listing every changed region as a bounding box.",
+        ],
+      },
+    ],
+  },
 };
