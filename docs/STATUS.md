@@ -1378,6 +1378,10 @@ All four doc changes are planning-layer only (zero code deltas, zero runtime imp
 
 ## Done
 
+### 2026-05-11 — Item #17 sweep batch 10: MarkdownToPdfTool 2-param
+
+- [x] **feat(tools): URL permalink sweep batch 10 — MarkdownToPdfTool.** Commit `e97870b` (2026-05-11). 2-param shape (pageSize + fontSize) — same body-copy bounds as TextToPdfTool batch 9. CI guard +9 assertions in Section N. 103 total. Aggregator: 6404 passed, 0 failed across 116 suites (was 6395/116). Verified live at `e97870b` after clean deploy. **No deploy gotcha.** **Item #17 progress: 11 of N tools (4 AI + 7 free); body-copy 4..72 bounds now stable across 2 tools.**
+
 ### 2026-05-11 — Item #17 sweep batch 9: TextToPdfTool 3-param body-copy preset
 
 - [x] **feat(tools): URL permalink sweep batch 9 — TextToPdfTool.** Commit `7473bd5` (2026-05-11). 3-param shape: fontFamily (3 literals: monospace/sans/serif) + fontSize (bounded number 4..72, wider than PageNumbers' 4..24 because text-to-pdf is body copy not garnish) + pageSize (2 literals: letter/a4). Single useEffect with 3-tuple dep per replaceState non-batching invariant. All three defaults (monospace / 11 / letter) omitted. Lets users share documentation templates like `/tool/text-to-pdf?fontFamily=sans&fontSize=14`. CI guard +11 assertions in Section M. 94 total. Aggregator: 6395 passed, 0 failed across 116 suites (was 6383/116). **Deploy gotcha:** zombie cleanup. Mass-kill + restart.txt cleared. **Item #17 progress: 10 of N tools (4 AI + 6 free); bounds parameter now validated as a real per-tool choice (PageNumbers 4..24 vs TextToPdf 4..72).**
