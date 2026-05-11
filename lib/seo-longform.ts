@@ -5024,4 +5024,166 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // extract-tables-from-pdf — high-value AI data extraction
+  // ============================================================
+  "extract-tables-from-pdf": {
+    title: "Extract tables from PDF — AI-aware reconstruction beats copy-paste every time",
+    intro:
+      "Copy-paste from a PDF table almost never produces a usable spreadsheet. Column boundaries collapse, merged cells split into the wrong rows, multi-page tables fragment into separate chunks, and numbers sometimes lose precision in the transfer. The AI-aware table extractor reconstructs the table structure semantically — recognizing what's a header, which cells span columns, where multi-page tables continue, and how to preserve numeric values exactly. Here is what the extractor does, the five table patterns that confuse simpler tools, and why preserving numbers character-by-character matters more than you might think.",
+    sections: [
+      {
+        h: "Why copy-paste mangles tables",
+        p: [
+          "PDF stores text at exact coordinates. The text \"Q1\" at position (100, 200), the text \"Q2\" at (200, 200), the text \"Q3\" at (300, 200) — to a human eye these are column headers in a row. To a copy-paste extractor, they're just three separate text runs at roughly similar y-coordinates. Without semantic understanding, the extractor doesn't know whether the gap between them is column-boundary or just kerning.",
+          "AI-aware extraction looks at the table visually — the gridlines if present, the alignment patterns if not, the relationship between values across rows. It reconstructs the structure the way a human would read it, then exports cleanly to CSV or Excel.",
+        ],
+      },
+      {
+        h: "Five table patterns the extractor handles",
+        p: [
+          "Where simpler tools fall short and AI extraction earns its keep:",
+        ],
+        list: {
+          items: [
+            { b: "Multi-page tables.", t: "A 200-row table continues across 4 pages. Each page has its own header row repetition. Copy-paste produces 4 separate tables; AI extraction stitches them into one continuous table when the headers match." },
+            { b: "Merged cells.", t: "A header row that spans multiple columns (e.g. 'FY2024' centered above 'Q1 / Q2 / Q3 / Q4'). Or a row label that spans multiple data rows. AI extraction preserves the merge semantics; copy-paste collapses everything to single-row." },
+            { b: "Multi-level headers.", t: "Quarterly data with month-level sub-headers (\"FY24 → Q1 → Jan / Feb / Mar\"). The extractor identifies the hierarchy and produces hierarchical column headers in the output." },
+            { b: "Mixed text + numeric columns.", t: "A table with company names, dates, and revenue figures. Each column has different parsing needs — the extractor preserves text verbatim and numbers as numbers, without trying to over-normalize." },
+            { b: "Tables embedded in narrative text.", t: "A financial report with prose paragraphs and embedded tables. The extractor identifies the table boundaries even when the table doesn't have visible grid lines — relying on alignment and content patterns instead." },
+          ],
+        },
+      },
+      {
+        h: "Why exact number preservation matters",
+        p: [
+          "We extract numbers character-by-character from the source — no rounding, no reformatting, no thousand-separator normalization. Three reasons this matters:",
+        ],
+        list: {
+          items: [
+            { b: "Financial precision.", t: "₹1,23,45,678.92 has to come out as exactly that, not 1,234,5678.92 with messed-up separators or 12345678.92 with separators stripped. Off-by-one-comma errors in financial extracts have caused real-world reconciliation failures." },
+            { b: "Scientific precision.", t: "A measurement of 1.2345 ± 0.0012 has to preserve every digit of significance. Rounding to 1.23 destroys the precision the source carefully captured." },
+            { b: "Audit-trail integrity.", t: "When the extracted table is going into a regulatory submission or an audit workpaper, the data has to match the source byte-for-byte. Any normalization introduces a documentation question of \"did the tool change the data?\" that we deliberately avoid by not changing anything." },
+          ],
+        },
+      },
+      {
+        h: "When extraction is the right tool",
+        p: [
+          "Five workflows where the extractor earns its place:",
+        ],
+        list: {
+          items: [
+            { b: "Financial statement ingestion.", t: "Income statements, balance sheets, cash flow statements from annual reports or quarterly filings. The extractor turns them into Excel sheets for further analysis." },
+            { b: "Scientific data pipelines.", t: "Research papers carry data tables that the researchers themselves often want machine-readable. Extract → analyze in R/Python." },
+            { b: "Government data PDFs.", t: "Census tables, election results, regulatory statistics. Governments increasingly publish PDFs that are essentially data tables masquerading as documents. Extraction unlocks them." },
+            { b: "Schedule and timetable extraction.", t: "Train schedules, course timetables, manufacturing schedules — all benefit from converting the visual table to a queryable data structure." },
+            { b: "Catalog ingestion.", t: "Product catalogs, price lists, parts inventories — frequently distributed as PDFs but needed as spreadsheets for ordering systems." },
+          ],
+        },
+      },
+      {
+        h: "Limits worth knowing",
+        p: [
+          "Two patterns where extraction quality degrades:",
+        ],
+        list: {
+          items: [
+            { b: "Scanned-image PDFs without OCR.", t: "If the PDF is an image of a table without a text layer, the extractor can't read the cells. Run AI · OCR first to add a text layer, then extract." },
+            { b: "Truly nested sub-tables.", t: "A cell that contains its own table inside it. Rare in practice but does occur in some technical specs. The extractor surfaces nested tables as separate items in the output rather than trying to express them inline." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "Extract Tables from PDF charges 5 credits per table extracted (not per PDF). A PDF with 6 tables costs 30 credits. The tool handles PDFs up to 25 MB. Processing runs on our servers; the PDF is in memory only during analysis. Output is per-table CSV plus a combined Excel file with one sheet per table.",
+          "Common pairings: PDF-to-Excel for documents where the entire PDF is essentially one big spreadsheet that wants to be converted as a whole. Table extraction is the right tool when you want individual tables surfaced rather than full-document conversion.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // chart-to-data-table — paired with table extract, AI vision
+  // ============================================================
+  "chart-to-data-table": {
+    title: "Chart to data table — extracting numeric data from visual chart images and what 'confidence' really means",
+    intro:
+      "Most data inside published reports lives in two places: numerical tables (which we extract via Tables-from-PDF) and visual charts (which are unstructured images). Extracting numbers from a chart is harder than extracting from a table because the chart is a picture — bars have heights, lines have y-values at each x, pie slices have angles. Reading the data back out requires visual estimation calibrated against gridlines, axis labels, and any explicit value labels. The chart-to-data-table tool does exactly this estimation. Here is what charts it handles, why the output sometimes returns ranges rather than precise numbers, and the cases where extraction is preferable to manually digitizing.",
+    sections: [
+      {
+        h: "How chart-to-data extraction works",
+        p: [
+          "The tool reads each chart in the PDF as an image, then runs an AI vision pass that identifies the chart's type, its axes, its scale, its data series, and the individual data points. Output is a markdown table with axis labels and units. The format matches how a human would represent the chart's data in a spreadsheet — one column per axis, one row per data point, headers explaining what each column means.",
+          "For values that are precisely readable from the chart (e.g. a bar that's exactly at the 100 gridline; a value label printed next to a data point), the output is the exact number. For values that require estimation (e.g. a bar between gridlines, a line value where no label is printed), the output is a range with a confidence note. The tool deliberately doesn't invent precision that isn't in the source.",
+        ],
+      },
+      {
+        h: "Chart types the tool handles",
+        p: [
+          "Common types covered with high accuracy:",
+        ],
+        list: {
+          items: [
+            { b: "Bar charts (vertical, horizontal, grouped, stacked).", t: "The most common business-report type. Bar heights map to values; the tool reads bar tops against the y-axis scale." },
+            { b: "Line charts (single line, multi-line, with markers).", t: "Time-series and trend visualizations. The tool samples points along each line at the x-axis tick positions." },
+            { b: "Pie charts.", t: "Slice angles map to percentages. The tool extracts each slice's label and percentage; for unlabeled slices, percentages are estimated from angle." },
+            { b: "Scatter plots.", t: "Each point's (x, y) extracted relative to axes. Useful for research-paper figures." },
+            { b: "Stacked and 100%-stacked.", t: "Each layer's contribution to each x-position extracted. The tool reads the layer boundaries against the y-axis." },
+            { b: "Histograms.", t: "Bar charts where bars represent bins. The tool reads bin labels (x-axis ranges) and counts (y-axis heights)." },
+            { b: "Radar / spider charts.", t: "Each axis's value for each series extracted. Useful for capability comparisons and multi-attribute scoring." },
+          ],
+        },
+      },
+      {
+        h: "Why output sometimes returns ranges",
+        p: [
+          "Three specific situations where the tool returns \"170-180\" or \"approximately 50%\" rather than a single number:",
+        ],
+        list: {
+          items: [
+            { b: "Bars without value labels and only major gridlines.", t: "A bar that visually sits between the 150 and 200 gridlines, with no smaller gridlines or numeric label, gets returned as a range. Estimating to single-percent precision from coarse-gridline charts introduces fake accuracy." },
+            { b: "Charts at low resolution.", t: "If the chart is small or low-DPI, pixel-level estimation introduces error. The tool returns ranges rather than overstating its confidence." },
+            { b: "Pie slices without labels.", t: "Visually estimating a pie slice's angle to closer than ±5% accuracy is unreliable. Without labels, slices come out as approximate percentages." },
+          ],
+        },
+      },
+      {
+        h: "When extraction beats manually digitizing",
+        p: [
+          "Cases where the tool's output is more accurate than what a human would produce by hand:",
+        ],
+        list: {
+          items: [
+            { b: "Many charts at once.", t: "A 50-chart report. Digitizing each chart by hand takes a day; extraction takes a few minutes." },
+            { b: "Charts with consistent style.", t: "Once the tool has read one chart in a report, similar-styled charts in the same report extract very reliably. Human digitizers introduce more variance across many charts than the tool does." },
+            { b: "When ranges are acceptable.", t: "If your downstream use can work with \"170-180\" rather than needing \"177.5\", the tool's range output is honest about precision in a way that a hand-digitizer's confident \"178\" usually isn't." },
+            { b: "Bulk financial-report analysis.", t: "Quarterly reports come out at scale; extracting bar-chart data across dozens of companies for comparable analysis is the natural use case." },
+          ],
+        },
+      },
+      {
+        h: "When manual digitization is still better",
+        p: [
+          "Three signals that suggest hand work:",
+        ],
+        list: {
+          items: [
+            { b: "A single chart that matters a lot.", t: "If the entire analysis hinges on the exact value of one chart, take the time to manually estimate against gridlines or contact the source for the underlying data." },
+            { b: "Unusual chart types.", t: "Sankey diagrams, treemaps, sunburst, parallel coordinates — the tool handles best-effort but accuracy varies. For these, manual digitization or asking the source for data is more reliable." },
+            { b: "Chart image quality is too low.", t: "If you can barely read the chart yourself, the tool can't read it either. Get a higher-resolution version of the source or ask the source for the underlying data." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "Chart to Data Table charges 5 credits per chart found. A 10-chart report costs 50 credits; the tool lists every chart it detected in the summary so you can audit the count before being charged. PDFs up to 25 MB.",
+          "Common pairings: Extract Tables from PDF for the numerical-table portions; Chart-to-Data-Table for the chart portions. Together they cover the complete numeric content of a report. PDF Inspector to see how many charts and tables are in a PDF before deciding which tools to run.",
+        ],
+      },
+    ],
+  },
 };
