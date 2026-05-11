@@ -14,6 +14,7 @@
 import { useState, useEffect } from "react";
 import type { PaperSize } from "@/lib/pdf/ops/resize";
 import { PdfSimpleOpsTool } from "./PdfSimpleOpsTool";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 
 const SIZES: Array<{ v: PaperSize; label: string; pt: string }> = [
   { v: "letter", label: "Letter", pt: "612 × 792" },
@@ -72,6 +73,25 @@ export function PdfResizeTool() {
       toolGroup="Edit"
       dropPrompt="Drop a PDF to resize"
       busyLabel="Resizing pages…"
+      howItWorks={
+        <ToolHowItWorks
+          steps={[
+            {
+              title: "Drop in your PDF",
+              body: "Up to 100 MB. The resize runs entirely in your browser with pdf-lib — nothing leaves your machine.",
+            },
+            {
+              title: "Pick a target paper size",
+              body: "Letter / A4 / Legal / Tabloid / A3, portrait or landscape. Content is scaled to fit; aspect ratio is preserved so existing layouts don't distort.",
+            },
+            {
+              title: "Save the resized PDF",
+              body: "All annotations, links, and form fields scale with the page. Useful for normalizing a mixed-format batch before printing or archiving.",
+            },
+          ]}
+          privacyNote="Your PDF never leaves your machine. The resize is client-side with pdf-lib — nothing is uploaded or persisted."
+        />
+      }
       // Function form so the label stays in sync with the size /
       // landscape selectors.
       actionLabel={() =>

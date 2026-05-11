@@ -27,6 +27,7 @@ import { useScrollErrorIntoView } from "./useScrollErrorIntoView";
 import { useHandoffConsumer } from "./useHandoffConsumer";
 import { useFileUrlConsumer } from "./useFileUrlConsumer";
 import { HandoffSuggestions } from "./HandoffSuggestions";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import type { OverlayLayer, OverlayFit } from "@/lib/pdf/ops/overlay";
 
@@ -165,6 +166,23 @@ export function PdfOverlayTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <ToolHowItWorks
+        steps={[
+          {
+            title: "Drop in both PDFs (base + overlay)",
+            body: "Base = the underlying document; Overlay = the layer that sits on top (logo, watermark, letterhead, certificate template). Up to 100 MB each.",
+          },
+          {
+            title: "Pick layer order and fit mode",
+            body: "Overlay-above (watermarks / stamps) or overlay-below (letterhead under content). Fit modes: stretch / center / tile. Optional per-page or first-page-only application.",
+          },
+          {
+            title: "Save the combined PDF",
+            body: "We composite the two PDFs into one. Useful for adding company letterhead to a contract, branding a customer-facing report, or applying a fixed certificate template over generated content.",
+          },
+        ]}
+        privacyNote="Both PDFs stay in your browser. The composite happens client-side with pdf-lib — nothing is uploaded or persisted."
+      />
       {!result && (
         <>
           <div

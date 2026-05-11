@@ -32,6 +32,7 @@ import { downloadBytes } from "@/lib/client/download";
 import { useTrackToolView } from "./useToolTracking";
 import { useScrollErrorIntoView } from "./useScrollErrorIntoView";
 import { HandoffSuggestions } from "./HandoffSuggestions";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import type { PaperSize } from "@/lib/pdf/ops/images-to-pdf";
 
@@ -329,6 +330,23 @@ export function ImagesToPdfTool({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <ToolHowItWorks
+        steps={[
+          {
+            title: "Drop in your images",
+            body: "JPEGs, PNGs, GIFs, WebP — drag them in or click to browse. Up to 100 images per PDF; up to 100 MB each. Drag-reorder the queue before exporting.",
+          },
+          {
+            title: "Pick a paper size and orientation",
+            body: "Letter / A4 / fit-to-image, portrait or landscape. Margins and image fit are auto-calculated so each image lands centered on its page.",
+          },
+          {
+            title: "Save the combined PDF",
+            body: "One image per page, in the order you arranged them. Original image bytes are preserved — no re-encoding, no quality loss.",
+          },
+        ]}
+        privacyNote="Your images stay in your browser. The conversion happens client-side with pdf-lib — nothing is uploaded or persisted."
+      />
       {dropzone}
 
       {images.length > 0 && !result && (

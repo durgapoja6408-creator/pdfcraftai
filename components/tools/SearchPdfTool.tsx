@@ -10,6 +10,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { useTrackToolView } from "./useToolTracking";
 import type { SearchMatch, SearchResult } from "@/lib/pdf/ops/search-text";
@@ -134,6 +135,23 @@ export function SearchPdfTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <ToolHowItWorks
+        steps={[
+          {
+            title: "Drop in your PDF",
+            body: "Up to 100 MB. PDFium parses the text content locally in your browser — your PDF never leaves the page.",
+          },
+          {
+            title: "Type your query and we find every match",
+            body: "Each hit comes with a snippet of surrounding context, the page number, and a tap-to-jump link. Case-insensitive substring match by default.",
+          },
+          {
+            title: "Skim the results, jump to context",
+            body: "Useful when you need to find every place a contract mentions a clause, every spec referencing a particular API, or every paragraph that uses a keyword.",
+          },
+        ]}
+        privacyNote="Your PDF and your search query stay in your browser. PDFium runs locally in WebAssembly — nothing is uploaded or persisted."
+      />
       {!file ? (
         <ToolDropzone
           onFiles={onFiles}

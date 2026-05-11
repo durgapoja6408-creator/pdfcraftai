@@ -20,6 +20,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { downloadBytes } from "@/lib/client/download";
 import { useTrackToolView } from "./useToolTracking";
@@ -252,6 +253,23 @@ export function PdfRasterizeTool({ toolId, format }: PdfRasterizeToolProps) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <ToolHowItWorks
+        steps={[
+          {
+            title: "Drop in your PDF",
+            body: "Up to 100 MB. PDFium runs in WebAssembly in your browser — your PDF never leaves the page.",
+          },
+          {
+            title: "Pick a scale",
+            body: "1× / 2× / 3× pixel density. 1× matches the original page size; 2× and 3× sharpen for retina displays or print. Each scale balances file size against quality.",
+          },
+          {
+            title: "Download every page as an image",
+            body: "Output bundles one JPEG / PNG per page in a single .zip. Filenames carry the page number so the order is obvious. Great for thumbnails, image-only archives, or printing pages individually.",
+          },
+        ]}
+        privacyNote="Your PDF never leaves your browser. PDFium runs locally in WebAssembly — nothing is uploaded or persisted."
+      />
       {!file ? (
         <ToolDropzone
           onFiles={onFiles}

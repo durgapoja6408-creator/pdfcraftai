@@ -17,6 +17,7 @@ import { downloadBytes } from "@/lib/client/download";
 import { useTrackToolView } from "./useToolTracking";
 import { useScrollErrorIntoView } from "./useScrollErrorIntoView";
 import { HandoffSuggestions } from "./HandoffSuggestions";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import type { TextFontFamily, PaperSize } from "@/lib/pdf/ops/text-to-pdf";
 
@@ -198,6 +199,23 @@ export function TextToPdfTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <ToolHowItWorks
+        steps={[
+          {
+            title: "Paste plain text or drop in a .txt file",
+            body: "Either input mode works — paste a chunk of text into the textarea, or drop a .txt file. Up to 100 MB.",
+          },
+          {
+            title: "Pick a font and paper size",
+            body: "Monospace (great for code / logs / receipts), sans-serif (clean readability), or serif (long-form documents). Body font size 4–72pt. Letter or A4 paper.",
+          },
+          {
+            title: "Save the PDF",
+            body: "Clean wrap, automatic page breaks, page numbers included. Useful for archiving logs, printing notes, or turning paste-buffer text into a polished, paginated document.",
+          },
+        ]}
+        privacyNote="Your text stays in your browser. The render happens client-side with pdf-lib — nothing is uploaded or persisted."
+      />
       {!result && (
         <>
           {/* Drop zone for file upload (alternative to typing) */}

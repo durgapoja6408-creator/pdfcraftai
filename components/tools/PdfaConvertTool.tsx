@@ -21,6 +21,7 @@
 import { useState, useCallback } from "react";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { downloadBytes } from "@/lib/client/download";
 import { useTrackToolView } from "./useToolTracking";
@@ -159,6 +160,25 @@ export function PdfaConvertTool() {
 
   return (
     <div>
+      <div style={{ marginBottom: 16 }}>
+        <ToolHowItWorks
+          steps={[
+            {
+              title: "Drop in your PDF",
+              body: "Up to 50 MB. We convert to PDF/A-2b — the conformance level used most often for long-term archival.",
+            },
+            {
+              title: "Ghostscript rewrites the file for archival",
+              body: "Embeds missing fonts, normalizes color spaces, removes transparency, strips disallowed features (JavaScript, encryption). Output is byte-level PDF/A compliant.",
+            },
+            {
+              title: "Download the archive-ready PDF",
+              body: "Use the resulting file for ISO 19005-2 compliant submission, regulatory archives, court filings, or anywhere a PDF/A is mandated. Run PDF/A Check on it after to verify.",
+            },
+          ]}
+          privacyNote="Zero retention. Your PDF is processed in-memory by Ghostscript on our servers and discarded immediately — never persisted to disk."
+        />
+      </div>
       {/* Input */}
       {!file ? (
         <ToolDropzone

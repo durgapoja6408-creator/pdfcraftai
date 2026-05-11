@@ -245,6 +245,25 @@ const SWEEP_FREE_TOOLS = [
   "OcrPdfTool",
   "TableExtractTool",
   "TldrPdfTool",
+  // 2026-05-11 sweep batch 12 — remaining free tools. PdfLinks /
+  // PdfOutline use the PdfReadOpsTool howItWorks prop from
+  // batch 9; PdfResize uses the PdfSimpleOpsTool howItWorks prop
+  // from batch 5. PdfRasterize / PdfTextExport / PdfaConvert /
+  // SearchPdf mount directly above their own ToolDropzone.
+  // ImagesToPdf / MarkdownToPdf / TextToPdf / PdfOverlay use inline
+  // custom dropzones. PdfaConvert is server-side Ghostscript so
+  // it uses "discarded immediately" privacy phrase.
+  "PdfLinksTool",
+  "PdfOutlineTool",
+  "PdfResizeTool",
+  "PdfRasterizeTool",
+  "PdfTextExportTool",
+  "PdfaConvertTool",
+  "SearchPdfTool",
+  "ImagesToPdfTool",
+  "MarkdownToPdfTool",
+  "TextToPdfTool",
+  "PdfOverlayTool",
 ];
 
 for (const name of SWEEP_FREE_TOOLS) {

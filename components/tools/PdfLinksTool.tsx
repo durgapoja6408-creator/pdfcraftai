@@ -13,6 +13,7 @@
 import type { ReactNode } from "react";
 import type { PdfLink } from "@/lib/pdf/ops/links";
 import { PdfReadOpsTool } from "./PdfReadOpsTool";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 
 interface ParseResult {
   links: PdfLink[];
@@ -29,6 +30,25 @@ export function PdfLinksTool() {
       prompt="Drop a PDF to extract its links"
       hint="Up to 100 MB · runs privately in your browser"
       busyLabel="Extracting links…"
+      howItWorks={
+        <ToolHowItWorks
+          steps={[
+            {
+              title: "Drop in your PDF",
+              body: "Up to 100 MB. The link extractor parses the PDF's annotation dictionary locally — nothing leaves your browser.",
+            },
+            {
+              title: "We surface every hyperlink",
+              body: "External URLs, internal cross-references, named destinations, even URI dictionary entries — each tagged by type and anchored to the page it lives on.",
+            },
+            {
+              title: "Audit before you click",
+              body: "Spot deceptive link text vs. real destinations, pull every URL for SEO link-checking, or export as CSV for compliance review of a long contract.",
+            },
+          ]}
+          privacyNote="Your PDF stays in your browser. The link extractor reads structural bytes only — nothing is uploaded, logged, or persisted."
+        />
+      }
       parser={async (bytes) => {
         const { extractLinks } = await import("@/lib/pdf/ops/links");
         const r = extractLinks(bytes);

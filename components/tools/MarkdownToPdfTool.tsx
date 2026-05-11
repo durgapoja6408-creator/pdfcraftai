@@ -21,6 +21,7 @@ import { downloadBytes } from "@/lib/client/download";
 import { useTrackToolView } from "./useToolTracking";
 import { useScrollErrorIntoView } from "./useScrollErrorIntoView";
 import { HandoffSuggestions } from "./HandoffSuggestions";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 import { mapPdfOpError } from "@/lib/pdf/error-messages";
 import type { MarkdownPaperSize } from "@/lib/pdf/ops/markdown-to-pdf";
 
@@ -207,6 +208,23 @@ export function MarkdownToPdfTool() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <ToolHowItWorks
+        steps={[
+          {
+            title: "Paste markdown or drop in a .md file",
+            body: "Either input mode works — paste a chunk of markdown into the textarea, or drop a .md / .markdown / .txt file. Up to 100 MB.",
+          },
+          {
+            title: "Pick paper size and font size",
+            body: "Letter / A4 plus body font size 8–24pt. Headings, lists, links, code blocks, blockquotes, and tables all render with proper hierarchy.",
+          },
+          {
+            title: "Save the rendered PDF",
+            body: "Clean output, page numbers included, ready to share. Useful for README PDFs, design docs, meeting notes, or anywhere your source is markdown but the audience needs a polished PDF.",
+          },
+        ]}
+        privacyNote="Your markdown stays in your browser. The render happens client-side with pdf-lib — nothing is uploaded or persisted."
+      />
       {!result && (
         <>
           <div

@@ -18,6 +18,7 @@
 import type { ReactNode } from "react";
 import type { OutlineNode } from "@/lib/pdf/ops/outline";
 import { PdfReadOpsTool } from "./PdfReadOpsTool";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 
 interface ParseResult {
   nodes: OutlineNode[];
@@ -32,6 +33,25 @@ export function PdfOutlineTool() {
       prompt="Drop a PDF to view its outline"
       hint="Up to 100 MB · runs privately in your browser"
       busyLabel="Reading the outline…"
+      howItWorks={
+        <ToolHowItWorks
+          steps={[
+            {
+              title: "Drop in your PDF",
+              body: "Books, reports, technical specs — anything with a bookmark structure. The outline parser reads the document tree locally in your browser.",
+            },
+            {
+              title: "We render the full bookmark tree",
+              body: "Every chapter / section / subsection with indentation matching its depth + the destination page number. Skim the structure of a 400-page doc in 5 seconds.",
+            },
+            {
+              title: "Copy as markdown or JSON",
+              body: "Lift the outline straight into a notes file, repurpose as a TOC starter, or hand the JSON to your downstream pipeline.",
+            },
+          ]}
+          privacyNote="Your PDF stays in your browser. The outline parser reads structural bytes only — nothing is uploaded, logged, or persisted."
+        />
+      }
       parser={async (bytes) => {
         const { extractOutline } = await import("@/lib/pdf/ops/outline");
         const r = extractOutline(bytes);

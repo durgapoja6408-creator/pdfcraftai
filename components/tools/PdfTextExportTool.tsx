@@ -18,6 +18,7 @@ import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { I } from "@/components/icons/Icons";
 import { ToolDropzone } from "./ToolDropzone";
+import { ToolHowItWorks } from "./ToolHowItWorks";
 import { humanSize } from "@/lib/client/pdf-utils";
 import { downloadBytes } from "@/lib/client/download";
 import { useTrackToolView } from "./useToolTracking";
@@ -214,6 +215,23 @@ export function PdfTextExportTool({ toolId, format }: PdfTextExportToolProps) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <ToolHowItWorks
+        steps={[
+          {
+            title: "Drop in your PDF",
+            body: "Text-based PDFs work best — scanned image PDFs need to be run through OCR first to have an extractable text layer. Up to 100 MB.",
+          },
+          {
+            title: "PDFium extracts every page's text",
+            body: "Reading order preserved, page breaks marked, multi-column flow stitched correctly. We pull the actual text bytes — not a re-OCR — so it stays accurate to the source.",
+          },
+          {
+            title: "Save as .txt or copy to clipboard",
+            body: "Drop the plain text into your downstream pipeline, search index, RAG ingest, or notes app. One file per source PDF.",
+          },
+        ]}
+        privacyNote="Your PDF never leaves your browser. PDFium runs locally in WebAssembly — nothing is uploaded or persisted."
+      />
       {!file ? (
         <ToolDropzone
           onFiles={onFiles}
