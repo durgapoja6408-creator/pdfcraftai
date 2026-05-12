@@ -89,9 +89,61 @@ function CodeBlock({
   );
 }
 
+// 2026-05-12 — TechArticle + BreadcrumbList JSON-LD for the API
+// reference. Article-shaped schema is appropriate here (this is
+// technical documentation, not a software product to download —
+// SoftwareApplication is reserved for /tool/[id] pages). TechArticle
+// is the schema.org subtype for technical reference material.
+const SITE = "https://pdfcraftai.com";
+const API_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "@id": `${SITE}/api#article`,
+  headline: "pdfcraftai API reference",
+  description:
+    "REST endpoints, typed SDKs, webhooks, rate limits, and error codes for the pdfcraftai PDF API. Build with PDFs like you build with Stripe.",
+  url: `${SITE}/api`,
+  inLanguage: "en",
+  proficiencyLevel: "Expert",
+  author: { "@type": "Organization", name: "pdfcraftai", url: SITE },
+  publisher: {
+    "@type": "Organization",
+    name: "pdfcraftai",
+    url: SITE,
+    logo: { "@type": "ImageObject", url: `${SITE}/icon.svg` },
+  },
+  mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE}/api` },
+};
+
+const BREADCRUMB_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Home", item: SITE },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "API",
+      item: `${SITE}/api`,
+    },
+  ],
+};
+
 export default function ApiPage() {
   return (
     <main>
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(API_JSONLD) }}
+      />
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(BREADCRUMB_JSONLD),
+        }}
+      />
       {/* Hero */}
       <section style={{ paddingTop: 80, paddingBottom: 32 }}>
         <div className="container-x" style={{ padding: "0 28px" }}>

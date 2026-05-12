@@ -33,9 +33,70 @@ const CAPABILITIES: Array<{ icon: keyof typeof I; title: string; body: string }>
   },
 ];
 
+// 2026-05-12 — Service + BreadcrumbList JSON-LD. Bulk is a service
+// offering (drop a zip, get parallelized work back) rather than a
+// software product or article. Mirrors the /enterprise Service
+// schema but scoped to a single feature.
+const SITE = "https://pdfcraftai.com";
+const SERVICE_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "Service",
+  "@id": `${SITE}/bulk#service`,
+  name: "pdfcraftai Bulk Processing",
+  description:
+    "Drop a zip, a folder, or a glob. pdfcraftai fans the job out in parallel with automatic retry, hands back a manifest.csv with per-file status, duration, output path, and credits consumed.",
+  url: `${SITE}/bulk`,
+  serviceType: "Batch PDF processing",
+  provider: {
+    "@type": "Organization",
+    name: "pdfcraftai",
+    url: SITE,
+    logo: { "@type": "ImageObject", url: `${SITE}/icon.svg` },
+  },
+  hasOfferCatalog: {
+    "@type": "OfferCatalog",
+    name: "Bulk capabilities",
+    itemListElement: CAPABILITIES.map((c, idx) => ({
+      "@type": "Offer",
+      itemOffered: {
+        "@type": "Service",
+        name: c.title,
+        description: c.body,
+      },
+      position: idx + 1,
+    })),
+  },
+};
+
+const BREADCRUMB_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Home", item: SITE },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Bulk",
+      item: `${SITE}/bulk`,
+    },
+  ],
+};
+
 export default function BulkPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(SERVICE_JSONLD) }}
+      />
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(BREADCRUMB_JSONLD),
+        }}
+      />
       <MarketingHero
         chip={{ label: "BULK", tone: "new" }}
         eyebrow="BATCH PROCESSING"

@@ -1203,6 +1203,23 @@ const SUITES = [
     name: "pricing-jsonld",
     file: "test-pricing-jsonld.mjs",
   },
+  // 2026-05-12 — CollectionPage + ItemList JSON-LD on /use-cases
+  // index. Each USE_CASES entry becomes a ListItem with h1 + sub.
+  // 12 assertions. Per-slug /use-cases/[slug] pages already emit
+  // HowTo + FAQ + Article via the shared UseCasePage component
+  // (pre-existing) — this guard covers only the index.
+  {
+    name: "use-cases-index-jsonld",
+    file: "test-use-cases-index-jsonld.mjs",
+  },
+  // 2026-05-12 — JSON-LD on /api (TechArticle), /bulk (Service +
+  // OfferCatalog of CAPABILITIES), /help (CollectionPage + ItemList
+  // of HELP_TOPICS). 21 assertions across 3 page sections. Each
+  // page uses the schema shape appropriate to its content type.
+  {
+    name: "marketing-pages-jsonld",
+    file: "test-marketing-pages-jsonld.mjs",
+  },
   // 2026-05-04 (PENDING_WORK_ANALYSIS.md §4c) — contact form
   // persistence + admin viewer. Migration 0021 added the
   // contact_submissions table; the route now persists every

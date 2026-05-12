@@ -22,9 +22,66 @@ export const metadata: Metadata = {
   },
 };
 
+// 2026-05-12 — CollectionPage + ItemList JSON-LD for the help center.
+// Topics become ListItems (not individual articles — there are ~24
+// articles which would bloat the schema; the topic level is the right
+// granularity for index-level discovery). BreadcrumbList covers Home
+// → Help center.
+const SITE = "https://pdfcraftai.com";
+const COLLECTION_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "@id": `${SITE}/help#collection`,
+  url: `${SITE}/help`,
+  name: "pdfcraftai Help Center",
+  description:
+    "Answers, guides, and troubleshooting for pdfcraftai. Search articles or browse topics.",
+  isPartOf: { "@type": "WebSite", url: SITE, name: "pdfcraftai" },
+  mainEntity: {
+    "@type": "ItemList",
+    numberOfItems: HELP_TOPICS.length,
+    itemListElement: HELP_TOPICS.map((t, idx) => ({
+      "@type": "ListItem",
+      position: idx + 1,
+      url: `${SITE}/help#${t.slug}`,
+      name: t.name,
+      description:
+        t.blurb.length > 200 ? t.blurb.slice(0, 197) + "..." : t.blurb,
+    })),
+  },
+};
+
+const BREADCRUMB_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Home", item: SITE },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Help center",
+      item: `${SITE}/help`,
+    },
+  ],
+};
+
 export default function HelpPage() {
   return (
     <main>
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(COLLECTION_JSONLD),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(BREADCRUMB_JSONLD),
+        }}
+      />
       {/* Hero + search */}
       <section style={{ paddingTop: 80, paddingBottom: 48 }}>
         <div className="container-x" style={{ padding: "0 28px", textAlign: "center" }}>

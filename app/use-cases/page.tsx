@@ -10,9 +10,67 @@ export const metadata: Metadata = {
   alternates: { canonical: "/use-cases" },
 };
 
+// 2026-05-12 — CollectionPage + ItemList JSON-LD. Same pattern shipped
+// on /tools (commit 430ba62) and /alternatives (commit 8b97455).
+// Each USE_CASES entry becomes a ListItem with name + url + sub.
+// Derived from USE_CASE_SLUGS at render time.
+const SITE = "https://pdfcraftai.com";
+const COLLECTION_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "@id": `${SITE}/use-cases#collection`,
+  url: `${SITE}/use-cases`,
+  name: "PDF use cases — workflow guides",
+  description:
+    "Step-by-step guides for the jobs people actually do with PDFs: combining bank statements for an accountant, redlining contracts, OCRing archives, translating handbooks, and more.",
+  isPartOf: { "@type": "WebSite", url: SITE, name: "pdfcraftai" },
+  mainEntity: {
+    "@type": "ItemList",
+    numberOfItems: USE_CASE_SLUGS.length,
+    itemListElement: USE_CASE_SLUGS.map((slug, idx) => {
+      const u = USE_CASES[slug];
+      return {
+        "@type": "ListItem",
+        position: idx + 1,
+        url: `${SITE}/use-cases/${slug}`,
+        name: u.h1,
+        description: u.sub.length > 200 ? u.sub.slice(0, 197) + "..." : u.sub,
+      };
+    }),
+  },
+};
+
+const BREADCRUMB_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Home", item: SITE },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Use cases",
+      item: `${SITE}/use-cases`,
+    },
+  ],
+};
+
 export default function UseCasesIndexPage() {
   return (
     <main>
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(COLLECTION_JSONLD),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(BREADCRUMB_JSONLD),
+        }}
+      />
       <section style={{ paddingTop: 80, paddingBottom: 60 }}>
         <div className="container-x" style={{ padding: "0 28px", maxWidth: 880 }}>
           <div className="eyebrow" style={{ marginBottom: 8 }}>
