@@ -10,9 +10,76 @@ export const metadata: Metadata = {
   alternates: { canonical: "/alternatives" },
 };
 
+// 2026-05-12 — CollectionPage + ItemList JSON-LD. Mirrors the pattern
+// shipped on /tools (commit 430ba62) and /compare (commit 52adddc).
+// Each competitor comparison becomes a ListItem with position + name
+// + url + the one-line summary. Helps Google place individual
+// comparisons in SERP when users search "<competitor> alternative".
+//
+// The list derives from COMPETITOR_SLUGS + COMPETITORS at render
+// time — adding a new comparison auto-updates the schema.
+const SITE = "https://pdfcraftai.com";
+const COLLECTION_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "@id": `${SITE}/alternatives#collection`,
+  url: `${SITE}/alternatives`,
+  name: "PDF tool alternatives — honest comparisons",
+  description:
+    "Side-by-side comparisons of pdfcraftai with iLovePDF, Smallpdf, Adobe Acrobat, PDF24, and Sejda. Each comparison covers feature matrix, pricing, and migration guide.",
+  isPartOf: { "@type": "WebSite", url: SITE, name: "pdfcraftai" },
+  mainEntity: {
+    "@type": "ItemList",
+    numberOfItems: COMPETITOR_SLUGS.length,
+    itemListElement: COMPETITOR_SLUGS.map((slug, idx) => {
+      const c = COMPETITORS[slug];
+      return {
+        "@type": "ListItem",
+        position: idx + 1,
+        url: `${SITE}/alternatives/${slug}`,
+        name: `${c.name} alternative`,
+        // Truncate to 200 chars per Google's structured-data spec.
+        description:
+          c.oneLine.length > 200
+            ? c.oneLine.slice(0, 197) + "..."
+            : c.oneLine,
+      };
+    }),
+  },
+};
+
+const BREADCRUMB_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Home", item: SITE },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Alternatives",
+      item: `${SITE}/alternatives`,
+    },
+  ],
+};
+
 export default function AlternativesIndexPage() {
   return (
     <main>
+      {/* CollectionPage + Breadcrumb JSON-LD — see comments above. */}
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(COLLECTION_JSONLD),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(BREADCRUMB_JSONLD),
+        }}
+      />
       <section style={{ paddingTop: 80, paddingBottom: 60 }}>
         <div className="container-x" style={{ padding: "0 28px", maxWidth: 880 }}>
           <div className="eyebrow" style={{ marginBottom: 8 }}>

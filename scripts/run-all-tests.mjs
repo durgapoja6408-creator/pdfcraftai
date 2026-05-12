@@ -1169,6 +1169,14 @@ const SUITES = [
     name: "tools-catalog-jsonld",
     file: "test-tools-catalog-jsonld.mjs",
   },
+  // 2026-05-12 — same pattern on /alternatives (competitor
+  // comparisons index). Each entry in COMPETITOR_SLUGS becomes a
+  // ListItem with the comparison URL + one-line summary. 14
+  // assertions, same section structure as tools-catalog-jsonld.
+  {
+    name: "alternatives-jsonld",
+    file: "test-alternatives-jsonld.mjs",
+  },
   // 2026-05-04 (PENDING_WORK_ANALYSIS.md §4c) — contact form
   // persistence + admin viewer. Migration 0021 added the
   // contact_submissions table; the route now persists every
