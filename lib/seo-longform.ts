@@ -7793,4 +7793,158 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // extract-pdf-form-data — paired with form-fields inspector
+  // ============================================================
+  "extract-pdf-form-data": {
+    title: "Extract PDF form data — pulling AcroForm values out for spreadsheets and pipelines",
+    intro:
+      "Filled PDF forms are everywhere: tax returns, vendor onboarding forms, expense reports, government applications, registration forms. When you receive a stack of filled forms — or when you have one of your own you want to extract data from — pulling the values out as structured data is the operation. CSV for spreadsheets, JSON for scripts. Here is how AcroForm-based extraction works, the three workflows where structured form data beats screen-scraping, and the difference between this tool and the PDF Form Fields inspector.",
+    sections: [
+      {
+        h: "How form data extraction works",
+        p: [
+          "Drop a filled PDF form. The tool reads the /AcroForm dictionary, walks every field in the /Fields array, reads each field's current value (the /V entry), and surfaces field-name + field-type + field-value as a structured row. Output is downloadable as CSV (for spreadsheet ingestion) or JSON (for programmatic use).",
+          "The extraction is fast and accurate because the PDF spec defines exactly how form fields are stored. Each text input has a /V containing its string value; each checkbox has /V set to /Yes or /Off (or sometimes other check-state values); each radio group has /V identifying the selected option; each dropdown has /V containing the selected list item. The tool reads these directly without any OCR or AI guesswork.",
+        ],
+      },
+      {
+        h: "Three workflows where structured extraction beats alternatives",
+        p: [
+          "Cases where pulling form data programmatically is the right operation:",
+        ],
+        list: {
+          items: [
+            { b: "Bulk form processing.", t: "100 filled application forms need to be ingested into a database. Each form has the same fields. Run the extractor across all 100; the CSVs concatenate into a single dataset ready for SQL load. Manual data-entry of the same volume takes days." },
+            { b: "Spreadsheet workflow integration.", t: "Your team uses Excel or Google Sheets as the system of record. Filled forms arrive via email. Extract → CSV → paste into the master sheet. The forms become a queryable dataset without leaving the spreadsheet workflow." },
+            { b: "API ingestion to CRM / ERP.", t: "JSON output maps to most CRM and ERP record schemas. Map field names to system fields once; subsequent extractions push into the system via API. Reduces form-to-record cycle time from minutes to seconds." },
+          ],
+        },
+      },
+      {
+        h: "What's an AcroForm — and what isn't",
+        p: [
+          "Three distinctions worth understanding:",
+        ],
+        list: {
+          items: [
+            { b: "AcroForm — classic PDF forms.", t: "The PDF spec defines AcroForm — interactive form fields with /T (name), /FT (type), /V (value), /Ff (flags). Most fillable PDFs are AcroForm. The extractor reads these natively. Fast and exact." },
+            { b: "XFA — Adobe's proprietary form format.", t: "Some Adobe-generated forms use XFA, an XML-based form layer that lives alongside the AcroForm. The XFA spec is Adobe-specific; pdf-lib doesn't read it. The extractor reports XFA-only forms as not-supported. Workaround: open in Adobe Acrobat, Save As to flatten XFA back to AcroForm, then extract." },
+            { b: "Static \"form-looking\" PDFs.", t: "Some PDFs visually show form-like layouts (signature lines, fillable boxes) but have no AcroForm dictionary. They're just decorated text. The extractor correctly reports zero fields. Use AI Fill PDF Form to fill these visually; once flattened to AcroForm, you can extract." },
+          ],
+        },
+      },
+      {
+        h: "Extract Form Data vs PDF Form Fields inspector",
+        p: [
+          "Two adjacent tools that look similar:",
+        ],
+        list: {
+          items: [
+            { b: "PDF Form Fields inspector.", t: "Surfaces the AcroForm SCHEMA — what fields exist, their types, their flags, their default values. Useful for compliance audits, form-quality reviews, accessibility audits. Read-only schema view." },
+            { b: "Extract Form Data.", t: "Surfaces the AcroForm VALUES — the current value of each field. Useful for ingesting filled-form data into downstream systems. Read-only data view." },
+            { b: "Same underlying source, different output focus.", t: "Both walk the same /AcroForm dictionary; the inspector surfaces schema metadata, the extractor surfaces values. Pair them when you need both the form structure AND the filled data." },
+          ],
+        },
+      },
+      {
+        h: "Working with the output",
+        p: [
+          "Three patterns for downstream use:",
+        ],
+        list: {
+          items: [
+            { b: "CSV column mapping.", t: "CSV columns map to AcroForm field names (the /T entries). Field names like \"applicant_name_v2\" can be ugly for end-user display; rename in your downstream spreadsheet rather than asking the form author to fix." },
+            { b: "Checkbox values.", t: "Checkboxes return their PDF spec values: /Yes for checked, /Off for unchecked. Some PDFs use non-standard values (Y/N, 1/0, On/Off variants). The extractor surfaces the raw value; downstream code may need to normalize to boolean true/false." },
+            { b: "Multi-line text.", t: "Multi-line text fields return newline characters in their values. CSV cells with embedded newlines need proper quoting (RFC-4180 compliant). The extractor handles this in CSV output; if you're processing JSON, the newlines are escape-encoded \\n." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "Free. Client-side processing. The extractor handles PDFs up to 100 MB with no field-count cap. Parsing runs in your browser; nothing is uploaded. Output is CSV or JSON.",
+          "Common pairings: Form Fields Inspector for schema, Extract Form Data for values. AI Fill PDF Form upstream when the source form is flat (no AcroForm). Bulk-process via the Batch API for high-volume ingestion (CSV concatenation per file → SQL load).",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // pdf-to-mindmap — hierarchical structure AI
+  // ============================================================
+  "pdf-to-mindmap": {
+    title: "PDF to Mind Map — hierarchical structure as a collapsible outline, and why this beats linear summaries",
+    intro:
+      "Some documents have hierarchical content that flattens awkwardly into linear summary prose. Research papers with sections and sub-sections; books with chapters and topics; business plans with strategic pillars and tactical actions. The mind-map view preserves the hierarchy: root concept → main branches → sub-branches → leaf details. Reading collapsed gives the document's outline at a glance; expanding nodes drills into specifics. Here is what the mind map produces, the four use cases where the hierarchical view earns its place over linear summary, and the export formats for downstream tooling.",
+    sections: [
+      {
+        h: "How hierarchy extraction works",
+        p: [
+          "The tool reads the PDF, identifies the document's structural cues (headers / sub-headers / bullet lists / definition blocks / topic boundaries), and constructs a tree: root concept at the top, main branches under it, sub-branches under those, leaf details at the bottom. Typical depth is 3-5 levels — deeper trees become unwieldy; shallower ones are essentially linear lists.",
+          "Section / chapter headers in the source map to main branches. Bullet lists and key definitions map to leaves. Documents without clear header structure get restructured topically — the AI infers what the main topics are and groups related content under each. Output renders as a nested collapsible outline; each node expands on click.",
+        ],
+      },
+      {
+        h: "Four workflows where hierarchy beats linear summary",
+        p: [
+          "Cases where the mind-map view is more useful than a Summarize-style flat output:",
+        ],
+        list: {
+          items: [
+            { b: "Research paper navigation.", t: "Long research papers have abstract / introduction / methodology / results / discussion / conclusion plus subsections within each. Mind map gives the structural map; click into any subsection to see details. Faster than scrolling the PDF." },
+            { b: "Business plan or strategic document review.", t: "Strategy docs have pillars / initiatives / actions hierarchy. Mind map surfaces the structural relationships; you can review at the pillar level without losing the tactical detail." },
+            { b: "Book chapter outline for study.", t: "A textbook chapter has main concepts → sub-concepts → definitions and examples. Mind map produces the chapter's outline; students can use it as a study scaffold while reading or as a review tool afterward." },
+            { b: "Project documentation triage.", t: "Long project docs (specs, runbooks, architecture documents) benefit from a structural overview before diving in. Mind map shows the document's architecture so you can navigate to the section you actually need." },
+          ],
+        },
+      },
+      {
+        h: "What you can do with the output",
+        p: [
+          "Three downstream paths:",
+        ],
+        list: {
+          items: [
+            { b: "Read collapsed for overview.", t: "The default view shows top-level branches. Get the document's structure in 30 seconds without reading any detail." },
+            { b: "Expand selectively.", t: "Click any branch to expand its sub-branches. Drill into specific sections without exposure to the rest. Useful when only part of the document is relevant to your current task." },
+            { b: "Export to mind-mapping software.", t: "OPML and Markdown export formats. OPML imports cleanly to XMind, MindNode, iThoughts, OmniOutliner. Markdown imports to Obsidian, Notion, Roam. Native FreeMind .mm and Miro JSON formats are on the roadmap." },
+          ],
+        },
+      },
+      {
+        h: "When linear summary beats hierarchical",
+        p: [
+          "Three cases where Summarize or Key Points fits better:",
+        ],
+        list: {
+          items: [
+            { b: "Narrative documents.", t: "Stories, opinion pieces, journalism — content that flows linearly rather than hierarchically. A mind map of a feature article tends to feel forced; Summarize produces more useful output." },
+            { b: "Short documents.", t: "A 3-page document doesn't have enough hierarchical content to make a useful mind map. The top-level branches end up being one-per-page; the value of the hierarchy is lost." },
+            { b: "Reference reads where you'll cite specific claims.", t: "Mind map gives structure; Key Points gives claims with citations. When the goal is finding specific evidence for downstream use, Key Points' citation-per-bullet format is more useful." },
+          ],
+        },
+      },
+      {
+        h: "Text-outline vs visual SVG — what to expect",
+        p: [
+          "Two distinctions:",
+        ],
+        list: {
+          items: [
+            { b: "Current implementation: collapsible text outline.", t: "Hierarchy as nested bullet lists with expand/collapse interactions. Functions like a mind map structurally; rendered as a tree-text outline rather than radial branches." },
+            { b: "Roadmap: visual SVG with radial branches.", t: "True \"draw the mind-map\" rendering with the root in the center and branches radiating outward is on the roadmap. Different visual experience; same hierarchical content." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "PDF to Mind Map charges 10 credits per document. The tool handles PDFs up to 25 MB. Processing runs on our servers; the document is in memory only during generation and is never persisted. Output renders in-tool as a collapsible outline; exportable as OPML or Markdown.",
+          "Common pairings: Mind Map → import to XMind/MindNode for further visual editing. Mind Map + Summarize: structural overview + linear digest of the same document. Mind Map + Study Notes when preparing study material from a long source.",
+        ],
+      },
+    ],
+  },
 };
