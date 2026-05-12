@@ -8669,4 +8669,181 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // research-paper-summarizer — academic-research AI
+  // ============================================================
+  "research-paper-summarizer": {
+    title: "Research Paper Summarizer — citation, methods, results, limitations with numeric magnitudes preserved",
+    intro:
+      "Academic research papers follow a predictable structure — abstract, introduction, methods, results, discussion, conclusion — but reading them well takes time most readers don't have. The summarizer surfaces the load-bearing elements: citation (APA + BibTeX ready to copy), research question, methods, key results with magnitudes preserved verbatim, and limitations (both the authors' and the ones implied by the methods choices). Here is what the summarizer extracts, why numeric magnitude preservation is the highest-stakes part of the output, and the three workflows where research-paper summaries earn their place.",
+    sections: [
+      {
+        h: "What the summarizer extracts",
+        p: [
+          "Drop a research-paper PDF. The summarizer produces a structured output with seven elements:",
+        ],
+        list: {
+          items: [
+            { b: "Citation (APA + BibTeX).", t: "Paste-ready citation in both formats. APA for in-text and reference-list use; BibTeX for LaTeX and reference-manager import. Identical content, two formats." },
+            { b: "Research question.", t: "What the paper is trying to answer. Phrased as a single sentence. Sometimes explicit in the abstract; sometimes inferred from the introduction." },
+            { b: "Methods.", t: "Study design, sample size, sample characteristics, data collection, key analyses. Concise paragraph — enough to assess whether the methods support the conclusions." },
+            { b: "Key results.", t: "The substantive findings. Effect sizes, p-values, confidence intervals quoted verbatim from the paper. Comparisons and trends summarized in prose around the verbatim numbers." },
+            { b: "Authors' limitations.", t: "What the authors themselves acknowledge as limits of their study. Quoted from the limitations paragraph where it exists." },
+            { b: "Implied limitations.", t: "Limitations the authors didn't acknowledge but the methods choices imply. Surface what a peer reviewer would catch but the paper itself doesn't mention." },
+            { b: "Related-reading recommendations.", t: "3-5 references from the paper's own bibliography that look most central to the paper's argument. Read these for the paper's intellectual lineage." },
+          ],
+        },
+      },
+      {
+        h: "Why numeric magnitude preservation matters most",
+        p: [
+          "The single highest-stakes part of any research-paper summary is the numbers. Three patterns:",
+        ],
+        list: {
+          items: [
+            { b: "Effect sizes verbatim.", t: "If the paper reports \"the intervention reduced symptoms by 12.3% (95% CI: 8.4-16.2)\" the summary preserves all three numbers exactly. Rounding to \"about 12%\" loses the confidence-interval information; rounding to \"effective\" loses the magnitude entirely." },
+            { b: "p-values verbatim.", t: "p < 0.001 means something different from p = 0.04. Both can be \"statistically significant\" but the second is much weaker evidence. The summary preserves the exact value." },
+            { b: "Sample sizes verbatim.", t: "n = 23 vs n = 2,300 is a 100x difference in evidence weight. \"Small sample\" vs \"large sample\" loses information. The summary preserves the exact n." },
+          ],
+        },
+      },
+      {
+        h: "Surfacing implied limitations",
+        p: [
+          "The implied-limitations section is the most distinctive feature of the summarizer. Four patterns the summarizer commonly catches:",
+        ],
+        list: {
+          items: [
+            { b: "Small N for the conclusion drawn.", t: "Paper claims a population-level effect from an n=30 study. The sample size doesn't support the claim's scope; the summarizer flags this." },
+            { b: "Lack of placebo or control.", t: "Intervention paper with no control group. Even strong results can't distinguish intervention effect from natural variation; the summarizer surfaces the design gap." },
+            { b: "Single-site or single-population sample.", t: "Paper claiming generalization from one specific population (one hospital, one country, one demographic). The summarizer notes the external-validity limit." },
+            { b: "Observational design supporting causal claim.", t: "Correlational data used to argue causation. The summarizer notes when the conclusions are stronger than the design supports." },
+          ],
+        },
+      },
+      {
+        h: "Three workflows where the summarizer earns its place",
+        p: [
+          "Specific cases:",
+        ],
+        list: {
+          items: [
+            { b: "Literature review research.", t: "Building a literature review means reading dozens to hundreds of papers. The summarizer's verbatim numbers and methods overview let you decide which papers to read in full vs cite from summary. The BibTeX + APA outputs go directly into your reference manager." },
+            { b: "Journalism / science writing.", t: "Writing about a recent paper for a non-specialist audience. The summarizer surfaces the numbers you need to quote accurately and the implied limitations that the popular-press version often glosses over." },
+            { b: "Self-education on a new field.", t: "Reading into a field you're new to. The summarizer's structured output makes each paper digestible; the related-reading section threads the intellectual lineage so you can follow the field's evolution." },
+          ],
+        },
+      },
+      {
+        h: "When to read the full paper anyway",
+        p: [
+          "Three signals you should still read the original:",
+        ],
+        list: {
+          items: [
+            { b: "You'll cite specific claims.", t: "If you're going to cite the paper in your own work, read the original. The summary is your map; the citation is the source." },
+            { b: "The methods are central to your interest.", t: "If you're going to replicate or extend the methods, the methods section needs full reading. The summary identifies that you should; full execution depends on the original." },
+            { b: "The implied limitations seem off.", t: "If the summarizer's implied limitations don't match your domain knowledge, read the original to verify. AI inference of limits is reliable on standard patterns but doesn't catch field-specific subtleties every time." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "Research Paper Summarizer charges 15 credits per paper. The tool handles PDFs up to 25 MB. Processing runs on our servers; the document is in memory only during analysis and is never persisted. Output is structured Markdown with the seven sections.",
+          "Common pairings: Research-Paper Summarizer + Citations Extractor for the references-list integration. Research-Paper Summarizer + AI Chat for follow-up questions on specific findings. Research-Paper Summarizer + Mind Map for structural overview when planning literature-review organization.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // semantic-search-pdf — meaning-based search AI
+  // ============================================================
+  "semantic-search-pdf": {
+    title: "Semantic Search in PDF — finding passages by meaning, not by keyword match",
+    intro:
+      "Ctrl-F finds exact lexical matches. Search for \"dog\" and you find every instance of \"dog\" — but not \"canine,\" \"puppy,\" or \"the family pet.\" In long documents where the relevant passage uses different words from your query, lexical search fails silently. Semantic search retrieves by meaning, regardless of phrasing. Drop a PDF, ask a question in natural language, get back the verbatim passages most relevant to that question. Here is how vector retrieval works, the three workflows where semantic search dramatically beats keyword search, and the precise difference between this tool and Chat with PDF.",
+    sections: [
+      {
+        h: "How semantic search retrieves by meaning",
+        p: [
+          "The tool extracts the PDF's text and breaks it into chunks (typically a few sentences each). Every chunk is embedded into a high-dimensional vector by a language model. The vector encodes the chunk's meaning — chunks with similar meaning end up close to each other in vector space, regardless of which specific words they use. When you ask a question, the question gets embedded the same way; the search finds chunks whose vectors are closest to the question's vector.",
+          "This is fundamentally different from keyword search. Keyword search asks \"which chunks contain my query's words?\" Semantic search asks \"which chunks express ideas similar to my query?\" The retrieval works across vocabulary mismatches — your query and the source document don't have to use the same words to find each other.",
+        ],
+      },
+      {
+        h: "Three workflows where semantic beats lexical",
+        p: [
+          "Cases where the keyword-match approach fails and semantic search succeeds:",
+        ],
+        list: {
+          items: [
+            { b: "Cross-vocabulary research.", t: "Searching a technical paper for \"how the model handles X\" when the paper uses domain-specific terminology you don't know yet. Semantic search finds the passages by topic relevance; keyword search misses them because you don't know what words to query for." },
+            { b: "Synonym-heavy domains.", t: "Medical documents use multiple words for the same concept (heart attack / myocardial infarction / MI / cardiac event). Legal documents do too (contract / agreement / accord / understanding). Semantic search treats these as related; keyword search makes you query for each one separately." },
+            { b: "Conceptual questions about specific documents.", t: "\"What does the paper say about scaling?\" — the paper might address scaling under any of a dozen names (scalability, throughput, performance under load, capacity, growth handling). Semantic search retrieves any chunk relevant to the concept regardless of the specific word used." },
+          ],
+        },
+      },
+      {
+        h: "Semantic Search vs Chat with PDF",
+        p: [
+          "Two adjacent AI tools with different output shapes:",
+        ],
+        list: {
+          items: [
+            { b: "Chat — synthesized answer.", t: "Asks the model to read the relevant passages and produce an ANSWER to your question. Output is the model's writing, paraphrased and synthesized. Useful when you want the answer; less useful when you need to read what the source actually said." },
+            { b: "Semantic Search — verbatim passages.", t: "Returns the actual sentences from the source. Output is verbatim quotes with page citations. Useful when you need the source material with help finding it; you read the passages yourself." },
+          ],
+        },
+      },
+      {
+        h: "Three signals that semantic search is the right tool",
+        p: [
+          "When to reach for this rather than Chat or Ctrl-F:",
+        ],
+        list: {
+          items: [
+            { b: "You want to read what the source says directly.", t: "Quotes, citation source-material, verbatim passages for academic work. Chat paraphrases; semantic search gives you the original words." },
+            { b: "You don't know the source's specific vocabulary.", t: "Reading into a new field or a paper using domain terminology you haven't encountered. Semantic search finds the relevant passages by meaning; you learn the vocabulary by reading what comes back." },
+            { b: "You need page citations for a downstream document.", t: "Building a research summary that requires citing specific pages. Semantic search returns page references with every retrieved passage; you can cite from the search output directly." },
+          ],
+        },
+      },
+      {
+        h: "What the output looks like",
+        p: [
+          "Three components of every search result:",
+        ],
+        list: {
+          items: [
+            { b: "Question echoed back.", t: "The question you asked, displayed at the top of the output. Useful when reviewing search results later — context for what was being asked." },
+            { b: "Top 3-5 verbatim passages.", t: "Each passage is the source's exact wording. No paraphrase. Page reference indicates where it came from. Relevance score (or rank order) tells you which passage is most likely to answer the question." },
+            { b: "Per-passage relevance note.", t: "A brief note on why the passage matched the question. \"This passage addresses how the model handles increasing input sizes\" — useful when the connection between query and passage isn't immediately obvious from the words alone." },
+          ],
+        },
+      },
+      {
+        h: "Multi-PDF search",
+        p: [
+          "The tool searches one PDF per call. Three patterns for multi-PDF search:",
+        ],
+        list: {
+          items: [
+            { b: "Run per-PDF then aggregate.", t: "Search the same question against each PDF in your corpus; aggregate top results across all of them. Manual but works for small corpora (~10 PDFs)." },
+            { b: "Concatenate first.", t: "Merge all the PDFs into one (free Merge tool), then run semantic search. Works for medium corpora; the page references in the merged PDF map back to the source PDFs if you preserve the merge order." },
+            { b: "Wait for multi-doc roadmap item.", t: "AI Chat in multi-doc mode is roadmapped and will support corpus-level semantic search. Until then, the per-PDF aggregation is the workaround." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "Semantic Search PDF charges 3 credits per search. The tool handles PDFs up to 100 MB. Processing runs on our servers; the document is in memory only during indexing and is never persisted. Output is Markdown with the question, 3-5 verbatim passages, page references, and relevance notes.",
+          "Common pairings: Semantic Search → Chat for the verbatim-passage + synthesized-answer combination. Semantic Search → Citations Extractor if you need both the passages and the references they cite. Semantic Search + Key Points for both targeted search and comprehensive document overview.",
+        ],
+      },
+    ],
+  },
 };
