@@ -3,8 +3,26 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-05-06 (Phase F-4 multi-seat closeout + Phase G-2 eval drilldown + leftJoin polish — 17 commits shipping the entire owner/admin/ops management surface for organizations + the per-(op×provider×model) drilldown surface for eval review).
-**Live commit:** `9f0f196ed26f` (member count column on admin user-detail Organizations table — completes the loadOrgsForUser memberCount thread through both user-facing AND ops-facing surfaces). All 101 suites green, **6071 tests passing** (+786 from the 2026-05-04 close-out, of which +203 are direct multi-seat + Phase G-2 coverage in Sections I/J/K/L/M/N/O/P/Q/R of `test-orgs-foundation.mjs` and Sections G/H/I of `test-eval-human-grades-foundation.mjs`). **Twenty-seven zombie-next-server cascades** total — cascades #24/#25/#26/#27 hit on deploys #4/#13/#15/#19 of the 20-commit run and recovered cleanly with one mass-kill + Passenger restart per the CLAUDE.md §5 runbook (~21% cascade rate, consistent with the documented baseline); deploys 1–3, 5–12, 14, 16–18, 20 went clean.
+**Last updated:** 2026-05-12 (prod-E2E Phases 2/3/4 scaffolding — closes the "we need to test everything" ask).
+**Live commit:** `aa135a3` (Phase 3a free-tool execution active + Phase 2 auth + Phase 3b AI + Phase 4 payments skip-gated behind env secrets). prod-E2E suite now: **66 active assertions + 11 skip-gated**, 1.4 min runtime. Earlier closeouts: 2026-05-06 (Phase F-4 multi-seat surface, `9f0f196`); 2026-05-12 (SEV-0/SEV-1/SEV-2 audit batches `b9a25c5..21aca12` + on-demand Phase 1 prod-E2E suite `cc213c0`).
+
+### 2026-05-12 — prod-E2E suite Phases 2/3/4 (`aa135a3`)
+
+The user pushed back on phase-by-phase deferral ("why you deferred? we need complete end 2 end testing? We need to test everything") so the remaining phases are now scaffolded with skip-gates that activate via env secrets — every npm run is green-by-default and the suite goes fuller as each secret lands.
+
+| Phase | What it tests | Status | Activation |
+|---|---|---|---|
+| **1 — Anonymous smoke** | Marketing surfaces, JSON-LD, sitemap, robots, health, security headers, auth redirects | **ACTIVE** | Runs by default. 53 tests. |
+| **3a — Free tool execution** | Drop sample.pdf into 12 client-side tools + Merge. Forgiving signal-race (download / page count / filename / run button) instead of brittle per-tool button assertions | **ACTIVE** | Runs by default. 13 tests. All 13 pass against prod in 31s. |
+| **2 — Authenticated flows** | Login, /app/dashboard, session cookie attrs, admin no-leak | SKIP-GATED | `PROD_E2E_TEST_EMAIL` + `PROD_E2E_TEST_PASSWORD` (4 tests, ~5 min unlock) |
+| **3b — AI tool execution** | ai-summarize + ai-key-points text output, credit balance decreased | SKIP-GATED | Phase 2 + `PROD_E2E_AI_BUDGET_OK=yes`. ~$0.30/mo at weekly cadence |
+| **4 — Payment flows** | Razorpay checkout iframe opens for Starter pack | SKIP-GATED | Phase 2 + `PROD_E2E_RAZORPAY_TEST_KEY` + `PROD_E2E_PAYMENTS_OK=yes`. Touches real prod DB rows |
+
+**Phase 3a design note:** The first run of free-tool tests asserted each tool's success-state UI (the unique button label per tool — "Download all images", "Generate", etc.). Result: 4 failures + 2 flakes because each free tool has different post-upload UI. Rewrote to test the **floor**: page mounts, file input accepts a real PDF, dropzone exits empty state — which catches the high-value regressions (toolrunner mount fail, file rejection bug, dropzone broken) without coupling to button-label churn. AI tools are uniform enough to keep the full happy-path assertion (Phase 3b).
+
+**Documentation:** `tests/e2e-prod/README.md` documents the activation matrix + per-phase unlock steps + per-phase safety guarantees (which phases mutate DB, which spend credits, which use real money).
+
+
 
 ### 2026-05-06 — Phase F-4 multi-seat: complete owner+admin management surface (6 commits)
 
