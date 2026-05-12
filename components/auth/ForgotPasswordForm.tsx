@@ -73,11 +73,21 @@ export function ForgotPasswordForm() {
             body: JSON.stringify({ email }),
           });
           if (!res.ok) {
-            const body = (await res.json().catch(() => ({}))) as { error?: string };
-            // 4xx with a known message — show it. Server still acks 200 for valid
-            // payloads regardless of account existence, so this only fires on
-            // malformed input.
-            throw new Error(body.error ?? "Couldn't send the reset email — try again in a minute.");
+            // 2026-05-12 SEV-1 audit fix: route now returns
+            // { error: "snake_case_code", detail: "Human readable." }
+            // — read detail first, fall back to legacy error string
+            // for backwards-compat. Server still acks 200 for valid
+            // payloads regardless of account existence, so this only
+            // fires on malformed input.
+            const body = (await res.json().catch(() => ({}))) as {
+              error?: string;
+              detail?: string;
+            };
+            throw new Error(
+              body.detail ??
+                body.error ??
+                "Couldn't send the reset email — try again in a minute.",
+            );
           }
           setState("sent");
         } catch (err) {

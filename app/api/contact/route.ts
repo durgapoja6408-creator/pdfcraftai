@@ -79,17 +79,27 @@ function ipRateLimitOk(ip: string, now: number): boolean {
 }
 
 export async function POST(req: Request) {
+  // 2026-05-12 SEV-1 audit fix: error responses migrated to canonical
+  // { error: "snake_case_code", detail: "Human readable." } shape.
+  // ContactForm.tsx reads body.detail ?? body.error for display.
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+    return NextResponse.json(
+      { error: "invalid_json", detail: "Invalid JSON." },
+      { status: 400 },
+    );
   }
 
   const parsed = contactSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Please fill in all fields. Messages need at least 10 characters." },
+      {
+        error: "invalid_request",
+        detail:
+          "Please fill in all fields. Messages need at least 10 characters.",
+      },
       { status: 400 },
     );
   }
@@ -107,7 +117,8 @@ export async function POST(req: Request) {
   if (!ipRateLimitOk(ip, now)) {
     return NextResponse.json(
       {
-        error:
+        error: "ip_rate_limited",
+        detail:
           "Too many submissions from your network. Try again in a few minutes.",
       },
       { status: 429 },
@@ -117,7 +128,10 @@ export async function POST(req: Request) {
   const last = recentByEmail.get(email) ?? 0;
   if (now - last < EMAIL_LIMIT_MS) {
     return NextResponse.json(
-      { error: "You just sent a message. Give us a minute, then try again." },
+      {
+        error: "email_rate_limited",
+        detail: "You just sent a message. Give us a minute, then try again.",
+      },
       { status: 429 },
     );
   }

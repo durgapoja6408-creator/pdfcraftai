@@ -73,8 +73,18 @@ export function ContactForm() {
             body: JSON.stringify(data),
           });
           if (!res.ok) {
-            const body = (await res.json().catch(() => ({}))) as { error?: string };
-            throw new Error(body.error ?? "Something went wrong — please try again.");
+            // 2026-05-12 SEV-1 audit fix: route migrated to
+            // { error: "snake_case_code", detail: "Human readable." }.
+            // Display detail first, fall back to legacy error string.
+            const body = (await res.json().catch(() => ({}))) as {
+              error?: string;
+              detail?: string;
+            };
+            throw new Error(
+              body.detail ??
+                body.error ??
+                "Something went wrong — please try again.",
+            );
           }
           setState("sent");
           form.reset();

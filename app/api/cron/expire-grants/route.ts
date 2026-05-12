@@ -12,15 +12,19 @@
 //   that was granted (clamped to current balance — never goes negative).
 //
 // Trigger
-//   GET /api/cron/expire-grants?secret=<CRON_SECRET>
-//   - Header `x-cron-secret: <CRON_SECRET>` also accepted.
-//   - Returns 401 if secret missing/wrong.
+//   GET /api/cron/expire-grants
+//   - Header `x-cron-secret: <CRON_SECRET>` REQUIRED.
+//   - 2026-05-12 SEV-1 audit fix: previously also accepted
+//     `?secret=` in the query string; query-string secrets leak
+//     to CDN + Hostinger access logs, so removed. Header-only now.
+//   - Returns 401 if header missing/wrong.
 //   - Returns 200 + { expired: N, debitedMicros: 0 } on success.
 //
 // Wire to cron
 //   cron-job.org (recommended) — free, EU-hosted, sub-minute reliability.
-//     URL:    https://pdfcraftai.com/api/cron/expire-grants?secret=<CRON_SECRET>
+//     URL:    https://pdfcraftai.com/api/cron/expire-grants
 //     Method: GET
+//     Advanced → Request headers → Add `x-cron-secret: <CRON_SECRET>`
 //     Schedule: 0 3 * * *  (daily at 03:00 UTC = 08:30 IST)
 //   Hostinger panel cron — also works but coarser scheduling:
 //     0 3 * * * curl -sS -H "x-cron-secret: $CRON_SECRET" \
@@ -70,12 +74,19 @@ function json(status: number, body: unknown): Response {
 }
 
 /**
- * Verify the request carries the configured CRON_SECRET. Accepts the
- * secret via either `?secret=` query param (convenient for cron-job.org
- * URL fields) or `x-cron-secret:` header (more secure — secret stays
- * out of access logs).
+ * Verify the request carries the configured CRON_SECRET via the
+ * `x-cron-secret:` request header.
  *
- * Returns true when the secret is present + matches.
+ * 2026-05-12 SEV-1 audit fix: previously also accepted `?secret=`
+ * query-string for cron-job.org convenience. Query-string secrets
+ * end up in CDN logs (Cloudflare), Hostinger access logs, and
+ * downstream analytics. Other cron routes (`reconcile-payments`,
+ * `ai-margin-rollup`) were already header-only — bringing this one
+ * into line. cron-job.org supports custom request headers in its
+ * Advanced settings; the existing scheduled job(s) must be updated
+ * to send `x-cron-secret` instead of using the URL query.
+ *
+ * Returns true when the header value matches the expected secret.
  */
 function isAuthorized(req: NextRequest): boolean {
   const expected = process.env.CRON_SECRET;
@@ -87,11 +98,7 @@ function isAuthorized(req: NextRequest): boolean {
     return false;
   }
   const header = req.headers.get("x-cron-secret");
-  if (header && header === expected) return true;
-  const url = new URL(req.url);
-  const qs = url.searchParams.get("secret");
-  if (qs && qs === expected) return true;
-  return false;
+  return Boolean(header && header === expected);
 }
 
 export async function GET(req: NextRequest): Promise<Response> {

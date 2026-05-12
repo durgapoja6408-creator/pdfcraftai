@@ -41,6 +41,21 @@ const CEILINGS = {
   // a T2-4 extraction. Only-shrinkage discipline: subsequent
   // extractions lower this further.
   "components/tools/PdfAddLinksTool.tsx": 881,
+  // 2026-05-12 SEV-1 audit extension — server-side library files
+  // >700 LOC. T2-4 originally scoped the ceiling to the 5 largest
+  // component files, but bug density scales with LOC regardless of
+  // whether the file lives in components/ or lib/. The 4 additions
+  // below were caught by the comprehensive gap analysis:
+  //   lib/admin/queries.ts      1985 LOC — admin SQL surface
+  //   lib/ai/summarize.ts       1755 LOC — multi-variant summarizer
+  //   lib/ai/margin-rollup.ts   1650 LOC — daily margin aggregation
+  //   lib/ai/sign.ts            1066 LOC — AI sign + form-fill
+  // Total +6456 server-side LOC now under the same only-shrinkage
+  // discipline as the component-file ceiling.
+  "lib/admin/queries.ts": 1985,
+  "lib/ai/summarize.ts": 1755,
+  "lib/ai/margin-rollup.ts": 1650,
+  "lib/ai/sign.ts": 1066,
 };
 
 let pass = 0, fail = 0;
@@ -72,7 +87,7 @@ for (const path of Object.keys(CEILINGS)) {
   totalCurrent += (readFileSync(path, "utf8").match(/\n/g) || []).length;
 }
 check(
-  `total LOC across 5 files <= ${TOTAL_CEILING} (current: ${totalCurrent})`,
+  `total LOC across ${Object.keys(CEILINGS).length} files <= ${TOTAL_CEILING} (current: ${totalCurrent})`,
   totalCurrent <= TOTAL_CEILING,
   totalCurrent > TOTAL_CEILING
     ? `+${totalCurrent - TOTAL_CEILING} LOC over aggregate ceiling`

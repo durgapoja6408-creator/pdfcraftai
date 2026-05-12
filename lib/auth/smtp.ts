@@ -83,12 +83,44 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     const fromName = process.env.SMTP_FROM_NAME ?? "pdfcraft ai";
     const fromEmail = process.env.SMTP_FROM_EMAIL ?? "support@pdfcraftai.com";
 
+    // 2026-05-12 SEV-1 audit fix: add List-Unsubscribe headers per
+    // Gmail / Yahoo bulk-sender rules (Feb 2024). These headers
+    // become MANDATORY for any sender above ~5,000 messages/day or
+    // any sender flagged for low engagement; setting them now keeps
+    // deliverability healthy as volume scales and protects sender
+    // reputation pre-emptively.
+    //
+    // Two-method header per RFC 8058: a mailto: link (universally
+    // supported) + an https: one-click endpoint (Gmail/Yahoo prefer
+    // this; renders as a one-click "Unsubscribe" button in the
+    // recipient's client). The mailto: address aliases to the
+    // standard support inbox — every transactional we send TODAY is
+    // an account-essential email (verification, password reset,
+    // payment receipt) that the user effectively can't unsubscribe
+    // from at the application level, so the mailto: provides a
+    // human-handled escape hatch rather than a true list-removal.
+    //
+    // List-Unsubscribe-Post: List-Unsubscribe=One-Click tells the
+    // recipient client to POST to the URL without further
+    // confirmation (saves a round-trip vs the older click-through
+    // pattern). When we add a marketing email surface, the
+    // /api/email/unsubscribe handler should accept that POST and
+    // unsubscribe the listed address from the relevant list.
+    const baseUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ?? "https://pdfcraftai.com";
+    const unsubscribeMailto = `<mailto:${fromEmail}?subject=Unsubscribe>`;
+    const unsubscribeUrl = `<${baseUrl}/api/email/unsubscribe>`;
+
     await transporter.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
       to: input.to,
       subject: input.subject,
       text: input.text,
       ...(input.html ? { html: input.html } : {}),
+      headers: {
+        "List-Unsubscribe": `${unsubscribeMailto}, ${unsubscribeUrl}`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
     });
 
     return { ok: true };

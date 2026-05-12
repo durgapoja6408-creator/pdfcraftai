@@ -93,8 +93,14 @@ check(
   /\(src\.match\(\/\\n\/g\)\s*\|\|\s*\[\]\)\.length/.test(LOC_GUARD)
 );
 check(
-  "T2-4.B4: aggregate ceiling check across all 5 files present",
-  /total LOC across 5 files/.test(LOC_GUARD)
+  // 2026-05-12 SEV-1: ceiling expanded from 5 component files to 9
+  // (added lib/admin/queries.ts, lib/ai/summarize.ts, lib/ai/margin-
+  // rollup.ts, lib/ai/sign.ts). The aggregate label is now derived
+  // from Object.keys(CEILINGS).length so it stays accurate as the
+  // ceiling expands. Match the dynamic template literal not the
+  // hardcoded number.
+  "T2-4.B4: aggregate ceiling check present (any file-count)",
+  /total LOC across \$\{Object\.keys\(CEILINGS\)\.length\} files/.test(LOC_GUARD)
 );
 
 // ─── §5f mobile spec ───

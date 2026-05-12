@@ -47,12 +47,20 @@ function ipBucket(req: Request): string {
 export async function POST(req: Request) {
   // Rate-limit FIRST — no point touching the DB if we're going to 429.
   const ip = ipBucket(req);
+  // 2026-05-12 SEV-1 audit fix: all error responses migrated from
+  // sentence-cased `{ error: "..." }` to canonical
+  // `{ error: "snake_case_code", detail: "Human readable." }` shape
+  // matching /api/ai/* routes. Client (ResetPasswordForm.tsx) reads
+  // body.detail ?? body.error so legacy fallback still surfaces.
   const minute = Math.floor(Date.now() / 60_000);
   const bucket = attempts.get(ip);
   if (bucket && bucket.minute === minute) {
     if (bucket.count >= PER_MINUTE_LIMIT) {
       return NextResponse.json(
-        { error: "Too many attempts. Try again in a minute." },
+        {
+          error: "rate_limited",
+          detail: "Too many attempts. Try again in a minute.",
+        },
         { status: 429 },
       );
     }
@@ -65,13 +73,19 @@ export async function POST(req: Request) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+    return NextResponse.json(
+      { error: "invalid_json", detail: "Invalid JSON." },
+      { status: 400 },
+    );
   }
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     const first = parsed.error.issues[0]?.message ?? "Invalid request.";
-    return NextResponse.json({ error: first }, { status: 400 });
+    return NextResponse.json(
+      { error: "invalid_request", detail: first },
+      { status: 400 },
+    );
   }
 
   try {
@@ -81,7 +95,10 @@ export async function POST(req: Request) {
     );
     if (!result.ok) {
       // 409 Conflict: the resource (token) is no longer in a usable state.
-      return NextResponse.json({ error: result.error }, { status: 409 });
+      return NextResponse.json(
+        { error: "token_unusable", detail: result.error },
+        { status: 409 },
+      );
     }
     return NextResponse.json({ ok: true });
   } catch (err) {
@@ -100,12 +117,18 @@ export async function POST(req: Request) {
     // exposing a 500 that'd alarm anyone running a synthetic probe.
     if (code === "ER_NO_SUCH_TABLE") {
       return NextResponse.json(
-        { error: "This reset link is invalid or has expired." },
+        {
+          error: "token_unusable",
+          detail: "This reset link is invalid or has expired.",
+        },
         { status: 409 },
       );
     }
     return NextResponse.json(
-      { error: "Something went wrong. Try requesting a new link." },
+      {
+        error: "internal_error",
+        detail: "Something went wrong. Try requesting a new link.",
+      },
       { status: 500 },
     );
   }

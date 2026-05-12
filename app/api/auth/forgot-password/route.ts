@@ -46,17 +46,30 @@ function buildResetUrl(req: Request, rawToken: string): string {
 }
 
 export async function POST(req: Request) {
+  // 2026-05-12 SEV-1 audit fix: was returning sentence-cased text in
+  // the `error` field (`{ error: "Invalid JSON." }`). Standardised
+  // to match the canonical shape used by /api/ai/* routes:
+  //   { error: "snake_case_code", detail: "Human readable." }
+  // Clients (ForgotPasswordForm.tsx) updated to display
+  // `body.detail ?? body.error ?? <fallback>` so legacy callers
+  // continue to surface the readable string.
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+    return NextResponse.json(
+      { error: "invalid_json", detail: "Invalid JSON." },
+      { status: 400 },
+    );
   }
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Please enter a valid email address." },
+      {
+        error: "invalid_email",
+        detail: "Please enter a valid email address.",
+      },
       { status: 400 },
     );
   }

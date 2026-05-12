@@ -22,7 +22,6 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",
     "@auth/drizzle-adapter": "1.7.4",
-    "@cantoo/pdf-lib": "^2.6.5",
     "@google/generative-ai": "^0.24.1",
     "@hyzyla/pdfium": "^2.1.12",
     "bcryptjs": "2.4.3",
@@ -45,6 +44,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.2",
+    "@cantoo/pdf-lib": "^2.6.5",
     "@playwright/test": "^1.59.1",
     "@types/bcryptjs": "2.4.6",
     "@types/node": "22.9.0",

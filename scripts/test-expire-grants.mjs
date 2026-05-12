@@ -53,9 +53,15 @@ assert(
   /x-cron-secret/.test(routeSrc),
   "B3: accepts secret via x-cron-secret header"
 );
+// 2026-05-12 SEV-1 audit fix: B4 was originally an existence
+// assertion ("accepts secret via ?secret="). The query-string
+// fallback was removed because query-string secrets end up in
+// CDN + access logs. B4 inverted to a non-existence assertion to
+// lock the closed gate in place. cron-job.org / Hostinger cron
+// MUST send the secret via the `x-cron-secret:` header now.
 assert(
-  /searchParams\.get\("secret"\)/.test(routeSrc),
-  "B4: accepts secret via ?secret= query param"
+  !/searchParams\.get\("secret"\)/.test(routeSrc),
+  "B4: rejects ?secret= query param (header-only — query-string secrets leak to access logs)"
 );
 assert(
   routeSrc.includes('error: "auth_required"'),

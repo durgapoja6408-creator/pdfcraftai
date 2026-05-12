@@ -65,9 +65,17 @@ export function ResetPasswordForm({ token }: { token: string }) {
             body: JSON.stringify({ token, password }),
           });
           if (!res.ok) {
-            const body = (await res.json().catch(() => ({}))) as { error?: string };
+            // 2026-05-12 SEV-1 audit fix: route migrated to
+            // { error: "snake_case_code", detail: "Human readable." }.
+            // Display detail first, fall back to legacy error string.
+            const body = (await res.json().catch(() => ({}))) as {
+              error?: string;
+              detail?: string;
+            };
             throw new Error(
-              body.error ?? "Couldn't update your password. Try requesting a new reset link.",
+              body.detail ??
+                body.error ??
+                "Couldn't update your password. Try requesting a new reset link.",
             );
           }
           // Success — send the user to /login with a success flash. Using

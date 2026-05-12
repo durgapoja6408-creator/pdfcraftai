@@ -49,12 +49,31 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "ai-chat", "ai-summarize", "ai-translate",
     "ai-ocr", "ai-redact", "ai-sign", "ai-table", "ai-compare",
   ]);
-  const toolRoutes: MetadataRoute.Sitemap = TOOLS.map((t) => ({
-    url: `${SITE_URL}/tool/${t.id}`,
-    lastModified: now,
-    changeFrequency: "monthly",
-    priority: HEAD_TOOL_IDS.has(t.id) ? 0.85 : 0.65,
-  }));
+  // 2026-05-12 SEV-1 audit fix: tool IDs whose /tool/<id> route
+  // 308-redirects to a canonical destination (per next.config.mjs
+  // redirects() block). Listing them in sitemap.xml wastes crawl
+  // budget on redirect-source URLs that already have their
+  // destination indexed separately:
+  //   /tool/ai-plagiarism → /tool/ai-detector  (destination is also
+  //                                              in TOOLS, indexed)
+  //   /tool/ai-chat       → /chat-with-pdf     (destination is the
+  //                                              SEO landing, already
+  //                                              listed via seoRoutes)
+  // CRITICAL: keep in sync with the redirects() block in
+  // next.config.mjs. test-redirect-destinations.mjs catches dead
+  // destinations; this exclusion handles the sitemap side.
+  const REDIRECTED_TOOL_IDS = new Set([
+    "ai-plagiarism",
+    "ai-chat",
+  ]);
+  const toolRoutes: MetadataRoute.Sitemap = TOOLS
+    .filter((t) => !REDIRECTED_TOOL_IDS.has(t.id))
+    .map((t) => ({
+      url: `${SITE_URL}/tool/${t.id}`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: HEAD_TOOL_IDS.has(t.id) ? 0.85 : 0.65,
+    }));
 
   // Hard-nuked SEO landings (40 deleted on 2026-04-27) used to be in
   // HEAD_SEO_SLUGS. Slugs that no longer exist as routes were removed.

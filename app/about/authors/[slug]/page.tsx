@@ -15,12 +15,25 @@ type Props = { params: { slug: string } };
 export function generateMetadata({ params }: Props): Metadata {
   const author = AUTHORS[params.slug as AuthorSlug];
   if (!author) return {};
+  // 2026-05-12 SEV-1 audit fix: the page title used to render as
+  // "Rajasekar Selvam — Founder · pdfcraft ai · pdfcraft ai" because
+  // (a) the author.role field already ends with "· pdfcraft ai"
+  // (lib/authors.ts:52) and (b) the root layout template appends
+  // "· pdfcraft ai" via `template: "%s · pdfcraft ai"`. Strip the
+  // role's trailing suffix before composing the title — the data
+  // source stays untouched (role is also used elsewhere for byline
+  // display where the suffix is wanted).
+  const roleForTitle = author.role.replace(/\s*[·•]\s*pdfcraft ai\s*$/i, "");
+  const titleStr =
+    roleForTitle.length > 0
+      ? `${author.name} — ${roleForTitle}`
+      : author.name;
   return {
-    title: `${author.name} — ${author.role}`,
+    title: titleStr,
     description: author.shortBio,
     alternates: { canonical: `/about/authors/${author.slug}` },
     openGraph: {
-      title: `${author.name} — ${author.role}`,
+      title: titleStr,
       description: author.shortBio,
       url: `/about/authors/${author.slug}`,
       type: "profile",
