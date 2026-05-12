@@ -7601,4 +7601,196 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // pdf-sentiment-analysis — sentiment classification AI
+  // ============================================================
+  "pdf-sentiment-analysis": {
+    title: "PDF Sentiment Analysis — overall and per-section sentiment with evidence quotes",
+    intro:
+      "Sentiment analysis classifies content as positive, negative, neutral, or mixed. The standard NLP problem; the standard tool category. What makes this implementation useful for PDFs specifically is the per-section breakdown with evidence quotes — not just \"overall negative\" but \"section 3 turns negative starting with this specific sentence.\" Here is what the analyzer produces, the workflows where sentiment-as-data is the load-bearing signal, and the limits of automated sentiment when the text is sarcastic, mixed, or domain-specific.",
+    sections: [
+      {
+        h: "What the analyzer produces",
+        p: [
+          "Drop a PDF. The tool extracts the text, scores sentiment per paragraph and per section, and surfaces a structured report. Output covers four dimensions: overall verdict (positive / negative / mixed / neutral) with confidence; per-section verdicts with the same dimensions; evidence quotes for each verdict (the specific sentences that drove the classification); and sentiment shifts (positive→negative or vice versa) with the trigger sentence that marked the transition.",
+          "Page citations on every finding. The verdict isn't the AI's vibe — it's grounded in specific quoted passages from the source. You can verify every classification by clicking through to the cited page.",
+        ],
+      },
+      {
+        h: "Five workflows where sentiment-as-data earns its place",
+        p: [
+          "Cases where the structured analysis beats reading the document directly:",
+        ],
+        list: {
+          items: [
+            { b: "Customer-feedback aggregation.", t: "A PDF of 200 customer reviews. Manually classifying each as positive / negative takes hours. The analyzer surfaces overall + per-review sentiment in seconds, with evidence quotes for spot-checking." },
+            { b: "Press-coverage analysis.", t: "A PDF of media coverage about your company over a quarter. Sentiment trend across articles shows whether press is improving, deteriorating, or mixed. The shifts column identifies turning-point events." },
+            { b: "Internal-survey processing.", t: "Employee engagement surveys often produce long-form open-text responses. Sentiment classification at scale lets HR see the overall mood and the specific concerns driving negative sentiment." },
+            { b: "Contract redline review.", t: "When reviewing a long contract, the sentiment signal flags sections with adversarial-sounding language that might warrant negotiation. Plain-sentiment doesn't apply directly to contracts but \"negative-toward-counterparty\" sections often correspond to risk allocation worth understanding." },
+            { b: "Mixed-feedback synthesis.", t: "Documents that contain both positive and negative content (\"the queue was long but the food was great\") get classified per-aspect rather than flattened to neutral. The per-section breakdown shows where the positives are and where the negatives are." },
+          ],
+        },
+      },
+      {
+        h: "Three limits of automated sentiment",
+        p: [
+          "Where the analyzer's accuracy degrades:",
+        ],
+        list: {
+          items: [
+            { b: "Sarcasm and irony.", t: "\"Great, another security incident\" is structurally positive (great) but semantically negative (irony). Sentiment classifiers often miss this. Severe sarcasm-heavy content (parody, satire, cynical commentary) should be treated as having lower-confidence classification." },
+            { b: "Domain-specific connotation.", t: "Words that are negative in general English but neutral in domain context: \"failed test\" (negative everyday, neutral in software QA where it means a test detected a problem). The analyzer doesn't always disambiguate. Domain-specific content sometimes scores misleadingly negative." },
+            { b: "Neutral / informational content.", t: "Technical specifications, regulatory text, instructions — content that isn't supposed to carry sentiment. The analyzer dutifully classifies it as neutral but the verdict isn't particularly useful. Sentiment is most informative on opinion-bearing content." },
+          ],
+        },
+      },
+      {
+        h: "Understanding sentiment shifts",
+        p: [
+          "The shift-detection column is the most interesting output for many use cases:",
+        ],
+        list: {
+          items: [
+            { b: "Identifies turning points.", t: "When a document's tone shifts mid-way — review starts positive then turns sour, contract negotiation gets adversarial in a specific clause, news article pivots from problem to solution — the shift is often the load-bearing content. The analyzer surfaces it explicitly." },
+            { b: "Surfaces the trigger.", t: "Each shift identifies the specific sentence that marks the transition. Useful for understanding what specifically changed the document's direction." },
+            { b: "Useful for narrative documents.", t: "Documents structured as stories (case studies, narratives, journalistic features) often have intentional sentiment arcs. The shift column reveals the structure." },
+          ],
+        },
+      },
+      {
+        h: "Mixed sentiment — how it's handled",
+        p: [
+          "Documents that mix positive and negative aspects don't flatten to neutral. Three patterns:",
+        ],
+        list: {
+          items: [
+            { b: "Per-target sentiment.", t: "\"The food was great but the service was slow\" surfaces as positive-about-food and negative-about-service. The analyzer separates targets when they're distinguishable." },
+            { b: "Overall verdict respects mix.", t: "The overall verdict is \"mixed\" when significant amounts of both polarity appear, rather than picking one. Mixed is a real classification, not a fallback." },
+            { b: "Section-level granularity.", t: "Mixed sentiment per section. Section 3 might be uniformly negative even though the document overall is positive. The per-section breakdown surfaces this nuance." },
+          ],
+        },
+      },
+      {
+        h: "When sentiment isn't the right analysis",
+        p: [
+          "Three cases where a different tool fits better:",
+        ],
+        list: {
+          items: [
+            { b: "Want substantive content extraction.", t: "If you need to know WHAT the document says rather than how positively, use Summarize or Key Points." },
+            { b: "Want voice/register analysis.", t: "Tone Analyzer is about voice and audience; Sentiment Analysis is about polarity. Related but different — pick by what you want to measure." },
+            { b: "Want competitive-intelligence specifically.", t: "For business-document sentiment toward specific competitors, products, markets, build queries against the entity-extraction + sentiment outputs combined — neither tool alone produces that specific aggregation." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "PDF Sentiment Analysis charges 3 credits per document. The tool handles PDFs up to 100 MB. Processing runs on our servers; the document is in memory only during analysis and is never persisted. Output is the structured report with overall + per-section verdicts, evidence quotes, and shift detections.",
+          "Common pairings: Sentiment + Entity Extraction to see which entities are associated with positive vs negative sentiment. Sentiment + Tone Analyzer for combined voice + polarity audit. Sentiment over a series of documents to see longitudinal trends.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // proofread-pdf — error-detection AI
+  // ============================================================
+  "proofread-pdf": {
+    title: "Proofread PDF — what AI proofreading catches that spell-check misses",
+    intro:
+      "Spell-check is necessary but not sufficient. Spell-check catches \"recieve\" → \"receive\" but doesn't catch \"their\" used where \"there\" was meant, or \"effect\" used where \"affect\" was needed, or subject-verb disagreement, or comma splices, or article misuse. AI proofreading catches the contextual errors that pattern-match spell-checkers miss. Here is what kinds of errors get caught, why context matters for accuracy, and the three workflows where a final-pass proofread by AI is the right last step before publication.",
+    sections: [
+      {
+        h: "What AI proofreading catches vs spell-check",
+        p: [
+          "Spell-check matches each word against a dictionary. If the word is in the dictionary, it passes — regardless of whether the right word was used. AI proofreading runs context-aware checks: each word's correctness evaluated against the surrounding sentence's meaning. Six categories of error the AI catches that spell-check doesn't:",
+        ],
+        list: {
+          items: [
+            { b: "Homophones in context.", t: "\"Their\" / \"there\" / \"they're.\" \"Effect\" / \"affect.\" \"Principle\" / \"principal.\" Spell-check passes all of these because they're real words; AI catches the wrong choice." },
+            { b: "Subject-verb agreement.", t: "\"The team are\" vs \"the team is.\" \"A group of researchers were\" — depending on style, may need \"was.\" Context-dependent agreement that spell-check ignores." },
+            { b: "Tense consistency.", t: "Mid-sentence tense shifts that aren't justified by the meaning. \"He walked to the store and is buying milk\" — the tense shift is a real error in most contexts." },
+            { b: "Article misuse.", t: "\"A apple\" vs \"an apple.\" Less common in skilled writing but happens often enough to make it a useful check. Non-native English writers especially benefit." },
+            { b: "Comma splices and run-on sentences.", t: "Two independent clauses joined only by a comma. Spell-check doesn't see syntax. AI flags these and suggests semicolon or sentence-break fixes." },
+            { b: "Collocation errors.", t: "Words that don't normally combine in English. \"Make a decision\" works; \"do a decision\" is wrong but spell-check passes both words. AI catches the collocation mismatch." },
+          ],
+        },
+      },
+      {
+        h: "Output structure",
+        p: [
+          "The proofreader produces a structured table with five columns:",
+        ],
+        list: {
+          items: [
+            { b: "Page.", t: "Where in the source the error appears. Click-through for context." },
+            { b: "Quote.", t: "The exact sentence (or phrase) containing the error, with the error highlighted." },
+            { b: "Error type.", t: "Categorised as spelling / homophone / subject-verb / tense / punctuation / article / collocation / etc. Useful for analysing what types of errors a document carries — and for spotting whether the document has a single category of recurring problem." },
+            { b: "Suggested fix.", t: "The specific correction. Most fixes are unambiguous; some are stylistic suggestions where the proofreader picks the most common option." },
+            { b: "Confidence.", t: "How sure the AI is. High-confidence fixes are usually correct; medium-confidence ones warrant a quick review." },
+          ],
+        },
+      },
+      {
+        h: "Why context matters for accuracy",
+        p: [
+          "Three patterns where context-aware checking outperforms rule-based:",
+        ],
+        list: {
+          items: [
+            { b: "Domain-specific terminology.", t: "Technical terms that aren't in standard dictionaries (\"FedRAMP,\" \"OAuth,\" \"SCIM\") would flag in spell-check but the AI recognizes them in technical-document context and passes them." },
+            { b: "Style choices.", t: "Intentional sentence fragments, stylistic singular-they, regional spelling variations (US vs UK). AI evaluates whether the choice is consistent with the document's overall style; spell-check applies one rule everywhere." },
+            { b: "Code blocks and literals.", t: "Code snippets, command names, file paths — content that shouldn't be proofread because it's reproduced literally. AI recognizes code-block context; spell-check flags every non-dictionary word as a misspelling." },
+          ],
+        },
+      },
+      {
+        h: "Three workflows where AI proofread is the right last step",
+        p: [
+          "Cases where the final pass before publication should include proofreading:",
+        ],
+        list: {
+          items: [
+            { b: "Pre-publication audit for any public-facing content.", t: "Blog posts, marketing copy, customer-facing documentation. Public errors damage brand perception. The proofreader is the cheap insurance against that." },
+            { b: "Submission documents.", t: "Application materials (university, job, grant), proposals, RFP responses. Errors signal sloppiness; clean writing signals attention to detail. The proofreader is high-leverage for these." },
+            { b: "Translated content.", t: "Documents translated from another language often carry article-use errors, collocation errors, and idiomatic mismatches that translators miss. The proofreader catches these specifically." },
+          ],
+        },
+      },
+      {
+        h: "False positives — how to handle them",
+        p: [
+          "AI proofreading has a non-zero false-positive rate. Three categories worth knowing:",
+        ],
+        list: {
+          items: [
+            { b: "Domain-specific terms flagged as misspellings.", t: "Technical acronyms, industry-specific jargon, proper names. The proofreader is conservative — better to flag too many than to miss real errors. Skip these in the table review." },
+            { b: "Stylistic choices flagged as errors.", t: "Intentional fragments, regional spelling, voice-specific punctuation. Style flags often shouldn't be applied. The confidence column helps — most stylistic flags are medium-confidence." },
+            { b: "Dialect mismatch.", t: "If the document mixes US and UK English (a real inconsistency worth fixing) the proofreader flags both, but the cleanup direction is yours to pick. Decide first, then apply." },
+          ],
+        },
+      },
+      {
+        h: "Proofread vs Improve Writing — different goals",
+        p: [
+          "Two adjacent tools:",
+        ],
+        list: {
+          items: [
+            { b: "Proofread — error detection.", t: "Catches mistakes. Output is a table of issues. Use as a final pass before publication." },
+            { b: "Improve Writing — clarity rewrite.", t: "Tightens prose, cuts filler, improves readability. Output is rewritten text. Use mid-draft for substantial revision." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "Proofread PDF charges 3 credits per document. The tool handles PDFs up to 100 MB. Processing runs on our servers; the document is in memory only during analysis and is never persisted. Output is the structured error table.",
+          "Common pairings: Proofread + Inclusive Language Audit + AI Detector for a complete pre-publication audit. Proofread → AI Rewrite for any error that requires substantial restructuring rather than a one-word fix.",
+        ],
+      },
+    ],
+  },
 };
