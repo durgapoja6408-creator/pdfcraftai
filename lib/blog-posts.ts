@@ -24,6 +24,84 @@ export type BlogBlock =
   | { type: "quote"; text: string };
 
 export const BLOG_POSTS: BlogPost[] = [
+  // 2026-05-12 — PENDING_WORK_ANALYSIS §7a (stale content cadence)
+  // closure. Pairs with the same-day /compare intent-router ship
+  // (commit 788d7f0) — this post is the natural editorial complement,
+  // explaining the verb-led decision framework readers see at /compare.
+  // Listed first so it shows on top of the blog index by date order.
+  {
+    slug: "pick-the-right-pdf-tool",
+    title: "How to pick the right PDF tool in 30 seconds",
+    excerpt:
+      "A simple verb-led framework for cutting through a 120-tool catalog — plus when AI is worth the credits and when the free tool wins.",
+    cat: "Guide",
+    date: "May 12, 2026",
+    iso: "2026-05-12",
+    read: "5 min",
+    author: { name: "pdfcraft team", role: "pdfcraft ai", initial: "P" },
+    body: [
+      {
+        type: "p",
+        text: "We added our hundredth tool a while back. We are now well past that. The catalog covers everything from merging two PDFs to fine-grained AI workflows like redacting personal data or summarising a 200-page contract. It is a lot to look at if all you wanted was a quick answer to 'I have a PDF, I want to do X'.",
+      },
+      {
+        type: "p",
+        text: "After watching our analytics for six months we noticed something obvious in hindsight: the people who land on the catalog page and then bounce are usually searching for a verb, not a tool name. 'Compress PDF' is a verb. 'Merge PDFs' is a verb. 'Reduce file size for email' is a verb. The actual tool name (Optimise, Combine, Linearise) is something they would only know if they had used the tool before.",
+      },
+      {
+        type: "h3",
+        text: "The 30-second framework",
+      },
+      {
+        type: "p",
+        text: "Pick the verb that matches what you want to do. Match it to the right tool family. Decide free or AI based on the rule below. That is the whole framework. It works because most PDF tasks fall into one of about twelve verbs — and every PDF tool you can imagine, no matter who makes it, slots into one of those buckets.",
+      },
+      {
+        type: "p",
+        text: "Combine, split, convert (out of PDF), convert (into PDF), shrink, understand, fill or sign, protect or unlock, translate, redact, compare, annotate. That is it. If you can name what you want as one of those twelve verbs, you have a 60-second path to the right tool. We just shipped a page at /compare that maps the verbs to the tools so you do not have to memorise the mapping.",
+      },
+      {
+        type: "h3",
+        text: "When AI is worth the credits",
+      },
+      {
+        type: "p",
+        text: "Roughly half the catalog is free in-browser tools (Merge, Split, Compress, Convert, Unlock, Sign, …) and the other half is AI-powered tools that cost credits (Summarise, Translate, Chat, Redact, Compare-by-content, …). Picking between them is a judgement call but it usually comes down to three questions.",
+      },
+      {
+        type: "quote",
+        text: "Does the task require understanding the content of the document, or just rearranging the bytes? If it is just rearranging the bytes, the free tool will do it.",
+      },
+      {
+        type: "p",
+        text: "Merging two PDFs does not require understanding what they say — the bytes get rearranged. Compressing a PDF rearranges the bytes. Splitting at page 12 rearranges the bytes. None of those need AI. They run in your browser, free, and produce identical output to anything an AI tool would charge you for.",
+      },
+      {
+        type: "p",
+        text: "Summarising a 50-page report DOES require understanding the content. So does answering a question about it. So does deciding which sentences contain personally-identifying information that need redacting. Those are the cases where the credit cost is buying something the free tool genuinely cannot produce.",
+      },
+      {
+        type: "h3",
+        text: "The middle ground: extract text",
+      },
+      {
+        type: "p",
+        text: "There is a category of task that lives between the two. 'I want to know what this PDF says' could mean 'I want to skim the text quickly' (free Extract Text does this — pulls every word out, you read it) or 'I want a one-paragraph summary' (AI Summarise does this — costs credits, saves you the skim).",
+      },
+      {
+        type: "p",
+        text: "If you are unsure, try the free extract first. The whole pipeline takes about three seconds and you might find the document is short enough that skimming is faster than waiting for a summary. If the text turns out to be too long or too dense, the AI tool is one click away.",
+      },
+      {
+        type: "h3",
+        text: "Try the page",
+      },
+      {
+        type: "p",
+        text: "We built /compare to make this framework concrete. Twelve intent groups, each with one to three tools, with Free and AI versions clearly badged where both exist. If the verb you want is not on the page, the catalog at /tools has every tool we ship — but for the eighty percent of queries that fit one of the twelve verbs, /compare is faster.",
+      },
+    ],
+  },
   {
     slug: "ai-redact-v2",
     title: "AI Redact v2: 10× faster, now with custom patterns",
