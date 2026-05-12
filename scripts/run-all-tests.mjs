@@ -1260,6 +1260,15 @@ const SUITES = [
     name: "sev1-fixes",
     file: "test-sev1-fixes.mjs",
   },
+  // 2026-05-12 — SEV-2 polish-tier batch: og:image cascade fix on 8
+  // legal/marketing pages, cookie banner aria-modal repair,
+  // session.maxAge config, buildResetUrl host-header hardening,
+  // /api/health AI detail gated behind cron-secret, SMTP_PASS boot
+  // warning. 29 assertions across 7 sections.
+  {
+    name: "sev2-fixes",
+    file: "test-sev2-fixes.mjs",
+  },
   // 2026-05-04 (PENDING_WORK_ANALYSIS.md §4c) — contact form
   // persistence + admin viewer. Migration 0021 added the
   // contact_submissions table; the route now persists every

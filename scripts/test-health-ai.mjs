@@ -165,9 +165,14 @@ assert(
 // =============================================================================
 
 assert(
+  // 2026-05-12 SEV-2: AI provider list now gated behind the cron
+  // secret header (publicly we only expose `configured: boolean`).
+  // The handler still calls probeAi(), just stores it as aiFull
+  // before deciding what to emit. Accept either the old (`const ai`)
+  // or the new (`const aiFull`) variable name.
   "C1 GET handler calls probeAi() to build the ai field",
-  /const\s+ai\s*=\s*probeAi\s*\(\s*\)/.test(HEALTH_SRC),
-  "GET handler must assign `const ai = probeAi()` before building the response body"
+  /const\s+(ai|aiFull)\s*=\s*probeAi\s*\(\s*\)/.test(HEALTH_SRC),
+  "GET handler must assign `const ai = probeAi()` (or `const aiFull = probeAi()` post 2026-05-12 SEV-2 audit fix) before building the response body"
 );
 
 assert(

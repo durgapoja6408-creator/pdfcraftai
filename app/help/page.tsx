@@ -3,6 +3,7 @@ import Link from "next/link";
 import { I } from "@/components/icons/Icons";
 import { HelpSearch } from "@/components/marketing/HelpSearch";
 import { HELP_TOPICS } from "@/lib/help-topics";
+import { DEFAULT_OG_IMAGES } from "@/lib/og-defaults";
 
 export const metadata: Metadata = {
   title: "Help center",
@@ -14,11 +15,13 @@ export const metadata: Metadata = {
     description: "Answers, guides, and troubleshooting for pdfcraft ai.",
     url: "/help",
     type: "website",
+    images: DEFAULT_OG_IMAGES,
   },
   twitter: {
     card: "summary_large_image",
     title: "Help center",
     description: "Answers, guides, and troubleshooting for pdfcraft ai.",
+    images: DEFAULT_OG_IMAGES.map((i) => i.url),
   },
 };
 

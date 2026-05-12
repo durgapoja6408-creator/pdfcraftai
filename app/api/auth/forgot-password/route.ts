@@ -31,6 +31,15 @@ const schema = z.object({
 const recent = new Map<string, number>();
 const WINDOW_MS = 60_000;
 
+// 2026-05-12 SEV-2 audit fix: when NEXT_PUBLIC_SITE_URL is unset, the
+// reset-link origin was derived from `req.url` which Next.js builds
+// from the Host header. An attacker controlling the Host header on a
+// misconfigured deploy could redirect victims to a phishing origin
+// via the reset email. NEXT_PUBLIC_SITE_URL is set in every production
+// environment (Hostinger panel + CLAUDE.md); the host-derived fallback
+// is now restricted to localhost so dev still works but a misconfigured
+// prod fails loudly rather than silently emitting attacker-controlled
+// reset links.
 function buildResetUrl(req: Request, rawToken: string): string {
   // Prefer the env var set in prod, fall back to the request origin so
   // local dev + preview deploys "just work" without extra config.
@@ -39,7 +48,19 @@ function buildResetUrl(req: Request, rawToken: string): string {
 
   try {
     const origin = new URL(req.url).origin;
-    return `${origin}/reset-password/${rawToken}`;
+    // Restrict the host-derived fallback to localhost (any port).
+    // Production must always have NEXT_PUBLIC_SITE_URL set; if the env
+    // var is missing in prod we'd rather emit a relative URL (which
+    // breaks the email but doesn't enable phishing) than blindly
+    // trust the Host header.
+    if (/^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/.test(origin)) {
+      return `${origin}/reset-password/${rawToken}`;
+    }
+    console.warn(
+      "[forgot-password] NEXT_PUBLIC_SITE_URL unset and non-localhost host;" +
+        " emitting relative URL to avoid Host-header spoof. Set NEXT_PUBLIC_SITE_URL.",
+    );
+    return `/reset-password/${rawToken}`;
   } catch {
     return `/reset-password/${rawToken}`;
   }

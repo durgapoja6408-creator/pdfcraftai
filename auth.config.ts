@@ -20,6 +20,13 @@ export const authConfig = {
   trustHost: true,
   session: {
     strategy: "jwt",
+    // 2026-05-12 SEV-2 audit fix: NextAuth defaults to 30-day sessions.
+    // For a payments-bearing app, 14 days with a sliding refresh is
+    // the more conservative norm — keeps stale tokens short-lived but
+    // doesn't force daily logins. Sliding refresh: every request
+    // within `updateAge` resets the session expiry.
+    maxAge: 14 * 24 * 60 * 60, // 14 days
+    updateAge: 24 * 60 * 60, // 1 day — only persist the new expiry once per day
   },
   callbacks: {
     authorized({ auth, request }) {

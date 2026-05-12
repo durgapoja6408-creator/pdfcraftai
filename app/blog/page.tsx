@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { I } from "@/components/icons/Icons";
 import { BLOG_POSTS } from "@/lib/blog-posts";
+import { DEFAULT_OG_IMAGES } from "@/lib/og-defaults";
 
 export const metadata: Metadata = {
   title: "Blog",
@@ -14,8 +15,8 @@ export const metadata: Metadata = {
     // surface a "subscribe" hint in the URL bar.
     types: { "application/rss+xml": "/blog/rss.xml" },
   },
-  openGraph: { title: "Blog", description: "Field notes from the PDF factory.", url: "/blog", type: "website" },
-  twitter: { card: "summary_large_image", title: "Blog", description: "Field notes from the PDF factory." },
+  openGraph: { title: "Blog", description: "Field notes from the PDF factory.", url: "/blog", type: "website", images: DEFAULT_OG_IMAGES },
+  twitter: { card: "summary_large_image", title: "Blog", description: "Field notes from the PDF factory.", images: DEFAULT_OG_IMAGES.map((i) => i.url) },
 };
 
 export default function BlogPage() {

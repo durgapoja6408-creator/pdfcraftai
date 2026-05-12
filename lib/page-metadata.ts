@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DEFAULT_OG_IMAGES } from "./og-defaults";
 
 // pageMetadata — small helper that builds a per-page Next.js Metadata
 // object with matching openGraph + twitter blocks, so social share cards
@@ -75,11 +76,19 @@ export function pageMetadata(input: PageMetadataInput): Metadata {
       // right default for marketing + legal pages that call through
       // this helper).
       ...(input.canonical ? { url: input.canonical, type: "website" } : {}),
+      // 2026-05-12 SEV-2 audit fix: explicitly include og:image.
+      // Root layout sets it, but when a page sets its own openGraph
+      // block, arrays REPLACE rather than merge — so the default
+      // image gets dropped. Spread DEFAULT_OG_IMAGES here so the
+      // helper-driven pages always keep the image. Pages that need
+      // a custom image override via `input.og.images`.
+      images: DEFAULT_OG_IMAGES,
     },
     twitter: {
       card: "summary_large_image",
       title: twitterTitle,
       description: twitterDescription,
+      images: DEFAULT_OG_IMAGES.map((i) => ({ url: i.url, alt: i.alt })),
     },
   };
 

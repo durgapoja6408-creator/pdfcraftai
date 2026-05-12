@@ -10,6 +10,7 @@ import { LaunchNotifySignup } from "@/components/geo/LaunchNotifySignup";
 import { readCountryHeader } from "@/lib/geo/country-header";
 import { CREDIT_PACKS, PRICING_FAQ } from "@/lib/pricing";
 import { TOOLS, TOOL_STATS } from "@/lib/tools";
+import { DEFAULT_OG_IMAGES } from "@/lib/og-defaults";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -20,11 +21,13 @@ export const metadata: Metadata = {
     description: "Free PDF tools forever. AI tools pay-as-you-go from $5.",
     url: "/pricing",
     type: "website",
+    images: DEFAULT_OG_IMAGES,
   },
   twitter: {
     card: "summary_large_image",
     title: "Pricing",
     description: "Free PDF tools forever. AI tools pay-as-you-go from $5.",
+    images: DEFAULT_OG_IMAGES.map((i) => i.url),
   },
 };
 

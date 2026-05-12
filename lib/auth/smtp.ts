@@ -40,6 +40,25 @@ interface SendEmailResult {
   error?: string;
 }
 
+// 2026-05-12 SEV-2 audit fix: emit a one-time startup warning when
+// SMTP_PASS is missing/empty so the misconfiguration is visible in
+// boot logs rather than only on the first email-send attempt. Skip
+// the warning during NODE_ENV=test (test runs don't need email).
+// Doesn't throw — lazy-init still works for dev environments where
+// SMTP is intentionally unconfigured.
+if (
+  process.env.NODE_ENV !== "test" &&
+  (!process.env.SMTP_PASS || process.env.SMTP_PASS.length === 0)
+) {
+  console.warn(
+    "[smtp] SMTP_PASS is unset or empty at boot. Email sends will return" +
+      " { ok: false, error: 'smtp_not_configured' } and the affected user" +
+      " flows (signup verification, password reset, contact form acks)" +
+      " will degrade gracefully. Set SMTP_PASS in Hostinger panel before" +
+      " enabling production traffic.",
+  );
+}
+
 let cachedTransporter: unknown = null;
 
 async function getTransporter(): Promise<unknown> {

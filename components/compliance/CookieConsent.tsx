@@ -156,8 +156,16 @@ export function CookieConsent({ initialLevel }: Props) {
 
   return (
     <div
-      role="dialog"
-      aria-modal="false"
+      // 2026-05-12 SEV-2 audit fix: was `role="dialog" aria-modal="false"`
+      // — mixing dialog with non-modal confuses screen readers about
+      // whether tabbing should escape. The banner is a non-blocking
+      // notification (page is still interactive behind it), so the
+      // correct role is `region` with `aria-live="polite"`. Screen
+      // readers announce the content on first render without
+      // demanding focus-trap behaviour. Same a11y semantic as the
+      // existing "skip to main content" link region.
+      role="region"
+      aria-live="polite"
       aria-labelledby="cookie-consent-title"
       aria-describedby="cookie-consent-body"
       style={{

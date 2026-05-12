@@ -133,7 +133,23 @@ export async function GET(req: NextRequest) {
     dbError = sanitizeError(err);
   }
 
-  const ai = probeAi();
+  // 2026-05-12 SEV-2 audit fix: the AI provider list + per-op routing
+  // ladder used to be exposed on every public probe — useful for ops
+  // monitoring but also tips off competitors and prompt-attack
+  // researchers about which providers we depend on. Gating the
+  // detailed view behind the cron-secret header keeps Cloudflare's
+  // public health checks happy (they don't read .ai.providers) while
+  // hiding the strategic surface from drive-by scrapers. Public
+  // callers now see only `ai: { configured: boolean }`.
+  const aiFull = probeAi();
+  const cronSecret = process.env.CRON_SECRET;
+  const authorized =
+    cronSecret &&
+    cronSecret.length >= 16 &&
+    req.headers.get("x-cron-secret") === cronSecret;
+  const ai = authorized
+    ? aiFull
+    : { configured: aiFull.configured };
 
   // Migration-drift probe — opt-in via `?drift=1`. We don't run it on
   // every Cloudflare health ping (extra round-trip + information_schema
