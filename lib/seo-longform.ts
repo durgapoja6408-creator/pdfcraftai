@@ -9025,4 +9025,162 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // repair-pdf — corruption-fixing tool
+  // ============================================================
+  "repair-pdf": {
+    title: "Repair PDF — what makes a PDF \"broken\" and what can actually be fixed in-browser",
+    intro:
+      "\"PDF won't open\" is one of the most common error messages on the internet. The PDF may show as corrupt in Acrobat, fail to render in browsers, or open with garbled content. Most of these failures aren't fundamental — they're recoverable through a fresh parse and re-save with rebuilt structural metadata. The repair tool does exactly that: parse what's recoverable, rebuild the cross-reference table, drop orphaned objects, recompress streams. Here is what kinds of corruption are fixable, what isn't, and the five common failure modes that account for most \"won't open\" reports.",
+    sections: [
+      {
+        h: "How PDF repair works",
+        p: [
+          "Every PDF has a cross-reference (xref) table — the index that tells the reader where each object lives in the file. When the xref is stale, missing, or out of sync with the actual objects, readers can't find pages and the file appears broken. The repair tool does a two-pass parse: first attempts strict parsing; if that fails, retries with full recovery mode (throwOnInvalidObject: false, ignoreEncryption: true). Once parseable, it re-saves with a freshly-rebuilt xref, dropping orphaned objects and recompressing content streams.",
+          "Output is usually smaller than input. PDFs accumulate cruft over their editing lifetime — orphaned objects from delete operations, stale xref entries, redundant copies of resources. The repair cleans these up as a side effect.",
+        ],
+      },
+      {
+        h: "Five failure modes the repair tool fixes",
+        p: [
+          "From real-world error reports:",
+        ],
+        list: {
+          items: [
+            { b: "Stale xref tables.", t: "The most common failure. After heavy editing, the xref points to byte offsets that don't match where objects actually live. Reader can't find pages; file appears truncated. Repair rebuilds the xref from scratch by scanning the actual objects." },
+            { b: "Missing trailer.", t: "PDF requires a trailer at the end pointing to the catalog. Some incomplete uploads or truncated transfers drop the trailer. If the catalog object is still present elsewhere, repair can locate it and write a fresh trailer." },
+            { b: "Broken page-tree references.", t: "/Pages dictionary points to a page object that doesn't exist (orphaned by a partial delete operation). Repair removes the broken reference; the surviving pages still render correctly. Lost: the un-referenced page (which was effectively gone already)." },
+            { b: "Invalid /Info entries.", t: "Some PDF generators produce /Info dictionaries with non-standard fields that strict parsers reject. Repair normalizes /Info or drops invalid entries, keeping the document parseable." },
+            { b: "Wrong %PDF header.", t: "PDFs are supposed to start with %PDF-1.x. Some generators produce files starting with whitespace or comments before the header; strict parsers reject. Repair rewrites the header at offset 0." },
+          ],
+        },
+      },
+      {
+        h: "What repair CAN'T fix",
+        p: [
+          "Three categories of corruption beyond the tool's scope:",
+        ],
+        list: {
+          items: [
+            { b: "Missing catalog object.", t: "The catalog is the top-level reference that everything else hangs off of. If it's completely missing, there's nothing to rebuild from. Repair fails cleanly with a clear error rather than producing a broken output. Workaround: try Adobe Acrobat Pro's \"Recover Text from Damaged PDF\" or pdftk's repair mode." },
+            { b: "Binary corruption inside content streams.", t: "If a page's drawing instructions themselves are corrupted (compressed data with garbage bytes, malformed operator sequences), repair can't reconstruct them. Operator-level parsing is beyond the tool's scope. Workaround: extract whatever pages parse correctly; accept loss of the corrupted ones." },
+            { b: "Real password-protected PDFs.", t: "If the PDF requires a user-password (open-password) to read, the repair tool can't decrypt it. Unlock first with our Unlock tool (for owner-passwords) or provide the user-password in Adobe Acrobat. Once unlocked, repair can process the file." },
+          ],
+        },
+      },
+      {
+        h: "Three workflows where repair earns its place",
+        p: [
+          "Specific cases:",
+        ],
+        list: {
+          items: [
+            { b: "Received a \"corrupt\" attachment.", t: "Email or messaging attachment that the recipient can't open. Run repair before declaring it unrecoverable; most of these are simple xref corruption from email encoding glitches." },
+            { b: "Heavily-edited working file.", t: "After many edit-save cycles, PDFs accumulate orphaned objects and become bloated. Periodic repair (\"compact and rebuild\") shrinks the file and often resolves subtle rendering issues that started after specific edits." },
+            { b: "Recovered from disk-corruption.", t: "A PDF recovered from a damaged disk or interrupted download. Strict parsers may fail; repair's recovery mode often succeeds where strict parse couldn't." },
+          ],
+        },
+      },
+      {
+        h: "What you get in the output",
+        p: [
+          "Three deliverables alongside the repaired PDF:",
+        ],
+        list: {
+          items: [
+            { b: "The repaired PDF.", t: "Freshly-saved with rebuilt xref. Opens in any reader. Usually smaller than the input." },
+            { b: "Before-after size comparison.", t: "Input bytes vs output bytes. Reports the reclaimed space from dropped orphans and re-compressed streams." },
+            { b: "Repair report listing each step.", t: "\"Rebuilt xref table,\" \"Dropped 12 orphaned objects,\" \"Recompressed content streams,\" etc. Useful for understanding what was actually wrong with the input and for audit trail when the repair affects a high-stakes document." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "Free. 100% client-side. The tool handles PDFs up to 100 MB. Parsing runs in your browser via pdf-lib; nothing is uploaded. Output is the repaired PDF + the before/after size + the step-by-step repair report.",
+          "Common pairings: Repair → Compress for further size reduction after structural cleanup. Repair → Remove Metadata to drop legacy /Info dictionary noise. Repair → PDF Inspector to verify the repaired file's structural integrity.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // reorder-pdf-pages — drag-to-sort utility
+  // ============================================================
+  "reorder-pdf-pages": {
+    title: "Reorder PDF pages — drag thumbnails visually when range-syntax won't do",
+    intro:
+      "Sometimes you need to rearrange a PDF's pages — put a cover page first, move an appendix to the front, swap a couple of slides in a deck, re-order pages a scanner fed in the wrong sequence. Range-syntax tools (\"keep pages 3, 1, 5, 2, 4\") work but are awkward for visual rearrangement. The reorder tool shows every page as a thumbnail and lets you drag pages to new positions — the visual workflow when you can see what each page is. Here is how the thumbnail rendering works, the three workflows where drag-reorder beats range-syntax, and the relationship to the Extract Pages tool.",
+    sections: [
+      {
+        h: "How the visual reorder works",
+        p: [
+          "Drop a PDF. The tool renders every page as a thumbnail in your browser using PDFium. The thumbnails are arranged in current page order; each is clickable and draggable. Drag any thumbnail to a new position; the other thumbnails reflow to make room. Two convenience buttons: Reverse (flip the entire order) and Restore Original (reset to the source order).",
+          "When you click Apply, the tool reads the new sequence and uses pdf-lib's copyPages to assemble a new PDF in that order. The page contents are copied verbatim — same text, same images, same annotations, same form fields. Only the order changes.",
+        ],
+      },
+      {
+        h: "Three workflows where drag beats range-syntax",
+        p: [
+          "Cases where visual rearrangement is the right approach:",
+        ],
+        list: {
+          items: [
+            { b: "Scanner mis-fed page order.", t: "A document scanner that fed pages out of order — common with duplex scanners that interleave fronts and backs. You can SEE which page is which from thumbnails; drag-reorder to the correct sequence." },
+            { b: "Slide-deck re-ordering for different audiences.", t: "A 30-slide deck reused for different audiences with different emphasis. Drag slides to surface the points that matter for THIS audience; the original deck remains intact." },
+            { b: "Cover-page or table-of-contents addition.", t: "Adding a cover or TOC at the front of an existing document. The new page is created separately, merged into position 1, then drag to fine-tune position." },
+            { b: "Booklet-style page sequencing.", t: "Some printers expect pages in non-sequential order (booklet imposition, signature work). Drag pages to the printer's required sequence. For automated booklet imposition see the Booklet tool; manual drag works for one-off custom sequences." },
+            { b: "Appendix or supporting-material relocation.", t: "Moving an appendix from the back of a report to a referenced position mid-document. Drag works; range-syntax for this in a 200-page doc is awkward." },
+          ],
+        },
+      },
+      {
+        h: "Drag-reorder vs Extract Pages",
+        p: [
+          "Two related tools with different output shapes:",
+        ],
+        list: {
+          items: [
+            { b: "Reorder Pages — same pages, different order.", t: "Input N pages → output N pages, in your chosen order. All pages survive; only the sequence changes." },
+            { b: "Extract Pages — subset of pages.", t: "Input N pages → output M pages where M ≤ N. Some pages dropped, remaining pages in your chosen order. Use when you want to both subset AND reorder." },
+            { b: "Decision rule.", t: "Need all the pages? Reorder. Need only some pages? Extract Pages (which also handles ordering via its range syntax)." },
+          ],
+        },
+      },
+      {
+        h: "Three patterns that make reorder smooth",
+        p: [
+          "Habits for the workflow:",
+        ],
+        list: {
+          items: [
+            { b: "Use Reverse for bulk-flip.", t: "Common scanner failure: scanned in reverse order. Reverse button does in one click what drag-by-drag would take minutes." },
+            { b: "Use Restore Original liberally.", t: "If you mess up a drag and lose track of original order, Restore Original resets and you can start again. The original PDF on disk is never modified; only the in-tool order changes." },
+            { b: "Render before deciding.", t: "Wait for all thumbnails to render before dragging. Trying to drag a thumbnail that's still rendering can produce unexpected results. Most PDFs render in seconds; very long PDFs may take a few." },
+          ],
+        },
+      },
+      {
+        h: "What stays preserved",
+        p: [
+          "Three things the reorder doesn't touch:",
+        ],
+        list: {
+          items: [
+            { b: "Page content.", t: "Text, images, vectors, scanned content — all preserved exactly. The reorder is at the page level; page interiors are untouched." },
+            { b: "Annotations and form fields.", t: "Highlights, comments, sticky notes, form-field values — all travel with their original page to its new position." },
+            { b: "Hyperlinks.", t: "External URLs preserved. Internal goto-page links automatically remapped to point at the new page positions; what was \"jump to page 5\" still jumps to the same content, even if that content is now at page 12." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "Free. 100% client-side. The tool handles PDFs up to 100 MB. Thumbnails render via PDFium in your browser; reorder happens via pdf-lib. Nothing is uploaded.",
+          "Common pairings: Reorder + Extract Pages when you want to both subset and rearrange. Reorder + Compress to shrink the reordered output. Reorder + Add Page Numbers AFTER reordering — page numbers should reflect the final sequence, not the source.",
+        ],
+      },
+    ],
+  },
 };
