@@ -3,7 +3,7 @@ import Link from "next/link";
 import { I } from "@/components/icons/Icons";
 import { ToolFilter } from "@/components/marketing/ToolFilter";
 import { AdSlot } from "@/components/marketing/AdSlot";
-import { TOOL_STATS } from "@/lib/tools";
+import { TOOLS, TOOL_STATS } from "@/lib/tools";
 
 const META_DESC_SHORT = `Every PDF tool you need. ${TOOL_STATS.free} free forever, ${TOOL_STATS.ai} AI-powered.`;
 const META_DESC_LONG = `Every PDF tool you need — ${TOOL_STATS.free} free forever, ${TOOL_STATS.ai} AI-powered. Merge, split, compress, convert, chat, summarize, translate, redact.`;
@@ -25,9 +25,84 @@ export const metadata: Metadata = {
   },
 };
 
+// 2026-05-12 — schema.org CollectionPage + ItemList JSON-LD for the
+// catalog. Pairs with the FAQPage JSON-LD on /compare (commit
+// 52adddc). CollectionPage tells Google the page is a curated index
+// over a set of items; ItemList encodes each tool as a ListItem
+// with position + name + url + description. Helps Google index the
+// individual catalog rows and may unlock site-link search-box +
+// rich-snippet features for tool-name queries.
+//
+// The list derives from the canonical TOOLS array at render time,
+// so adding a tool to lib/tools.ts auto-updates the schema. No
+// duplication, no drift risk.
+//
+// Sitelinks search box note: only fires when site:domain.com search
+// works AND CollectionPage / ItemList signal is present. We already
+// have a sitemap covering /tools so Google has the data; the schema
+// here is the second half of the signal pair.
+const SITE = "https://pdfcraftai.com";
+const COLLECTION_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "@id": `${SITE}/tools#collection`,
+  url: `${SITE}/tools`,
+  name: "All tools — pdfcraftai.com",
+  description: `Every PDF tool you need. ${TOOL_STATS.free} free forever, ${TOOL_STATS.ai} AI-powered.`,
+  isPartOf: { "@type": "WebSite", url: SITE, name: "pdfcraftai" },
+  mainEntity: {
+    "@type": "ItemList",
+    numberOfItems: TOOL_STATS.total,
+    itemListElement: TOOLS.map((tool, idx) => ({
+      "@type": "ListItem",
+      position: idx + 1,
+      url: `${SITE}/tool/${tool.id}`,
+      name: tool.name,
+      // Truncate to first 200 chars — Google's structured data spec
+      // recommends concise descriptions. The desc field in TOOLS
+      // sometimes runs 300-400 chars with marketing prose; the head
+      // is the high-signal part.
+      description: tool.desc.length > 200
+        ? tool.desc.slice(0, 197) + "..."
+        : tool.desc,
+    })),
+  },
+};
+
+const BREADCRUMB_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Home", item: SITE },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "All tools",
+      item: `${SITE}/tools`,
+    },
+  ],
+};
+
 export default function ToolsPage() {
   return (
     <main>
+      {/* CollectionPage + ItemList structured data. Renders inline
+          as <script type="application/ld+json"> so search engines
+          pick it up on the initial server-rendered HTML. */}
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(COLLECTION_JSONLD),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(BREADCRUMB_JSONLD),
+        }}
+      />
       <section style={{ paddingTop: 80 }}>
         <div className="container-x" style={{ padding: "0 28px" }}>
           <div className="eyebrow" style={{ marginBottom: 8 }}>

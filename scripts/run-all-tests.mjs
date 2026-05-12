@@ -1157,6 +1157,18 @@ const SUITES = [
     name: "tool-id-conventions",
     file: "test-tool-id-conventions.mjs",
   },
+  // 2026-05-12 — CollectionPage + ItemList JSON-LD on the /tools
+  // catalog page. Mirrors the FAQPage JSON-LD pattern shipped on
+  // /compare. ItemList derives from the canonical TOOLS array via
+  // .map() at render time so adding a tool auto-updates the schema.
+  // 14 assertions across 5 sections (A: constants, B: shape spec,
+  // C: derivation-not-literal — anchored on COLLECTION_JSONLD block
+  // since breadcrumb itemListElement IS legitimately a literal,
+  // D: breadcrumb, E: script tags + JSON.stringify wrapping).
+  {
+    name: "tools-catalog-jsonld",
+    file: "test-tools-catalog-jsonld.mjs",
+  },
   // 2026-05-04 (PENDING_WORK_ANALYSIS.md §4c) — contact form
   // persistence + admin viewer. Migration 0021 added the
   // contact_submissions table; the route now persists every
