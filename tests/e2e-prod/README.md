@@ -1,152 +1,165 @@
 # On-demand production E2E suite
 
-**2026-05-12 — Phase 1: anonymous read-only smoke.**
+**2026-05-12 — Phases 1, 2, 3 (partial), 4 (scaffolded).**
 
-This suite tests the live production site at https://pdfcraftai.com.
-It hits real URLs, parses real responses, validates real JSON-LD —
-but it does **not** mutate anything (no file uploads, no AI calls,
-no payments, no account changes). Safe to run any time.
+Tests the live production site at https://pdfcraftai.com.
 
-## When to run
-
-- **Manually before/after a significant deploy.** Especially the
-  ones in CLAUDE.md §5 cascade-prone surface (auth, payments, CSP).
-- **Daily via GitHub Actions scheduled workflow.** Set up at
-  `.github/workflows/prod-e2e.yml`, runs every day at 06:00 UTC.
-  Failures open a GitHub issue.
-- **On-demand via `gh workflow run prod-e2e.yml`** when you suspect
-  something broke and want a structured probe.
-
-## How to run
-
-### Locally
+## TL;DR
 
 ```bash
-# Default — against https://pdfcraftai.com
-npm run test:prod-e2e
-
-# Against a different URL (staging, preview, Cloudflare branch)
-PROD_E2E_URL=https://staging.pdfcraftai.com npm run test:prod-e2e
-
-# Single group
-npx playwright test --config=playwright.prod.config.ts -g "homepage"
-
-# UI mode for debugging
-npx playwright test --config=playwright.prod.config.ts --ui
+npm run test:prod-e2e            # against pdfcraftai.com
+npm run test:prod-e2e:ui         # interactive Playwright UI
+gh workflow run prod-e2e.yml     # CI run via GitHub Actions
 ```
 
-### CI
+Specs that need secrets stay **skipped** (not failed) until the
+secret lands. So every npm run is green-by-default and goes
+fuller as you flip switches.
 
-```bash
-# Trigger the GitHub Actions workflow
-gh workflow run prod-e2e.yml
+## Phase activation matrix
 
-# Watch it run
-gh run watch
-```
-
-## What's covered (Phase 1)
-
-13 test groups across the anonymous-visitor surface:
-
-| Group | Coverage | Surfaces |
+| Phase | What it tests | Activation |
 |---|---|---|
-| A. Homepage | hero + JSON-LD + cookie banner | `/` |
-| B. Catalog | tools list + intent router | `/tools`, `/compare` |
-| C. Pricing | Product JSON-LD + pack names | `/pricing` |
-| D. Trust & legal | 8 pages × og:image | `/privacy`, `/terms`, `/refund-policy`, `/cancellation-policy`, `/cookies`, `/dpa`, `/gdpr`, `/security` |
-| E. Alternatives | index + 5 per-competitor pages | `/alternatives/*` |
-| F. Tool pages | 10 representative tools × JSON-LD | `/tool/*` |
-| G. Blog | post count + Article schema + RSS | `/blog`, `/blog/rss.xml`, `/blog/<slug>` |
-| H. Help center | article count + search form + cancel article | `/help`, `/help/cancel-subscription` |
-| I. Use cases | index + CollectionPage schema | `/use-cases` |
-| J. Marketing | TechArticle/Service/contact form | `/api`, `/bulk`, `/enterprise`, `/about` |
-| K. Infrastructure | sitemap + robots + health + sample + WASM MIME | `/sitemap.xml`, `/robots.txt`, `/api/health`, `/sample.pdf`, `/api/pdfium-wasm` |
-| L. Security headers | CSP + X-Frame-Options + HSTS | `/` |
-| M. Auth surfaces | redirect behaviour + login form | `/app/welcome`, `/app/admin/*`, `/login` |
+| **1 — Anonymous smoke** | Homepage, /tools, /compare, /pricing, legal pages, JSON-LD, sitemap, robots, /api/health, PDFium WASM MIME, security headers, auth redirects | **ACTIVE** — runs by default. 53 assertions. |
+| **3a — Free tool execution** | Drop sample.pdf into 12 single-input client-side tools (page-count, pdf-inspector, pdf-to-text, pdf-to-jpg, pdf-to-png, pdf-to-markdown, split, page-numbers, remove-metadata, pdf-search, extract-images, rotate) + Merge (multi-input). Verify the dropzone exits empty state and the file is accepted — checks the floor, not per-tool success UI (which differs by tool). | **ACTIVE** — runs by default. 13 tests. Uses `public/sample.pdf` (checked in). |
+| **2 — Authenticated flows** | Login flow, /app/dashboard, /app/welcome, /app/settings, /app/billing, session cookie attributes, admin no-leak for non-admin authed users | **SKIPPED** until `PROD_E2E_TEST_EMAIL` + `PROD_E2E_TEST_PASSWORD` are set. See unlock steps below. |
+| **3b — AI tool execution** | Drop sample.pdf into ai-summarize + ai-key-points. Verify text output. Checks credit balance decreased. | **SKIPPED** until Phase 2 + `PROD_E2E_AI_BUDGET_OK=yes` are set. Each run spends real credits on the test account. |
+| **4 — Payment flows** | Razorpay checkout opens for Starter pack. Full checkout-with-test-card path is scaffolded but commented `test.skip` pending founder review. | **SKIPPED** until Phase 2 + `PROD_E2E_RAZORPAY_TEST_KEY` + `PROD_E2E_PAYMENTS_OK=yes` are set. |
 
-Total: ~50 individual assertions across the suite.
+## Phase 2 unlock — authenticated flows
 
-## What's NOT covered (deferred to Phase 2+)
+**One-time operator action (~5 min):**
 
-### Phase 2 — Authenticated read-only
+1. **Create a dedicated test account on prod:**
+   - Open https://pdfcraftai.com/register in an incognito window
+   - Email: pick a dedicated address you control. Suggested:
+     `e2e-test@pdfcraftai.com` (set up the mailbox in Hostinger
+     Mail panel first if needed)
+   - Password: strong, randomly generated. Save it somewhere
+     you can retrieve later (1Password, etc.)
+   - Verify the email (check the Hostinger inbox)
+2. **Configure GitHub Actions secrets:**
+   ```bash
+   gh secret set PROD_E2E_TEST_EMAIL --body "e2e-test@pdfcraftai.com"
+   gh secret set PROD_E2E_TEST_PASSWORD --body "<the password>"
+   ```
+3. **Configure local .env.local for dev runs:**
+   ```bash
+   echo "PROD_E2E_TEST_EMAIL=e2e-test@pdfcraftai.com" >> .env.local
+   echo "PROD_E2E_TEST_PASSWORD=<the password>" >> .env.local
+   ```
 
-Needs a dedicated test account with verified email. Would cover:
+**Verify the unlock:**
+```bash
+npm run test:prod-e2e -- --grep "authenticated flows"
+```
+You should see the auth tests run instead of skip.
 
-- Login flow (Credentials path)
-- `/app/dashboard` renders with stats
-- `/app/welcome` shows curated tool grid for logged-in users
-- `/app/settings` form loads
-- Session expiry behaviour
+## Phase 3-AI unlock — AI tool execution
 
-**Blocker:** need a test account on production. Could create one
-manually, or wire a `PROD_E2E_TEST_EMAIL` / `PROD_E2E_TEST_PASSWORD`
-secret pair in GitHub Actions. Founder decision: are we OK with a
-real account existing on prod purely for E2E?
+**Phase 2 must be complete first.**
 
-### Phase 3 — Tool execution
+1. **Top up the test account with ~50 credits** (~$5 at Starter
+   pack rate; real money). Open https://pdfcraftai.com/pricing,
+   buy a Starter pack via Razorpay (production), the credits land
+   on the test account.
+2. **Acknowledge the credit budget:**
+   ```bash
+   gh secret set PROD_E2E_AI_BUDGET_OK --body "yes"
+   ```
+3. **(Optional) Add weekly cron** in `.github/workflows/prod-e2e.yml`
+   instead of relying solely on manual `gh workflow run`:
+   ```yaml
+   schedule:
+     - cron: "0 6 * * *"      # existing daily (Phase 1 + 3a)
+     - cron: "0 6 * * 0"      # weekly Sunday for AI suite
+   ```
+   Then teach the workflow to set `PROD_E2E_AI_BUDGET_OK` only
+   for the weekly run. Pattern in workflow_dispatch inputs.
 
-Would actually run the tools — drop a PDF, get an output, validate
-the result. Catches the highest-value regressions (the kind of
-thing the PDFium WASM MIME bug surfaced) but requires:
+Each AI run spends ~3-6 credits across the suite (ai-summarize at
+3, ai-key-points at 3). Weekly runs ≈ 12-24 credits/month ≈ $0.30/mo
+once the test account is topped up.
 
-- Sandbox AI keys (so AI tool runs don't burn real credits)
-- A fixed-content sample PDF (public/sample.pdf already exists)
-- Output-bytes validation (file size, MIME, page count) without
-  per-tool brittleness
+## Phase 4 unlock — payment flows
 
-### Phase 4 — Payments
+**Phase 2 must be complete first. Founder review recommended.**
 
-Razorpay sandbox keys + a test card. Verifies checkout flow,
-webhook delivery, credit allocation. **Not** in scope until the
-broader staging-environment decision lands (SEV-1 deferred item).
+1. **Get a Razorpay test-mode key:**
+   - Razorpay dashboard → Settings → API Keys → Toggle to Test mode
+   - Generate a test key pair (`rzp_test_...`)
+2. **Configure secrets:**
+   ```bash
+   gh secret set PROD_E2E_RAZORPAY_TEST_KEY --body "rzp_test_..."
+   gh secret set PROD_E2E_PAYMENTS_OK --body "yes"
+   ```
+3. **Verify the `is_test` flag plumbing:** the pending_order row
+   created on each test run should set `is_test = true` so it
+   doesn't appear in /admin/margin reports. If this column doesn't
+   exist, add a migration before flipping the unlock.
 
-## Why this is separate from `tests/e2e/`
+Phase 4 is the highest-risk surface — it touches real production
+DB rows (in test mode, but real DB writes). Recommend running
+manually before enabling on cron.
 
-The dev-targeting suite at `tests/e2e/` boots a local `next dev`
-server. It exercises the code in development mode — useful for
-catching regressions before they ship, but blind to the
-production-build behaviours that bit us with the PDFium WASM MIME
-issue (CLAUDE.md §5).
+## Local development
 
-This suite hits production directly. It catches:
+```bash
+npm run test:prod-e2e                              # all enabled phases
+npm run test:prod-e2e -- --grep "homepage"         # one group
+npm run test:prod-e2e -- --grep "authenticated"    # one phase
+npm run test:prod-e2e:ui                           # debug with UI
+PROD_E2E_URL=https://staging.pdfcraftai.com \
+  npm run test:prod-e2e                            # against staging
+```
 
-- CSP regressions only visible in the prod CSP
-- Minified-code edge cases
-- Static asset MIME serving via LiteSpeed/Passenger
-- Sitemap + robots + canonical alignment with live state
-- JSON-LD structured-data correctness AFTER deploy
+## CI
 
-The two suites are complementary. Don't run them together —
-they're separate npm scripts (`test:e2e` vs `test:prod-e2e`).
+GitHub Actions workflow at `.github/workflows/prod-e2e.yml`. Triggers:
+- **Scheduled:** every day at 06:00 UTC (11:30 IST) — Phase 1 + 3a only
+- **Manual:** `gh workflow run prod-e2e.yml` — runs every active phase
+- **Failure:** scheduled-run failures auto-open a GitHub issue tagged
+  `prod-e2e-failure`
 
-## Safety guarantees
+Reports uploaded as artifacts on every run; retention 14 days.
 
-- Every assertion is on a GET request (zero POST/PUT/DELETE)
-- No file uploads (would create real orphan files)
-- No credit consumption (no /api/ai/* calls)
-- No account mutations (no signups, no settings changes)
-- Custom User-Agent (`pdfcraftai-prod-e2e/1.0`) — Hostinger access
-  logs can identify and exclude our test traffic from real-user
-  analytics
-- One-browser-only (Chromium) — no triple-browser test storm
+## Safety summary by phase
+
+| Phase | Mutates prod DB? | Spends credits? | Charges real money? |
+|---|---|---|---|
+| 1 | No | No | No |
+| 3a | No | No | No |
+| 2 | No (login only) | No | No |
+| 3b | Yes (ai_usage rows, credit_ledger) | Yes (~$0.30/mo) | No (credits already purchased) |
+| 4 | Yes (pending_order rows, `is_test`) | No | No (test-mode card) |
 
 ## When tests fail
 
 1. **Single test, transient (network blip):** ignore. Re-run.
 2. **Single test, persistent:** check if production changed. If
-   the change was intentional (e.g. we added a new pack name),
-   update the assertion.
-3. **Multiple tests, persistent:** prod regression. Check the
-   most recent deploy via `curl https://pdfcraftai.com/api/health`
-   and compare commit SHA to the failing assertions.
-4. **Whole suite times out:** prod is probably down. Check the
-   Hostinger panel or hPanel cascade-recovery runbook (CLAUDE.md
-   §5).
+   the change was intentional, update the assertion in the spec.
+3. **Whole phase skipped unexpectedly:** check env var configuration
+   (`gh secret list` or `env | grep PROD_E2E`).
+4. **Phase 1 failing:** real regression on the live site. Most
+   recent deploy via `curl https://pdfcraftai.com/api/health | jq .commit`
+   is the suspect.
+5. **Phase 2 failing on login:** test account may have been
+   disabled, email-verification flag may have been flipped on, or
+   the password was changed. Re-verify and rotate the secret.
+6. **Phase 3-AI failing with `insufficient_credits`:** top up the
+   test account; the daily/weekly runs deplete the balance.
+7. **Phase 4 failing:** check Razorpay dashboard for the test-mode
+   account status; check `/admin/margin` for orphaned `is_test`
+   pending_orders that didn't clean up.
 
-## Maintenance
+## What this suite is NOT
 
-When a new SEO landing or tool ships, the corresponding assertion
-in this suite may need updating. The rule: this suite should be a
-HONEST mirror of what the production audit-fix CI guards already
-pin — if you change a guard, mirror the change here.
+- Not a replacement for unit tests or the static-parse aggregator
+  (`npm test`). Those run in <10s; this is minutes.
+- Not the deploy gate. Deploys happen via Hostinger GitHub App
+  auto-pull regardless. This suite is observation, not enforcement.
+- Not load testing. One request per test, no concurrency probe.
+
+For deploy-gate-grade testing, see `playwright.config.ts` (dev
+server, full triple-browser) which CAN gate deploys via GitHub
+Actions on PRs.
