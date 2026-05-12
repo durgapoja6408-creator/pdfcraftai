@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { auth } from "@/auth";
 import { I } from "@/components/icons/Icons";
 import { TOOL_STATS } from "@/lib/tools";
+import { isFeatureEnabled, FEATURE_FLAGS } from "@/lib/flags";
 import { HeroDemo } from "@/components/landing/HeroDemo";
 import { ToolsShowcase } from "@/components/landing/ToolsShowcase";
 import {
@@ -19,7 +21,20 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-export default function HomePage() {
+// Homepage is now async because the hero CTA variant is gated on a
+// per-user feature flag (HOMEPAGE_HERO_CTA, see lib/flags.ts).
+// Anonymous traffic always gets variant A (control). Logged-in users
+// fall into deterministic buckets based on FEATURE_HOMEPAGE_HERO_CTA_
+// PERCENT — default 0% means everyone still sees control until the
+// founder flips the env var to start measuring.
+export default async function HomePage() {
+  const session = await auth();
+  const userId = session?.user
+    ? (session.user as { id?: string }).id
+    : undefined;
+  const heroVariantB = isFeatureEnabled(FEATURE_FLAGS.HOMEPAGE_HERO_CTA, {
+    userId,
+  });
   return (
     <main>
       {/* ===== Hero ===== */}
@@ -77,9 +92,22 @@ export default function HomePage() {
           </p>
 
           <div className="row" style={{ justifyContent: "center", gap: 12, marginTop: 40 }}>
-            <Link href="/tools" className="btn btn-lg btn-primary">
-              Try it now — no signup <I.ArrowRight size={16} />
-            </Link>
+            {/* 2026-05-12 — first deterministic-percent A/B test on
+                the site. Variant B sends users to /compare (verb-led
+                decision tree) instead of /tools (catalog browse).
+                Hypothesis: visitors who don't yet know what tool
+                they need convert higher through the decision tree.
+                See lib/flags.ts HOMEPAGE_HERO_CTA for activation
+                instructions. */}
+            {heroVariantB ? (
+              <Link href="/compare" className="btn btn-lg btn-primary">
+                Pick a tool in 30 seconds <I.ArrowRight size={16} />
+              </Link>
+            ) : (
+              <Link href="/tools" className="btn btn-lg btn-primary">
+                Try it now — no signup <I.ArrowRight size={16} />
+              </Link>
+            )}
             <Link href="/pricing" className="btn btn-lg btn-outline">
               View pricing
             </Link>

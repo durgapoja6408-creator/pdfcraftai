@@ -1220,6 +1220,16 @@ const SUITES = [
     name: "marketing-pages-jsonld",
     file: "test-marketing-pages-jsonld.mjs",
   },
+  // 2026-05-12 — pins two product wire-ups: §6d A/B test
+  // (HOMEPAGE_HERO_CTA flag + first deterministic-percent variant
+  // render on the homepage) and §6c auto-routing (applyQualityBias
+  // IfEnabled call in lib/ai/router.ts). 14 assertions across the
+  // two wire surfaces + activation-guidance documentation. Both
+  // ship in disabled state; operator flips env vars when ready.
+  {
+    name: "product-wireups",
+    file: "test-product-wireups.mjs",
+  },
   // 2026-05-04 (PENDING_WORK_ANALYSIS.md §4c) — contact form
   // persistence + admin viewer. Migration 0021 added the
   // contact_submissions table; the route now persists every

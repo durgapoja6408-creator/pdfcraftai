@@ -97,6 +97,28 @@ export const FEATURE_FLAGS = {
    * follow-up commit, operator activation flips it to live.
    */
   PDF_A_CONVERT: "pdf_a_convert",
+  /**
+   * Homepage hero CTA variant (PENDING §6d, 2026-05-12). First real
+   * use of the deterministic-percent rollout path of isFeatureEnabled
+   * — every prior flag callsite (PDF_COMPRESS, PDF_A_CONVERT) used
+   * the foundation as an on/off gate, not as an A/B variant.
+   *
+   * Variant A (control): "Try it now — no signup" → /tools
+   * Variant B (test): "Pick a tool in 30 seconds" → /compare
+   *
+   * Hypothesis: /compare's verb-led decision tree converts higher
+   * than /tools' catalog browse for users who don't yet know what
+   * they want. The /compare page itself shipped 2026-05-12; this
+   * flag tests whether routing some homepage traffic through it
+   * improves downstream activation.
+   *
+   * Default state: FEATURE_HOMEPAGE_HERO_CTA_PERCENT unset → 0% →
+   * everyone gets variant A. Founder flips to 10/25/50 in the
+   * Hostinger panel once they want to start measuring. Anonymous
+   * traffic always gets the control variant (percent rollouts
+   * require userId per the foundation's documented behaviour).
+   */
+  HOMEPAGE_HERO_CTA: "homepage_hero_cta",
 } as const;
 
 export type FeatureFlagName = (typeof FEATURE_FLAGS)[keyof typeof FEATURE_FLAGS];
