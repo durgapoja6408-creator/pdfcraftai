@@ -6882,4 +6882,184 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // generate-faq-from-pdf — content-republishing AI
+  // ============================================================
+  "generate-faq-from-pdf": {
+    title: "Generate FAQ from PDF — predicting what readers will ask and answering from the source",
+    intro:
+      "FAQs are the most useful piece of content a documentation team can produce, and the most often skipped. Writing them requires anticipating questions the document doesn't explicitly answer but readers naturally have. The FAQ generator handles both parts: it predicts the 6-10 questions a reader would realistically ask after reading the source, then answers each from the source content with page citations. Here is what it produces, the three workflows where pre-built FAQs save support load, and how it handles questions the source doesn't actually answer.",
+    sections: [
+      {
+        h: "How the generator picks questions",
+        p: [
+          "The tool reads the source PDF, identifies the topic, and runs a prediction pass: \"if a reader of average background reads this document, what would they most likely want to know that isn't immediately obvious?\" The output is 6-10 question/answer pairs. Each answer is grounded in the source content with a page citation where the relevant material appears.",
+          "Questions are filtered for usefulness — \"What is the document about?\" is too generic and gets cut; \"How long does the process described take?\" is the kind of question a reader actually has. The generator favors questions that surface practical implications, edge cases, or counterintuitive points over questions whose answers are already prominent in the source.",
+        ],
+      },
+      {
+        h: "How it handles questions the source doesn't answer",
+        p: [
+          "Gaps are surfaced explicitly. If the FAQ generator predicts a question the reader would ask but the source PDF doesn't address it, that question appears in a separate \"Not covered\" section rather than being answered with fabricated content. Three things this enables:",
+        ],
+        list: {
+          items: [
+            { b: "Honest scope.", t: "The reader knows what the document does and doesn't address. No hallucinated answers giving false confidence." },
+            { b: "Content gap identification.", t: "The \"Not covered\" section is a roadmap for what the document SHOULD address. Documentation teams use this to plan their next revision." },
+            { b: "Trust calibration.", t: "Answers that ARE covered carry more weight because the tool demonstrably refuses to make things up. The visible \"Not covered\" section is evidence of grounding discipline." },
+          ],
+        },
+      },
+      {
+        h: "Three workflows where FAQ generation saves support load",
+        p: [
+          "Specific cases where pre-built FAQs pay off:",
+        ],
+        list: {
+          items: [
+            { b: "Product documentation help-center.", t: "Whenever you publish a feature spec, run FAQ generation on it. Drop the FAQ next to the spec in your help center. Reduces \"please explain X\" support tickets noticeably." },
+            { b: "Onboarding material.", t: "New hires read the onboarding doc but always have follow-up questions. Pre-answering the predictable ones cuts onboarding-question load and surfaces the gaps in the onboarding doc itself." },
+            { b: "Sales / partnership review.", t: "Before a prospect or partner reads a heavy document (security questionnaire response, data-processing-agreement, product spec), generate the FAQ and send both. The FAQ answers the obvious questions; the source is there for follow-up." },
+          ],
+        },
+      },
+      {
+        h: "FAQ vs Chat with PDF",
+        p: [
+          "Two adjacent AI tools, used differently:",
+        ],
+        list: {
+          items: [
+            { b: "FAQ — push, not pull.", t: "Generated once, used many times. The question list is the AI's prediction; the answers are pre-built. Flat 5-credit cost. Useful when one author serves many readers." },
+            { b: "Chat — pull, not push.", t: "Each reader asks their specific question; the AI answers per-question. Cost scales with question count. Useful when each reader has different questions." },
+          ],
+        },
+      },
+      {
+        h: "Editing the output before publishing",
+        p: [
+          "Three habits for polishing generated FAQs:",
+        ],
+        list: {
+          items: [
+            { b: "Verify each answer against the source.", t: "Page citations make this fast. Trust grounded answers; spot-check anything that surprises." },
+            { b: "Re-order by importance.", t: "The generator's question order is roughly the order it predicted them in. Re-order by frequency-of-being-asked or by importance before publishing." },
+            { b: "Use the \"Not covered\" section as a documentation TODO.", t: "If 3 questions show up in \"Not covered,\" they should probably be addressed in the next revision of the source document. The generator tells you what to add." },
+          ],
+        },
+      },
+      {
+        h: "When FAQ isn't the right shape",
+        p: [
+          "Three cases where a different tool fits better:",
+        ],
+        list: {
+          items: [
+            { b: "You want a structured summary.", t: "FAQs surface specific questions and answers. If you want the document's substantive content summarized, use Summarize or Key Points instead." },
+            { b: "Reader needs are highly varied.", t: "If readers' questions differ dramatically (different audiences with different concerns), a single FAQ is hard to write well. Provide PDF Chat instead so each reader can ask their specific questions." },
+            { b: "Source is short or focused.", t: "A 2-page brief usually doesn't need an FAQ — readers can read it directly. FAQ generation pays off on longer, denser documents." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "Generate FAQ from PDF charges 5 credits per document. The tool handles PDFs up to 25 MB. Processing runs on our servers; the document is in memory only during generation and is never persisted. Output is Markdown with per-answer page citations.",
+          "Common pairings: FAQ + Key Points to publish both alongside a source PDF. FAQ + Chat for an interactive help-center pattern. Re-run FAQ after a document revision to surface what new questions the revised content might raise.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // pdf-to-blog-post — content-republishing AI
+  // ============================================================
+  "pdf-to-blog-post": {
+    title: "PDF to Blog Post — restructuring research into publishable web content without editorializing",
+    intro:
+      "Whitepapers, research reports, case studies, and policy briefs are dense documents written for serious readers. Web audiences are different — they skim first, decide whether to read second, and abandon if the first scroll doesn't hook them. PDF to Blog Post restructures the source into web-shape: hook, scannable sections, conclusion. The constraint is fidelity — the blog post says what the source says, in different structure but with no invented claims. Here is what gets restructured, what stays preserved, and how this differs from rewriting the source in a different register.",
+    sections: [
+      {
+        h: "What restructuring does to the source",
+        p: [
+          "Drop a PDF — research report, whitepaper, policy brief, case study. The generator restructures the content into a blog-post shape: a hook (opening that gives the reader a reason to keep reading), 3-5 H2 sections (each section a distinct topic with prose paragraphs and bullets where appropriate), and a closing that summarizes the key takeaways. Total length lands at 800-1500 words depending on the source's substance.",
+          "The original document's structural choices don't transfer. A whitepaper with executive summary / methodology / findings / conclusions / appendices becomes a blog post with hook / 3 substantive sections / closing — different shape, same content. Web audience patterns differ from research-document patterns; the restructure respects that.",
+        ],
+      },
+      {
+        h: "What stays preserved",
+        p: [
+          "Fidelity constraints — what the generator deliberately doesn't change:",
+        ],
+        list: {
+          items: [
+            { b: "Numbers exact.", t: "Every numeric value, percentage, date, statistic preserved verbatim. The blog post says what the source says about quantities." },
+            { b: "Quoted text untouched.", t: "Direct quotes from the source carry forward as quotes. Attributed correctly." },
+            { b: "Claims grounded.", t: "Substantive claims in the blog post trace to claims in the source. No editorializing, no opinion injection that the source doesn't carry." },
+            { b: "Citations and attributions.", t: "If the source cites authorities, the blog post preserves the citations. Web format usually means in-line attribution rather than footnotes, but the citation content is preserved." },
+          ],
+        },
+      },
+      {
+        h: "Three workflows where the restructure earns its place",
+        p: [
+          "Specific cases:",
+        ],
+        list: {
+          items: [
+            { b: "Marketing-team publishing of research output.", t: "Research team produces a whitepaper. Marketing team needs a blog post version for the company website. PDF to Blog Post is the bridge — preserves research integrity while shipping web-shaped content." },
+            { b: "Industry-publication contributions.", t: "You wrote a long report; you want to publish a derivative version in a trade publication. PDF to Blog Post produces the publication-shaped version while preserving the source's claims." },
+            { b: "Long-form newsletter content.", t: "A subscription newsletter that pulls from long-form research reports. PDF to Blog Post produces the readable summary for the newsletter; the source PDF is the canonical artifact for subscribers who want depth." },
+          ],
+        },
+      },
+      {
+        h: "Blog Post vs Newsletter vs Rewrite",
+        p: [
+          "Three adjacent AI tools producing different output shapes:",
+        ],
+        list: {
+          items: [
+            { b: "Blog Post — web-shaped article from research source.", t: "Hook + 3-5 sections + close. 800-1500 words. Preserves source fidelity. Use when republishing research for a web audience." },
+            { b: "Newsletter — multi-section email-shaped digest.", t: "Multiple short sections, often with cross-links between them. Optimized for email-client rendering. Use when the destination is an email newsletter rather than a web blog." },
+            { b: "Rewrite — register/voice shift.", t: "Same content, different tone. Use when the source is already the right shape but the voice needs adjustment (formal → casual, academic → conversational)." },
+          ],
+        },
+      },
+      {
+        h: "Three patterns for great web-shaped output",
+        p: [
+          "Habits that improve the blog post:",
+        ],
+        list: {
+          items: [
+            { b: "Provide an audience hint in the prompt.", t: "The same research can be blog-shaped for different audiences. \"For technical decision-makers\" vs \"for end-users\" produces meaningfully different output. Specify the target audience for best results." },
+            { b: "Edit the hook.", t: "The generator's first paragraph is usually solid but generic. Replace it with audience-specific framing that connects the source's content to your readers' situation. The remaining body usually needs little editing." },
+            { b: "Add SEO tuning post-generation.", t: "The structure is SEO-good (clear H2s, scannable paragraphs) but keyword targeting isn't automatic. Run a keyword pass after generation to add target terms naturally where the source content supports them." },
+          ],
+        },
+      },
+      {
+        h: "What the tool deliberately doesn't do",
+        p: [
+          "Three explicit non-features:",
+        ],
+        list: {
+          items: [
+            { b: "Doesn't editorialize.", t: "If you want opinion content from the source, use Rewrite with an opinion-piece register. The Blog Post generator stays faithful to the source's claims." },
+            { b: "Doesn't add images or visuals.", t: "Output is text-only Markdown. Add images / charts / diagrams in your CMS after publishing." },
+            { b: "Doesn't optimize for distribution.", t: "Title is a working title; meta-description, OpenGraph tags, social-share cards are publish-time concerns. Add them in your CMS." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "PDF to Blog Post charges 10 credits per document. Higher than other content-AI tools because restructuring + rewriting is more compute-intensive. The tool handles PDFs up to 25 MB. Processing runs on our servers; the document is in memory only during generation and is never persisted. Output is Markdown that drops cleanly into WordPress, Ghost, Medium, Substack, Notion, or any Markdown-aware CMS.",
+          "Common pairings: Blog Post → Improve Writing if the output needs final tightening. Blog Post → AI Detector to verify the output doesn't read as AI before publishing. Blog Post + Summarize: publish the blog post + offer the original PDF as a deep-dive link.",
+        ],
+      },
+    ],
+  },
 };
