@@ -1130,6 +1130,20 @@ const SUITES = [
     name: "welcome-page",
     file: "test-welcome-page.mjs",
   },
+  // 2026-05-12 (TOOL_IMPROVEMENT_PLAN T2-6) — /compare intent-router
+  // landing for visitors who know what they want but don't know the
+  // tool name. Verb-led decision tree (12 intent groups: combine,
+  // split, convert-from-pdf, convert-to-pdf, shrink, understand,
+  // fill-sign, security, translate, redact, compare, annotate)
+  // routing to the right tool with explicit free-vs-AI badges where
+  // both options exist. SEO-indexable + linked from sitemap. 32
+  // assertions across 5 sections (A: 12 intents + hero, B: candidate
+  // href validity + kind badges, C: SEO meta + canonical, D: sitemap
+  // priority + frequency, E: back-out CTA to /tools).
+  {
+    name: "compare-page",
+    file: "test-compare-page.mjs",
+  },
   // 2026-05-04 (PENDING_WORK_ANALYSIS.md §4c) — contact form
   // persistence + admin viewer. Migration 0021 added the
   // contact_submissions table; the route now persists every

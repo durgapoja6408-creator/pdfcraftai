@@ -19,6 +19,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/tools`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
     { url: `${SITE_URL}/pricing`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
     { url: `${SITE_URL}/blog`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
+    // 2026-05-12 — TOOL_IMPROVEMENT_PLAN T2-6: /compare intent-router
+    // landing for visitors who know what they want to do but don't
+    // know which tool to use. Verb-led decision tree (combine, split,
+    // shrink, understand, sign, ...) routing to the right tool.
+    // Priority 0.8 — high enough to crawl frequently, on par with
+    // /blog as a discovery surface.
+    { url: `${SITE_URL}/compare`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: `${SITE_URL}/help`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE_URL}/api`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE_URL}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
