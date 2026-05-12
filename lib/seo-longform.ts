@@ -7419,4 +7419,186 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // pdf-readability-score — Flesch-Kincaid + AI suggestions
+  // ============================================================
+  "pdf-readability-score": {
+    title: "PDF Readability Score — Flesch-Kincaid math, what the grade level means, and how to act on the score",
+    intro:
+      "Readability scores quantify how hard a text is to read. The Flesch-Kincaid grade level — the most-used score — maps reading difficulty to a US school-grade equivalent. A grade level of 8 means an average 8th grader (roughly 13-14 years old) can read the text fluently. A grade level of 16 means it requires college-level reading. Knowing the score is useful because most audiences read more easily than the writing aimed at them assumes. Here is how the math actually works, what reading-grade actually predicts about audience comprehension, and the three workflows where the score earns its place.",
+    sections: [
+      {
+        h: "How Flesch-Kincaid math works",
+        p: [
+          "The Flesch-Kincaid Grade Level formula is deterministic and mechanical: (0.39 × average words per sentence) + (11.8 × average syllables per word) − 15.59. The result maps to a US school grade. The math is simple enough that any calculator can compute it; what's hard is interpreting the result against intended audience.",
+          "Two ingredients dominate the score. Long sentences raise the grade level dramatically because they require working memory to track. Multi-syllable words raise it because each adds processing time. A document with 30-word sentences and 4-syllable average word length lands around grade 18 (post-graduate). A document with 12-word sentences and 1.5-syllable words lands around grade 6 (elementary school).",
+        ],
+      },
+      {
+        h: "What reading-grade actually predicts",
+        p: [
+          "The Flesch-Kincaid score is a proxy, not a measurement of comprehension itself. Three things to understand about what it does and doesn't predict:",
+        ],
+        list: {
+          items: [
+            { b: "It predicts reading effort, not topic comprehension.", t: "A grade-6 explanation of organic chemistry is still incomprehensible to someone who doesn't know what a covalent bond is. Readability is about prose mechanics, not subject-matter accessibility." },
+            { b: "Most US adults read at grade 7-9 level.", t: "Average reading level for US adults is around grade 7-8. Documents targeting general audiences should typically aim for grade 8 or below; this is dramatically lower than most business writing achieves." },
+            { b: "Audience-target gap is what matters.", t: "A research paper at grade 16 is fine for an academic audience; a customer-facing FAQ at grade 16 is a usability failure. The number is meaningful only relative to the intended audience." },
+          ],
+        },
+      },
+      {
+        h: "What the AI suggestions add",
+        p: [
+          "Beyond the score, the tool surfaces specific edit suggestions:",
+        ],
+        list: {
+          items: [
+            { b: "Long sentences flagged.", t: "Sentences over 30 words are flagged with the actual sentence and a suggested split point. The split converts one long sentence into 2-3 shorter ones — the most reliable readability fix." },
+            { b: "Jargon without definition.", t: "Domain-specific terms that the document uses but doesn't define. \"Amortization,\" \"variance,\" \"liquidity\" — fine for a finance audience, opaque for a general audience. The tool surfaces the term and suggests either defining inline or replacing." },
+            { b: "Multi-syllable cluster runs.",
+              t: "Sequences of multi-syllable words that compound to make a sentence dense even when each word is fine individually. Suggestions surface where to swap one for a simpler synonym to break the cluster." },
+            { b: "Passive voice patterns.", t: "Excessive passive voice tracks with higher reading effort. Patterns flagged with active-voice rewrites." },
+          ],
+        },
+      },
+      {
+        h: "Three workflows where the score earns its place",
+        p: [
+          "Specific cases:",
+        ],
+        list: {
+          items: [
+            { b: "Customer-facing content QA.", t: "Help-center articles, product documentation, marketing copy — all should target grade 7-9 for general audiences. The score is a one-number QA check before publishing." },
+            { b: "Educational-material grading.", t: "Producing content for a specific grade level (5th-grade science textbook, high-school history reader). The score verifies the target is hit before classroom use." },
+            { b: "Legal-document plain-language audit.", t: "Some jurisdictions (US for consumer contracts, EU for terms of service) require plain-language drafts. Grade 8-10 is typical legal-plain-language target. The score gates compliance with that standard." },
+          ],
+        },
+      },
+      {
+        h: "What the score doesn't capture",
+        p: [
+          "Three readability dimensions the score misses:",
+        ],
+        list: {
+          items: [
+            { b: "Conceptual difficulty.", t: "A grade-8 sentence can be fundamentally hard to understand if the concept is abstract. \"The function recursively calls itself\" is grade-8 readable but requires knowing what recursion means." },
+            { b: "Layout and visual aids.", t: "Bullet points, headers, white space, illustrations — all dramatically affect actual reading experience but don't enter the score. A grade-16 document with great visual structure may read more easily than a grade-8 wall of text." },
+            { b: "Cultural and contextual familiarity.", t: "Idioms, metaphors, and culturally-specific references make text easier for some readers and harder for others. The score is uniform; reading experience is not." },
+          ],
+        },
+      },
+      {
+        h: "Working with the output",
+        p: [
+          "Three habits for using the score effectively:",
+        ],
+        list: {
+          items: [
+            { b: "Set a target before running.", t: "Decide what grade level the document should hit BEFORE you see the score. Otherwise the score becomes whatever the document is and feels acceptable. Audience-driven target beats post-hoc rationalization." },
+            { b: "Apply the suggestions iteratively.", t: "The tool surfaces 5-10 specific suggestions. Apply 3 high-impact ones (the longest sentences, the worst jargon), re-run. Iterate until you hit the target or until the document stops improving from the cuts." },
+            { b: "Pair with audience testing.", t: "The score is a proxy. For high-stakes content (customer onboarding, regulatory submissions), validate readability by having a few representative users actually read the document." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "PDF Readability Score charges 3 credits per document. The tool handles PDFs up to 100 MB. Processing runs on our servers; the document is in memory only during analysis and is never persisted. Output is the Flesch-Kincaid grade level plus the structured suggestion list.",
+          "Common pairings: Readability Score → AI Rewrite or Improve Writing to actually apply the simplifications. Readability + Tone Analyzer for a comprehensive content-quality audit. Readability + Explain PDF for the simplest path to producing audience-appropriate output.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // extract-entities-from-pdf — named-entity-recognition AI
+  // ============================================================
+  "extract-entities-from-pdf": {
+    title: "Extract named entities from a PDF — people, organizations, places, dates as structured data",
+    intro:
+      "Named entity extraction surfaces the proper nouns and date references in a document as structured tables. People, organizations, places, dates — each in its own table with page citations. Useful for any workflow that needs to know \"who and what is mentioned\" in a long document. Here is what the extractor surfaces, the four workflows where the structured view replaces manual scanning, and the precise difference between this AI tool and the free regex-based Extract Contacts.",
+    sections: [
+      {
+        h: "What the extractor produces",
+        p: [
+          "Drop a PDF. The tool reads the text, runs an AI named-entity-recognition pass, and produces four Markdown tables — one each for People, Organizations, Places, and Dates. Each row has the entity name, a one-line role note (\"CEO of Acme Corp,\" \"city in Karnataka,\" \"founding date\"), and the source page where the entity appeared. Multiple mentions of the same entity collapse to a single row with multiple page citations.",
+          "The output is structured for downstream use: copy a table directly into a spreadsheet, import to a CRM, paste into a research-tracking system, feed into a knowledge graph builder. The page citations make every entity verifiable against the source.",
+        ],
+      },
+      {
+        h: "Four workflows where structured entity tables earn their place",
+        p: [
+          "Cases where you need entities as data, not as in-flow text:",
+        ],
+        list: {
+          items: [
+            { b: "Research paper preprocessing.", t: "Building a literature review or citation graph. The People table gives you authors mentioned in citations; the Organizations table gives you research institutions; the Places table gives you study locations. All ready for downstream analysis." },
+            { b: "Legal-document discovery.", t: "Court orders, contracts, and litigation documents reference many people and organizations. Extract Entities surfaces them all in one pass for case-management ingestion. Use the page citations to verify every entity against the source." },
+            { b: "Business-intelligence on company reports.", t: "Annual reports mention partners, suppliers, customers, competitors. Extract Entities surfaces the relationship landscape from the report's narrative." },
+            { b: "Compliance/KYC document review.", t: "When reviewing a long document for KYC compliance, the People and Organizations tables surface every named party. Combined with a sanctions-list cross-check, this is the operational starting point for due diligence." },
+          ],
+        },
+      },
+      {
+        h: "AI Entity Extraction vs free Extract Contacts",
+        p: [
+          "Two adjacent tools that solve different problems:",
+        ],
+        list: {
+          items: [
+            { b: "Extract Contacts (free, regex).", t: "Finds emails, phone numbers, URLs. Pattern-based — explicit string formats. Misses obfuscation. Free." },
+            { b: "Extract Entities (AI, 3 credits).", t: "Finds named people, organizations, places, dates. Context-based — entities recognized by what they ARE, not by what they look like. Catches \"Mr. Sundar Pichai\" as a person and \"Alphabet Inc.\" as an organization without needing either to follow a regex pattern. Costs credits." },
+          ],
+        },
+      },
+      {
+        h: "How accurate is the extraction",
+        p: [
+          "Three factors affect accuracy:",
+        ],
+        list: {
+          items: [
+            { b: "Common Western names: very high.", t: "Names like \"Sundar Pichai,\" \"Microsoft,\" \"Bangalore,\" \"2024\" are reliably identified across document types." },
+            { b: "Less-common Indic names: high but variable.", t: "Names with non-standard transliterations or regional variants sometimes mis-classify. The Sundar Pichai example works because the name is well-known; a regional-newspaper byline with a rare regional name may classify less reliably." },
+            { b: "Ambiguous proper nouns: medium.", t: "Words that are both common nouns and proper nouns (\"Apple\" the fruit vs \"Apple\" the company; \"Bishop\" the chess piece vs \"Bishop\" the surname) get disambiguated by context, but errors happen. Spot-check ambiguous entries." },
+          ],
+        },
+      },
+      {
+        h: "Relationships and what the tool doesn't do",
+        p: [
+          "Three explicit non-features:",
+        ],
+        list: {
+          items: [
+            { b: "Doesn't infer relationships.", t: "Two people mentioned in the same document aren't claimed to know each other unless the source explicitly says so. For relationship inference, build a knowledge graph downstream from the entities + the source text." },
+            { b: "Doesn't classify entity sub-types.", t: "Person table doesn't separate \"executives\" from \"academics\" from \"defendants.\" Organization table doesn't separate \"customers\" from \"vendors\" from \"competitors.\" The role-note column captures some of this in narrative form but isn't structured." },
+            { b: "Doesn't resolve to canonical IDs.", t: "\"Sundar Pichai\" doesn't get a Wikidata ID; \"Microsoft\" doesn't get a CIK or stock ticker. For canonical resolution, downstream tooling against a reference database is required." },
+          ],
+        },
+      },
+      {
+        h: "Three patterns for working with the output",
+        p: [
+          "Habits that improve downstream use:",
+        ],
+        list: {
+          items: [
+            { b: "Dedupe before downstream use.", t: "The tool collapses exact-string duplicates within a document but doesn't normalize variants. \"Sundar Pichai\" and \"Mr. Pichai\" may surface as separate rows. Quick post-processing dedupe is usually needed." },
+            { b: "Sanity-check ambiguous entries.", t: "Click through to the citation page for any entity that surprises you. AI is reliable but not infallible; spot-checks catch the rare misclassification." },
+            { b: "Combine tables for graph construction.", t: "Person + Organization + Place tables together describe the document's named-entity landscape. Build a knowledge graph by treating co-mention in the same page as an implicit edge between entities." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "Extract Entities charges 3 credits per document. The tool handles PDFs up to 25 MB. Processing runs on our servers; the document is in memory only during extraction and is never persisted. Output is four Markdown tables with page citations.",
+          "Common pairings: Extract Entities + Extract Contacts for the full named-entity + contact-method picture. Extract Entities → Knowledge graph downstream. Extract Entities + Sentiment Analysis to see which entities are associated with positive vs negative sentiment in the source.",
+        ],
+      },
+    ],
+  },
 };
