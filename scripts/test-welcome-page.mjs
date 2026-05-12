@@ -47,12 +47,19 @@ check(
   "A2: WELCOME_TOOLS array exported / declared",
   /const WELCOME_TOOLS:\s*Array<\{/.test(PAGE)
 );
+// Note: these are the per-card `id:` values on /app/welcome, not
+// canonical TOOLS ids (the page has its own client-side ids that
+// happen to mostly overlap). `pdf-to-word` here is the welcome-card
+// id and the href points at the /pdf-to-word SEO landing — that's
+// separate from the canonical tool id `pdf-to-text` that the
+// landing redirects to. The tool-id-references guard handles the
+// /tool/<id> href correctness (different concern).
 const expectedToolIds = [
   "merge",
   "ai-summarize",
   "split",
   "ai-translate",
-  "pdf-to-office",
+  "pdf-to-word",
   "ai-chat",
   "unlock",
   "ai-sign",

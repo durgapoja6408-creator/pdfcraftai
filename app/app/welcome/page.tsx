@@ -115,10 +115,17 @@ const WELCOME_TOOLS: Array<{
     badge: "AI",
   },
   {
-    id: "pdf-to-office",
+    id: "pdf-to-word",
     title: "PDF to Word",
     desc: "Convert to editable .docx. Works on scans (OCR auto-applied).",
-    href: "/tool/pdf-to-office",
+    // 2026-05-12 — corrected: /tool/pdf-to-office is a 404 (no such
+    // catalog id; the underlying server-side LibreOffice rail is
+    // KNOWN_DEAD_REFS-deferred). The SEO landing /pdf-to-word is the
+    // canonical user-facing entry point and currently 308-redirects
+    // to /tool/pdf-to-text — keeping the welcome page pointing at
+    // the SEO landing rather than the redirect target so the URL
+    // stays meaningful if the LibreOffice rail ever ships.
+    href: "/pdf-to-word",
     badge: "Free",
   },
   {

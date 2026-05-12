@@ -123,10 +123,14 @@ const INTENTS: Intent[] = [
     question: "I want to convert a PDF to another format",
     candidates: [
       {
-        href: "/tool/pdf-to-office",
-        title: "PDF to Word / PPT / Excel",
+        // 2026-05-12 — corrected: /tool/pdf-to-office is a 404 (no
+        // catalog id; LibreOffice server-side rail is deferred per
+        // KNOWN_DEAD_REFS). /pdf-to-word is the canonical SEO landing
+        // that today 308-redirects to /tool/pdf-to-text.
+        href: "/pdf-to-word",
+        title: "PDF to Word",
         blurb:
-          "Round-trip a PDF back into an editable .docx, .pptx, or .xlsx. OCR runs automatically on scans.",
+          "Convert PDF text into editable Word format. Works on scans (OCR auto-applied).",
         kind: "free",
       },
       {
@@ -138,9 +142,9 @@ const INTENTS: Intent[] = [
       },
       {
         href: "/tool/pdf-to-text",
-        title: "PDF to text / markdown / HTML",
+        title: "PDF to Text",
         blurb:
-          "Pull just the words out. Use for indexing, re-formatting, or feeding to another tool.",
+          "Pull just the words out as a .txt file. Use for indexing, re-formatting, or feeding to another tool. Markdown and HTML variants also available.",
         kind: "free",
       },
     ],
@@ -190,8 +194,11 @@ const INTENTS: Intent[] = [
     question: "I want to read or understand a long PDF quickly",
     candidates: [
       {
-        href: "/tool/extract-text",
-        title: "Extract text",
+        // 2026-05-12 — corrected: /tool/extract-text was a 404. The
+        // canonical tool is /tool/pdf-to-text (free in-browser word
+        // extraction via PDFium).
+        href: "/tool/pdf-to-text",
+        title: "Extract text (free)",
         blurb:
           "Free — pulls every word out so you can search, ctrl-F, or paste into another reader. No AI.",
         kind: "free",
@@ -224,17 +231,26 @@ const INTENTS: Intent[] = [
         kind: "free",
       },
       {
-        href: "/tool/ai-sign",
-        title: "Sign PDF",
+        // 2026-05-12 — corrected: /tool/ai-sign IS the AI sign-and-
+        // fill flow (15 credits per doc), and there's a separate
+        // free /tool/sign-pdf-free for visual signature placement
+        // without AI. Splitting into two cards so the free vs AI
+        // tradeoff is honest.
+        href: "/tool/sign-pdf-free",
+        title: "Sign PDF (free)",
         blurb:
-          "Place a typed or drawn signature anywhere on any page. Works on flat PDFs (no form fields needed).",
+          "Place a signature image on page 1 — click to position, slider for size. Visual signature only (not cryptographic).",
         kind: "free",
       },
       {
-        href: "/tool/ai-fill",
-        title: "AI Fill Form",
+        // 2026-05-12 — corrected: /tool/ai-fill was a 404. The
+        // canonical AI form-fill tool is /tool/ai-sign which is
+        // marketed as "Sign & Fill Forms" — AI fills fields, you
+        // sign and send. Same tool covers both intents.
+        href: "/tool/ai-sign",
+        title: "Sign & Fill Forms (AI)",
         blurb:
-          "Paste your info once; the AI fills every relevant field. Use on multi-page applications or forms that aren't proper AcroForms.",
+          "AI fills every relevant field, then you sign and send. Use on multi-page applications or forms that aren't proper AcroForms.",
         kind: "ai",
       },
     ],
@@ -251,10 +267,17 @@ const INTENTS: Intent[] = [
         kind: "free",
       },
       {
-        href: "/tool/protect",
-        title: "Protect PDF",
+        // 2026-05-12 — corrected: /tool/protect was a 404. Password
+        // protection is not currently a shipped tool (the underlying
+        // qpdf encryption rail is server-side and deferred). We
+        // intentionally do NOT list a non-existent "Protect PDF"
+        // card here. /tool/remove-metadata is the closest free
+        // alternative for users who landed here looking for "make
+        // this PDF less visible / less trackable before sending".
+        href: "/tool/remove-metadata",
+        title: "Strip metadata before sending",
         blurb:
-          "Add a password so the PDF can't be opened without it. Use before emailing sensitive documents.",
+          "Remove author / software / history fields. Reduces fingerprinting before you email a sensitive PDF. Not the same as encryption — for that, your OS or PDF reader can password-protect on save.",
         kind: "free",
       },
     ],
@@ -331,17 +354,19 @@ const INTENTS: Intent[] = [
     question: "I want to annotate, highlight, or draw on a PDF",
     candidates: [
       {
-        href: "/tool/free-draw",
+        // 2026-05-12 — corrected: id is free-draw-pdf, not free-draw.
+        href: "/tool/free-draw-pdf",
         title: "Free Draw",
         blurb:
-          "Sketch on any page with a stylus or mouse. Save back to PDF with your annotations baked in.",
+          "Pen tool — click and drag to draw freehand on page 1. Multiple strokes, colour and width pickers, undo / clear all.",
         kind: "free",
       },
       {
-        href: "/tool/add-text",
+        // 2026-05-12 — corrected: id is add-text-box, not add-text.
+        href: "/tool/add-text-box",
         title: "Add Text",
         blurb:
-          "Place text boxes anywhere on the page — useful for adding comments, captions, or signatures-as-typed-text.",
+          "Click on the page to place a text box, type your label, pick font size + colour. Stamps on every page at the same position.",
         kind: "free",
       },
     ],

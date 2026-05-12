@@ -317,6 +317,48 @@ assert(
 );
 
 // ---------------------------------------------------------------------
+// Section F — every `href: "/tool/<id>"` in the static app pages
+// /app/compare and /app/welcome must point at a real tool id.
+//
+// 2026-05-12 — added after this session shipped /compare with six
+// 404 hrefs and /welcome with one. Pages of this shape (curated
+// tool grids written as inline arrays in page.tsx) bypass the
+// existing longform / seo-pages scanning paths above. Adding the
+// pages to this guard catches the same class of bug for any future
+// curated-tool-grid page.
+// ---------------------------------------------------------------------
+
+const APP_PAGE_FILES = [
+  "app/compare/page.tsx",
+  "app/app/welcome/page.tsx",
+];
+
+const appHrefIssues = [];
+const APP_HREF_RE = /href:\s*"\/tool\/([a-z0-9-]+)"/g;
+for (const file of APP_PAGE_FILES) {
+  const src = fs.readFileSync(path.join(ROOT, file), "utf8");
+  let h;
+  while ((h = APP_HREF_RE.exec(src)) !== null) {
+    if (!validIds.has(h[1])) {
+      const line = src.slice(0, h.index).split("\n").length;
+      appHrefIssues.push(
+        `${file}:${line}: href references "/tool/${h[1]}" but ` +
+          `"${h[1]}" is not a valid tool id. Pages in /app/* are not ` +
+          `covered by the longform / seo-pages scans above — this is ` +
+          `the same class of bug.`,
+      );
+    }
+  }
+  APP_HREF_RE.lastIndex = 0; // reset between files
+}
+
+assert(
+  appHrefIssues.length === 0,
+  `Found ${appHrefIssues.length} broken /tool/<id> href(s) in static app pages:\n\n` +
+    appHrefIssues.map((s) => "  " + s).join("\n"),
+);
+
+// ---------------------------------------------------------------------
 // Output
 // ---------------------------------------------------------------------
 
