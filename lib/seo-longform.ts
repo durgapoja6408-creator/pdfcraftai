@@ -6697,4 +6697,189 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // condense-pdf — aggressive-shorten AI
+  // ============================================================
+  "condense-pdf": {
+    title: "Condense PDF — cutting 40-60% while preserving every fact",
+    intro:
+      "Sometimes a document needs to be shorter without becoming a summary. Same structure, same conclusions, same flow — just tighter. Condense PDF occupies that specific niche: aggressive rewriting that cuts 40-60% of length while preserving every factual anchor. Different from Summarize (which restructures), different from Improve Writing (which trims more lightly). Here is what gets cut, what stays untouched, and the three workflows where condense is exactly the right shape of transformation.",
+    sections: [
+      {
+        h: "How condensing differs from summarizing",
+        p: [
+          "Summarize changes the document's shape — what was a 20-page report becomes a 2-page digest with new section structure, an executive summary, key bullets, etc. The output is a different kind of document from the input. Useful for triage and reference but not when you need to deliver the original document in a shorter form.",
+          "Condense preserves the shape. A 20-page report stays a report — same section structure, same arguments in the same order, same conclusions — but at 10 pages instead of 20. The output IS the same document, just tighter. The reader's experience is reading the original; they just don't have to read as much of it.",
+        ],
+      },
+      {
+        h: "What gets cut",
+        p: [
+          "Five categories the condenser consistently trims:",
+        ],
+        list: {
+          items: [
+            { b: "Repetition.", t: "Documents often state the same point multiple times in slightly different ways — once in the intro, once in the body, once in the conclusion. The condenser collapses these to a single strong statement, usually in the body where it's most useful." },
+            { b: "Throat-clearing.", t: "Transitional sentences that don't add information (\"As we will see in the next section…,\" \"Building on the previous point…\"). Cut where they're not load-bearing for comprehension." },
+            { b: "Verbose phrasing.", t: "\"At this point in time\" → \"now.\" \"In order to\" → \"to.\" \"Despite the fact that\" → \"although.\" Word-level efficiencies that compound across a long document." },
+            { b: "Redundant qualifiers.", t: "\"Absolutely critical\" → \"critical.\" \"Completely unique\" → \"unique.\" The qualifiers don't carry meaning; the noun alone is sufficient." },
+            { b: "Long sentences without proportionate content.", t: "Some long sentences carry one simple claim wrapped in clauses. The condenser unpacks them into shorter, content-equivalent sentences." },
+          ],
+        },
+      },
+      {
+        h: "What stays untouched",
+        p: [
+          "Five categories the condenser deliberately preserves:",
+        ],
+        list: {
+          items: [
+            { b: "Numbers and percentages.", t: "Every numeric value preserved verbatim. ₹1,23,45,678.92 stays exactly that. Aggressive shortening creates risk of accidentally changing numbers; we explicitly forbid that." },
+            { b: "Dates.", t: "Date formats preserved as written. Year preserved exactly. \"May 15, 2024\" doesn't become \"mid-2024\" or \"last year.\"" },
+            { b: "Names and proper nouns.", t: "People, organizations, places, products, brand names — all preserved exactly. No abbreviations introduced, no name simplification." },
+            { b: "Direct quotes.", t: "Anything in quotes stays exactly as quoted. The condenser cuts surrounding prose but doesn't touch the quoted material." },
+            { b: "Citations and references.", t: "Footnotes, in-text citations, bibliography entries preserved. The references are anchors for verification; cutting them would destroy the document's traceability." },
+          ],
+        },
+      },
+      {
+        h: "Three workflows where condense is right",
+        p: [
+          "Cases where 40-60% shorter, same-shape output earns its place:",
+        ],
+        list: {
+          items: [
+            { b: "Long internal documents going to a busy stakeholder.", t: "A 30-page strategy document the CEO needs to read. Condense to 12-15 pages without changing the document's structure. The CEO reads the actual document, faster." },
+            { b: "Regulatory filings that need to fit a page limit.", t: "Some regulatory submissions have hard page caps. If your draft is 80 pages and the cap is 60, condense cuts 25% across the document without summarizing or restructuring. Compliance with page limits without changing what the document says." },
+            { b: "Proposal revisions for tighter delivery.", t: "A proposal draft that's been padded through revision cycles. Condense restores the original tightness while preserving every commitment, scope item, and dollar figure." },
+          ],
+        },
+      },
+      {
+        h: "The three-tool compression spectrum",
+        p: [
+          "Three AI tools at different compression levels:",
+        ],
+        list: {
+          items: [
+            { b: "Improve Writing (5 credits): 20-30% shorter.", t: "Light polish. Cuts filler and redundant qualifiers. Use when the document is already pretty tight." },
+            { b: "Condense (3 credits): 40-60% shorter.", t: "Aggressive shortening within the same document shape. Use when the document is too long but the structure should stay." },
+            { b: "Summarize (3 credits): ~90% shorter.", t: "Restructured digest. Use when you want a different kind of document — a summary, not a shorter version." },
+          ],
+        },
+      },
+      {
+        h: "Verification habits",
+        p: [
+          "Three practices for using condense responsibly:",
+        ],
+        list: {
+          items: [
+            { b: "Use the page citations.", t: "Every section in the output has a citation to the source. Spot-check that the condensed version preserves the source's meaning, especially for critical claims." },
+            { b: "Verify numbers explicitly.", t: "Even though numbers are explicitly preserved, scan the output for any value that surprised you and verify against the source. AI is reliable but not infallible." },
+            { b: "Run on a section first.", t: "For high-stakes documents, condense one section and compare carefully before running on the whole thing. The pattern of what gets cut becomes obvious; you can then trust or override on the rest." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "Condense PDF charges 3 credits per document. The tool handles PDFs up to 100 MB. Processing runs on our servers; the document is in memory only during processing and is never persisted. Output is markdown with page citations.",
+          "Common pairings: Condense + Improve Writing (run improve on the output for further polish). Condense + AI Sign for tighter signed deliverables. Expand-then-Condense for the \"more thorough than my outline, tighter than the raw expansion\" workflow.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // expand-pdf — paired AI elaboration tool
+  // ============================================================
+  "expand-pdf": {
+    title: "Expand PDF — turning bullets into full prose without fabricating claims",
+    intro:
+      "Drafts often start as bullet points: terse, structural, fast to write. Eventually the bullets need to become full prose for the audience. The expand tool elaborates each point into flowing prose, grounded in the source content. The hard constraint is that it doesn't invent claims — what isn't in the source doesn't appear in the expansion. Here is how grounding works, the three workflows where expansion accelerates real writing, and why expand-then-condense is a useful round-trip pattern.",
+    sections: [
+      {
+        h: "How expansion preserves grounding",
+        p: [
+          "The tool reads the source PDF, parses its bullet structure and surrounding content, then elaborates each point with prose connectives, contextual explanation, and natural flow. The expansion stays close to the source — every claim in the output traces to a claim in the input. No new facts get introduced; the model is constrained against fabrication explicitly in the prompt.",
+          "Each section of output is anchored to the page it came from in the source via inline citations. Verification is fast: if a sentence surprises you, click through to the source page and check whether the corresponding bullet actually supports it. The discipline of source-grounding plus visible citations makes expansion trustworthy in a way that uncontrolled AI generation often isn't.",
+        ],
+      },
+      {
+        h: "What kinds of source benefit most",
+        p: [
+          "Three input patterns produce dramatically different expansion ratios:",
+        ],
+        list: {
+          items: [
+            { b: "Terse bullet outlines: 2-3× expansion.", t: "One-line bullets become full paragraphs with context. The expansion ratio is highest here because the input carries the most compressed content per word." },
+            { b: "Mixed outline + brief notes: 1.5-2× expansion.", t: "Drafts with mixed bullet + brief-prose sections expand at roughly this rate. The prose sections grow modestly; the bullet sections grow significantly." },
+            { b: "Already-prose drafts: 1.1-1.3× expansion.", t: "Documents that are already in full sentences don't have much to elaborate. The expansion adds connective tissue and clarifications but not dramatic length. Use Improve Writing on these instead." },
+          ],
+        },
+      },
+      {
+        h: "Three workflows where expansion accelerates writing",
+        p: [
+          "Specific cases where the bullets-to-prose move is the load-bearing operation:",
+        ],
+        list: {
+          items: [
+            { b: "Speaker notes → publishable transcript.", t: "Lecture or talk notes are often bullets. Converting them to a publishable transcript for slideshare, blog publication, or podcast notes is the canonical use." },
+            { b: "Strategy outline → board memo.", t: "A strategy draft as bullets needs to be elaborated for a formal board memo. The expand tool produces the prose draft, which you then edit for voice and add the specifics that bullets implied but didn't state." },
+            { b: "Sprint planning notes → engineering spec.", t: "Engineering specs often start as planning bullets. Expansion produces a prose-format spec that downstream engineers can read end-to-end. The structural integrity (which bullet was which decision) is preserved via the citations." },
+          ],
+        },
+      },
+      {
+        h: "The expand-then-condense round-trip",
+        p: [
+          "A useful pattern that combines both tools:",
+        ],
+        list: {
+          items: [
+            { b: "Start with bullets.", t: "Capture the structure of what you want to say as a terse outline." },
+            { b: "Expand to full prose.", t: "Run Expand to produce the elaborated draft. This typically over-expands — produces more prose than necessary." },
+            { b: "Condense to taste.", t: "Run Condense on the expanded output to land at your target length. The result is more thorough than the original bullets but tighter than the raw expansion — typically the right length for the audience." },
+          ],
+        },
+        // Why this is useful:
+      },
+      {
+        h: "Why the round-trip beats single-pass writing",
+        p: [
+          "Three reasons the two-step approach can produce better drafts than writing direct prose:",
+        ],
+        list: {
+          items: [
+            { b: "Forces explicit structure.", t: "The bullet outline forces you to decide what the document's logical structure is. Writing direct prose risks losing the structure to flow concerns." },
+            { b: "Decouples structure from voice.", t: "The bullet outline captures structure; the expansion adds voice. Each pass has a single concern, which is easier than tackling both at once." },
+            { b: "Reusable input.", t: "The bullet outline is itself a useful artifact. You can expand it again for a different audience, or use it directly as a presentation outline. The bullets are reusable; the expanded prose is single-use." },
+          ],
+        },
+      },
+      {
+        h: "When to skip expansion",
+        p: [
+          "Three cases:",
+        ],
+        list: {
+          items: [
+            { b: "The source is already prose.", t: "Already-prose drafts grow only modestly through expansion. Use Improve Writing or Paraphrase instead — they're better-tuned for prose-input documents." },
+            { b: "The bullets are intentionally terse.", t: "Some documents are supposed to be bulleted (one-pagers, executive briefs, action lists). Expanding them defeats the purpose. Pick deliverable format first; expand only when you want full prose." },
+            { b: "Creative writing.", t: "Fiction, poetry, narrative essay — these depend on author-voice and stylistic choices that AI expansion can't match. Use AI for non-fiction; write fiction yourself." },
+          ],
+        },
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "Expand PDF charges 3 credits per document. The tool handles PDFs up to 100 MB. Processing runs on our servers; the document is in memory only during expansion and is never persisted. Output is markdown with page citations.",
+          "Common pairings: Expand → Condense for the round-trip workflow. Expand → Improve Writing if the expanded output needs final polish. Expand → Generate PDF if the markdown output should be rendered to a polished PDF.",
+        ],
+      },
+    ],
+  },
 };
