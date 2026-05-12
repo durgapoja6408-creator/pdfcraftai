@@ -9555,4 +9555,156 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ===========================================================
+  // pdf-to-powerpoint — turn a PDF into an editable PPTX deck
+  // ===========================================================
+  "pdf-to-powerpoint": {
+    title: "PDF to PowerPoint — turn a PDF into an editable deck",
+    intro:
+      "PDF to PowerPoint takes a PDF and produces a PPTX where every PDF page becomes one slide. Text becomes editable text boxes, images become picture placeholders, and the page layout is approximated using positioned shapes. The goal is not pixel-perfect parity with the original deck — that would require the original PPTX file. The goal is a deck you can open in PowerPoint, Keynote, or Google Slides and edit normally: change the text, swap an image, adjust a colour, then present.",
+    sections: [
+      {
+        h: "When the round-trip works well",
+        p: [
+          "The conversion produces the best results when the input PDF was itself originally exported from a slide deck. That is the most common case for this tool — the user has a PDF version of a deck (downloaded from someone, attached to an email, archived in a content folder) but no access to the original PPTX. The structure is already slide-shaped: one page per slide, large title text, image placements, minimal flowing prose. Re-creating an editable PPTX from that kind of PDF is reliable.",
+          "Conversion also works for pitch-deck-style PDFs originally designed in InDesign, Keynote, or Canva. Anything where each page is laid out as a discrete visual unit rather than as flowing document text converts cleanly. Slides exported from Google Slides convert especially well because Google Slides exports map closely to the PPTX object model.",
+        ],
+      },
+      {
+        h: "When the round-trip is rough",
+        p: [
+          "Some inputs are not good candidates for slide-deck reconstruction:",
+        ],
+        list: {
+          items: [
+            { b: "Flowing-text documents.", t: "A 50-page report PDF will produce a 50-slide deck where each slide is dense text — not useful as a presentation. Convert those with PDF to Word instead." },
+            { b: "Scanned image-only PDFs.", t: "If the PDF has no embedded text layer, the output PPTX will have only images on each slide and no editable text. Run OCR first via the AI OCR tool to add a text layer, then convert." },
+            { b: "Complex multi-column academic papers.", t: "Two-column page layouts confuse the slide-reconstruction logic. The result is jumbled text-box ordering on each slide." },
+            { b: "Heavily designed marketing PDFs with overlapping layers.", t: "PDF supports unlimited overlapping layers; PPTX has cleaner z-ordering. Overlap-heavy designs sometimes collapse to flat compositions." },
+          ],
+        },
+      },
+      {
+        h: "What survives the round-trip and what does not",
+        p: [
+          "The PDF to PPTX conversion preserves many things and necessarily drops others. Knowing the list ahead of time prevents surprise.",
+        ],
+        list: {
+          items: [
+            { b: "Preserved: text content.", t: "All readable text in the source PDF lands in the output deck as editable text boxes. Font family is approximated using the closest installed system font if the original was not embedded." },
+            { b: "Preserved: images and shapes.", t: "Pictures embedded in the PDF copy through to slides as PPTX image placeholders. Simple vector shapes (rectangles, circles, lines) are reconstructed using PPTX native shape primitives." },
+            { b: "Preserved: approximate position.", t: "Text boxes and images land approximately where they were on the page. Sub-pixel precision is impossible without the original PPTX; expect a few points of drift." },
+            { b: "Lost: animations.", t: "PDFs have no animation data — fades, build-ins, transitions between slides are PowerPoint runtime features that are stripped when a deck is exported to PDF. The output PPTX has no animations." },
+            { b: "Lost: embedded videos.", t: "PDF format does not embed video the way PPTX does. Any video that was in the original deck is gone before our tool ever sees the file." },
+            { b: "Lost: speaker notes.", t: "PowerPoint speaker notes are usually omitted from the printed PDF export. If they happened to be included as a separate page, they appear as a normal slide rather than as the notes pane of the relevant slide." },
+            { b: "Lost: slide masters and themes.", t: "The output uses a plain theme. Reapply your corporate theme in PowerPoint after conversion." },
+          ],
+        },
+      },
+      {
+        h: "Edit-flow tips after conversion",
+        p: [
+          "Open the converted PPTX in PowerPoint, Keynote, or Google Slides. The first 30 seconds of editing usually involve cleanup that is faster than starting from scratch:",
+        ],
+        list: {
+          items: [
+            { b: "Apply your theme.", t: "Design tab → Themes — your corporate template will retroactively style fonts, colours, and backgrounds across every slide." },
+            { b: "Normalise text-box sizes.", t: "Click any text box, check Format → Size — converted text boxes occasionally land slightly oversized; trim them to fit content." },
+            { b: "Re-link any missing fonts.", t: "If the original PDF used a font you don't have installed locally, PowerPoint substitutes a default. Apply the correct font via Format → Font for affected text boxes." },
+            { b: "Add animations and transitions.", t: "Re-add slide transitions and any build-in animations. These were never in the PDF; they must be re-applied manually after conversion." },
+          ],
+        },
+      },
+      {
+        h: "Alternatives and pairings",
+        p: [
+          "If the goal is to extract just the text or just the images from a slide-deck PDF rather than to produce an editable deck, alternative tools work better. Extract Text gives clean prose output. Extract Images gives a folder of PNG files. PDF to Word is the right call when the PDF is more document than deck.",
+          "Common pairings: PDF to PowerPoint → Compress PDF if the resulting PPTX is then re-exported and needs to be emailed. PDF to PowerPoint → AI Translate if the deck needs to be presented in a different language (translate the PPTX rather than the PDF for better fidelity).",
+        ],
+      },
+      {
+        h: "Limits and pricing",
+        p: [
+          "PDF to PowerPoint is free and unlimited. There is no daily quota, no per-file ceiling beyond 100 MB, no signup, and no watermark on output. The conversion runs server-side because the PPTX object model is complex enough that doing it entirely in the browser would slow down on long decks. The file is held in memory only during conversion and is deleted immediately after the download is served.",
+          "If you need batch conversion of many PDFs to PPTX, the API endpoint accepts the same input and returns a zip of PPTX files. The web tool processes one file at a time.",
+        ],
+      },
+    ],
+  },
+
+  // ===========================================================
+  // split-odd-even-pages — duplex-scan recovery
+  // ===========================================================
+  "split-odd-even-pages": {
+    title: "Split odd / even pages — separate a duplex scan into two PDFs",
+    intro:
+      "Split Odd / Even Pages is the first step of a four-step duplex-scan recovery workflow. It takes a single PDF where odd-numbered pages are document fronts and even-numbered pages are backs (or the other way around), and produces two PDFs — one with just the odd pages, one with just the even pages. You then optionally reverse the back-page PDF and merge the two back together interleaved to produce a correctly ordered document. The workflow exists because most ADF (auto-document-feeder) scanners produce a scan with all fronts first and all backs second, and the back-page order is usually reversed — fixing that without intermediate verification is risky, so we split the work into discrete steps each user can confirm before moving on.",
+    sections: [
+      {
+        h: "Why duplex-scan recovery is even a thing",
+        p: [
+          "Document scanners that are not full-duplex (cannot scan both sides of a sheet in one pass) handle two-sided documents in two passes. You feed in the stack, click Scan, the scanner reads every front page in order, and then it prompts you to flip the stack and re-feed. You flip, re-feed, scan the backs. The scanner appends the back-side scans to the same PDF.",
+          "The catch: when you flip the stack to scan backs, the last back-page is now on top. So the scanner reads back-of-last-page first, then back-of-second-to-last, all the way down to back-of-first-page. The resulting PDF has fronts 1, 2, 3, ..., N followed by backs N, N-1, ..., 2, 1. Pagination is wrong. Sequentially printing the PDF would produce a stack where front-of-page-1 is followed by back-of-page-N rather than back-of-page-1. The duplex-scan recovery workflow puts this right.",
+        ],
+      },
+      {
+        h: "The four-step recovery workflow",
+        p: [
+          "Each step in the workflow is run as a separate tool so you can verify the output before moving on. The discipline catches scanner quirks — some scanners do not reverse, some pages skew during feed, some sheets stick together. Step-by-step verification is faster than chasing down a corrupted result after a single-button automation has applied four transformations.",
+        ],
+        list: {
+          items: [
+            { b: "Step 1 — Split odd / even.", t: "This tool. Drop the duplex scan, get two PDFs out: one with odd pages (1, 3, 5, ...) which are the fronts in the correct order, one with even pages (2, 4, 6, ...) which are the backs in scanner-reversed order." },
+            { b: "Step 2 — Verify the split.", t: "Open both output PDFs. Confirm the odd-page PDF reads as the front-of-document-1, front-of-document-2, and so on. Confirm the even-page PDF reads as backs in reverse order — back-of-document-N, back-of-document-N-1, ..., back-of-document-1." },
+            { b: "Step 3 — Reverse the even output.", t: "If the back-page PDF is in reverse order (the common case), use our Sort Pages tool with the Reverse option. The result is a PDF of backs in correct front-to-back order. If your scanner did not reverse — some flatbed setups do not — skip this step." },
+            { b: "Step 4 — Merge interleaved.", t: "Use our Merge tool with Interleave mode set. Point it at the front PDF and the reversed-back PDF. The output alternates between the two: front-1, back-1, front-2, back-2, front-3, back-3, and so on. That is the recovered, correctly paginated document." },
+          ],
+        },
+      },
+      {
+        h: "Why we do not collapse this into a one-click button",
+        p: [
+          "A single-button Duplex Scan Recovery tool that handled all four steps automatically is technically possible, but it would require assumptions about your scanner's behaviour: did it reverse the backs? Were any pages lost during feed? Are odd and even page counts equal?",
+          "Those assumptions fail often enough that the one-click version would produce silently corrupted documents on a non-trivial fraction of inputs. Forcing a four-step workflow with intermediate downloads forces you to look at each intermediate output — which catches scanner quirks the moment they appear rather than after you have already moved on.",
+          "Power users who scan duplex documents constantly and trust their scanner's behaviour can string the four steps into a saved Macro on the paid plan. That gives one-click execution to anyone who has manually verified the workflow once and knows it works for their specific scanner.",
+        ],
+      },
+      {
+        h: "Common scanner behaviours and what to do",
+        p: [
+          "Different scanners produce different artefacts. The workflow handles each one with a small variation.",
+        ],
+        list: {
+          items: [
+            { b: "ADF with reverse-feed prompt.", t: "Most common. Fronts in order, backs in reverse order. Use the standard four-step workflow." },
+            { b: "Full-duplex ADF.", t: "Scans both sides in one pass; pages are already in correct interleaved order. You do not need this tool. If pagination looks correct after scan, you are done." },
+            { b: "Flatbed manual scan.", t: "User scans each page one at a time. Page order is whatever order the user fed them. Sometimes correct, sometimes interleaved wrong. Inspect the PDF; if it is already correct, no recovery needed." },
+            { b: "ADF without reverse.", t: "Rare — some ADFs prompt the user to flip the stack but not reverse the order. Result: fronts then backs in forward order. Skip step 3 (the reverse) and merge interleaved directly." },
+            { b: "Mixed: front + back simultaneously on flatbed.", t: "User has photographed both sides of a sheet and placed each as a separate page. Pagination is typically front-1, back-1, front-2, back-2 — already correct. No recovery needed." },
+          ],
+        },
+      },
+      {
+        h: "What if I only want the fronts?",
+        p: [
+          "A common subset of the workflow is just extracting the fronts and discarding the backs — for example, when the back of every page is blank because the source document was single-sided but the scanner produced a duplex output anyway. In that case, run step 1, keep only the odd-page output, discard the even-page output. Done.",
+          "The same pattern works in reverse — if the scanner inverted the convention and produced a PDF where even pages are fronts, run step 1, keep the even-page output as your final document, discard the odd. Inspect both outputs to determine which is which.",
+        ],
+      },
+      {
+        h: "Triplex and higher",
+        p: [
+          "Some specialised scanners and archive workflows produce multi-sided scans where every third or fourth page is the original side. Split Odd / Even does not handle those — it is modulo-2 only. For modulo-3 (triplex) or modulo-N, use our Extract Pages tool with a manual range list: 1, 4, 7, 10, ... gives you every third page starting from 1. Sort Pages with the Custom Order option handles arbitrary re-sequencing if the layout is more complex.",
+        ],
+      },
+      {
+        h: "Privacy and pricing",
+        p: [
+          "Split Odd / Even runs 100% client-side using pdf-lib. The PDF is opened in your browser, pages are sorted into two output PDFs, and both outputs are made available for download. Nothing is uploaded to a server. The tool is free with no per-file or per-day limits.",
+          "The downstream Sort Pages and Merge tools used in steps 3 and 4 are also free and run client-side. The whole duplex-scan recovery workflow is free end-to-end and processes documents entirely in your browser, which is important when the source is sensitive — tax documents, signed contracts, medical records, anything where uploading a scan to a third-party server is a concern.",
+        ],
+      },
+    ],
+  },
 };
