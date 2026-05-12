@@ -92,8 +92,14 @@ test.describe("authenticated flows", () => {
   test("session cookie survives navigation", async ({ page, context }) => {
     await page.goto("/app/dashboard");
     const cookies = await context.cookies();
+    // NextAuth v5 (Auth.js) ships under the `authjs.*` cookie
+    // namespace; v4 used `next-auth.*`. We accept either to keep
+    // the test resilient if/when we migrate. Production runs over
+    // HTTPS so the cookie is prefixed `__Secure-`.
     const sessionCookie = cookies.find(
       (c) =>
+        c.name === "authjs.session-token" ||
+        c.name === "__Secure-authjs.session-token" ||
         c.name === "next-auth.session-token" ||
         c.name === "__Secure-next-auth.session-token",
     );
