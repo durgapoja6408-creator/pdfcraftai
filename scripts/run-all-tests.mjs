@@ -1189,6 +1189,20 @@ const SUITES = [
     name: "enterprise-jsonld",
     file: "test-enterprise-jsonld.mjs",
   },
+  // 2026-05-12 — Product + Offer + FAQPage + Breadcrumb JSON-LD on
+  // /pricing. Highest commercial-leverage JSON-LD on the site
+  // (SERP pricing rich snippets are direct conversion drivers).
+  // ProductGroup at top with hasVariant for each CREDIT_PACKS entry;
+  // each variant has TWO Offers (USD + INR) for dual-currency
+  // checkout. FAQPage derived from PRICING_FAQ. 24 assertions
+  // across 6 sections (A: 3 constants, B: ProductGroup shape +
+  // sku + brand, C: dual-currency offers + derivation-not-literal,
+  // D: FAQ from PRICING_FAQ, E: breadcrumb, F: 3 script tags
+  // hygiene).
+  {
+    name: "pricing-jsonld",
+    file: "test-pricing-jsonld.mjs",
+  },
   // 2026-05-04 (PENDING_WORK_ANALYSIS.md §4c) — contact form
   // persistence + admin viewer. Migration 0021 added the
   // contact_submissions table; the route now persists every

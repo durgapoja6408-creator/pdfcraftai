@@ -876,9 +876,22 @@ assert(
 );
 
 assert(
-  "K3 /pricing no longer maps CREDIT_PACKS inline",
-  !/CREDIT_PACKS\.map/.test(PRICING_PAGE_SRC),
-  "old inline CREDIT_PACKS.map grid must be removed — PackUpsellPanel owns the grid now"
+  "K3 /pricing no longer maps CREDIT_PACKS inside JSX (panel owns the grid)",
+  // Original rule banned ALL CREDIT_PACKS.map — that prevented the
+  // pricing-grid refactor from regressing. 2026-05-12 relaxation:
+  // the JSON-LD work (pricing-jsonld guard, commit follows) declares
+  // `hasVariant: CREDIT_PACKS.map(...)` inside a module-scope const,
+  // not inside JSX. The intent of K3 is "the visual pricing grid
+  // must come from PackUpsellPanel", not "no use of .map anywhere".
+  //
+  // Refined rule: ban CREDIT_PACKS.map when preceded by an opening
+  // JSX-expression brace `{` (i.e. `{CREDIT_PACKS.map(`) AND
+  // followed by JSX (`=>` then `<` within a short window). Allow
+  // it in object-literal context like `hasVariant: CREDIT_PACKS.map`.
+  !/\{\s*CREDIT_PACKS\.map\([^)]*\)\s*=>\s*[\s\S]{0,80}?</.test(
+    PRICING_PAGE_SRC
+  ),
+  "old inline CREDIT_PACKS.map JSX grid must be removed — PackUpsellPanel owns the grid now. Module-scope JSON-LD .map() is allowed."
 );
 
 assert(

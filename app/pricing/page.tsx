@@ -6,7 +6,7 @@ import { CheckoutButton } from "@/components/billing/CheckoutButton";
 import { PackUpsellPanel } from "@/components/billing/PackUpsellPanel";
 import { SmartCta } from "@/components/marketing/SmartCta";
 import { LaunchNotifySignup } from "@/components/geo/LaunchNotifySignup";
-import { PRICING_FAQ } from "@/lib/pricing";
+import { CREDIT_PACKS, PRICING_FAQ } from "@/lib/pricing";
 import { TOOLS, TOOL_STATS } from "@/lib/tools";
 
 export const metadata: Metadata = {
@@ -26,11 +26,125 @@ export const metadata: Metadata = {
   },
 };
 
+// 2026-05-12 — Product + Offer + FAQPage + BreadcrumbList JSON-LD.
+// Highest commercial leverage of remaining static-page JSON-LD: SERP
+// pricing rich snippets are the single biggest "rich result that
+// affects conversion" feature Google ships.
+//
+// Schema choices:
+//
+//   - ProductGroup at the top — Google's spec treats "the credit
+//     pack lineup" as a product group, with each pack as a Product
+//     under hasVariant. This is the right model for SKU families
+//     (Starter / Creator / Pro / Studio share the same product
+//     concept; differ on quantity + price).
+//
+//   - Each pack is a Product with two Offers (USD + INR) because we
+//     charge dual currencies. Google can pick the appropriate one
+//     based on the searcher's locale signal. INR pricing comes from
+//     CREDIT_PACKS[i].inrPrice (set per Task #27 below US PPP norm
+//     for the Indian market).
+//
+//   - FAQPage — the PRICING_FAQ entries become Question / Answer
+//     pairs. Mirrors the pattern from /compare and SeoLandingPage.
+//
+//   - BreadcrumbList — Home → Pricing.
+//
+// All four blocks derive from CREDIT_PACKS + PRICING_FAQ at render
+// time, so adding a new pack or updating a price auto-updates the
+// schema. Single source of truth: lib/pricing.ts.
+const SITE = "https://pdfcraftai.com";
+const PRODUCT_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "ProductGroup",
+  "@id": `${SITE}/pricing#packs`,
+  name: "pdfcraftai Credit Packs",
+  description:
+    "Pay-as-you-go credit packs for AI PDF tools. Paid credits never expire. Free tier covers every non-AI PDF tool forever.",
+  url: `${SITE}/pricing`,
+  brand: { "@type": "Brand", name: "pdfcraftai" },
+  productGroupID: "credit-packs",
+  variesBy: ["credits", "price"],
+  hasVariant: CREDIT_PACKS.map((pack) => {
+    // inrPrice is optional on the CreditPack type but every current
+    // entry has it (per Task #27). Guard for future packs that ship
+    // without an INR price set — those get a single USD offer.
+    const offers: Array<Record<string, unknown>> = [
+      {
+        "@type": "Offer",
+        priceCurrency: "USD",
+        price: pack.price.toFixed(2),
+        availability: "https://schema.org/InStock",
+        url: `${SITE}/buy?pack=${pack.id}`,
+      },
+    ];
+    if (typeof pack.inrPrice === "number") {
+      offers.push({
+        "@type": "Offer",
+        priceCurrency: "INR",
+        price: pack.inrPrice.toFixed(2),
+        availability: "https://schema.org/InStock",
+        url: `${SITE}/buy?pack=${pack.id}&geo=IN`,
+      });
+    }
+    return {
+      "@type": "Product",
+      name: `${pack.name} pack — ${pack.credits} credits`,
+      description: `${pack.tagline}. ${pack.features.join(" · ")}.`,
+      sku: `pack-${pack.id}`,
+      offers,
+    };
+  }),
+};
+
+const FAQ_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "@id": `${SITE}/pricing#faq`,
+  mainEntity: PRICING_FAQ.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+
+const BREADCRUMB_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Home", item: SITE },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Pricing",
+      item: `${SITE}/pricing`,
+    },
+  ],
+};
+
 export default function PricingPage() {
   const aiTools = TOOLS.filter((t) => !t.free);
 
   return (
     <main>
+      {/* Product + FAQ + Breadcrumb JSON-LD — see comments above. */}
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(PRODUCT_JSONLD) }}
+      />
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }}
+      />
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(BREADCRUMB_JSONLD),
+        }}
+      />
       {/* ===== Hero ===== */}
       <section style={{ paddingTop: 100 }}>
         <div className="container-x" style={{ padding: "0 28px", textAlign: "center", maxWidth: 780 }}>
