@@ -95,11 +95,34 @@ declare global {
   var __pdfcraftMysqlPool: mysql.Pool | undefined;
 }
 
+// 2026-05-12 SEV-1 audit fix: connectionLimit was hardcoded 10. On
+// Hostinger MariaDB the per-account max-connections cap is ~25; under
+// burst load (e.g. a busy day of cron + concurrent users), 10 is
+// usually fine but can saturate. Conversely on a low-spec dev
+// machine, 10 is too aggressive. Env-overridable now so the operator
+// can tune without a code change:
+//
+//   MYSQL_POOL_SIZE=<integer>   (clamped 1..50; defaults to 10)
+//
+// Why clamp 1..50: 0 disables the pool (pool errors not surfacing
+// well in drizzle), and >50 risks tripping Hostinger's per-account
+// cap (other consumers on the same MariaDB user — admin queries,
+// crons, future workers — also draw connections).
+const POOL_SIZE_DEFAULT = 10;
+const POOL_SIZE_MAX = 50;
+function resolvePoolSize(): number {
+  const raw = process.env.MYSQL_POOL_SIZE;
+  if (!raw) return POOL_SIZE_DEFAULT;
+  const n = parseInt(raw, 10);
+  if (!Number.isFinite(n) || n < 1) return POOL_SIZE_DEFAULT;
+  return Math.min(n, POOL_SIZE_MAX);
+}
+
 const pool =
   global.__pdfcraftMysqlPool ??
   mysql.createPool({
     ...mysqlConfig,
-    connectionLimit: 10,
+    connectionLimit: resolvePoolSize(),
     waitForConnections: true,
     enableKeepAlive: true,
   });

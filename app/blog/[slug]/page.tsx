@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { I } from "@/components/icons/Icons";
 import { BLOG_POSTS, postBySlug } from "@/lib/blog-posts";
+import { authorByName } from "@/lib/authors";
 import { AdSlot } from "@/components/marketing/AdSlot";
 
 export const dynamicParams = false;
@@ -256,40 +257,108 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
               (e.g. on the redaction post, promote AI Redact). */}
           <AdSlot slot="article-end" context={post.slug} />
 
-          {/* Byline */}
-          <div
-            className="row"
-            style={{
-              gap: 14,
-              marginTop: 56,
-              paddingTop: 28,
-              borderTop: "1px solid var(--border)",
-            }}
-          >
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: "50%",
-                background: "var(--accent-soft)",
-                color: "var(--accent)",
-                display: "grid",
-                placeItems: "center",
-                fontWeight: 600,
-                fontSize: 16,
-                flexShrink: 0,
-              }}
-              aria-hidden
-            >
-              {post.author.initial}
-            </div>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>{post.author.name}</div>
-              <div className="muted" style={{ fontSize: 13 }}>
-                {post.author.role}
+          {/*
+            2026-05-12 SEV-1 audit fix: byline previously showed
+            name + role with no link to the author landing page +
+            no bio. Google E-E-A-T (esp. for AI-generated content)
+            leans heavily on visible author authority. authorByName
+            resolves the post's author string → Author record so we
+            can link to /about/authors/<slug> + render the shortBio.
+            Falls back to the prior name+role-only display when the
+            author name doesn't resolve (e.g. a one-off guest post).
+          */}
+          {(() => {
+            const author = authorByName(post.author.name);
+            const Avatar = (
+              <div
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: "50%",
+                  background: "var(--accent-soft)",
+                  color: "var(--accent)",
+                  display: "grid",
+                  placeItems: "center",
+                  fontWeight: 600,
+                  fontSize: 20,
+                  flexShrink: 0,
+                }}
+                aria-hidden
+              >
+                {post.author.initial}
               </div>
-            </div>
-          </div>
+            );
+            return (
+              <div
+                style={{
+                  marginTop: 56,
+                  paddingTop: 28,
+                  borderTop: "1px solid var(--border)",
+                  display: "flex",
+                  gap: 16,
+                  alignItems: "flex-start",
+                }}
+              >
+                {author ? (
+                  <Link
+                    href={`/about/authors/${author.slug}`}
+                    aria-label={`More about ${post.author.name}`}
+                    style={{ textDecoration: "none", flexShrink: 0 }}
+                  >
+                    {Avatar}
+                  </Link>
+                ) : (
+                  Avatar
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 15 }}>
+                    {author ? (
+                      <Link
+                        href={`/about/authors/${author.slug}`}
+                        style={{
+                          color: "inherit",
+                          textDecoration: "none",
+                          borderBottom: "1px solid transparent",
+                        }}
+                      >
+                        {post.author.name}
+                      </Link>
+                    ) : (
+                      post.author.name
+                    )}
+                  </div>
+                  <div
+                    className="muted"
+                    style={{ fontSize: 13, marginBottom: author ? 10 : 0 }}
+                  >
+                    {post.author.role}
+                  </div>
+                  {author ? (
+                    <p
+                      style={{
+                        fontSize: 13,
+                        lineHeight: 1.55,
+                        margin: 0,
+                        color: "var(--fg-muted)",
+                      }}
+                    >
+                      {author.shortBio}{" "}
+                      <Link
+                        href={`/about/authors/${author.slug}`}
+                        style={{
+                          color: "var(--accent)",
+                          textDecoration: "underline",
+                          textUnderlineOffset: 2,
+                        }}
+                      >
+                        Read more →
+                      </Link>
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </article>
     </main>

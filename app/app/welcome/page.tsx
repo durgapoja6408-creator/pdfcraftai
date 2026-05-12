@@ -262,6 +262,45 @@ export default async function WelcomePage() {
         </div>
       </section>
 
+      {/*
+        2026-05-12 SEV-1 audit fix: visitors without a PDF in hand
+        had nothing to click — they bounced. The /sample.pdf download
+        gives new users a 3-page PDF to drop into any tool. Generated
+        by scripts/make-sample-pdf.mjs; checked in as a static asset
+        so it loads instantly from Cloudflare cache.
+      */}
+      <div
+        className="card"
+        style={{
+          padding: 18,
+          marginTop: 8,
+          background:
+            "linear-gradient(110deg, color-mix(in oklab, var(--accent) 6%, transparent), transparent 60%)",
+          display: "flex",
+          gap: 14,
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>
+            Don&apos;t have a PDF handy?
+          </div>
+          <div className="muted" style={{ fontSize: 13 }}>
+            Grab our 3-page sample document and drop it into any tool
+            above to see how it works.
+          </div>
+        </div>
+        <a
+          href="/sample.pdf"
+          download="pdfcraftai-sample.pdf"
+          className="btn btn-outline btn-sm"
+          style={{ textDecoration: "none" }}
+        >
+          Download sample.pdf
+        </a>
+      </div>
+
       <div
         className="row"
         style={{

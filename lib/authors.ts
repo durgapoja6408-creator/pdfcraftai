@@ -91,3 +91,19 @@ export const AUTHOR_SLUGS = Object.keys(AUTHORS) as AuthorSlug[];
 export function authorBySlug(slug: string): Author | null {
   return AUTHORS[slug as AuthorSlug] ?? null;
 }
+
+// 2026-05-12 SEV-1 audit fix: blog post bylines need to link to the
+// author landing page. Posts only have author.name (no slug), so we
+// resolve name → Author record here. Case-insensitive match because
+// historical blog data has minor casing inconsistencies. Returns
+// null if the name doesn't resolve, in which case the byline
+// renders without a link or bio (existing behaviour).
+export function authorByName(name: string): Author | null {
+  const target = name.trim().toLowerCase();
+  for (const slug of AUTHOR_SLUGS) {
+    if (AUTHORS[slug].name.toLowerCase() === target) {
+      return AUTHORS[slug];
+    }
+  }
+  return null;
+}

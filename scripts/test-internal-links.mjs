@@ -150,6 +150,17 @@ function resolveHref(href) {
   if (clean === "") return null; // pure hash href like "#main"
   if (clean === "/") return null; // homepage
 
+  // 2026-05-12 SEV-1 audit fix: static assets in public/ are valid
+  // hrefs. Next.js serves /public/<path> at /<path> automatically.
+  // E.g. /sample.pdf → public/sample.pdf, /robots.txt → public/robots.txt.
+  // Without this branch, the dead-link check false-positives on every
+  // download link to a static asset.
+  if (/^\/[^/]+\.(pdf|png|jpg|jpeg|gif|svg|webp|ico|txt|xml|json|webmanifest|wasm|woff|woff2)$/i.test(clean)) {
+    const publicPath = path.join(ROOT, "public", clean.slice(1));
+    if (fs.existsSync(publicPath)) return null;
+    return `static asset ${clean} missing at public${clean}`;
+  }
+
   // Redirect source short-circuit — if redirect catches it, the
   // destination resolution is enforced by test-redirect-destinations.
   if (REDIRECT_SOURCES.has(clean)) return null;

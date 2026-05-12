@@ -30,6 +30,7 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { auth } from "@/auth";
 import { convertPdfToOffice, type PdfToOfficeFormat } from "@/lib/tools-server/pdf-to-office";
 
 // pdfjs-dist's legacy build + docx library are Node-only.
@@ -40,11 +41,27 @@ const MAX_PDF_BYTES = 25 * 1024 * 1024; // 25 MB
 
 const formatSchema = z.enum(["docx", "txt"]);
 
-// Per-IP bucket. Bucket by minute so we don't need a sliding window.
-// 10 conversions/min is enough for interactive use; a script trying to
-// abuse us will hit the wall quickly.
+// 2026-05-12 SEV-1 audit mitigation: route is intentionally public
+// (free tool, no auth wall) but the audit flagged abuse vectors —
+// IP-rotation defeats the per-IP rate limit, no Turnstile, no
+// global quota. Defenses added in this layer:
+//
+//   1. PDF_TO_OFFICE_DISABLED env kill-switch — operator panic
+//      button when abuse spikes (returns 503 instantly).
+//   2. Authenticated users get 3× the per-minute quota (30/min vs
+//      10/min) so logged-in real users aren't penalised when
+//      anonymous abuse causes the limit to tighten.
+//   3. Per-IP bucket + auth bucket each have their own count so
+//      authed users on the same IP don't get throttled by an
+//      anonymous abuser on the same NAT.
+//
+// Deeper defense — Turnstile token verification for anonymous calls
+// — is documented as deferred: it requires the client component to
+// emit a `cf-turnstile-response` form field, which is multi-touch
+// and warrants a focused commit.
 const attempts = new Map<string, { count: number; minute: number }>();
-const PER_MINUTE_LIMIT = 10;
+const PER_MINUTE_LIMIT_ANONYMOUS = 10;
+const PER_MINUTE_LIMIT_AUTHED = 30;
 
 function ipBucket(req: Request): string {
   const xff = req.headers.get("x-forwarded-for");
@@ -52,20 +69,60 @@ function ipBucket(req: Request): string {
 }
 
 export async function POST(req: Request): Promise<Response> {
+  // ---- Kill switch (SEV-1 panic button) ------------------------------
+  if (
+    process.env.PDF_TO_OFFICE_DISABLED === "true" ||
+    process.env.PDF_TO_OFFICE_DISABLED === "1"
+  ) {
+    return NextResponse.json(
+      {
+        error: "tool_disabled",
+        detail:
+          "PDF to Office is temporarily unavailable for maintenance. Try again later or use Extract Text as a workaround.",
+      },
+      { status: 503 },
+    );
+  }
+
+  // ---- Auth probe (no auth required; used to choose quota tier) ------
+  // Anonymous calls keep the original 10/min ceiling; authenticated
+  // users get 30/min so real activity isn't throttled by anonymous
+  // abuse on the same IP/network.
+  let isAuthed = false;
+  try {
+    const session = await auth();
+    isAuthed = Boolean(session?.user);
+  } catch {
+    // auth() should never throw, but if it does, downgrade to
+    // anonymous-tier (safer floor) and continue.
+    isAuthed = false;
+  }
+  const perMinuteLimit = isAuthed
+    ? PER_MINUTE_LIMIT_AUTHED
+    : PER_MINUTE_LIMIT_ANONYMOUS;
+
   // ---- Rate limit ----------------------------------------------------
+  // Separate buckets per auth tier so the anonymous count can't bleed
+  // into the authed budget.
   const ip = ipBucket(req);
+  const bucketKey = `${isAuthed ? "u" : "a"}:${ip}`;
   const minute = Math.floor(Date.now() / 60_000);
-  const bucket = attempts.get(ip);
+  const bucket = attempts.get(bucketKey);
   if (bucket && bucket.minute === minute) {
-    if (bucket.count >= PER_MINUTE_LIMIT) {
+    if (bucket.count >= perMinuteLimit) {
       return NextResponse.json(
-        { error: "rate_limited", detail: "Too many conversions. Try again in a minute." },
+        {
+          error: "rate_limited",
+          detail: isAuthed
+            ? "Too many conversions. Try again in a minute."
+            : "Too many conversions from your network. Try again in a minute, or sign in for a higher per-minute quota.",
+        },
         { status: 429 },
       );
     }
     bucket.count += 1;
   } else {
-    attempts.set(ip, { count: 1, minute });
+    attempts.set(bucketKey, { count: 1, minute });
   }
 
   // ---- Parse multipart body ------------------------------------------
