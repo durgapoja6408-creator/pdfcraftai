@@ -7240,4 +7240,183 @@ export const LONGFORM_BODIES: Partial<Record<SeoPageSlug, SeoLongform>> = {
       },
     ],
   },
+
+  // ============================================================
+  // pdf-annotations-viewer — review-workflow inspector
+  // ============================================================
+  "pdf-annotations-viewer": {
+    title: "PDF annotations viewer — every comment, highlight, and sticky note as data",
+    intro:
+      "PDF annotations carry years of review work — highlights from a contract review, comments from a paper-editing pass, sticky notes from a board-pack circulation, drawn arrows from a design review. Most PDF readers show these one-at-a-time as you scroll. The annotations viewer surfaces them all at once as structured data: type, page, author, date, content, location. The difference matters for audit, completeness verification, and converting a review pass into actionable items. Here is what the viewer shows, the four review workflows where the structured view earns its place, and the difference between this read-only viewer and the editing tools.",
+    sections: [
+      {
+        h: "What the viewer surfaces",
+        p: [
+          "The tool reads every page's /Annots array and surfaces every annotation as a structured row with six columns: type (highlight / comment / sticky note / drawn shape / signature / stamp / etc.), page number, author, creation date, content (the comment text or annotation label), color (for highlights), and location coordinates. The structured view turns a scroll-through-the-PDF experience into a scan-the-table experience.",
+          "Every annotation type defined by the PDF spec is surfaced — highlights, underlines, strikeouts, sticky notes (Text annotations), free text, ink strokes (handwriting / Free Draw), polygon shapes, line annotations, signature stamps, custom stamps. Older types from earlier Acrobat versions (like Movie annotations from the 90s) surface with their original type for completeness, even though most readers no longer support them.",
+        ],
+      },
+      {
+        h: "Four review workflows where structured view earns its place",
+        p: [
+          "Cases where seeing all annotations at once beats scrolling through the PDF:",
+        ],
+        list: {
+          items: [
+            { b: "Review completeness verification.", t: "A document went through review by 5 people. Did each reviewer actually comment? The viewer's author column filtered by name surfaces each reviewer's contributions explicitly. Reviewers who left no annotations are flagged by absence." },
+            { b: "Action-item extraction from review.", t: "Reviewers leave comments that translate into action items for the document author. The viewer's table format makes the comments scannable; combined with Extract Action Items, the comments become a TODO list ready for a tracker." },
+            { b: "Audit trail for compliance reviews.", t: "Internal-audit documents, regulatory submissions, and similar high-stakes reviews need an audit trail of who annotated what and when. The viewer's structured output is the audit trail — exportable as CSV for regulatory records." },
+            { b: "Multi-author review coordination.", t: "When multiple reviewers comment on the same document, conflicts and overlaps need triage. The viewer's per-page breakdown shows where reviewers agree (multiple highlights of the same passage) and where they diverge (conflicting comments on the same section)." },
+          ],
+        },
+      },
+      {
+        h: "Filter patterns",
+        p: [
+          "Three filter dimensions and their use cases:",
+        ],
+        list: {
+          items: [
+            { b: "Filter by author.", t: "See each reviewer's contribution in isolation. Useful when crediting reviewers or when investigating a specific reviewer's concerns." },
+            { b: "Filter by type.", t: "Just highlights (what passages were marked important), just comments (what discussion happened), just stamps (what approvals were granted). Each annotation type carries different review-workflow meaning." },
+            { b: "Filter by date range.", t: "Annotations added during the first review pass vs the second. Track how the document evolved through reviews." },
+          ],
+        },
+      },
+      {
+        h: "Viewer vs editing tools",
+        p: [
+          "The viewer is read-only. Three related tools for modifying annotations:",
+        ],
+        list: {
+          items: [
+            { b: "Free Draw / Highlight / Add Text Box — create annotations.", t: "Add new annotations to a PDF. Each is a separate tool for the specific annotation type." },
+            { b: "Flatten PDF — convert annotations to page content.", t: "Bake annotations into the page so they can no longer be edited or removed. Used when finalizing a reviewed document for distribution." },
+            { b: "Free Redact — remove annotations selectively.", t: "Some annotations need to come out (PII in a comment, an obsolete review) without flattening the rest. Free Redact handles this. For wholesale annotation removal, Flatten followed by re-circulation is simpler." },
+          ],
+        },
+      },
+      {
+        h: "Why this surfaces things PDF readers miss",
+        p: [
+          "Three categories of annotations many readers don't display by default:",
+        ],
+        list: {
+          items: [
+            { b: "Author metadata on annotations.", t: "Acrobat's panel shows it but Preview and most browser readers don't. Crucial for multi-reviewer documents." },
+            { b: "Creation date.", t: "When was this comment added? Useful for tracking when concerns emerged during review." },
+            { b: "Color of highlights.", t: "Reviewers sometimes use color-coding (yellow = important, red = concern, green = approved). PDF readers show the visual color; the viewer surfaces it as data you can filter by." },
+          ],
+        },
+      },
+      {
+        h: "Edge cases",
+        p: [
+          "Two patterns where the viewer's output may surprise you:",
+        ],
+        list: {
+          items: [
+            { b: "Annotations stored as page content (not real annotations).",
+              t: "Some tools (including our Free Draw) draw strokes into the page content stream rather than as /Annot objects. These are visually identical to annotations but the viewer doesn't list them (they're not annotations structurally). To enumerate them, you'd need a content-stream walker, which is beyond the viewer's scope." },
+            { b: "Author field missing.",
+              t: "Older PDFs (pre-2005) often have annotations with no /T (author) field. The viewer shows \"unknown\" for these. Don't assume a missing author means the annotation is anonymous; it might just be an old format." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, annotations viewer handles PDFs up to 100 MB with no annotation-count cap. Parsing runs in your browser; nothing is uploaded. Output is the structured-annotation table plus CSV / JSON export.",
+          "Common pairings: Annotations Viewer → Extract Action Items to turn reviewer comments into a TODO list. Annotations Viewer → Flatten when finalizing a reviewed document. Annotations Viewer → Free Redact when specific annotations need to be removed before distribution.",
+        ],
+      },
+    ],
+  },
+
+  // ============================================================
+  // pdf-links-inspector — link audit
+  // ============================================================
+  "pdf-links-inspector": {
+    title: "PDF links inspector — auditing hyperlinks before sharing, archiving, or migrating",
+    intro:
+      "Most PDFs contain hyperlinks the author never explicitly thought about. Word's auto-link converts URLs to clickable links at export; InDesign carries forward links from the source content; even browser print-to-PDF preserves the page's hyperlinks. By the time you share a PDF, it may contain dozens of links — some intentional, some accidental, some pointing to URLs that have since broken or changed hands. The link inspector surfaces every link explicitly so you can audit before distributing. Here is what link types exist in PDF, the five workflows where auditing matters, and the difference between linked and link-styled text.",
+    sections: [
+      {
+        h: "Five PDF link types — what each means",
+        p: [
+          "The PDF spec defines several distinct link types:",
+        ],
+        list: {
+          items: [
+            { b: "URL (external web link).", t: "Standard http:// or https:// link that opens in the user's browser. The most common type." },
+            { b: "Goto (internal page jump).", t: "Links to another page in the same PDF. TOC entries, footnote references, cross-references." },
+            { b: "GotoR (remote PDF page jump).", t: "Links to a specific page in a DIFFERENT PDF, by relative or absolute file path. Common in technical documentation that's split across multiple PDF files." },
+            { b: "Launch (external file or program).", t: "Opens a non-PDF file or executes a program. Old format, security risk in modern viewers — most readers block /Launch actions by default." },
+            { b: "Named (named destination).", t: "Indirect reference to a named anchor within the document. Used for bookmarks that point to logical destinations rather than specific page numbers." },
+          ],
+        },
+      },
+      {
+        h: "Five workflows where auditing matters",
+        p: [
+          "Cases where surfacing every link saves a downstream problem:",
+        ],
+        list: {
+          items: [
+            { b: "Pre-share audit.", t: "Before sending a PDF externally, scan its links. Are any pointing to internal-only URLs? Old draft URLs that no longer work? Phishing-vector links if a domain expires and gets re-registered? Each is a hazard the audit catches." },
+            { b: "Archive ingestion.", t: "Archival systems (libraries, regulatory repositories) often want self-contained PDFs. External links in archived documents create broken-reference problems years later when the destination URL is gone. Audit and consider stripping before archive." },
+            { b: "URL migration.", t: "If your organization's URL pattern is changing (subdomain → main domain, http → https, regional URLs consolidating), every PDF with the old URL pattern is a future broken link. Audit, identify, fix at scale." },
+            { b: "Security review of received PDFs.", t: "PDFs from untrusted sources may contain malicious links — phishing pages, drive-by-download URLs, credential-collection forms. Audit before opening links rather than discovering them by clicking." },
+            { b: "Internal navigation verification.", t: "A TOC at the front of a long document should jump to each section. Audit Goto-type links to verify every TOC entry actually points where it claims. Broken internal navigation is the most common usability bug in self-published PDFs." },
+          ],
+        },
+      },
+      {
+        h: "Linked vs link-styled — an important distinction",
+        p: [
+          "Text that LOOKS like a link in a PDF isn't necessarily clickable. Three patterns:",
+        ],
+        list: {
+          items: [
+            { b: "True link annotation.", t: "Text has a /Link annotation overlay with an action dictionary pointing to a destination. Click opens the destination. The inspector surfaces these." },
+            { b: "Link-styled text without annotation.", t: "Text is colored blue and underlined to LOOK like a link but has no /Link annotation. Clicks do nothing. Common bug from Word's PDF export when the source hyperlink wasn't preserved correctly. The inspector reports zero links here even though visually the document looks linky." },
+            { b: "Both — styled AND annotated.", t: "Most well-formed PDFs both visually-style and annotate their links. The inspector surfaces the annotation; the visual styling is separate." },
+          ],
+        },
+      },
+      {
+        h: "Filter and export patterns",
+        p: [
+          "Three filter dimensions:",
+        ],
+        list: {
+          items: [
+            { b: "Filter by type for pre-share.", t: "External URLs only — the highest-risk subset. Audit each before distribution." },
+            { b: "Filter by type for pre-archive.", t: "GotoR + Launch types — these break in standalone archive use because they reference external files. Strip these for self-contained archive copies." },
+            { b: "Export for migration.", t: "Full CSV / JSON dump with target URLs. Run a regex pattern over the export to find URLs matching your old pattern; replace with new pattern via Add Links / Strip Links round-trip." },
+          ],
+        },
+      },
+      {
+        h: "Strip Links — the inverse tool",
+        p: [
+          "When the audit reveals problematic links, three remediation paths:",
+        ],
+        list: {
+          items: [
+            { b: "Strip Links — remove all hyperlink annotations.", t: "Removes the /Link annotations from every page; underlying text styling remains. The PDF visually looks the same but nothing is clickable. Useful for compliance contexts that require inert documents." },
+            { b: "Selective removal.", t: "If only specific links need to come out, use Free Redact to remove them individually. More labor-intensive but preserves wanted links." },
+            { b: "Strip then re-add.", t: "When migrating to a new URL pattern, strip all links, then use Add Links to recreate them pointing to the new pattern. Cleaner than per-link surgery." },
+          ],
+        },
+      },
+      {
+        h: "Limits and compatibility",
+        p: [
+          "On the free web tool, links inspector handles PDFs up to 100 MB with no link-count cap. Parsing runs in your browser; nothing is uploaded. Output is the structured-link table with type / target / source page, plus CSV / JSON export.",
+          "Common pairings: Links Inspector → Strip Links to remove all hyperlinks. Links Inspector → Add Links to recreate links pointing to a new URL pattern (migration use). Links Inspector → JS Detector to fully audit interactive features before sharing.",
+        ],
+      },
+    ],
+  },
 };
