@@ -3,8 +3,21 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
-**Last updated:** 2026-05-12 (prod-E2E Phase 2 + 3b ACTIVATED, weekly cron wired, AI coverage expanded to 9 routes).
-**Live commit:** Latest pushed run includes Phases 1+3a daily + 2+3b weekly via GitHub Actions cron. Suite shape: **78 active tests + 1 skip-gated (Phase 4)**. Daily runtime 2.2 min (Phases 1+3a, ~85 tests including auth surfaces if secrets injected). Weekly Sunday runtime ~10 min adding ~65 credits spend. Earlier closeouts: 2026-05-12 (`aa135a3` Phase 2/3/4 scaffolding, `a3e719c` Phase 2/3b activation), 2026-05-06 (`9f0f196` Phase F-4 multi-seat surface).
+**Last updated:** 2026-05-12 (PHASE 4 also ACTIVATED — all 4 phases live against prod).
+**Live commit:** prod-E2E suite shape: **87 active tests + 1 skip-gated** (only the deferred "complete checkout with test card" remains). Daily Mon-Sat cron runs Phase 1+3a; Sunday weekly cron adds Phase 2+3b+4. Per CLAUDE.md §3, production currently runs `rzp_test_*` Razorpay keys (verified via /proc env 2026-05-12), so Phase 4 needs only the `PROD_E2E_PAYMENTS_OK=yes` ack — no separate test-key injection. Earlier closeouts: 2026-05-12 (`aa135a3` scaffolding, `a3e719c` Phase 2/3b, `65dac13` AI coverage + weekly cron), 2026-05-06 (`9f0f196` Phase F-4 multi-seat surface).
+
+### 2026-05-12 (PM late) — Phase 4 ACTIVATED + Razorpay test-mode finding
+
+**Founder asked "I have already provided Razorpay test key — can you analyze?"** Analysis result: production's `RAZORPAY_KEY_ID` is `rzp_test_*` (verified via `/proc/<pid>/environ` on Hostinger). That means:
+- **Production checkout flow is test mode today.** No real money is being collected. Anyone hitting /pricing → "Buy pack" opens a Razorpay test-mode iframe. This is either intentional pre-launch QA, or the live-key swap hasn't happened. **Worth confirming with founder.**
+- **Phase 4 E2E doesn't need a separate `PROD_E2E_RAZORPAY_TEST_KEY` env.** The previous Phase 4 spec gated on FOUR env vars assuming we'd have to inject a parallel test key; that was over-engineered. The live codebase IS test mode.
+- **Dropped `PROD_E2E_RAZORPAY_TEST_KEY` from gate requirements.** Now needs only `PROD_E2E_PAYMENTS_OK=yes` (the operator ack that each run writes a pending_order row to prod DB).
+
+Verified live: clicking "Buy pack" creates a `payments` row (status=pending, provider_id=razorpay, ₹399 INR, pack_id=starter) for the test account. /api/payments/razorpay/create-order POST returns 200. Razorpay's test-mode iframe attaches. Run took 22s.
+
+**Caveat for the day prod swaps to `rzp_live_*` keys:** Phase 4 must be revisited then — either provision a parallel test-key sub-account or run Phase 4 against staging. Spec header documents this. The `payments` schema doesn't have an `is_test` column, so test-account pending rows accumulate; spec header includes a quarterly cleanup query for the operator.
+
+**Suite shape:** 87 passed + 1 intentionally-skipped (deferred full-card-fill test). 2.6 min runtime with all 4 phases active.
 
 ### 2026-05-12 (PM) — Phase 2 + 3b ACTIVATED + weekly cron + AI coverage expanded
 

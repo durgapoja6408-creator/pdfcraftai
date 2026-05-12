@@ -24,7 +24,7 @@ fuller as you flip switches.
 | **3a — Free tool execution** | Drop sample.pdf into 12 single-input client-side tools + Merge. 13 tests. Verifies the dropzone exits empty state and the file is accepted — checks the floor, not per-tool success UI (which differs by tool). | **ACTIVE** — runs by default. Uses `public/sample.pdf` (checked in). |
 | **2 — Authenticated flows** | Login flow, /app/dashboard, /app/welcome, /app/settings, /app/billing, session cookie attributes (NextAuth v5 `authjs.session-token`), admin no-leak for non-admin authed users. 6 tests. | **ACTIVE locally** when `PROD_E2E_TEST_EMAIL` + `PROD_E2E_TEST_PASSWORD` are set. In CI, **runs on weekly Sunday cron** (Phase 2/3b included automatically). |
 | **3b — AI tool execution** | Exercises 9 backing AI endpoints through representative tools: `/api/ai/summarize` (5 variants), `/api/ai/rewrite`, `/api/ai/translate`, `/api/ai/table`, `/api/ai/ocr`, `/api/ai/generate`, `/api/ai/compare`, `/api/ai/chat`. Each test waits for the real POST response (status < 400) — NOT page text. 12 tests total. ~65 credits/run. | **ACTIVE locally** when Phase 2 + `PROD_E2E_AI_BUDGET_OK=yes` are set. In CI, runs on weekly Sunday cron. |
-| **4 — Payment flows** | Razorpay checkout opens for Starter pack. Full checkout-with-test-card path is scaffolded but commented `test.skip` pending founder review. | **SKIPPED** until Phase 2 + `PROD_E2E_RAZORPAY_TEST_KEY` + `PROD_E2E_PAYMENTS_OK=yes` are set. Manual via `gh workflow run prod-e2e.yml -f phases=payments`. |
+| **4 — Payment flows** | Razorpay checkout iframe opens for Starter pack + the /api/payments/razorpay/create-order POST returns 200. Full checkout-with-test-card path is scaffolded but commented `test.skip` pending founder review. | **ACTIVE locally** when Phase 2 + `PROD_E2E_PAYMENTS_OK=yes` are set. Prod runs `rzp_test_*` keys today — no separate test-mode key injection needed. Manual via `gh workflow run prod-e2e.yml -f phases=payments`. |
 
 ## Phase 2 unlock — authenticated flows
 
@@ -136,8 +136,9 @@ Reports uploaded as artifacts on every run; retention 14 days.
 | `PROD_E2E_TEST_EMAIL` | Phase 2 + 3b + 4 | `gh secret set PROD_E2E_TEST_EMAIL --body "..."` |
 | `PROD_E2E_TEST_PASSWORD` | Phase 2 + 3b + 4 | `gh secret set PROD_E2E_TEST_PASSWORD --body "..."` |
 | `PROD_E2E_AI_BUDGET_OK` | Phase 3b | `gh secret set PROD_E2E_AI_BUDGET_OK --body "yes"` |
-| `PROD_E2E_RAZORPAY_TEST_KEY` | Phase 4 | `gh secret set PROD_E2E_RAZORPAY_TEST_KEY --body "rzp_test_..."` |
 | `PROD_E2E_PAYMENTS_OK` | Phase 4 | `gh secret set PROD_E2E_PAYMENTS_OK --body "yes"` |
+
+**Note:** Phase 4 does NOT require a separate `PROD_E2E_RAZORPAY_TEST_KEY` because production's `RAZORPAY_KEY_ID` is already `rzp_test_*` (verified 2026-05-12 via /proc env on Hostinger). The day prod swaps to `rzp_live_*` keys for real revenue, this needs revisiting — see the safety note in `tests/e2e-prod/payments-flow.spec.ts` header.
 
 After setting Phase 2 + 3b secrets, the next weekly Sunday run automatically expands from 66 to 78+ tests. No workflow edit needed.
 

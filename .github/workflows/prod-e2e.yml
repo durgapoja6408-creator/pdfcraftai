@@ -27,11 +27,16 @@
 #                  secrets — see tests/e2e-prod/README.md).
 #
 # Secrets pulled from GitHub Actions repo secrets:
-#   PROD_E2E_TEST_EMAIL          — Phase 2 + 3b + 4
-#   PROD_E2E_TEST_PASSWORD       —
-#   PROD_E2E_AI_BUDGET_OK        — Phase 3b only ("yes" to enable)
-#   PROD_E2E_RAZORPAY_TEST_KEY   — Phase 4 only
-#   PROD_E2E_PAYMENTS_OK         — Phase 4 only ("yes" to enable)
+#   PROD_E2E_TEST_EMAIL    — Phase 2 + 3b + 4
+#   PROD_E2E_TEST_PASSWORD —
+#   PROD_E2E_AI_BUDGET_OK  — Phase 3b only ("yes" to enable)
+#   PROD_E2E_PAYMENTS_OK   — Phase 4 only ("yes" to enable)
+#
+# Phase 4 historically needed PROD_E2E_RAZORPAY_TEST_KEY for a
+# separate test-mode key injection, but production runs on
+# `rzp_test_*` keys today (verified 2026-05-12), so the live
+# checkout flow IS test mode — no separate key needed. When prod
+# swaps to `rzp_live_*` keys for real revenue, revisit.
 #
 # If a phase's secret isn't set, that phase's tests SKIP (not fail).
 # So this workflow stays green-by-default until the operator
@@ -113,8 +118,9 @@ jobs:
           PROD_E2E_TEST_EMAIL: ${{ (steps.scope.outputs.phases == 'full' || steps.scope.outputs.phases == 'payments') && secrets.PROD_E2E_TEST_EMAIL || '' }}
           PROD_E2E_TEST_PASSWORD: ${{ (steps.scope.outputs.phases == 'full' || steps.scope.outputs.phases == 'payments') && secrets.PROD_E2E_TEST_PASSWORD || '' }}
           PROD_E2E_AI_BUDGET_OK: ${{ (steps.scope.outputs.phases == 'full' || steps.scope.outputs.phases == 'payments') && secrets.PROD_E2E_AI_BUDGET_OK || '' }}
-          # Phase 4 secrets — only when scope == 'payments'.
-          PROD_E2E_RAZORPAY_TEST_KEY: ${{ steps.scope.outputs.phases == 'payments' && secrets.PROD_E2E_RAZORPAY_TEST_KEY || '' }}
+          # Phase 4 secret — only when scope == 'payments'.
+          # No separate test-key env needed; prod's RAZORPAY_KEY_ID
+          # is already `rzp_test_*` today.
           PROD_E2E_PAYMENTS_OK: ${{ steps.scope.outputs.phases == 'payments' && secrets.PROD_E2E_PAYMENTS_OK || '' }}
         run: npm run test:prod-e2e
 
