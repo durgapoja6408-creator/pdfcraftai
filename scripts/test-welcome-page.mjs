@@ -47,19 +47,17 @@ check(
   "A2: WELCOME_TOOLS array exported / declared",
   /const WELCOME_TOOLS:\s*Array<\{/.test(PAGE)
 );
-// Note: these are the per-card `id:` values on /app/welcome, not
-// canonical TOOLS ids (the page has its own client-side ids that
-// happen to mostly overlap). `pdf-to-word` here is the welcome-card
-// id and the href points at the /pdf-to-word SEO landing — that's
-// separate from the canonical tool id `pdf-to-text` that the
-// landing redirects to. The tool-id-references guard handles the
-// /tool/<id> href correctness (different concern).
+// 2026-05-12 SEV-0 audit fix: pdf-to-word was renamed to pdf-to-text
+// because the prior card was a bait-and-switch (clicked /pdf-to-word,
+// landed on /tool/pdf-to-text which is a plain-text extractor, not a
+// Word converter). Card now matches what the tool actually does. See
+// page.tsx for the full rationale.
 const expectedToolIds = [
   "merge",
   "ai-summarize",
   "split",
   "ai-translate",
-  "pdf-to-word",
+  "pdf-to-text",
   "ai-chat",
   "unlock",
   "ai-sign",

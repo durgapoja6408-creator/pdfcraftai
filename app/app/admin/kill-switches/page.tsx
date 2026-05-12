@@ -41,6 +41,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { isAdminEmail } from "@/lib/ai/margin-rollup";
 import {
@@ -73,12 +74,24 @@ export default async function AdminKillSwitchesPage() {
       : null;
 
   if (!email) {
-    return <NotSignedIn />;
+    // 2026-05-12 — SEV-0 fix: was `return <NotSignedIn />` which
+    // confirmed the admin namespace exists to anonymous visitors.
+    // notFound() matches the rest of /admin/* (404 → indistinguishable
+    // from "no such page"). The NotSignedIn helper is kept in source
+    // for reference but no longer rendered.
+    notFound();
   }
 
   // Layer 2: admin allowlist.
   if (!isAdminEmail(email, process.env.ADMIN_EMAILS)) {
-    return <NotAuthorised email={email} />;
+    // 2026-05-12 — SEV-0 fix: was `<NotAuthorised email={email} />`
+    // which not only confirmed the admin namespace exists, but told
+    // signed-in non-admins the env-var name (ADMIN_EMAILS) and to
+    // "ask an admin for access". Anonymous attackers could probe the
+    // /admin/* tree to learn the surface; signed-in non-admins (the
+    // larger attack surface) got even more recon. notFound() makes
+    // the page indistinguishable from any non-existent path.
+    notFound();
   }
 
   // Layer 3: read state. Three parallel queries — env snapshot is

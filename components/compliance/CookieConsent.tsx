@@ -263,7 +263,23 @@ export function CookieConsent({ initialLevel }: Props) {
             cursor: "pointer",
           }}
         >
-          Essential only
+          {/*
+            2026-05-12 SEV-0 audit fix: label was "Essential only".
+            Visual prominence parity with "Accept all" was already
+            correct (same border, background, fontWeight — see the
+            big comment above), so the GDPR-compliance question was
+            LABEL CLARITY, not styling. EDPB Guidelines 03/2022 §27
+            and CNIL deliberation 2020-091 explicitly recommend
+            "Refuser" / "Reject all" / equivalents as the standard
+            label, because "Essential only" requires the user to
+            know what "essential" means in this context. Renaming to
+            "Reject all" — the cookie value written underneath is
+            still "essential" (see onChoose("essential") above), so
+            no downstream change. Result: the EDPB equal-prominence
+            test now passes on label legibility as well as on visual
+            styling.
+          */}
+          Reject all
         </button>
         <Link
           href="/cookies"

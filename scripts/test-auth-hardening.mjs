@@ -42,22 +42,40 @@ function assert(cond, msg) {
 
 const AUTH_ACTIONS = fs.readFileSync(path.join(ROOT, "lib", "auth-actions.ts"), "utf8");
 const AUTH_TS = fs.readFileSync(path.join(ROOT, "auth.ts"), "utf8");
+// 2026-05-12 SEV-0 audit fix — extended scope. Prior version only
+// inspected auth-actions.ts + auth.ts, which let password-reset
+// (cost 10) and settings password-change (cost 10) drift below the
+// signup cost (12) for an extended period. Now covers all auth
+// surfaces + the bcrypt-cost.ts source of truth + the two admin
+// pages that were leaking namespace existence.
+const PASSWORD_RESET = fs.readFileSync(path.join(ROOT, "lib", "password-reset.ts"), "utf8");
+const SETTINGS_ACTIONS = fs.readFileSync(path.join(ROOT, "lib", "settings-actions.ts"), "utf8");
+const BCRYPT_COST_FILE = fs.readFileSync(path.join(ROOT, "lib", "auth", "bcrypt-cost.ts"), "utf8");
+const KILL_SWITCHES_PAGE = fs.readFileSync(path.join(ROOT, "app", "app", "admin", "kill-switches", "page.tsx"), "utf8");
+const MARGIN_PAGE = fs.readFileSync(path.join(ROOT, "app", "app", "admin", "margin", "page.tsx"), "utf8");
 
 // ============================================================================
 // Section A — bcrypt cost factor (plan §8a item 4)
 // ============================================================================
 
-// Find all bcrypt.hash(_, N) calls and assert N >= 12.
-const HASH_RE = /bcrypt\.hash\([^,]+,\s*(\d+)\)/g;
-const hashCalls = [...AUTH_ACTIONS.matchAll(HASH_RE)];
+// 2026-05-12 SEV-0 audit fix: A1/A2 were the original "cost factor
+// >= 12 in auth-actions.ts" check. Now superseded by Section F's
+// cross-file constant check (BCRYPT_COST = 12, all callsites import
+// it, no numeric literals anywhere). A1/A2 kept as a redundant
+// sanity check that auth-actions.ts still has at least one hash
+// call (via the constant) and zero numeric-literal calls.
+const HASH_CONST_RE = /bcrypt\.hash\([^,]+,\s*BCRYPT_COST\)/g;
+const constHashCalls = [...AUTH_ACTIONS.matchAll(HASH_CONST_RE)];
 assert(
-  hashCalls.length >= 1,
-  `A1: at least one bcrypt.hash() call in auth-actions.ts (found ${hashCalls.length})`
+  constHashCalls.length >= 1,
+  `A1: at least one bcrypt.hash(_, BCRYPT_COST) call in auth-actions.ts (found ${constHashCalls.length})`
 );
-for (const m of hashCalls) {
-  const cost = parseInt(m[1], 10);
-  assert(cost >= 12, `A2: bcrypt.hash cost factor ${cost} >= 12 (line ${m.index})`);
-}
+const HASH_LITERAL_RE = /bcrypt\.hash\([^,]+,\s*(\d+)\)/g;
+const literalCalls = [...AUTH_ACTIONS.matchAll(HASH_LITERAL_RE)];
+assert(
+  literalCalls.length === 0,
+  `A2: no bcrypt.hash(_, NUMERIC_LITERAL) in auth-actions.ts (found ${literalCalls.length} — must use BCRYPT_COST)`
+);
 
 // ============================================================================
 // Section B — Password strength (plan §8a item 5)
@@ -150,6 +168,105 @@ assert(
   /\.refine\(/m.test(AUTH_ACTIONS),
   "E3: password schema applies a refine() check (the 3-of-4 rule)"
 );
+
+// ============================================================================
+// Section F — Cross-file bcrypt parity (SEV-0 audit fix 2026-05-12).
+// Pins BCRYPT_COST constant at 12 and ensures all three callsites
+// import + use it (not a numeric literal).
+// ============================================================================
+
+assert(
+  /export const BCRYPT_COST\s*=\s*12/.test(BCRYPT_COST_FILE),
+  "F1: lib/auth/bcrypt-cost.ts exports BCRYPT_COST = 12"
+);
+assert(
+  /import\s*\{\s*BCRYPT_COST\s*\}\s*from\s*"@\/lib\/auth\/bcrypt-cost"/.test(AUTH_ACTIONS),
+  "F2: auth-actions.ts imports BCRYPT_COST"
+);
+assert(
+  /import\s*\{\s*BCRYPT_COST\s*\}\s*from\s*"@\/lib\/auth\/bcrypt-cost"/.test(SETTINGS_ACTIONS),
+  "F3: settings-actions.ts imports BCRYPT_COST"
+);
+assert(
+  /import\s*\{\s*BCRYPT_COST\s*\}\s*from\s*"@\/lib\/auth\/bcrypt-cost"/.test(PASSWORD_RESET),
+  "F4: password-reset.ts imports BCRYPT_COST"
+);
+// Every bcrypt.hash() in every auth surface must use the constant,
+// not a literal. The numeric-literal pattern (the original SEV-0
+// vector) fails this check.
+for (const [name, src] of [
+  ["auth-actions.ts", AUTH_ACTIONS],
+  ["settings-actions.ts", SETTINGS_ACTIONS],
+  ["password-reset.ts", PASSWORD_RESET],
+]) {
+  const literalHashes = [...src.matchAll(/bcrypt\.hash\([^,]+,\s*(\d+)\)/g)];
+  assert(
+    literalHashes.length === 0,
+    `F5.${name}: no bcrypt.hash() call uses a numeric literal (must use BCRYPT_COST)`
+  );
+  // And at least one BCRYPT_COST usage exists (so we didn't accidentally
+  // remove all hashing).
+  assert(
+    /bcrypt\.hash\([^,]+,\s*BCRYPT_COST\)/.test(src),
+    `F6.${name}: at least one bcrypt.hash(_, BCRYPT_COST) call present`
+  );
+}
+// Reset min-length must match signup (>=10), not the historical 8.
+assert(
+  /newPassword\.length\s*<\s*10/.test(PASSWORD_RESET),
+  "F7: password-reset enforces ≥10 char minimum (matches signup at lib/auth-actions.ts:72)"
+);
+assert(
+  !/newPassword\.length\s*<\s*8\b/.test(PASSWORD_RESET),
+  "F8: password-reset does NOT use the old ≥8 minimum"
+);
+
+// ============================================================================
+// Section G — OAuth account-linking flag (SEV-0 audit fix 2026-05-12).
+// allowDangerousEmailAccountLinking must be explicitly false, not
+// true (the prior setting allowed an attacker to register a
+// Credentials account at victim@example.com and have a later
+// legitimate Google sign-in merge into the attacker's account).
+// ============================================================================
+
+assert(
+  /allowDangerousEmailAccountLinking:\s*false/.test(AUTH_TS),
+  "G1: Google provider sets allowDangerousEmailAccountLinking to false"
+);
+assert(
+  !/allowDangerousEmailAccountLinking:\s*true/.test(AUTH_TS),
+  "G2: Google provider does NOT have allowDangerousEmailAccountLinking: true"
+);
+
+// ============================================================================
+// Section H — Admin pages do not leak namespace existence
+// (SEV-0 audit fix 2026-05-12). The two read-only ops dashboards
+// previously rendered "Admin access required" cards for non-admins,
+// confirming the surface exists + telling them which env var to ask
+// about. Both now notFound() so the page is indistinguishable from
+// any non-existent path.
+// ============================================================================
+
+for (const [name, src] of [
+  ["kill-switches", KILL_SWITCHES_PAGE],
+  ["margin", MARGIN_PAGE],
+]) {
+  assert(
+    /import\s*\{\s*notFound\s*\}\s*from\s*"next\/navigation"/.test(src),
+    `H1.${name}: imports notFound from next/navigation`
+  );
+  // The page must call notFound() on the no-admin path. We check for
+  // the call inside the `isAdminEmail` guard branch specifically.
+  assert(
+    /isAdminEmail\([^)]+\)\)\s*\{[\s\S]{0,800}?notFound\(\)/.test(src),
+    `H2.${name}: non-admin path calls notFound() (not <NotAuthorised />)`
+  );
+  // And the no-session path also notFounds (not <NotSignedIn />).
+  assert(
+    /if\s*\(!email\)\s*\{[\s\S]{0,400}?notFound\(\)/.test(src),
+    `H3.${name}: no-session path calls notFound() (not <NotSignedIn />)`
+  );
+}
 
 if (failed > 0) {
   console.error("\nFAILURES:");

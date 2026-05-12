@@ -115,17 +115,24 @@ const WELCOME_TOOLS: Array<{
     badge: "AI",
   },
   {
-    id: "pdf-to-word",
-    title: "PDF to Word",
-    desc: "Convert to editable .docx. Works on scans (OCR auto-applied).",
-    // 2026-05-12 — corrected: /tool/pdf-to-office is a 404 (no such
-    // catalog id; the underlying server-side LibreOffice rail is
-    // KNOWN_DEAD_REFS-deferred). The SEO landing /pdf-to-word is the
-    // canonical user-facing entry point and currently 308-redirects
-    // to /tool/pdf-to-text — keeping the welcome page pointing at
-    // the SEO landing rather than the redirect target so the URL
-    // stays meaningful if the LibreOffice rail ever ships.
-    href: "/pdf-to-word",
+    // 2026-05-12 SEV-0 audit fix: card was titled "PDF to Word"
+    // with desc "Convert to editable .docx" but href went to
+    // /pdf-to-word which 308-redirects to /tool/pdf-to-text (a
+    // plain-text extractor, not a Word converter). Brand-new
+    // users on activation day clicked the prominent card
+    // expecting a Word converter, got a text tool. Bait-and-
+    // switch indistinguishable from the compress-pdf scenario
+    // that T1-1 fixed (commit 19e52a4).
+    //
+    // Fix: rename the card to match what the tool actually does.
+    // /tool/pdf-to-text is real, works, and what users land on.
+    // When the LibreOffice rail ships and /tool/pdf-to-office
+    // becomes real, this card can be promoted back to "PDF to
+    // Word" with honest semantics.
+    id: "pdf-to-text",
+    title: "PDF to Text",
+    desc: "Extract every word from a PDF as plain .txt — preserves reading order, runs in your browser.",
+    href: "/tool/pdf-to-text",
     badge: "Free",
   },
   {

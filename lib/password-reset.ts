@@ -24,6 +24,7 @@ import { randomBytes, randomUUID, createHash } from "crypto";
 import bcrypt from "bcryptjs";
 import { sql, and, eq, gt, isNull, ne } from "drizzle-orm";
 import { db, schema } from "@/db/client";
+import { BCRYPT_COST } from "@/lib/auth/bcrypt-cost";
 
 // 30-minute TTL — long enough to land in an inbox + click, short enough
 // that a leaked link goes stale before it's useful.
@@ -164,8 +165,13 @@ export async function consumePasswordResetToken(
   rawToken: string,
   newPassword: string,
 ): Promise<ConsumeResult> {
-  if (typeof newPassword !== "string" || newPassword.length < 8) {
-    return { ok: false, error: "Use at least 8 characters." };
+  // 2026-05-12 — SEV-0 fix: minimum was 8 chars; signup is 10 chars
+  // (lib/auth-actions.ts:72). The drift meant a user could set a
+  // weaker password via /reset-password than the platform accepts at
+  // /register. Aligned to 10 so the strength floor is consistent
+  // across every password-set surface.
+  if (typeof newPassword !== "string" || newPassword.length < 10) {
+    return { ok: false, error: "Use at least 10 characters." };
   }
   if (newPassword.length > 128) {
     return { ok: false, error: "Password is too long." };
@@ -180,7 +186,11 @@ export async function consumePasswordResetToken(
     };
   }
 
-  const newHash = await bcrypt.hash(newPassword, 10);
+  // 2026-05-12 — SEV-0 fix: was cost 10, now BCRYPT_COST (=12)
+  // matching signup. Every prior password-reset downgraded hash
+  // strength below the original signup hash. See
+  // lib/auth/bcrypt-cost.ts for full rationale.
+  const newHash = await bcrypt.hash(newPassword, BCRYPT_COST);
   const now = new Date();
 
   // Mark token consumed FIRST, in the same statement, with a guard

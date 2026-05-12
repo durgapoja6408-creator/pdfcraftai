@@ -263,15 +263,8 @@ export function routeCheckoutByCountry(
  * lookup (and so future changes — e.g. respecting `x-forwarded-country`
  * or a synthetic header from a testing harness — happen in one place).
  */
-export function readCountryHeader(
-  headers: Headers | Record<string, string | string[] | undefined>
-): string | null {
-  const raw =
-    headers instanceof Headers
-      ? headers.get("cf-ipcountry")
-      : (headers["cf-ipcountry"] ?? headers["CF-IPCountry"]);
-
-  if (Array.isArray(raw)) return raw[0] ?? null;
-  if (typeof raw === "string") return raw;
-  return null;
-}
+// 2026-05-12 — moved to lib/geo/country-header.ts to satisfy the
+// dual-rail-routing CI guard (app/*/page.tsx must not import from
+// this file). Re-exported here so existing in-payments imports
+// still work without churn.
+export { readCountryHeader } from "@/lib/geo/country-header";

@@ -67,6 +67,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import {
   ADMIN_MARGIN_DEFAULT_DAYS,
@@ -109,13 +110,20 @@ export default async function AdminMarginPage({
       : null;
 
   if (!email) {
-    return <NotSignedIn />;
+    // 2026-05-12 — SEV-0 fix: notFound() instead of NotSignedIn card
+    // so the admin namespace doesn't confirm existence to anonymous
+    // visitors. Matches the rest of /admin/*.
+    notFound();
   }
 
   // Layer 2: admin allowlist. `isAdminEmail` handles the founder
   // fallback when ADMIN_EMAILS is unset.
   if (!isAdminEmail(email, process.env.ADMIN_EMAILS)) {
-    return <NotAuthorised email={email} />;
+    // 2026-05-12 — SEV-0 fix: notFound() instead of NotAuthorised
+    // card so non-admins don't get told the surface exists OR the
+    // env-var name to ask about. See kill-switches/page.tsx for
+    // full rationale.
+    notFound();
   }
 
   // Layer 3: fetch.

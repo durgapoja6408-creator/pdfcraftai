@@ -93,12 +93,17 @@ function extractStyleForLabel(label) {
 }
 
 const acceptStyle = extractStyleForLabel("Accept all");
-const essentialStyle = extractStyleForLabel("Essential only");
+// 2026-05-12 SEV-0 audit fix: label changed from "Essential only" to
+// "Reject all" per EDPB Guidelines 03/2022 §27 (the standard refuse
+// label). The visual-prominence parity check is unchanged — the
+// style block is still extracted by the JSX label discriminator,
+// just under the new label.
+const essentialStyle = extractStyleForLabel("Reject all");
 
 assert(acceptStyle !== null, "1: Accept-all button style block found");
 assert(
   essentialStyle !== null,
-  "2: Essential-only button style block found",
+  "2: Reject-all button style block found",
 );
 
 if (acceptStyle && essentialStyle) {

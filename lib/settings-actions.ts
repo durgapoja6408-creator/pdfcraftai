@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm";
 
 import { db, schema } from "@/db/client";
 import { auth, signOut } from "@/auth";
+import { BCRYPT_COST } from "@/lib/auth/bcrypt-cost";
 
 type UserRow = {
   id: string;
@@ -111,7 +112,11 @@ export async function changePasswordAction(
   }
 
   try {
-    const newHash = await bcrypt.hash(parsed.data.newPassword, 10);
+    // 2026-05-12 — SEV-0 fix: was cost 10, now BCRYPT_COST (=12)
+    // matching signup. Previously every password-change downgraded
+    // the hash strength below the original signup. See
+    // lib/auth/bcrypt-cost.ts for full rationale.
+    const newHash = await bcrypt.hash(parsed.data.newPassword, BCRYPT_COST);
     await db
       .update(schema.users)
       .set({ passwordHash: newHash })

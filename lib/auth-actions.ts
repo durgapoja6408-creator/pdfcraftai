@@ -4,6 +4,7 @@ import "server-only";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { BCRYPT_COST } from "@/lib/auth/bcrypt-cost";
 import { and, eq, gt, like } from "drizzle-orm";
 import { AuthError } from "next-auth";
 
@@ -251,7 +252,7 @@ export async function registerAction(
     // node is ~150ms which is the industry-recommended "noticeable
     // but not painful" target. Annual revisit — bump to 13 if hardware
     // makes 12 cheap.
-    const passwordHash = await bcrypt.hash(password, 12);
+    const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
     const id = randomUUID();
 
     await db.insert(schema.users).values({

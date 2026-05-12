@@ -870,8 +870,15 @@ assert(
 );
 
 assert(
-  "K2 /pricing renders <PackUpsellPanel />",
-  /<PackUpsellPanel\s*\/?>/.test(PRICING_PAGE_SRC),
+  "K2 /pricing renders <PackUpsellPanel /> (with optional currency prop)",
+  // 2026-05-12 — relaxed to accept the `currency={...}` prop. The
+  // panel was previously rendered without props (`<PackUpsellPanel />`)
+  // which defaulted to USD for every visitor including Indian ones.
+  // SEV-0 audit fix now passes `currency` derived from CF-IPCountry
+  // so Indian visitors see ₹ rather than $ on the pack grid. The
+  // assertion accepts either form so the rule is "panel is rendered",
+  // not "panel is rendered with exactly zero props".
+  /<PackUpsellPanel(\s+[^>]*)?\s*\/?>/.test(PRICING_PAGE_SRC),
   "<PackUpsellPanel /> render site missing"
 );
 

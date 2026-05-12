@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { I } from "@/components/icons/Icons";
 import { FaqItem } from "@/components/marketing/FaqItem";
 import { CheckoutButton } from "@/components/billing/CheckoutButton";
 import { PackUpsellPanel } from "@/components/billing/PackUpsellPanel";
 import { SmartCta } from "@/components/marketing/SmartCta";
 import { LaunchNotifySignup } from "@/components/geo/LaunchNotifySignup";
+import { readCountryHeader } from "@/lib/geo/country-header";
 import { CREDIT_PACKS, PRICING_FAQ } from "@/lib/pricing";
 import { TOOLS, TOOL_STATS } from "@/lib/tools";
 
@@ -122,8 +124,22 @@ const BREADCRUMB_JSONLD = {
   ],
 };
 
-export default function PricingPage() {
+// 2026-05-12 SEV-0 audit fix: PackUpsellPanel default was "USD" for
+// every visitor including Indian ones. India is the primary market
+// (Razorpay-first, Hyderabad-operated) and every pack has an INR
+// price set per Task #27 — but the page never displayed it. Visitors
+// only saw the INR amount at the Razorpay popup mid-checkout, which
+// is both a conversion problem (sticker shock at the worst moment)
+// and a transparency issue.
+//
+// Fix: read Cloudflare's CF-IPCountry header server-side, pass
+// currency="INR" to PackUpsellPanel when the visitor is in India.
+// Other countries continue to see USD (Paddle MoR handles their
+// local currency conversion at checkout).
+export default async function PricingPage() {
   const aiTools = TOOLS.filter((t) => !t.free);
+  const country = readCountryHeader(headers());
+  const currency: "INR" | "USD" = country === "IN" ? "INR" : "USD";
 
   return (
     <main>
@@ -221,7 +237,7 @@ export default function PricingPage() {
        */}
       <section style={{ paddingTop: 56 }}>
         <div className="container-x" style={{ padding: "0 28px" }}>
-          <PackUpsellPanel />
+          <PackUpsellPanel currency={currency} />
         </div>
       </section>
 

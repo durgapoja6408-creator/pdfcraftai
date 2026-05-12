@@ -226,7 +226,12 @@ for (const c of CASES) {
 
 const MUST_CONTAIN = [
   "export function routeCheckoutByCountry(",
-  "export function readCountryHeader(",
+  // 2026-05-12 — readCountryHeader was moved to
+  // lib/geo/country-header.ts to satisfy the dual-rail-routing
+  // CI guard (app/*/page.tsx must not import lib/payments/router).
+  // router.ts now re-exports the symbol — assertion changed from
+  // "export function" to the re-export shape.
+  'export { readCountryHeader } from "@/lib/geo/country-header"',
   'action: "route"',
   'action: "defer"',
   'action: "block"',

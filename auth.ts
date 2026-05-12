@@ -60,7 +60,30 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID ?? "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-      allowDangerousEmailAccountLinking: true,
+      // 2026-05-12 — SEV-0 fix from audit: was `true`, set to
+      // `false` (the NextAuth default).
+      //
+      // Why this matters: `true` auto-links a Google OAuth sign-in
+      // to an existing Credentials user with the same email,
+      // regardless of whether that Credentials account has actually
+      // verified its email. Attack scenario: attacker registers
+      // `victim@example.com` via Credentials with a password they
+      // choose, never verifies; when the legitimate victim later
+      // signs in via Google, NextAuth silently merges the OAuth
+      // identity into the attacker-controlled account. The attacker
+      // then holds a password to the victim's session.
+      //
+      // With `false` (now the setting): NextAuth raises
+      // OAuthAccountNotLinked when the email collides. Users who
+      // truly own the email use their original sign-in path
+      // (Credentials with password). The UX cost is one extra
+      // error screen for the rare "same person, two paths" case;
+      // the security gain is closing the takeover vector.
+      //
+      // Re-enabling this flag requires a custom signIn callback
+      // that checks `users.emailVerified IS NOT NULL` on the
+      // existing Credentials row before allowing the link.
+      allowDangerousEmailAccountLinking: false,
     }),
     Credentials({
       credentials: {
