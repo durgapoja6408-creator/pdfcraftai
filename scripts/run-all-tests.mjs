@@ -1116,6 +1116,20 @@ const SUITES = [
     name: "cookie-banner-prominence",
     file: "test-cookie-banner-prominence.mjs",
   },
+  // 2026-05-12 (PENDING_WORK_ANALYSIS §7c) — first-time-user welcome
+  // page. New /app/welcome route shows curated 8-tool starter grid
+  // (4 free + 4 AI) for fresh signups; cookie pcai_seen_welcome
+  // toggles between first-time and "welcome back" variants. The
+  // verify-email post-success now routes here instead of straight to
+  // /app/dashboard. 35 assertions across 5 sections (A: page +
+  // 8 tools, B: cookie-keyed greeting variants, C: MarkWelcomeSeen
+  // client component, D: verify-email redirect target — gap-closure
+  // assertion, E: defense-in-depth auth + redirect). Pure static-
+  // parse — no live state needed.
+  {
+    name: "welcome-page",
+    file: "test-welcome-page.mjs",
+  },
   // 2026-05-04 (PENDING_WORK_ANALYSIS.md §4c) — contact form
   // persistence + admin viewer. Migration 0021 added the
   // contact_submissions table; the route now persists every

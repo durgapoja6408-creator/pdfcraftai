@@ -42,7 +42,18 @@ export function CodeEntryForm() {
           retryAfterSeconds?: number;
         };
         if (res.ok && body.ok) {
-          router.push("/app/dashboard");
+          // 2026-05-12 — PENDING_WORK_ANALYSIS §7c: route freshly-
+          // verified users to /app/welcome instead of /app/dashboard.
+          // The welcome page shows a curated 8-tool starter grid
+          // (4 free + 4 AI), then offers an explicit "Continue to
+          // Dashboard" CTA. Returning users hitting /app/welcome
+          // again (e.g. via bookmark) get a "welcome back" variant
+          // because the page reads the pcai_seen_welcome cookie.
+          // Idempotent — if /app/welcome ever 500s, the welcome page
+          // itself has a fallback /login redirect for missing
+          // sessions, so the worst case is "user lands on dashboard
+          // after a tab refresh" rather than "user is stranded".
+          router.push("/app/welcome");
           return;
         }
         if (res.status === 429 && body.retryAfterSeconds) {
