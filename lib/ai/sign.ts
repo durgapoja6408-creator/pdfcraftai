@@ -591,12 +591,17 @@ async function extractPositionedText(
 ): Promise<PositionedExtraction> {
   ensureWorkerConfigured();
 
+  // 2026-05-12 — defensive copy. See same comment in lib/ai/redact.ts.
+  // pdfjs-dist's getDocument({data}) can detach the Uint8Array;
+  // passing the same buffer to pdf-lib upstream then pdfjs here in
+  // sequence is brittle (caught by prod E2E run 2026-05-12).
+  const bytesCopy = new Uint8Array(bytes);
   const loadingTask = (
     pdfjs as typeof pdfjs & {
       getDocument: (opts: unknown) => { promise: Promise<PdfDocumentLike> };
     }
   ).getDocument({
-    data: bytes,
+    data: bytesCopy,
     useSystemFonts: false,
     disableFontFace: true,
     isEvalSupported: false,

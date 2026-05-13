@@ -489,12 +489,21 @@ async function extractPositionedText(
 ): Promise<PositionedExtraction> {
   ensureWorkerConfigured();
 
+  // 2026-05-12 — defensive copy. pdfjs-dist's getDocument({data})
+  // takes ownership of the Uint8Array under the hood (it can be
+  // detached to the worker). The same `pdfBytes` is loaded by
+  // pdf-lib upstream in the route handler — pdf-lib's load may
+  // not detach but pdfjs's does, and either way passing the same
+  // Uint8Array to two different libraries in sequence is brittle.
+  // E2E (2026-05-12) caught "No PDF header found at offset=0" on
+  // sample.pdf even though the bytes were valid coming in.
+  const bytesCopy = new Uint8Array(bytes);
   const loadingTask = (
     pdfjs as typeof pdfjs & {
       getDocument: (opts: unknown) => { promise: Promise<PdfDocumentLike> };
     }
   ).getDocument({
-    data: bytes,
+    data: bytesCopy,
     useSystemFonts: false,
     disableFontFace: true,
     isEvalSupported: false,
