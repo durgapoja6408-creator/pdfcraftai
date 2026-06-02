@@ -70,10 +70,42 @@ HOSTINGER_SSH_PORT=65002
 HOSTINGER_SSH_PRIVATE_KEY_PATH=/sessions/gifted-funny-franklin/mnt/pdfcraftai.com/.claude/id_ed25519_cowork
 ```
 
+### 4a. Current `.claude/secrets.env` inventory (as of 2026-05-12)
+
+The sandbox `.claude/secrets.env` file at session-write time contains these keys. **If sandbox wipes between sessions** AND the user wants to skip re-bootstrap, the user has a one-time backup of these values from chat history and can re-paste; otherwise a fresh session re-collects each one as documented in §4b below.
+
+| Key | Source of truth | How to re-fetch |
+|---|---|---|
+| `CRON_SECRET` | Hostinger env (set 2026-05-04) | SSH + read /proc env: `cat /proc/$(ps -fu u692382124 \| grep next-server \| head -1 \| awk '{print $2}')/environ \| tr '\0' '\n' \| grep CRON_SECRET` |
+| `PROD_E2E_TEST_EMAIL` | Hardcoded: `durgapoja6408@gmail.com` | Account user_id `6b303c3b-ddfd-48fc-9162-2556d077fece` in the `users` table |
+| `PROD_E2E_TEST_PASSWORD` | Set by user 2026-05-12: `Cognizant@2020` | User-side only (NextAuth credentials provider hashes via bcrypt — not recoverable from DB without rotation) |
+| `PROD_E2E_AI_BUDGET_OK` / `PROD_E2E_PAYMENTS_OK` | Hardcoded `yes` to ack mutations on test account | n/a — just a yes-flag |
+| `RAZORPAY_KEY_ID` | Hostinger env. Currently `rzp_test_Sg0TtVISTov479` (TEST mode) | Same `/proc env` SSH pattern as CRON_SECRET |
+| `RAZORPAY_KEY_SECRET` | Hostinger env | Same |
+| `RAZORPAY_WEBHOOK_SECRET` | Hostinger env | Same |
+
+**For payments-side migration to `rzp_live_*` keys**, see `docs/RAZORPAY_LIVE_SWAP.md` — the test account password also needs revisiting at that point (don't reuse the test pw for any payment-bearing account).
+
+### 4b. Recovery sequence for a fresh session if `.claude/secrets.env` is missing
+
+1. **GitHub PAT** — Claude cannot self-recover this. Ask user: *"I see there's a `cowork-pdfcraftai-deploy` PAT in your GitHub Settings → Developer → Tokens. Please paste it so I can `git push` again."*
+2. **SSH private key** — If the corresponding pub key at Hostinger (`cowork-apr2026-v2`) is still valid:
+   - Generate fresh keypair: `ssh-keygen -t ed25519 -C "cowork-<YYYY-MM-DD>@claude" -f .claude/id_ed25519_cowork -N ""`
+   - Print the new `.pub` to chat + ask user to add it on Hostinger → SSH Access. Then delete the old `cowork-apr2026-v2`.
+3. **Once SSH works**, fetch all the prod-env secrets in one shot:
+   ```bash
+   ssh -i .claude/id_ed25519_cowork -p 65002 u692382124@212.85.28.206 \
+     'PID=$(ps -fu u692382124 | grep -E "next-server" | head -1 | awk "{print \$2}"); \
+      cat /proc/$PID/environ 2>/dev/null | tr "\0" "\n" | \
+      grep -E "^(CRON_SECRET|RAZORPAY_|MYSQL_)"'
+   ```
+4. **Test account password** — ask the user to re-paste `Cognizant@2020` OR rotate it via the prod login page → "Forgot password?" flow (the user-side email inbox at Hostinger receives the reset link).
+
 **Any future Claude session should:**
 1. Read this `CLAUDE.md` first
 2. Check if `.claude/secrets.env` exists → source it
-3. If missing, ask the user: *"I see there's a `cowork-pdfcraftai-deploy` PAT and a `cowork-apr2026-v2` Hostinger SSH key already set up on your side. Please paste them into chat so I can store them in `.claude/secrets.env` for this session."*
+3. If missing, follow §4b above
+4. Read `docs/STATUS.md` for the latest state of the world
 
 ## 5. Known operational gotchas
 
