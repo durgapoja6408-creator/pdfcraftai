@@ -3,6 +3,54 @@
 _Single source of truth for what's done, what's pending, and who owns each item._
 _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new work._
 
+---
+
+## 2026-06-02 — Full audit + hardening pass (commit `8f4b71c`, DEPLOYED, health green)
+
+Comprehensive security / payments / SEO / a11y audit + fixes. Prod deploy verified
+(8f4b71c, `/api/health` ok, all key pages 200, live HTTP smoke 73/0, unit suite
+7180/0, `tsc --noEmit` clean).
+
+**Shipped:**
+- SECURITY: stopped logging the reset token/URL (`forgot-password`); Turnstile now
+  fails CLOSED in production when its secret is unset (was fail-open = bot protection
+  silently off); timing-safe CRON_SECRET compare across 4 cron routes via new
+  `lib/auth/timing-safe-equal.ts`.
+- PAYMENTS (Razorpay): `credit_ledger` financials now populated on capture
+  (gross/fee/currency/provider/cardFingerprint/dataSource) — `/admin/{revenue,margin}`
+  previously read NULL→zero on real payments; `payment.dispute.lost` → chargeback
+  (was silently ignored = bank claws funds but credits stayed = money loss);
+  annual-variant refund/chargeback clawback fixed (debited ~1/12th of granted credits);
+  malformed-signature hex guard. New `test-razorpay-financials-disputes` (24 assertions).
+- SEO: removed fake hardcoded `aggregateRating` (4.8/127) JSON-LD from every tool page
+  (Google structured-data manual-penalty risk); sitemap `lastModified` → stable
+  build-time stamp (was request-time `now`).
+- UX / a11y: auth inputs now have label↔input association + `role=alert` +
+  `aria-describedby` (WCAG 1.3.1/4.1.2); added `app/error.tsx` + `app/global-error.tsx`
+  (none existed); dynamic hamburger `aria-label` + `aria-controls`; unified the 50MB
+  file-size gate across the shared tool bases (was 50 vs 100MB).
+- CI: `ci.yml` now generates prebuild assets + fixtures before `npm test` (fixes a
+  pre-existing false-red on `public-asset-refs` + `pdf-ops`).
+
+**🔴 OPEN — needs owner action (INFRA, not app code):**
+- **Live CSP reduced to `upgrade-insecure-requests`.** Production (and the ORIGIN,
+  bypassing Cloudflare) serves only that one directive; the full CSP
+  (script-src/frame-src incl. Turnstile, default-src 'self', object-src 'none', etc.)
+  from `next.config.mjs` IS in the build but is stripped/overridden at the
+  Hostinger/LiteSpeed serving layer. The project `.htaccess` does NOT set CSP. Impact:
+  the CSP's XSS-hardening is effectively disabled (registration still works — the
+  reduced CSP is permissive). `prod-e2e` smoke correctly fails 2 tests on this.
+  ACTION: check Cloudflare (Transform Rules / Managed Transforms / Automatic HTTPS
+  Rewrites) and Hostinger LiteSpeed response-header handling.
+
+**DEFERRED (documented, not done this session — see audit report):**
+- Payments: full GST tax-collection + INR→USD net-revenue/FX population (needs
+  GST-registration status + FX-rate-source decision).
+- a11y: keyboard operation for the visual rect editors (crop/text/redact/sign/stamp);
+  wire axe-core into CI; hidden-radio `:focus-within`.
+- SEO/perf: layout-wide `auth()` forcing dynamic rendering of cacheable marketing pages.
+- UX: extend the 50MB hint-string alignment to the remaining ~40 tool files.
+
 **Last updated:** 2026-05-12 (E2E expanded to 14 AI tests + mobile project + redact/sign bug FIXED in prod).
 **Live commit:** prod-E2E suite shape: **155 active tests + 1 skip-gated** (88 desktop + 66 mobile + 1 deferred Phase 4 happy-path). 4.6 min full run. Earlier closeouts: 2026-05-12 (`aa135a3` scaffolding, `a3e719c` Phase 2/3b activation, `65dac13` AI coverage + weekly cron, `26416c3` Phase 4 activation, `dff77f5` redact/sign pdfjs-detach fix), 2026-05-06 (`9f0f196` Phase F-4 multi-seat surface).
 

@@ -80,5 +80,16 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      # Generate the prebuild assets (pdfjs worker + PDFium wasm) and test
+      # fixtures that `npm test` asserts on. These are produced by the
+      # `prebuild` hook + the fixtures generator on a real build, but
+      # `npm test` runs without `next build`, so without this step the
+      # public-asset-refs + pdf-ops suites fail in CI (false red).
+      - name: Prepare test artifacts (prebuild assets + fixtures)
+        run: |
+          node scripts/copy-pdfjs-worker.mjs
+          node scripts/copy-pdfium-wasm.mjs
+          node tests/fixtures/generate.mjs
+
       - name: Test
         run: npm test
