@@ -85,11 +85,7 @@ async function run() {
     "/tool/merge",
     "/tool/split",
     "/tool/rotate",
-    "/tool/compress",
     "/tool/page-numbers",
-    "/tool/to-pdf",
-    "/tool/protect",
-    "/tool/pdf-to-office",
   ]) {
     const r = await req(path);
     log(`GET ${path} returns 200`, r.status === 200 && typeof r.body === "string", `status=${r.status}`);

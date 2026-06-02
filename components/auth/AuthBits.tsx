@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import type { InputHTMLAttributes, ReactNode } from "react";
 import { I } from "@/components/icons/Icons";
 
@@ -59,9 +60,12 @@ export function Field({
   error?: string;
   hint?: string;
 }) {
+  const id = useId();
+  const errorId = useId();
   return (
     <div>
       <label
+        htmlFor={id}
         style={{
           display: "block",
           fontSize: 13,
@@ -88,6 +92,7 @@ export function Field({
           </span>
         )}
         <input
+          id={id}
           className="input"
           {...inputProps}
           style={{
@@ -97,10 +102,11 @@ export function Field({
             borderColor: error ? "var(--danger, #ef4444)" : undefined,
           }}
           aria-invalid={!!error}
+          aria-describedby={error ? errorId : undefined}
         />
       </div>
       {error ? (
-        <p style={{ color: "var(--danger, #ef4444)", fontSize: 12, margin: "6px 0 0" }}>{error}</p>
+        <p id={errorId} role="alert" style={{ color: "var(--danger, #ef4444)", fontSize: 12, margin: "6px 0 0" }}>{error}</p>
       ) : hint ? (
         <p style={{ color: "var(--fg-subtle)", fontSize: 12, margin: "6px 0 0" }}>{hint}</p>
       ) : null}
@@ -124,17 +130,20 @@ export function PasswordField({
   error?: string;
   hint?: string;
 }) {
+  const id = useId();
+  const errorId = useId();
   return (
     <div>
       <div
         className="row"
         style={{ justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}
       >
-        <label style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{label}</label>
+        <label htmlFor={id} style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>{label}</label>
         {rightLabel}
       </div>
       <div style={{ position: "relative" }}>
         <input
+          id={id}
           className="input"
           {...inputProps}
           type={show ? "text" : "password"}
@@ -145,6 +154,7 @@ export function PasswordField({
             borderColor: error ? "var(--danger, #ef4444)" : undefined,
           }}
           aria-invalid={!!error}
+          aria-describedby={error ? errorId : undefined}
         />
         <button
           type="button"
@@ -169,7 +179,7 @@ export function PasswordField({
         </button>
       </div>
       {error ? (
-        <p style={{ color: "var(--danger, #ef4444)", fontSize: 12, margin: "6px 0 0" }}>{error}</p>
+        <p id={errorId} role="alert" style={{ color: "var(--danger, #ef4444)", fontSize: 12, margin: "6px 0 0" }}>{error}</p>
       ) : hint ? (
         <p style={{ color: "var(--fg-subtle)", fontSize: 12, margin: "6px 0 0" }}>{hint}</p>
       ) : null}

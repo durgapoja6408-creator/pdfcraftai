@@ -29,6 +29,7 @@
 // log + ops dashboards.
 
 import { NextResponse } from "next/server";
+import { timingSafeStrEqual } from "@/lib/auth/timing-safe-equal";
 import {
   runDailyRollup,
   postMarginAlertToSlack,
@@ -66,7 +67,7 @@ async function runCron(req: Request): Promise<NextResponse> {
   }
 
   const provided = req.headers.get("x-cron-secret");
-  if (!provided || provided !== expected) {
+  if (!provided || !timingSafeStrEqual(provided, expected)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

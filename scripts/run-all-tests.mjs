@@ -415,6 +415,7 @@ const SUITES = [
     name: "credit-ledger-financials",
     file: "test-credit-ledger-financials.mjs",
   },
+  { name: "razorpay-financials-disputes", file: "test-razorpay-financials-disputes.mjs" },
   // 2026-05-01: paddle-webhook-financials suite REMOVED. Paddle was
   // retired as a payment rail in this commit; the dedicated test
   // suite went with the adapter. credit-ledger-financials (above)

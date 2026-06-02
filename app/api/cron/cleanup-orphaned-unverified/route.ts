@@ -40,6 +40,7 @@ import { db, schema } from "@/db/client";
 import { and, isNull, lt, notInArray, sql } from "drizzle-orm";
 
 import { sendSlackAlert } from "@/lib/ops/slack-alert";
+import { timingSafeStrEqual } from "@/lib/auth/timing-safe-equal";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -70,7 +71,7 @@ export async function GET(req: Request): Promise<Response> {
     });
   }
   const auth = req.headers.get("authorization") ?? "";
-  if (auth !== `Bearer ${expectedSecret}`) {
+  if (!timingSafeStrEqual(auth, `Bearer ${expectedSecret}`)) {
     return json(401, { error: "unauthorized" });
   }
 

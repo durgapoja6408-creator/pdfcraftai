@@ -159,7 +159,7 @@ h1{font-size:22px;margin-bottom:16px}
           at: new Date().toISOString(),
           email,
           expiresAt: minted.expiresAt.toISOString(),
-          url,
+          // url omitted: never log the reset token / full reset URL.
           emailSent: sendResult.ok,
           emailError: sendResult.error,
         }),

@@ -60,8 +60,10 @@ assert(
   "A4: env var name TURNSTILE_SECRET_KEY"
 );
 assert(
-  /if\s*\(!secret\)\s*\{[^}]*return\s*\{\s*ok:\s*true/m.test(helperSrc),
-  "A5: fail-OPEN when secret env var unset (escape hatch for pre-config state)"
+  /NODE_ENV\s*===\s*"production"/.test(helperSrc) &&
+    /turnstile_not_configured/.test(helperSrc) &&
+    /return\s*\{\s*ok:\s*true/.test(helperSrc),
+  "A5: secret unset -> fail-CLOSED in production, fail-open only in dev"
 );
 
 // ============================================================================

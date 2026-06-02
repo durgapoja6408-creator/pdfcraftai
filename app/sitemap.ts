@@ -11,36 +11,40 @@ import { AUTHOR_SLUGS } from "@/lib/authors";
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://pdfcraftai.com";
 
+// Build-time stamp (evaluated once at module load), not per-request. A
+// per-request `new Date()` made every crawl see "everything changed today",
+// which trains crawlers to ignore lastmod. Blog posts keep their real dates.
+const LAST_MODIFIED = new Date();
+
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
 
   const staticRoutes: MetadataRoute.Sitemap = [
-    { url: `${SITE_URL}/`, lastModified: now, changeFrequency: "weekly", priority: 1 },
-    { url: `${SITE_URL}/tools`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
-    { url: `${SITE_URL}/pricing`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
-    { url: `${SITE_URL}/blog`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${SITE_URL}/`, lastModified: LAST_MODIFIED, changeFrequency: "weekly", priority: 1 },
+    { url: `${SITE_URL}/tools`, lastModified: LAST_MODIFIED, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${SITE_URL}/pricing`, lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${SITE_URL}/blog`, lastModified: LAST_MODIFIED, changeFrequency: "weekly", priority: 0.8 },
     // 2026-05-12 — TOOL_IMPROVEMENT_PLAN T2-6: /compare intent-router
     // landing for visitors who know what they want to do but don't
     // know which tool to use. Verb-led decision tree (combine, split,
     // shrink, understand, sign, ...) routing to the right tool.
     // Priority 0.8 — high enough to crawl frequently, on par with
     // /blog as a discovery surface.
-    { url: `${SITE_URL}/compare`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${SITE_URL}/help`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${SITE_URL}/api`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${SITE_URL}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${SITE_URL}/compare`, lastModified: LAST_MODIFIED, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${SITE_URL}/help`, lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/api`, lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/about`, lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
     // 2026-05-04 (Plan T1-6 ext) — /enterprise sales-qualified-lead landing.
     // Higher priority than /about because it's a direct revenue path (B2B
     // sales intake) vs static brand content.
-    { url: `${SITE_URL}/enterprise`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${SITE_URL}/bulk`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${SITE_URL}/changelog`, lastModified: now, changeFrequency: "weekly", priority: 0.5 },
-    { url: `${SITE_URL}/contact`, lastModified: now, changeFrequency: "yearly", priority: 0.4 },
-    { url: `${SITE_URL}/careers`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
-    { url: `${SITE_URL}/status`, lastModified: now, changeFrequency: "weekly", priority: 0.3 },
-    { url: `${SITE_URL}/cookies`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
-    { url: `${SITE_URL}/gdpr`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
-    { url: `${SITE_URL}/launch-notify`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${SITE_URL}/enterprise`, lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/bulk`, lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/changelog`, lastModified: LAST_MODIFIED, changeFrequency: "weekly", priority: 0.5 },
+    { url: `${SITE_URL}/contact`, lastModified: LAST_MODIFIED, changeFrequency: "yearly", priority: 0.4 },
+    { url: `${SITE_URL}/careers`, lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${SITE_URL}/status`, lastModified: LAST_MODIFIED, changeFrequency: "weekly", priority: 0.3 },
+    { url: `${SITE_URL}/cookies`, lastModified: LAST_MODIFIED, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${SITE_URL}/gdpr`, lastModified: LAST_MODIFIED, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${SITE_URL}/launch-notify`, lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.4 },
   ];
 
   // Hard-nuked tools (the 40 free WASM tools removed 2026-04-27) used to
@@ -70,7 +74,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     .filter((t) => !REDIRECTED_TOOL_IDS.has(t.id))
     .map((t) => ({
       url: `${SITE_URL}/tool/${t.id}`,
-      lastModified: now,
+      lastModified: LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: HEAD_TOOL_IDS.has(t.id) ? 0.85 : 0.65,
     }));
@@ -139,7 +143,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     .filter((slug) => !REDIRECTED_SEO_SLUGS.has(slug))
     .map((slug) => ({
       url: `${SITE_URL}/${slug}`,
-      lastModified: now,
+      lastModified: LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: HEAD_SEO_SLUGS.has(slug) ? 0.9 : 0.7,
     }));
@@ -153,14 +157,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const legalRoutes: MetadataRoute.Sitemap = LEGAL_SLUGS.map((s) => ({
     url: `${SITE_URL}/${s}`,
-    lastModified: now,
+    lastModified: LAST_MODIFIED,
     changeFrequency: "yearly",
     priority: 0.3,
   }));
 
   const helpRoutes: MetadataRoute.Sitemap = ALL_HELP_ARTICLES.map(({ article }) => ({
     url: `${SITE_URL}/help/${article.slug}`,
-    lastModified: now,
+    lastModified: LAST_MODIFIED,
     changeFrequency: "monthly",
     priority: 0.5,
   }));
@@ -168,14 +172,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const alternativeIndexRoute: MetadataRoute.Sitemap = [
     {
       url: `${SITE_URL}/alternatives`,
-      lastModified: now,
+      lastModified: LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: 0.7,
     },
   ];
   const alternativeRoutes: MetadataRoute.Sitemap = COMPETITOR_SLUGS.map((s) => ({
     url: `${SITE_URL}/alternatives/${s}`,
-    lastModified: now,
+    lastModified: LAST_MODIFIED,
     changeFrequency: "monthly",
     priority: 0.85,
   }));
@@ -183,21 +187,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const useCaseIndexRoute: MetadataRoute.Sitemap = [
     {
       url: `${SITE_URL}/use-cases`,
-      lastModified: now,
+      lastModified: LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: 0.7,
     },
   ];
   const useCaseRoutes: MetadataRoute.Sitemap = USE_CASE_SLUGS.map((s) => ({
     url: `${SITE_URL}/use-cases/${s}`,
-    lastModified: now,
+    lastModified: LAST_MODIFIED,
     changeFrequency: "monthly",
     priority: 0.85,
   }));
 
   const authorRoutes: MetadataRoute.Sitemap = AUTHOR_SLUGS.map((s) => ({
     url: `${SITE_URL}/about/authors/${s}`,
-    lastModified: now,
+    lastModified: LAST_MODIFIED,
     changeFrequency: "yearly",
     priority: 0.5,
   }));

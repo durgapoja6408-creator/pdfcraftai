@@ -74,9 +74,12 @@ export async function verifyTurnstileToken(
 ): Promise<TurnstileVerdict> {
   const secret = process.env.TURNSTILE_SECRET_KEY;
   if (!secret) {
-    // Fail-open: env var not configured. Caller still sees ok=true so
-    // the registration form works. Once Hostinger panel ships the
-    // secret, this branch stops firing and verification is enforced.
+    // Fail-CLOSED in production: a missing secret must not silently
+    // disable bot protection on registration. In dev we keep fail-open
+    // so the form works without Turnstile configured locally.
+    if (process.env.NODE_ENV === "production") {
+      return { ok: false, errorCodes: ["turnstile_not_configured"] };
+    }
     return { ok: true };
   }
 

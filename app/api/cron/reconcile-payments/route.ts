@@ -9,6 +9,7 @@
 // endpoint from legitimate ops dashboards that check for it.
 
 import { NextResponse } from "next/server";
+import { timingSafeStrEqual } from "@/lib/auth/timing-safe-equal";
 import { runReconciliation } from "@/lib/payments/reconcile";
 // 2026-05-04 (PENDING §2b application-level escalation) — page the
 // operator when the reconcile cron throws. Graceful no-op without
@@ -42,7 +43,7 @@ async function runCron(req: Request): Promise<NextResponse> {
   }
 
   const provided = req.headers.get("x-cron-secret");
-  if (!provided || provided !== expected) {
+  if (!provided || !timingSafeStrEqual(provided, expected)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

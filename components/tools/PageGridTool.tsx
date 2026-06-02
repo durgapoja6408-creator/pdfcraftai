@@ -151,8 +151,8 @@ export function PageGridTool(props: PageGridToolProps) {
         setError("That's not a PDF. Drop a .pdf file to continue.");
         return;
       }
-      if (f.size > 100 * 1024 * 1024) {
-        setError("File over 100 MB — try a smaller one.");
+      if (f.size > 50 * 1024 * 1024) {
+        setError("File over 50 MB — try a smaller one.");
         return;
       }
       setFile(f);
@@ -449,7 +449,7 @@ export function PageGridTool(props: PageGridToolProps) {
         <ToolDropzone
           onFiles={onFiles}
           prompt={props.dropPrompt}
-          hint={props.dropHint ?? "Up to 100 MB · runs privately in your browser"}
+          hint={props.dropHint ?? "Up to 50 MB · runs privately in your browser"}
         />
       ) : (
         <div className="card" style={{ padding: 16 }}>

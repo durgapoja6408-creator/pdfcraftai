@@ -502,6 +502,10 @@ async function handleRefund(
       packId: schema.payments.packId,
       amountMinor: schema.payments.amountMinor,
       status: schema.payments.status,
+      // Task #27 - so proration uses the SAME total handleCaptured granted.
+      // Annual captures grant base x12; without this a full refund would
+      // only claw back the monthly base (~1/12th).
+      annualVariant: schema.payments.annualVariant,
     })
     .from(schema.payments)
     .where(eq(schema.payments.id, event.internalPaymentId))
@@ -541,7 +545,11 @@ async function handleRefund(
   // refund init and the webhook. That's rare and we accept it — a
   // negative balance just means "next top-up pays down the overdraft".
   if (payment.mode === "one_time" && payment.packId) {
-    const pack = packCredits(payment.packId);
+    // Match the capture's variant so totalGranted equals what was granted
+    // (annual = base x12 + bonus). See SELECT note above.
+    const variant: "monthly" | "annual" =
+      Number(payment.annualVariant ?? 0) === 1 ? "annual" : "monthly";
+    const pack = packCredits(payment.packId, variant);
     if (!pack) {
       return {
         status: "error",
@@ -640,6 +648,9 @@ async function handleChargeback(
       packId: schema.payments.packId,
       amountMinor: schema.payments.amountMinor,
       status: schema.payments.status,
+      // Task #27 - same annual-variant fix as handleRefund: an annual
+      // capture granted base x12, so a chargeback must claw back base x12.
+      annualVariant: schema.payments.annualVariant,
     })
     .from(schema.payments)
     .where(eq(schema.payments.id, event.internalPaymentId))
@@ -661,7 +672,11 @@ async function handleChargeback(
     .where(eq(schema.payments.id, event.internalPaymentId));
 
   if (payment.mode === "one_time" && payment.packId) {
-    const pack = packCredits(payment.packId);
+    // Match the capture's variant so the clawback equals what was granted
+    // (annual = base x12 + bonus). See SELECT note above.
+    const variant: "monthly" | "annual" =
+      Number(payment.annualVariant ?? 0) === 1 ? "annual" : "monthly";
+    const pack = packCredits(payment.packId, variant);
     if (!pack) {
       return {
         status: "error",

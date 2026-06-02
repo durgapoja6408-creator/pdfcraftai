@@ -333,11 +333,6 @@ export default function ToolRunnerPage({ params }: Params) {
       priceCurrency: tool.free ? "USD" : undefined,
       availability: "https://schema.org/InStock",
     },
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: "4.8",
-      ratingCount: "127",
-    },
     url: `${SITE_URL}/tool/${tool.id}`,
   };
   const breadcrumbLd = {

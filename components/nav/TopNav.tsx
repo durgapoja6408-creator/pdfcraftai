@@ -277,7 +277,8 @@ export function TopNav() {
         <button
           type="button"
           className="topnav-hamburger btn btn-sm btn-ghost"
-          aria-label="Open menu"
+          aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          aria-controls="mobile-menu"
           aria-expanded={mobileOpen}
           onClick={() => setMobileOpen((v) => !v)}
         >
@@ -286,7 +287,7 @@ export function TopNav() {
       </div>
 
       {mobileOpen && (
-        <div ref={mobileRef} className="topnav-mobile">
+        <div ref={mobileRef} id="mobile-menu" className="topnav-mobile">
           <nav className="col" style={{ gap: 2 }}>
             {nav.map((item) => (
               <Link

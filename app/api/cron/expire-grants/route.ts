@@ -51,6 +51,7 @@
 import "server-only";
 
 import type { NextRequest } from "next/server";
+import { timingSafeStrEqual } from "@/lib/auth/timing-safe-equal";
 import { and, eq, gt, isNotNull, lte, sql } from "drizzle-orm";
 
 import { db, schema } from "@/db/client";
@@ -98,7 +99,7 @@ function isAuthorized(req: NextRequest): boolean {
     return false;
   }
   const header = req.headers.get("x-cron-secret");
-  return Boolean(header && header === expected);
+  return Boolean(header && timingSafeStrEqual(header, expected));
 }
 
 export async function GET(req: NextRequest): Promise<Response> {

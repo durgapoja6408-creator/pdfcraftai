@@ -16,13 +16,14 @@
 //   Checkout modal:     https://razorpay.com/docs/payments/payment-gateway/web-integration/standard/
 
 import "server-only";
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHmac, createHash, timingSafeEqual } from "crypto";
 import type { PaymentProvider } from "../provider";
 import { WebhookSignatureError } from "../provider";
 import type {
   CheckoutInput,
   CheckoutResult,
   Currency,
+  LedgerFinancials,
   Money,
   NormalizedPaymentEvent,
   NormalizedTx,
@@ -156,6 +157,15 @@ export class RazorpayProvider implements PaymentProvider {
       return { ok: false, reason: "missing x-razorpay-signature header" };
     }
 
+    // Guard: the signature header must be even-length hex. Buffer.from(sig,
+    // "hex") silently drops non-hex chars and truncates odd-length input,
+    // which could let a malformed/forged header masquerade as a benign
+    // length-mismatch. Reject explicitly so garbage fails fast (the route
+    // maps !ok -> 400) instead of producing a surprising buffer shape.
+    if (!/^[0-9a-fA-F]+$/.test(sig) || sig.length % 2 !== 0) {
+      return { ok: false, reason: "malformed signature" };
+    }
+
     const expected = createHmac("sha256", this.config.webhookSecret)
       .update(input.rawBody)
       .digest("hex");
@@ -201,6 +211,9 @@ export class RazorpayProvider implements PaymentProvider {
         amount: { amountMinor: p.amount, currency: p.currency as Currency },
         occurredAt,
         providerRaw: scrub(body),
+        // Phase B / Task #16 - attribute the real fee/gross breakdown so
+        // /admin/{revenue,margin} stop reading NULL->zero on live captures.
+        financials: buildRazorpayCapturedFinancials(p),
       };
     }
 
@@ -232,6 +245,31 @@ export class RazorpayProvider implements PaymentProvider {
         amount: { amountMinor: r.amount, currency: r.currency as Currency },
         occurredAt,
         providerRaw: scrub(body),
+      };
+    }
+
+    // --- Disputes / chargebacks -----------------------------------------
+    // Only a LOST dispute claws money back. payment.dispute.{created,
+    // under_review,action_required} are in-flight (funds may be held but
+    // not reversed); .won means we keep the funds; .closed is terminal but
+    // ambiguous. Debit credits ONLY on payment.dispute.lost so we never
+    // wrongly reverse credits on a dispute we end up winning. Other
+    // dispute.* events fall through to "ignored" (audited, no ledger
+    // write). Shape verified vs Razorpay docs 2026-06.
+    if (eventType === "payment.dispute.lost") {
+      const d = body.payload?.dispute?.entity;
+      const p = body.payload?.payment?.entity;
+      if (!d || !p) return null;
+      return {
+        kind: "chargeback",
+        providerId: this.id,
+        providerRef: p.id,
+        internalPaymentId: p.notes?.internalPaymentId ?? "",
+        providerChargebackRef: d.id,
+        amount: { amountMinor: d.amount, currency: d.currency as Currency },
+        occurredAt,
+        providerRaw: scrub(body),
+        reason: d.reason_code,
       };
     }
 
@@ -509,6 +547,60 @@ function statusRank(s: string): number {
   }
 }
 
+// --- Financials builder (Task #16 parity for Razorpay) --------------------
+
+/**
+ * Razorpay reports money in the smallest currency unit (paise for INR,
+ * cents for USD). Ledger financials are micros (major x 1e6), so one minor
+ * unit = 1e4 micros. Mirrors the retired Paddle adapter conversion.
+ */
+export function razorpayMinorToMicros(
+  minor: number | null | undefined
+): number {
+  if (minor === null || minor === undefined || !Number.isFinite(minor)) {
+    return 0;
+  }
+  return Math.round(minor * 10_000);
+}
+
+/**
+ * Stable, non-reversible fingerprint of the card used (Razorpay card_id).
+ * 16 hex chars / 64 bits of SHA-256 - correlates repeat cards for fraud
+ * checks without storing anything PAN-derived. undefined for non-card
+ * methods (UPI / netbanking / wallet).
+ */
+function fingerprintCard(
+  cardId: string | null | undefined
+): string | undefined {
+  if (!cardId) return undefined;
+  return createHash("sha256").update(cardId).digest("hex").slice(0, 16);
+}
+
+/**
+ * Build LedgerFinancials from a captured Razorpay payment. Populates the
+ * UNAMBIGUOUS, provider-authoritative fields (gross, currency, provider,
+ * processor fee, card fingerprint, dataSource). Leaves tax/FX/net undefined
+ * (NULL) as a tracked follow-up: GST extraction is gated on the merchant's
+ * GST-registration status (invoicing infers via classifyGst) and INR->USD
+ * net needs the FX-rate-source decision. Populating gross + fee already
+ * unblocks /admin/{revenue,margin}, which previously read zero (all NULL).
+ */
+export function buildRazorpayCapturedFinancials(p: {
+  amount: number;
+  currency: string;
+  fee?: number | null;
+  card_id?: string | null;
+}): LedgerFinancials {
+  return {
+    grossChargeMicros: razorpayMinorToMicros(p.amount),
+    billingCurrency: p.currency,
+    provider: "razorpay",
+    processorFeeMicros: razorpayMinorToMicros(p.fee ?? 0),
+    cardFingerprint: fingerprintCard(p.card_id),
+    dataSource: "webhook",
+  };
+}
+
 // --- Webhook body shapes --------------------------------------------------
 
 // Narrow typing of the Razorpay webhook body. We deliberately type only
@@ -523,6 +615,12 @@ type RazorpayWebhookBody = {
         id: string;
         amount: number;
         currency: string;
+        // Razorpay's own fee + GST on that fee (paise); null until settled.
+        fee?: number | null;
+        tax?: number | null;
+        // Card payments carry a stable card_id; absent for UPI/netbanking.
+        card_id?: string | null;
+        method?: string;
         error_code?: string;
         error_description?: string;
         notes?: { internalPaymentId?: string };
@@ -533,6 +631,16 @@ type RazorpayWebhookBody = {
         id: string;
         amount: number;
         currency: string;
+      };
+    };
+    dispute?: {
+      entity: {
+        id: string;
+        payment_id?: string;
+        amount: number;
+        currency: string;
+        reason_code?: string;
+        status?: string;
       };
     };
     subscription?: {

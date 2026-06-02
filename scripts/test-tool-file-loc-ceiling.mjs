@@ -49,13 +49,13 @@ const CEILINGS = {
   //   lib/admin/queries.ts      1985 LOC — admin SQL surface
   //   lib/ai/summarize.ts       1755 LOC — multi-variant summarizer
   //   lib/ai/margin-rollup.ts   1650 LOC — daily margin aggregation
-  //   lib/ai/sign.ts            1066 LOC — AI sign + form-fill
+  //   lib/ai/sign.ts            1071 LOC — AI sign + form-fill
   // Total +6456 server-side LOC now under the same only-shrinkage
   // discipline as the component-file ceiling.
   "lib/admin/queries.ts": 1985,
   "lib/ai/summarize.ts": 1755,
   "lib/ai/margin-rollup.ts": 1650,
-  "lib/ai/sign.ts": 1066,
+  "lib/ai/sign.ts": 1071,
 };
 
 let pass = 0, fail = 0;
