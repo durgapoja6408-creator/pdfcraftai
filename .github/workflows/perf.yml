@@ -18,7 +18,7 @@ jobs:
             https://pdfcraftai.com/pricing
             https://pdfcraftai.com/blog
             https://pdfcraftai.com/extract-emails-from-pdf
-            https://pdfcraftai.com/tool/merge-pdf
+            https://pdfcraftai.com/tool/page-count
           temporaryPublicStorage: true
           uploadArtifacts: true
       - name: Summarize scores
