@@ -5,6 +5,23 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-03 (cont.) — Full-coverage testing scaffold (crawl + gated-flow knobs)
+
+To enable "test everything, nothing gated" without leaving prod weakened:
+- **Narrow geo override seam** (`lib/payments/checkout-actions.ts`): env `E2E_CHECKOUT_GEO_OVERRIDE_USER_ID`
+  forces country=IN for ONLY the matching authenticated user_id (off when unset; logs `e2e_geo_override`;
+  never a general bypass). Lets the test account reach Razorpay test-mode checkout from a non-IN CI runner.
+- **Comprehensive crawl**: `scripts/crawl-prod.mjs` + `.github/workflows/crawl.yml` (workflow_dispatch) —
+  Playwright/Chromium visits every sitemap URL, scrolls to the bottom, and captures console errors, page
+  exceptions, failed (>=400) sub-requests, broken images -> `crawl-report.json`. Runs in CI because
+  **Chromium SIGSEGVs in the Cowork sandbox** (no browser-capable kernel/seccomp surface — confirmed 2026-06-03).
+- **Founder-applied (Hostinger), TEMPORARY, revert after a test window:** Turnstile test keys
+  (`1x0000…AA` site / `1x0000…AA` secret) to pass signup; `MAX_SIGNUPS_PER_BUCKET` / `USER_DAILY_COST_MICROS_CAP`
+  / `LOGIN_MAX_FAILURES` raised; `E2E_CHECKOUT_GEO_OVERRIDE_USER_ID=6b303c3b-…` to activate the geo seam.
+  All documented in CLAUDE.md §5 "E2E TESTING KNOBS".
+
+---
+
 ## 2026-06-03 (cont.) — Admin/test account consolidation + prod-e2e hardening
 
 **Account model** (founder directive: real account = admin; remove throwaway test accounts):

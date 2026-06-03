@@ -233,8 +233,28 @@ export async function createCheckoutAction(args: {
   // "pick your country" fallback UI doesn't have to forge an x-forwarded
   // header to get through the router.
   const h = headers();
-  const rawCountry =
-    typeof args.countryOverride === "string" && args.countryOverride.trim()
+  // ── Narrow E2E-only geo override (OFF by default) ──────────────────────
+  // When `E2E_CHECKOUT_GEO_OVERRIDE_USER_ID` is set AND the authenticated
+  // user is EXACTLY that id, force the route country to "IN" so the dedicated
+  // prod-e2e test account can exercise the Razorpay (test-mode) checkout from
+  // a non-IN CI runner. Scoped to a SINGLE user id, env-gated (env unset =
+  // fully disabled), logged for audit, and NEVER a general bypass. Unset the
+  // env var in Hostinger to remove it after a test window.
+  const e2eGeoUserId = process.env.E2E_CHECKOUT_GEO_OVERRIDE_USER_ID?.trim();
+  const e2eGeoForceIN = Boolean(e2eGeoUserId) && userId === e2eGeoUserId;
+  if (e2eGeoForceIN) {
+    console.log(
+      JSON.stringify({
+        event: "e2e_geo_override",
+        userId,
+        forcedCountry: "IN",
+        ts: new Date().toISOString(),
+      }),
+    );
+  }
+  const rawCountry = e2eGeoForceIN
+    ? "IN"
+    : typeof args.countryOverride === "string" && args.countryOverride.trim()
       ? args.countryOverride
       : readCountryHeader(h);
   const decision: RouteDecision = routeCheckoutByCountry(rawCountry);

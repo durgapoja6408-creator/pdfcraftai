@@ -1,0 +1,38 @@
+# Comprehensive public-page crawl of production (Playwright/Chromium).
+# Manual: gh workflow run crawl.yml -f max=0   (0 = all sitemap URLs)
+name: crawl
+on:
+  workflow_dispatch:
+    inputs:
+      max:
+        description: "Max URLs to crawl (0 = all)"
+        required: false
+        default: "0"
+      base_url:
+        description: "Base URL to crawl"
+        required: false
+        default: "https://pdfcraftai.com"
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run crawl
+        run: node scripts/crawl-prod.mjs
+        env:
+          CRAWL_BASE_URL: ${{ inputs.base_url }}
+          CRAWL_MAX: ${{ inputs.max }}
+          CRAWL_CONCURRENCY: "4"
+      - name: Upload crawl report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crawl-report
+          path: crawl-report.json
