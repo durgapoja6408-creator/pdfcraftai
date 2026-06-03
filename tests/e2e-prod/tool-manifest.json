@@ -1,0 +1,906 @@
+[
+  {
+    "id": "add-links",
+    "name": "Add Hyperlinks",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "add-text-box",
+    "name": "Add Text to PDF",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "bates-numbers",
+    "name": "Bates Numbering",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "booklet-pdf",
+    "name": "Booklet PDF",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "compress-pdf",
+    "name": "Compress PDF",
+    "free": true,
+    "group": "Convert",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "crop-pdf",
+    "name": "Crop PDF",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "csv-to-pdf",
+    "name": "CSV to PDF",
+    "free": true,
+    "group": "Convert",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "delete-pages",
+    "name": "Delete Pages",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "extract-attachments",
+    "name": "Extract PDF Attachments",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "extract-contacts",
+    "name": "Extract Emails & Phones",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "extract-dates",
+    "name": "Extract Dates → ICS",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "extract-images",
+    "name": "Extract Images from PDF",
+    "free": true,
+    "group": "Convert",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "extract-pages",
+    "name": "Extract Pages",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "flatten-pdf",
+    "name": "Flatten PDF Forms",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "free-draw-pdf",
+    "name": "Free Draw on PDF",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "grayscale-pdf",
+    "name": "PDF to Grayscale",
+    "free": true,
+    "group": "Optimize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "highlight-pdf",
+    "name": "Highlight PDF",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "image-watermark",
+    "name": "Image Watermark",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "jpg-to-pdf",
+    "name": "JPG to PDF",
+    "free": true,
+    "group": "Convert",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "markdown-to-pdf",
+    "name": "Markdown to PDF",
+    "free": true,
+    "group": "Convert",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "merge",
+    "name": "Merge PDFs",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "n-up-pdf",
+    "name": "N-up PDF",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "odd-even-pages",
+    "name": "Odd / Even Pages",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "page-count",
+    "name": "Page Count",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "page-numbers",
+    "name": "Add Page Numbers",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-a-check",
+    "name": "PDF/A Compliance Check",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-a-convert",
+    "name": "Convert to PDF/A",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-accessibility",
+    "name": "PDF Accessibility Checker",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-annotations",
+    "name": "PDF Annotations Export",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-attachments",
+    "name": "PDF Attachments Lister",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-batch",
+    "name": "Batch Process PDFs",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-diff",
+    "name": "Visual Diff",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-fonts",
+    "name": "PDF Font Inspector",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-form-fill",
+    "name": "Fill PDF Form",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-forms",
+    "name": "PDF Form Inspector",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-inspector",
+    "name": "PDF Inspector",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-javascript",
+    "name": "PDF JavaScript Detector",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-links",
+    "name": "Extract Links from PDF",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-outline",
+    "name": "PDF Outline Viewer",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-overlay",
+    "name": "PDF Overlay",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-search",
+    "name": "Search in PDF",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-to-html",
+    "name": "PDF to HTML",
+    "free": true,
+    "group": "Convert",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-to-jpg",
+    "name": "PDF to JPG",
+    "free": true,
+    "group": "Convert",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-to-markdown",
+    "name": "PDF to Markdown",
+    "free": true,
+    "group": "Convert",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-to-png",
+    "name": "PDF to PNG",
+    "free": true,
+    "group": "Convert",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-to-text",
+    "name": "PDF to Text",
+    "free": true,
+    "group": "Convert",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "pdf-x-check",
+    "name": "PDF/X Compliance Check",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "png-to-pdf",
+    "name": "PNG to PDF",
+    "free": true,
+    "group": "Convert",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "redact-free",
+    "name": "Redact PDF",
+    "free": true,
+    "group": "Security",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "remove-metadata",
+    "name": "Remove PDF Metadata",
+    "free": true,
+    "group": "Security",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "repair-pdf",
+    "name": "Repair PDF",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "resize-pdf",
+    "name": "Resize PDF",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "rotate",
+    "name": "Rotate PDF",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "sign-pdf-free",
+    "name": "Sign PDF",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "sort-pages",
+    "name": "Sort Pages",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "split",
+    "name": "Split PDF",
+    "free": true,
+    "group": "Organize",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "stamp-pdf",
+    "name": "Watermark PDF",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "strip-links",
+    "name": "Strip Hyperlinks",
+    "free": true,
+    "group": "Edit",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "text-to-pdf",
+    "name": "Text to PDF",
+    "free": true,
+    "group": "Convert",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "unlock",
+    "name": "Unlock PDF",
+    "free": true,
+    "group": "Security",
+    "needsAuth": false,
+    "special": "none"
+  },
+  {
+    "id": "ai-action-items",
+    "name": "Extract Action Items",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-ats-resume",
+    "name": "ATS Resume Optimizer",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-bias",
+    "name": "Inclusive Language Audit",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-blog",
+    "name": "PDF to Blog Post",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-blood-test",
+    "name": "Blood Test Report Parser",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-chart-to-table",
+    "name": "Chart → Data Table",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-chat",
+    "name": "Chat with PDF",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "chat"
+  },
+  {
+    "id": "ai-citations",
+    "name": "Extract Citations (BibTeX)",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-compare",
+    "name": "Compare PDFs",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-condense",
+    "name": "Condense PDF",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-court-order",
+    "name": "Court Judgment Summarizer",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-cover-letter",
+    "name": "Cover Letter Generator",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-detector",
+    "name": "AI Content Detector",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-discharge",
+    "name": "Discharge Summary Simplifier",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-eli5",
+    "name": "Explain Like I'm 12",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-employment",
+    "name": "Employment Contract Review",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-entities",
+    "name": "Extract Entities",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-expand",
+    "name": "Expand PDF",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-faq",
+    "name": "Generate FAQ",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-flashcards",
+    "name": "PDF to Flashcards",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-generate",
+    "name": "Generate PDF from Prompt",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "prompt"
+  },
+  {
+    "id": "ai-improve-writing",
+    "name": "Improve Writing",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-insurance",
+    "name": "Insurance Policy Analyzer",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-jd-match",
+    "name": "Resume ↔ JD Matcher",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-key-points",
+    "name": "Key Points Extractor",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-loan-bundle",
+    "name": "Loan Application Bundler Audit",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-mindmap",
+    "name": "PDF to Mind Map",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-nda",
+    "name": "NDA Analyzer",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-newsletter",
+    "name": "PDF to Email Newsletter",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-ocr",
+    "name": "OCR & Smart Extract",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-paraphrase",
+    "name": "Paraphrase PDF",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-partnership-deed",
+    "name": "Partnership Deed Analyzer",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-proofread",
+    "name": "Proofread PDF",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-quiz",
+    "name": "PDF to Quiz (MCQ)",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-readability",
+    "name": "Readability Score",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-redact",
+    "name": "Redact Sensitive Info",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-research-paper",
+    "name": "Research Paper Summarizer",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-resume-parse",
+    "name": "Resume Parser",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-rewrite",
+    "name": "Rewrite & Rephrase",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-salary-slip",
+    "name": "Salary Slip Analyzer",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-searchable-pdf",
+    "name": "Make PDF Searchable",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-semantic-search",
+    "name": "Semantic Search in PDF",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-sentiment",
+    "name": "Sentiment Analysis",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-sign",
+    "name": "Sign & Fill Forms",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-social-thread",
+    "name": "PDF to Social Thread",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-study-notes",
+    "name": "PDF to Study Notes",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-summarize",
+    "name": "Summarize PDF",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-syllabus",
+    "name": "Syllabus to Study Plan",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-table",
+    "name": "AI Table Extract",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-tldr",
+    "name": "TL;DR Generator",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-tone-analyze",
+    "name": "Tone & Style Analyzer",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-translate",
+    "name": "Translate PDF",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  },
+  {
+    "id": "ai-video-script",
+    "name": "PDF to Video Script",
+    "free": false,
+    "group": "AI",
+    "needsAuth": true,
+    "special": "none"
+  }
+]
