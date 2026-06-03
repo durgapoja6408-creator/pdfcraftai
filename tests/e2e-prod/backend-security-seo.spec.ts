@@ -78,10 +78,25 @@ test.describe("security headers", () => {
 });
 
 test.describe("auth gating (anonymous)", () => {
-  for (const path of ["/app/dashboard", "/app/chat", "/admin", "/admin/margin"]) {
+  // /app/* gate by REDIRECTING anon to /login.
+  for (const path of ["/app/dashboard", "/app/chat"]) {
     test(`${path} redirects anon to /login`, async ({ page }) => {
       await page.goto(path);
       await expect(page, `${path} should bounce to /login`).toHaveURL(/\/login/, { timeout: 15_000 });
+    });
+  }
+  // /admin/* gate by returning 404 to anon (deliberately hides that the
+  // admin surface exists — a stronger posture than a login redirect).
+  // Either outcome (404/403 OR a /login bounce) is acceptable; a 2xx
+  // that actually renders admin content to anon would be the real gap.
+  for (const path of ["/admin", "/admin/margin"]) {
+    test(`${path} is NOT accessible to anon (404/403/login)`, async ({ request, page }) => {
+      const r = await request.get(path, { maxRedirects: 0, failOnStatusCode: false });
+      const status = r.status();
+      if (status === 404 || status === 403) return; // hidden — good
+      // otherwise it must redirect to /login, not render admin content
+      await page.goto(path);
+      await expect(page, `${path} must not expose admin content to anon`).toHaveURL(/\/login/, { timeout: 15_000 });
     });
   }
 });
