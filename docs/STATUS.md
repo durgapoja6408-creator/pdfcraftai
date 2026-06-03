@@ -10,14 +10,13 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 **Account model** (founder directive: real account = admin; remove throwaway test accounts):
 - ADMIN = `rajasekarjavaee@gmail.com` (Google-only, no password) via `ADMIN_EMAILS` in Hostinger
   (mirrored in `.claude/{secrets,hostinger}.env`). Needs Save+redeploy to go live.
-- TEST USER (prod-e2e) repointed `durgapoja6408@gmail.com` -> `rajasekarjavaee+5@gmail.com`
-  (user_id `4e20c284-cecd-4e23-abce-1858cb039ce6`; founder's own +alias; password `Cognizant@2026`,
-  bcrypt-verified; marked email_verified; balance 992). GitHub Actions secrets PROD_E2E_TEST_EMAIL/
-  PASSWORD updated 2026-06-03. NOT one account for both because (a) the suite logs in via the
-  credentials provider and the real account has no password (Google-only), and (b) an admin account
-  would break the "non-admin gets 404 on /admin" smoke test. Admin + test stay split, both founder-owned.
-- `durgapoja6408@gmail.com` — to be REMOVED by the founder via the admin UI (Cowork does not execute
-  account deletions). Remove AFTER confirming the repoint so the suite keeps working.
+- TEST USER (prod-e2e) = `durgapoja6408@gmail.com` (user_id `6b303c3b-ddfd-48fc-9162-2556d077fece`;
+  password `Cognizant@2020`, bcrypt-verified; granted +500 credits -> balance 502). KEPT as the dedicated
+  NON-admin test identity; do NOT delete. WHY: `ADMIN_EMAILS=rajasekarjavaee@gmail.com` is live AND the
+  admin check strips Gmail +aliases, so EVERY `rajasekarjavaee+*@gmail.com` reads as admin — no
+  rajasekarjavaee alias can be the non-admin account the "non-admin blocked from /admin" SEV-0 test needs.
+  (A brief repoint to +5 was made then reverted for exactly this reason.) Admin (rajasekarjavaee@gmail.com,
+  Google-only) and the test account stay SEPARATE, per founder decision.
 
 **prod-e2e hardening:**
 - `ai-tool-execution.spec.ts` — added `expectAiOk()`: a 402 (out-of-credits) is now an acceptable
@@ -60,8 +59,8 @@ provider cost (summarize-family dominant); weekly cadence ~= ~$0.10/mo. Negligib
   failed in CI without verifying anything. Prod confirmed Razorpay TEST mode (`rzp_test_*`).
 - `scripts/setup-prod-e2e-secrets.sh` — repo default corrected `durgapoja6408-creator/pdfcraftai`
   -> `globalonlinedeveloper/pdfcraftai` (post repo migration). Line 37 `PROD_E2E_TEST_EMAIL`
-  default was ALSO repointed durgapoja6408@gmail.com -> rajasekarjavaee+5@gmail.com on the
-  2026-06-03 account-consolidation pass (see top entry).
+  default stays `durgapoja6408@gmail.com` (the dedicated non-admin test account — see the
+  account-model entry above for why a rajasekarjavaee alias can't be used).
 
 **Verify:** `tsc --noEmit` clean; aggregator 7173/0 across 131 suites. Next: dispatch prod-e2e to
 confirm the 2 CSP tests + the rewritten Razorpay test are green.

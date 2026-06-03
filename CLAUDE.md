@@ -94,8 +94,8 @@ The sandbox `.claude/secrets.env` file at session-write time contains these keys
 | Key | Source of truth | How to re-fetch |
 |---|---|---|
 | `CRON_SECRET` | Hostinger env (set 2026-05-04) | SSH + read /proc env: `cat /proc/$(ps -fu u692382124 \| grep next-server \| head -1 \| awk '{print $2}')/environ \| tr '\0' '\n' \| grep CRON_SECRET` |
-| `PROD_E2E_TEST_EMAIL` | GitHub Actions secret: `rajasekarjavaee+5@gmail.com` (repointed 2026-06-03) | user_id `4e20c284-cecd-4e23-abce-1858cb039ce6`; the user's own +alias. Replaces `durgapoja6408@gmail.com` (being removed in the account-consolidation cleanup). |
-| `PROD_E2E_TEST_PASSWORD` | `Cognizant@2026` (the +5 alias's password; verified via bcrypt-compare 2026-06-03) | User-side only (bcrypt hash; not recoverable from DB without rotation) |
+| `PROD_E2E_TEST_EMAIL` | GitHub Actions secret: `durgapoja6408@gmail.com` | user_id `6b303c3b-ddfd-48fc-9162-2556d077fece`. MUST stay a NON-admin, non-`rajasekarjavaee` account — `ADMIN_EMAILS=rajasekarjavaee@gmail.com` + Gmail +alias normalization make every `rajasekarjavaee+*@gmail.com` read as admin, which breaks the "non-admin blocked from /admin" SEV-0 test. KEEP durgapoja6408 (do NOT delete) as the dedicated non-admin test identity. |
+| `PROD_E2E_TEST_PASSWORD` | `Cognizant@2020` (bcrypt-verified 2026-06-03) | User-side only (bcrypt hash; not recoverable from DB without rotation) |
 | `PROD_E2E_AI_BUDGET_OK` / `PROD_E2E_PAYMENTS_OK` | Hardcoded `yes` to ack mutations on test account | n/a — just a yes-flag |
 | `RAZORPAY_KEY_ID` | Hostinger env. Currently `rzp_test_Sg0TtVISTov479` (TEST mode) | Same `/proc env` SSH pattern as CRON_SECRET |
 | `RAZORPAY_KEY_SECRET` | Hostinger env | Same |
@@ -116,7 +116,7 @@ The sandbox `.claude/secrets.env` file at session-write time contains these keys
       cat /proc/$PID/environ 2>/dev/null | tr "\0" "\n" | \
       grep -E "^(CRON_SECRET|RAZORPAY_|MYSQL_)"'
    ```
-4. **Test account password** — the prod-e2e account is `rajasekarjavaee+5@gmail.com` / `Cognizant@2026` (repointed 2026-06-03). Re-paste it, or rotate via the prod "Forgot password?" flow.
+4. **Test account password** — the prod-e2e account is `durgapoja6408@gmail.com` / `Cognizant@2020` (the dedicated NON-admin test identity — must NOT be a rajasekarjavaee gmail alias, which would read as admin). Re-paste it, or rotate via the prod "Forgot password?" flow.
 
 **Any future Claude session should:**
 1. Read this `CLAUDE.md` first

@@ -34,7 +34,7 @@ REPO="${REPO:-globalonlinedeveloper/pdfcraftai}"
 
 # Defaults match the test account documented in
 # tests/e2e-prod/README.md. Override via env if rotating credentials.
-EMAIL="${PROD_E2E_TEST_EMAIL:-rajasekarjavaee+5@gmail.com}"
+EMAIL="${PROD_E2E_TEST_EMAIL:-durgapoja6408@gmail.com}"
 
 if [ -z "${PROD_E2E_TEST_PASSWORD:-}" ]; then
   echo "ERROR: PROD_E2E_TEST_PASSWORD must be exported before running this script." >&2
