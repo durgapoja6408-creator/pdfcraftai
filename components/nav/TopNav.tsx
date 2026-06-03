@@ -40,7 +40,6 @@ const NAV_AFTER_CHAT: NavLink[] = [
   { href: "/pricing", label: "Pricing" },
   { href: "/blog", label: "Blog" },
   { href: "/help", label: "Help" },
-  { href: "/api", label: "API" },
 ];
 
 function buildNav(loggedIn: boolean): NavLink[] {

@@ -31,7 +31,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // /blog as a discovery surface.
     { url: `${SITE_URL}/compare`, lastModified: LAST_MODIFIED, changeFrequency: "weekly", priority: 0.8 },
     { url: `${SITE_URL}/help`, lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${SITE_URL}/api`, lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE_URL}/about`, lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.6 },
     // 2026-05-04 (Plan T1-6 ext) — /enterprise sales-qualified-lead landing.
     // Higher priority than /about because it's a direct revenue path (B2B
