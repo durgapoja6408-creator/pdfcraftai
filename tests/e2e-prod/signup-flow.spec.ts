@@ -30,10 +30,9 @@ test.describe("signup flow", () => {
     // Turnstile TEST site key (1x...AA) auto-passes; give the widget a moment
     // to inject the hidden cf-turnstile-response token before submitting.
     await page.waitForTimeout(3000);
-    await page
-      .getByRole("button", { name: /create free account|sign up|register/i })
-      .first()
-      .click();
+    // IMPORTANT: target the credentials submit ("Create free account") — NOT the
+    // "Sign up with Google" button, which starts an un-automatable OAuth redirect.
+    await page.getByRole("button", { name: /create free account/i }).click();
     // On success registerAction signs the user in and redirects to /app/dashboard.
     await expect(page).toHaveURL(/\/app\//, { timeout: 25_000 });
   });
