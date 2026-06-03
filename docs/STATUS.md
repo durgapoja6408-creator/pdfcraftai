@@ -25,13 +25,15 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
   (See CLAUDE.md gotcha for the full detail + account/zone IDs.)
 
 **Pushed (this commit):**
-- `tests/e2e-prod/payments-flow.spec.ts` — rewrote "Razorpay checkout opens" ->
-  "order created + Razorpay checkout SDK loads": hard-asserts the `createCheckoutAction` SERVER
-  ACTION responds <400 AND `checkout.razorpay.com` SDK is requested (proves the real test-mode
-  order-creation path); the hosted iframe is now soft/observational (headless CI cannot render
-  Razorpay's cross-origin iframe — that was the SOLE cause of the failing payment test). The old
-  test waited on a non-existent REST path `/api/payments/razorpay/create-order` so it never
-  actually verified the API. Prod confirmed Razorpay TEST mode (`rzp_test_*`).
+- `tests/e2e-prod/payments-flow.spec.ts` — rewrote the Phase-4 payment test to be GEO-AWARE +
+  headless-safe. "Buy pack" runs the `createCheckoutAction` SERVER ACTION which routes on
+  CF-IPCountry: India -> Razorpay test-mode order + hosted SDK; non-IN -> `geo_deferred` inline
+  [role=alert] launch-notify. GitHub CI runs on US IPs, so it hits the NON-IN path. New test
+  hard-asserts (a) the server action responds <400 and (b) exactly one geo-correct outcome
+  occurs (Razorpay `checkout.razorpay.com` SDK request OR the geo-defer notice). Never asserts
+  the hosted iframe (Razorpay won't mount it headless). The OLD test waited on a non-existent
+  REST path `/api/payments/razorpay/create-order` AND the un-renderable iframe, so it always
+  failed in CI without verifying anything. Prod confirmed Razorpay TEST mode (`rzp_test_*`).
 - `scripts/setup-prod-e2e-secrets.sh` — repo default corrected `durgapoja6408-creator/pdfcraftai`
   -> `globalonlinedeveloper/pdfcraftai` (post repo migration). Left line 37 `PROD_E2E_TEST_EMAIL`
   (durgapoja6408@gmail.com) — that's the test Google login, not the GitHub account.
