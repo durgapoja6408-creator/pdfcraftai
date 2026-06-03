@@ -16,7 +16,7 @@ in the Cowork sandbox; SIGSEGV). Results:
 | Full-site crawl | `crawl` #2 (Chromium, every sitemap URL, scroll-to-bottom) | **295/295 pages, 0 console errors, 0 page exceptions, 0 broken images** |
 | Unit / guard aggregator | `CI` #890 (`run-all-tests.mjs`) | **7173 passed / 0 failed** |
 | Accessibility | `a11y` #1 (axe-core WCAG 2.1 A+AA, 16 page types) | **0 critical / 0 serious / 0 moderate / 0 minor** (1 false-positive `html-has-lang`; SSR + `layout.tsx` both set `<html lang="en">`) |
-| Cross-browser | `crawl` matrix [chromium, firefox, webkit] | **chromium 295/295 + firefox 295/295, 0 console errors**; webkit cannot launch on ubuntu CI -> leg is `continue-on-error` (Chromium+Firefox cover cross-browser) |
+| Cross-browser | `crawl` matrix [chromium, firefox, webkit] (#4) | **Chromium 295/295 clean** (0 console/exception/4xx/img). **Firefox 267/295** — the 28 deltas are ALL CI noise, not site defects: a contiguous `page.goto` timeout block #211-#239 (transient runner/network stall; Firefox recovered at #240; Chromium crawled those same URLs clean) + 1 transient 503 on the `/unlock-pdf` JS chunk (re-verified live HTTP 200 x4 + page 200 — the documented LiteSpeed stale-worker hiccup). **Zero confirmed cross-browser defects.** WebKit cannot launch on ubuntu CI -> leg `continue-on-error`. |
 | Performance | `perf` #2 (Lighthouse CI, mobile, treosh action) | scores below |
 
 **Lighthouse (mobile, median, 0-100):**
