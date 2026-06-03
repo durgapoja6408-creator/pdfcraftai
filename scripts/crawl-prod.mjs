@@ -11,7 +11,12 @@
 //
 // Env: CRAWL_BASE_URL (default https://pdfcraftai.com), CRAWL_MAX (0=all),
 //      CRAWL_CONCURRENCY (default 4).
-import { chromium } from "@playwright/test";
+import { chromium, firefox, webkit } from "@playwright/test";
+
+// Cross-browser: CRAWL_BROWSER=chromium|firefox|webkit (default chromium).
+const ENGINES = { chromium, firefox, webkit };
+const ENGINE = (process.env.CRAWL_BROWSER || "chromium").toLowerCase();
+const browserType = ENGINES[ENGINE] || chromium;
 import { writeFileSync } from "node:fs";
 
 const BASE = (process.env.CRAWL_BASE_URL || "https://pdfcraftai.com").replace(/\/$/, "");
@@ -62,8 +67,8 @@ async function visit(browser, url) {
 
 (async () => {
   const urls = await getUrls();
-  console.log(`Crawling ${urls.length} URLs from ${BASE}/sitemap.xml (concurrency ${CONCURRENCY})`);
-  const browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
+  console.log(`Crawling ${urls.length} URLs from ${BASE}/sitemap.xml on [${ENGINE}] (concurrency ${CONCURRENCY})`);
+  const browser = await browserType.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
   const results = [];
   let idx = 0;
   async function worker() {
@@ -82,7 +87,7 @@ async function visit(browser, url) {
   const withConsole = results.filter((r) => r.consoleErrors.length || r.pageErrors.length);
   const withBroken = results.filter((r) => r.brokenImgs > 0);
   const with4xx = results.filter((r) => r.failedReq.length);
-  console.log(`\n===== CRAWL SUMMARY =====`);
+  console.log(`\n===== CRAWL SUMMARY [${ENGINE}] =====`);
   console.log(`total=${results.length}  ok=${results.length - bad.length}  bad=${bad.length}  consoleErrPages=${withConsole.length}  brokenImgPages=${withBroken.length}  failedReqPages=${with4xx.length}`);
   if (bad.length) { console.log(`\n-- BAD pages (${bad.length}) --`); bad.forEach((r) => console.log(`  ${r.status} ${r.url} ${r.err || ""}`)); }
   if (withConsole.length) { console.log(`\n-- console / page errors (${withConsole.length}) --`); withConsole.slice(0, 50).forEach((r) => console.log(`  ${r.url}\n     ${[...r.pageErrors, ...r.consoleErrors].slice(0, 2).join("\n     ")}`)); }

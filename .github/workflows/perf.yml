@@ -1,0 +1,39 @@
+# Performance/quality audit of key prod pages via Lighthouse (mobile emulation).
+# Manual: gh workflow run perf.yml
+name: perf
+on:
+  workflow_dispatch: {}
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lighthouse
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            https://pdfcraftai.com/
+            https://pdfcraftai.com/tools
+            https://pdfcraftai.com/pricing
+            https://pdfcraftai.com/blog
+            https://pdfcraftai.com/extract-emails-from-pdf
+            https://pdfcraftai.com/tool/merge-pdf
+          temporaryPublicStorage: true
+          uploadArtifacts: true
+      - name: Summarize scores
+        if: always()
+        run: |
+          node -e '
+            const fs=require("fs"), dir=".lighthouseci";
+            if(!fs.existsSync(dir)){console.log("no .lighthouseci dir");process.exit(0);}
+            const files=fs.readdirSync(dir).filter(x=>x.startsWith("lhr-")&&x.endsWith(".json"));
+            console.log("===== LIGHTHOUSE SCORES (0-100, mobile) =====");
+            for(const f of files){
+              const r=JSON.parse(fs.readFileSync(dir+"/"+f,"utf8"));
+              const c=r.categories||{}, a=r.audits||{};
+              const s=k=>c[k]&&c[k].score!=null?Math.round(c[k].score*100):"?";
+              const m=k=>a[k]&&a[k].displayValue?a[k].displayValue:"?";
+              console.log(`${(r.finalDisplayedUrl||r.finalUrl||r.requestedUrl||"").replace("https://pdfcraftai.com","")||"/"}  perf=${s("performance")} a11y=${s("accessibility")} bp=${s("best-practices")} seo=${s("seo")}  | LCP=${m("largest-contentful-paint")} CLS=${m("cumulative-layout-shift")} TBT=${m("total-blocking-time")}`);
+            }
+          '

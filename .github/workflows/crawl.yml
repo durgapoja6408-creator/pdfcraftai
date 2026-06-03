@@ -1,5 +1,5 @@
-# Comprehensive public-page crawl of production (Playwright/Chromium).
-# Manual: gh workflow run crawl.yml -f max=0   (0 = all sitemap URLs)
+# Comprehensive public-page crawl of production (Playwright) across 3 engines.
+# Manual: gh workflow run crawl.yml -f max=0
 name: crawl
 on:
   workflow_dispatch:
@@ -15,7 +15,11 @@ on:
 jobs:
   crawl:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,16 +27,17 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - name: Run crawl
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Run crawl (${{ matrix.browser }})
         run: node scripts/crawl-prod.mjs
         env:
           CRAWL_BASE_URL: ${{ inputs.base_url }}
           CRAWL_MAX: ${{ inputs.max }}
           CRAWL_CONCURRENCY: "4"
-      - name: Upload crawl report
+          CRAWL_BROWSER: ${{ matrix.browser }}
+      - name: Upload crawl report (${{ matrix.browser }})
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: crawl-report
+          name: crawl-report-${{ matrix.browser }}
           path: crawl-report.json
