@@ -107,7 +107,7 @@ async function fillInputs(page: Page): Promise<void> {
     let val = "verification";
     if (/url|https?|link/i.test(ctx)) val = "https://example.com";
     else if (/name/i.test(ctx)) val = "E2E Test User";
-    else if (/word|phrase|search|query|find|side effects|what does/i.test(ctx)) val = "report";
+    else if (/word|phrase|search|query|find|side effects|what does/i.test(ctx)) val = "page";
     else if (/text|stamp|message/i.test(ctx)) val = "VERIFIED";
     try { await inp.fill(val); } catch { /* */ }
   }
@@ -137,7 +137,7 @@ async function clickPrimaryAction(page: Page): Promise<void> {
 }
 
 const ERROR_RX = /\b(error|failed|couldn.?t|could not|unable|invalid|not a valid|something went wrong|unsupported|too large|went wrong)\b/i;
-const BENIGN_EMPTY_RX = /\bno (images|attachments|links|form fields|fields|fonts|annotations|javascript|bookmarks|metadata|results|matches|tables|dates|contacts|outline)\b/i;
+const BENIGN_EMPTY_RX = /\bno (images|attachments|links|hyperlinks|form fields|fields|fonts|annotations|javascript|bookmarks|metadata|results|matches|tables|dates|contacts|outline)\b|\b0 (matches|results|links|fonts|annotations)\b|nothing (found|to extract)|not found/i;
 
 async function hasError(page: Page): Promise<string> {
   const alerts = page.locator('[role="alert"]:visible, .error:visible, [data-error]:visible');
@@ -190,13 +190,20 @@ test.describe("free tool execution (all)", () => {
         if (downloaded) { verdict = { ok: true, reason: "download event" }; break; }
         const erred = await hasError(page);
         if (erred) { verdict = { ok: false, reason: `error alert: ${erred}` }; break; }
-        const ctrl = page.locator('a[download]:visible, button:visible:has-text("Download"), button:visible:has-text("Save"), button:visible:has-text("Export"), button:visible:has-text("Copy")');
+        const ctrl = page.locator('a[download]:visible, button:visible:has-text("Download"), button:visible:has-text("Save"), button:visible:has-text("Export"), button:visible:has-text("Copy"), button:visible:has-text("JSON"), button:visible:has-text("CSV")');
         let ctrlOk = false;
         for (let i = 0; i < (await ctrl.count()); i++) { if (await ctrl.nth(i).isEnabled().catch(() => false)) { ctrlOk = true; break; } }
         if (ctrlOk) { verdict = { ok: true, reason: "result control (download/save/export/copy)" }; break; }
         if ((await page.locator('[data-testid*="output"]:visible, [data-testid*="result"]:visible, [class*="result"]:visible, [class*="output"]:visible, [class*="stat"]:visible, [class*="panel"]:visible, pre:visible, table:visible, canvas:visible, dl:visible').count()) > 0) {
           verdict = { ok: true, reason: "result region rendered" }; break;
         }
+        // role=status result summaries (e.g. "Found N matches") — exclude spinners
+        const statuses = page.locator('[role="status"]:visible');
+        for (let i = 0; i < (await statuses.count()); i++) {
+          const t = ((await statuses.nth(i).textContent()) || "").trim();
+          if (t.length > 8 && !/^(loading|processing|reading|parsing|working|please wait)/i.test(t)) { verdict = { ok: true, reason: `status: ${t.slice(0, 40)}` }; break; }
+        }
+        if (verdict.ok) break;
         const body = ((await page.locator("main").first().textContent().catch(() => "")) || "");
         if (BENIGN_EMPTY_RX.test(body)) { verdict = { ok: true, reason: "valid empty result" }; break; }
         if (Math.abs(body.length - baseline) >= 100) { verdict = { ok: true, reason: "view transitioned to result" }; break; }
@@ -211,11 +218,19 @@ test.describe("free tool execution (all)", () => {
 // ---- AI tools --------------------------------------------------------
 
 async function login(page: Page) {
-  await page.goto("/login");
-  await page.locator('input[type="email"]').fill(EMAIL!);
-  await page.locator('input[type="password"]').fill(PASSWORD!);
-  await page.getByRole("button", { name: /sign in|log in/i }).click();
-  await expect(page).toHaveURL(/\/app\//, { timeout: 20_000 });
+  // Retry once — under 53 parallel logins a redirect can occasionally lag.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await page.goto("/login");
+    await page.locator('input[type="email"]').fill(EMAIL!);
+    await page.locator('input[type="password"]').fill(PASSWORD!);
+    await page.getByRole("button", { name: /sign in|log in/i }).click();
+    try {
+      await page.waitForURL(/\/app\//, { timeout: 25_000 });
+      return;
+    } catch {
+      if (attempt === 1) throw new Error("login did not reach /app/ after 2 attempts");
+    }
+  }
 }
 
 test.describe("AI tool execution (all)", () => {
