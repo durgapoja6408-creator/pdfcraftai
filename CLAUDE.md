@@ -11,7 +11,7 @@
 - **Host:** Hostinger (managed Node.js Web App, `hpanel.hostinger.com/websites/pdfcraftai.com`)
 - **CDN/Proxy:** Cloudflare (full proxy; confirmed via `cf-ray`, `server: cloudflare`)
 - **GitHub repo:** `globalonlinedeveloper/pdfcraftai` (main branch deploys automatically)
-- **GitHub migration (2026-06-03):** repo transferred `durgapoja6408-creator` → `globalonlinedeveloper` (user's personal account); old path 301-redirects; Hostinger reconnected. **PENDING security cutover:** remove `durgapoja6408-creator` as a collaborator (it still has push access), revoke its PAT, and mint a fresh repo-scoped PAT under `globalonlinedeveloper` → update `.claude/secrets.env`.
+- **GitHub migration (2026-06-03):** repo transferred `durgapoja6408-creator` → `globalonlinedeveloper` (user's personal account); old path 301-redirects; Hostinger reconnected + auto-deploys from the new repo (verified). **Security cutover:** ✅ fresh PAT minted under `globalonlinedeveloper`, saved to `.claude/secrets.env`, push-verified. **STILL PENDING (user GitHub action):** remove `durgapoja6408-creator` as a repo collaborator (it still has push access) and revoke its old PAT.
 
 ## 2. Deployment flow — DO NOT edit via Hostinger file manager
 
@@ -22,8 +22,8 @@
 **You (Claude) have TWO persistent credentials the user already set up for you:**
 
 ### (a) GitHub Personal Access Token (classic)
-- **Name:** `cowork-pdfcraftai-deploy` (assumed — CLAUDE.md previously said May 19, 2026; API reports expiration 2026-07-18 18:10:48 UTC, so the token in `.claude/secrets.env` has been rotated at least once)
-- **Expires:** 2026-07-18 (verified via `github-authentication-token-expiration` response header, 2026-04-20)
+- **Name:** `cowork-pdfcraftai-deploy-v2` (owner `globalonlinedeveloper`; rotated 2026-06-03 after the repo transfer — supersedes the old `durgapoja6408-creator`-owned token, which should be revoked)
+- **Expires:** no expiration observed on the rotated token (verify in GitHub → Developer settings → Tokens; consider setting one)
 - **Owner login:** `globalonlinedeveloper` (repo transferred here from `durgapoja6408-creator` on 2026-06-03; old path 301-redirects)
 - **Scopes:** `repo`, `workflow`, `read:network_configurations`
 - **Where stored on user's side:** GitHub → Settings → Developer Settings → Tokens (classic)
