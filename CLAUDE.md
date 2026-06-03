@@ -50,6 +50,9 @@
 | GA4 Stream ID | `14383455005` |
 | Microsoft Clarity Project ID | `wcsbv536zv` |
 | GitHub repo | `globalonlinedeveloper/pdfcraftai` |
+| Admin emails (`ADMIN_EMAILS`) | `rajasekarjavaee@gmail.com` — LIVE in Hostinger env (2026-06-03); grants `/admin/*`. The admin check strips Gmail `+aliases`, so every `rajasekarjavaee+*@gmail.com` ALSO reads as admin. |
+| Cloudflare account ID | `b008d9e115edfcf4c560862bf4c73393` (zone `pdfcraftai.com`; Transform Rule "Full CSP header (all responses)" serves the CSP — see §5) |
+| prod-e2e test account | `durgapoja6408@gmail.com` — dedicated NON-admin test identity; KEEP, do NOT delete (see §4a) |
 <!-- Paddle Seller ID 320957 retired as a payment rail on 2026-05-01 (commit 92f965a). Razorpay is the sole payment processor; international gateway TBD. -->
 
 
@@ -155,8 +158,15 @@ The sandbox `.claude/secrets.env` file at session-write time contains these keys
   Adding a new `/app/*` page → MUST include `?callbackUrl=` in its auth redirect. CI guard `auth-callback-preservation` catches this.
 - **`/tool/ai-chat` is a 308 redirect to `/chat-with-pdf`**, NOT a runner page. Chat is multi-turn and lives at `/app/chat` (history dashboard) + `/app/chat/[id]` (active session). The top-nav "Chat" link is auth-conditional via `buildNav(loggedIn)` in `components/nav/TopNav.tsx`: anon → `/chat-with-pdf` (marketing), logged-in → `/app/chat` (history dashboard).
 
-## 6. Current integration status (as of 2026-05-02)
+## 6. Current integration status (as of 2026-06-03)
 
+- **2026-06-03 — Session arc (commits `eb6e657..dfbc6cc`; prod healthy):**
+  - **Admin access LIVE.** `ADMIN_EMAILS=rajasekarjavaee@gmail.com` set in Hostinger + redeployed (verified in the runtime env). `/admin/*` now open to that account. Mirrored in `.claude/{secrets,hostinger}.env`.
+  - **Prod CSP fixed at the Cloudflare edge** — Transform Rule "Full CSP header (all responses)" serves the full ~1044-char policy incl. `challenges.cloudflare.com`; LiteSpeed had been collapsing it to `upgrade-insecure-requests`. See §5 (DRIFT: CSP now lives in BOTH `next.config.mjs` AND the CF rule).
+  - **Windows git auto-sync** via Task Scheduler `pdfcraftai-Auto-Sync` (15-min pull-only). See §5.
+  - **Account model:** admin = `rajasekarjavaee@gmail.com`; prod-e2e test = `durgapoja6408@gmail.com` (NON-admin, granted +500 cr → balance 502, KEEP — do not delete). A `+5` repoint was tried + reverted (Gmail-alias normalization makes any `rajasekarjavaee+*` an admin). See §4a.
+  - **prod-e2e suite GREEN** — run #29 (`payments` phase) = **153 passed / 0 failed / 1 skipped** (skip = the intentional `test.fixme` full-card test). Hardening: 402-tolerance (`expectAiOk`) + geo-aware payment test.
+  - **Razorpay still TEST mode** (`rzp_test_*`). Per-run AI-E2E cost ≈ $0.025 (~65 credits); weekly ≈ ~$0.10/mo.
 - **2026-05-02 EOD** — 32-commit cleanup arc spanning 5 phases: Phase 3 broken-related-id cleanup (cap 22 → 4), 4 new tools shipped (extract-contacts, extract-dates, ai-court-order, extract-attachments), **17 new SEO landings** for full catalog coverage (5 Tier 1 head-term + 7 Tier 3b mid-traffic + 6 Tier 4 audit-tool + 5 reclaimed from stale 308 redirects + 1 wrong-direction-redirect fix on /markdown-to-pdf + 1 wrong-tool fix on /pdf-to-png), 4 new CI guards (`ai-tool-preview`, `redirect-direction`, `download-helper-adoption`, `spelling-uk-in`), 30-tool migration to canonical `downloadBytes` helper (eliminated ~250 LOC of duplicated dance + auto-fixed 14 tools that skipped filename collision suffix), sitewide /tool/ai-chat hop-elimination sweep (5 CTAs + 1 homepage grid), AI-specific error-shapes documented in UI_COPY.md, British/Indian spelling pinned for -ising verbs. Aggregator: **4095/4095 across 63 suites** (up from 4013/59 yesterday — +82 assertions, +4 new suites). Live commit pending deploy queue. KNOWN_DEAD_REFS pruned 13 → 7 (remaining 7 all server-side rails — compress + 6 Office bidirectionals — deferred per user directive "concentrate on Client side and AI tools" until Paddle KYC unblocks the paid tier). Multiple stale-worker holds during the arc (zombie next-server cleanup via SSH pkick per CLAUDE.md §5; each recovered within 60s). **Final SEO landing coverage: 111/111 (100%).** Full breakdown in `docs/STATUS.md` 2026-05-02 EOD addendum.
 - **Phase 2 AI standardization COMPLETE** (2026-05-01, commits `e5a9aa8..3d32d6e` — 12 commits this arc):
   - 39 AI tools backfilled with full longforms (ai-faq, ai-action-items, ai-mindmap, ai-blood-test, ai-jd-match, ai-paraphrase, ai-detector, ai-rewrite, ai-study-notes, ai-syllabus, ai-discharge, ai-blog, ai-readability, ai-newsletter, ai-video-script, ai-improve-writing, ai-proofread, ai-nda, ai-employment, ai-partnership-deed, ai-loan-bundle, ai-insurance, ai-research-paper, ai-salary-slip, ai-ats-resume, ai-condense, ai-expand, ai-tone-analyze, ai-citations, ai-sentiment, ai-bias, ai-entities, ai-social-thread, ai-semantic-search, ai-searchable-pdf, ai-chart-to-table, ai-table, ai-generate, ai-sign).

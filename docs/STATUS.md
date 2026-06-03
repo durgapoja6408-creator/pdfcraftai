@@ -9,7 +9,7 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 **Account model** (founder directive: real account = admin; remove throwaway test accounts):
 - ADMIN = `rajasekarjavaee@gmail.com` (Google-only, no password) via `ADMIN_EMAILS` in Hostinger
-  (mirrored in `.claude/{secrets,hostinger}.env`). Needs Save+redeploy to go live.
+  (mirrored in `.claude/{secrets,hostinger}.env`). **LIVE + verified in the prod runtime env 2026-06-03.**
 - TEST USER (prod-e2e) = `durgapoja6408@gmail.com` (user_id `6b303c3b-ddfd-48fc-9162-2556d077fece`;
   password `Cognizant@2020`, bcrypt-verified; granted +500 credits -> balance 502). KEPT as the dedicated
   NON-admin test identity; do NOT delete. WHY: `ADMIN_EMAILS=rajasekarjavaee@gmail.com` is live AND the
@@ -25,6 +25,11 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 **Per-run AI cost** (measured from `ai_usage` 2026-06-03): one full run ~= 65 credits ~= ~$0.025 real
 provider cost (summarize-family dominant); weekly cadence ~= ~$0.10/mo. Negligible.
+
+**FINAL RESULT — prod-e2e GREEN:** run #29 (`payments` phase, account durgapoja6408) =
+**153 passed / 0 failed / 1 skipped** (skip = the intentional `test.fixme` full-card-checkout test;
+ZERO out-of-credits skips, so all 14 AI ops genuinely hit the providers). Arc commits:
+`9b6a8b6` (402-tolerance + brief +5 repoint) -> `dfbc6cc` (reverted to durgapoja6408 + docs). Prod healthy.
 
 ---
 
@@ -62,8 +67,8 @@ provider cost (summarize-family dominant); weekly cadence ~= ~$0.10/mo. Negligib
   default stays `durgapoja6408@gmail.com` (the dedicated non-admin test account — see the
   account-model entry above for why a rajasekarjavaee alias can't be used).
 
-**Verify:** `tsc --noEmit` clean; aggregator 7173/0 across 131 suites. Next: dispatch prod-e2e to
-confirm the 2 CSP tests + the rewritten Razorpay test are green.
+**Verify:** `tsc --noEmit` clean; aggregator 7173/0 across 131 suites. CONFIRMED GREEN in prod-e2e
+run #29 — the 2 CSP/Turnstile tests + the geo-aware Razorpay test all pass.
 
 ---
 
