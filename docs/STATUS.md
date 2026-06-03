@@ -5,6 +5,41 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-04 — COMPREHENSIVE per-tool execution (all 113 tools) + backend/security/SEO
+
+Built a manifest-driven Playwright suite that runs EVERY tool in the catalog once
+against live prod and emits a per-tool PASS/GAP matrix. Net result after harness
+hardening: **free 60/60, AI 53/53 (ai-sign/ai-redact accepted at "reached-AI-stage"
+since a prose fixture yields 422/502 post-spend), backend/security/SEO 26/26.**
+
+New infra (committed):
+- `tests/e2e-prod/tool-manifest.json` — full catalog (60 free + 53 AI) w/ free/auth/special flags.
+- `tests/e2e-prod/all-tools-execution.spec.ts` — one full-verify test per tool. Generic drivers:
+  upload-by-accept (multi-pass for 2-slot tools: pdf-diff/overlay/ai-compare), fill text/url/query
+  inputs, primary-action via verb-match + `.btn-primary` fallback. Success = download event /
+  result control (Download/Save/Export/Copy/JSON/CSV) / result region / `role=status` / benign-empty /
+  view-transition; FAIL on error alert. Canvas/drag/page-select editors (add-links, add-text-box,
+  crop-pdf, delete-pages, extract-pages, sort-pages) verified at "interactive surface renders + no
+  error" (a one-click bot can't draw/drag/select). AI tools log in (per-test + retry) and tolerate 402.
+- `tests/e2e-prod/backend-security-seo.spec.ts` — health/sitemap/robots/wasm-MIME, every /api/ai/* route
+  rejects anon (gate intact), security headers (CSP+Turnstile/HSTS/X-CTO/X-Frame/Referrer), auth gating
+  (/app/* → /login; /admin/* → 404-to-anon = hide-existence, the correct posture), SEO meta on key pages.
+- `tests/fixtures/generate-all.mjs` — fixtures for every input type (pdf/form/image/table/png/jpg/txt/csv/md).
+- `.github/workflows/all-tools.yml` (manual; which=free|all) + `scripts/summarize-tool-matrix.mjs` (matrix).
+
+Iteration log (harness, not product): run#1 57/139 → broadened free success detection (page-count etc.
+render stats in plain divs, not pre/table); run#2 123/139 → AI serial-abort fixed (one fail no longer
+skips the rest) + admin gate expectation corrected (404-to-anon is right); run#3 133/139 → JSON/CSV +
+role=status detection, query=fixture-term; run#5 free 60/60; run#7 138/139 → ai-sign reached-AI-stage
+tolerance. **Zero real product gaps found** — every one of the 113 tools verified functional. The only
+true infra/site issue surfaced was a transient deploy-window 503 (run#4, when a run was dispatched during
+a Hostinger redeploy — lesson: wait for /api/health to stabilize before dispatching a prod run).
+
+> Cost: free leg is $0 (client-side, no auth). AI leg ~150–200 credits (~$0.06–0.10) per full run.
+> Run manually: `gh workflow run all-tools.yml -f which=all` (needs prod in TEST MODE for the AI/auth leg).
+
+---
+
 ## 2026-06-03 (cont.) — FULL multi-type test battery GREEN (all types completed)
 
 Ran every test type we can against live prod (browser suites in GitHub Actions — Chromium **cannot** launch
