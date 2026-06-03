@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 // scripts/test-marketing-pages-jsonld.mjs
 //
-// 2026-05-12 — CI guard covering /api, /bulk, /help marketing-page
+// 2026-05-12 — CI guard covering /bulk, /help marketing-page
 // JSON-LD additions. Each page uses a different schema shape
 // appropriate to its content:
 //
-//   - /api  → TechArticle (technical documentation, not software app)
 //   - /bulk → Service + OfferCatalog (feature-led service surface)
 //   - /help → CollectionPage + ItemList (topic-grouped help center)
 //
@@ -22,20 +21,6 @@ function check(label, predicate) {
   if (ok) pass++; else fail++;
   report.push({ label, ok });
 }
-
-// ─── /api — TechArticle ───
-const API = readFileSync("app/api/page.tsx", "utf8");
-check("api/A1: API_JSONLD declared", /const API_JSONLD\s*=/.test(API));
-check("api/A2: @type TechArticle", /"@type":\s*"TechArticle"/.test(API));
-check("api/A3: proficiencyLevel set", /proficiencyLevel:\s*"Expert"/.test(API));
-check("api/A4: publisher Organization with logo", /publisher:\s*\{[\s\S]*?"@type":\s*"Organization"[\s\S]*?logo:/.test(API));
-check("api/A5: BreadcrumbList present", /"@type":\s*"BreadcrumbList"/.test(API));
-check("api/A6: 2 ld+json script tags", (API.match(/type="application\/ld\+json"/g) || []).length >= 2);
-check(
-  "api/A7: both schemas JSON.stringify'd",
-  /JSON\.stringify\(API_JSONLD\)/.test(API) &&
-    /JSON\.stringify\(BREADCRUMB_JSONLD\)/.test(API)
-);
 
 // ─── /bulk — Service ───
 const BULK = readFileSync("app/bulk/page.tsx", "utf8");

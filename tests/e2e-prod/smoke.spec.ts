@@ -291,14 +291,6 @@ test.describe("use cases", () => {
 // ─── Group J: Marketing pages ────────────────────────────────────────────────
 
 test.describe("marketing surfaces", () => {
-  test("/api has TechArticle JSON-LD", async ({ page }) => {
-    await page.goto("/api");
-    const scripts = await page
-      .locator('script[type="application/ld+json"]')
-      .allTextContents();
-    expect(scripts.join(" ")).toContain('"@type":"TechArticle"');
-  });
-
   test("/bulk has Service JSON-LD", async ({ page }) => {
     await page.goto("/bulk");
     const scripts = await page

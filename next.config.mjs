@@ -330,14 +330,12 @@ const nextConfig = {
       // is an extra round-trip for the user). Pointed directly at
       // the final destination so /tools/<slug> → /tool/<id> in one
       // hop.
-      // 2026-06-03 — retire the premature public API surface. /api was a
-      // marketing/reference page for a developer API with no key-authed
-      // endpoints yet. Redirect the EXACT /api path only (308) to the
-      // product; the 42 backend route handlers under /api/* (health, ai,
-      // webhooks, …) are UNAFFECTED — Next source matching is exact, not
-      // prefix. /app/api-keys (auth-gated mgmt UI) 307s so it's trivially
-      // restorable if a real API ships later.
-      { source: "/api", destination: "/tools", permanent: true },
+      // 2026-06-03 — retired the premature public API surface. The /api
+      // developer-reference PAGE was deleted outright (app/api/page.tsx +
+      // lib/api-endpoints.ts removed) so /api now 404s — no redirect. The 42
+      // backend route handlers under /api/* (health, ai, webhooks, …) are
+      // unaffected. /app/api-keys (auth-gated mgmt UI) still 307s to the
+      // dashboard until a real API ships.
       { source: "/app/api-keys", destination: "/app/dashboard", permanent: false },
       { source: "/tools/merge-pdf", destination: "/tool/merge", permanent: true },
       { source: "/tools/split-pdf", destination: "/tool/split", permanent: true },

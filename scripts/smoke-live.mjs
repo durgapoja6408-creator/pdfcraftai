@@ -68,7 +68,7 @@ async function run() {
   }
 
   group("marketing surface");
-  for (const path of ["/", "/pricing", "/tools", "/about", "/help", "/api"]) {
+  for (const path of ["/", "/pricing", "/tools", "/about", "/help"]) {
     const r = await req(path);
     log(`GET ${path} returns 200 HTML`, r.status === 200 && typeof r.body === "string" && r.body.length > 500, `status=${r.status} bytes=${typeof r.body === "string" ? r.body.length : "n/a"}`);
   }
