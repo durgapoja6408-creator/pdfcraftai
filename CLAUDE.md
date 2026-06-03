@@ -11,7 +11,7 @@
 - **Host:** Hostinger (managed Node.js Web App, `hpanel.hostinger.com/websites/pdfcraftai.com`)
 - **CDN/Proxy:** Cloudflare (full proxy; confirmed via `cf-ray`, `server: cloudflare`)
 - **GitHub repo:** `globalonlinedeveloper/pdfcraftai` (main branch deploys automatically)
-- **GitHub migration (2026-06-03):** repo transferred `durgapoja6408-creator` → `globalonlinedeveloper` (user's personal account); old path 301-redirects; Hostinger reconnected + auto-deploys from the new repo (verified). **Security cutover:** ✅ fresh PAT minted under `globalonlinedeveloper`, saved to `.claude/secrets.env`, push-verified. **STILL PENDING (user GitHub action):** remove `durgapoja6408-creator` as a repo collaborator (it still has push access) and revoke its old PAT.
+- **GitHub migration (2026-06-03):** repo transferred `durgapoja6408-creator` → `globalonlinedeveloper` (user's personal account); old path 301-redirects; Hostinger reconnected + auto-deploys from the new repo (verified). **Security cutover COMPLETE (2026-06-03):** fresh PAT minted under `globalonlinedeveloper` (push-verified); `durgapoja6408-creator` removed as a collaborator and its old PAT revoked (verified: old token now returns 401). Repo, deploy pipeline, and credentials are fully under `globalonlinedeveloper`.
 
 ## 2. Deployment flow — DO NOT edit via Hostinger file manager
 
@@ -23,7 +23,7 @@
 
 ### (a) GitHub Personal Access Token (classic)
 - **Name:** `cowork-pdfcraftai-deploy-v2` (owner `globalonlinedeveloper`; rotated 2026-06-03 after the repo transfer — supersedes the old `durgapoja6408-creator`-owned token, which should be revoked)
-- **Expires:** no expiration observed on the rotated token (verify in GitHub → Developer settings → Tokens; consider setting one)
+- **Expires:** no expiration set (user-managed — do not track here)
 - **Owner login:** `globalonlinedeveloper` (repo transferred here from `durgapoja6408-creator` on 2026-06-03; old path 301-redirects)
 - **Scopes:** `repo`, `workflow`, `read:network_configurations`
 - **Where stored on user's side:** GitHub → Settings → Developer Settings → Tokens (classic)
@@ -57,6 +57,22 @@
 `GOOGLE_CLIENT_SECRET`, `NEXTAUTH_SECRET`, `MYSQL_URL`, the PAT/SSH private key itself, and `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` / `RAZORPAY_WEBHOOK_SECRET`.
 
 ## 4. Credentials handoff pattern — `.claude/secrets.env`
+
+### Fresh-session quick start (the sandbox is ephemeral — see §5 gotchas)
+
+A new session loses all sandbox scratch (working clone, node_modules, /tmp,
+Playwright browsers). Durable state = GitHub (source of truth) + THIS mounted
+folder's `.claude/` (secrets + SSH key). To get productive in ~2-3 min:
+
+1. Read this `CLAUDE.md` + `docs/STATUS.md`.
+2. `source .claude/secrets.env` (it persists in your folder).
+3. `bash scripts/dev-bootstrap.sh` — clones fresh into `~/pdfwork` (on the roomy
+   `/sessions` partition, NOT `/tmp` which is small), then `npm ci` + prebuild
+   assets + test fixtures + tsc. (`npm ci` can exceed the bash 45s cap — if
+   driving via the bash tool, run it detached + poll per §5.)
+4. Edit source in THIS mounted folder via the file tools; `rsync` the tree to
+   `~/pdfwork` to build/test/push. Do NOT trust the mounted `.git` or the
+   Edit/Write tools' writes to the mount (NUL corruption) — see §5.
 
 When the user pastes credentials, save them to `.claude/secrets.env` (already gitignored). Format:
 
