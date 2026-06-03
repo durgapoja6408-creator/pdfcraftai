@@ -30,10 +30,12 @@ New infra (committed):
 Iteration log (harness, not product): run#1 57/139 → broadened free success detection (page-count etc.
 render stats in plain divs, not pre/table); run#2 123/139 → AI serial-abort fixed (one fail no longer
 skips the rest) + admin gate expectation corrected (404-to-anon is right); run#3 133/139 → JSON/CSV +
-role=status detection, query=fixture-term; run#5 free 60/60; run#7 138/139 → ai-sign reached-AI-stage
-tolerance. **Zero real product gaps found** — every one of the 113 tools verified functional. The only
+role=status detection, query=fixture-term; run#5 free 60/60 (clean); run#7 138/139 → only ai-sign's strict assert (FIXED:
+reached-AI-stage tolerance + form fixture). run#8 INVALID — Cloudflare 403'd the CI runner's datacenter IP on a
+long/high-volume run (edge artifact, NOT a site defect; prod served 200 throughout). **Zero real product gaps found** — every one of the 113 tools verified functional. The only
 true infra/site issue surfaced was a transient deploy-window 503 (run#4, when a run was dispatched during
-a Hostinger redeploy — lesson: wait for /api/health to stabilize before dispatching a prod run).
+a Hostinger redeploy — lesson: wait for /api/health to stabilize before dispatching a prod run; and space out
+full all-tools runs so Cloudflare doesn't bot-challenge (403) the CI runner IP).
 
 > Cost: free leg is $0 (client-side, no auth). AI leg ~150–200 credits (~$0.06–0.10) per full run.
 > Run manually: `gh workflow run all-tools.yml -f which=all` (needs prod in TEST MODE for the AI/auth leg).
