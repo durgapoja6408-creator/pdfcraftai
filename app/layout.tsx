@@ -143,7 +143,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         */}
         <link rel="dns-prefetch" href="https://api.openai.com" />
         <link rel="dns-prefetch" href="https://api.anthropic.com" />
-        <link rel="preconnect" href="https://api.openai.com" crossOrigin="" />
         {/*
           Site-wide JSON-LD (Task #72). Two types in one block:
           - Organization: identifies the brand entity to Google so it

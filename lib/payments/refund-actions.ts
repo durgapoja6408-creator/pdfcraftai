@@ -42,7 +42,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { db, schema } from "@/db/client";
 import { and, eq } from "drizzle-orm";
-import { CREDIT_PACKS, type CreditPackId } from "@/lib/pricing";
+import { CREDIT_PACKS, packCreditsForVariant, type CreditPackId } from "@/lib/pricing";
 import { getProvider } from "./registry";
 import type { Currency, Money } from "./types";
 
@@ -252,6 +252,7 @@ async function computeEligibility(
       status: schema.payments.status,
       mode: schema.payments.mode,
       packId: schema.payments.packId,
+      annualVariant: schema.payments.annualVariant,
       amountMinor: schema.payments.amountMinor,
       currency: schema.payments.currency,
       createdAt: schema.payments.createdAt,
@@ -343,7 +344,15 @@ async function computeEligibility(
     .limit(1);
 
   const balance = balanceRow?.balance ?? 0;
-  const totalPackCredits = pack.credits + (pack.bonus ?? 0);
+  // Task #27 — match the variant the capture granted so an annual buyer's
+  // refund prorates against base*12 (+bonus), not the monthly base (~1/12th).
+  const variant: "monthly" | "annual" =
+    Number(payment.annualVariant ?? 0) === 1 ? "annual" : "monthly";
+  const { paid: variantPaid, bonus: variantBonus } = packCreditsForVariant(
+    pack,
+    variant
+  );
+  const totalPackCredits = variantPaid + variantBonus;
   const refundableCredits = Math.min(totalPackCredits, Math.max(balance, 0));
 
   if (refundableCredits <= 0) {

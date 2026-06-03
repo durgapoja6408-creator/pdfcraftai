@@ -27,7 +27,7 @@ export default function Error({
           Your files never leave your browser, so nothing was lost. You can try again, or head back and pick another tool.
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <button type="button" className="btn btn-lg" onClick={reset}>Try again</button>
+          <button type="button" className="btn btn-lg btn-primary" onClick={reset}>Try again</button>
           <Link href="/" className="btn btn-lg btn-ghost">Go home</Link>
           <Link href="/tools" className="btn btn-lg btn-ghost">All tools</Link>
         </div>
