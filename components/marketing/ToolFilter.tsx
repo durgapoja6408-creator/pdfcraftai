@@ -4,107 +4,27 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { I } from "@/components/icons/Icons";
 import { TOOLS, type Tool } from "@/lib/tools";
+import {
+  FREE_SECTIONS,
+  AI_SECTIONS,
+  ALL_SECTION_KEYS,
+  buildSections,
+} from "@/lib/tool-sections";
 
 type Filter = "all" | "free" | "ai";
 
-// ---------------------------------------------------------------------------
-// Section model
-// ---------------------------------------------------------------------------
-// The catalog renders as a flat list of collapsible sections. The five free
-// categories come straight from each tool's data-level `group` field. The AI
-// side is one big `group: "AI"` in the data, so we sub-group it HERE in the UI
-// (by tool id) into themed sections - without touching `tool.group` (that's
-// validated by test-tool-id-conventions.mjs). Every catalog AI tool must land
-// in exactly one bucket; anything unmapped falls into "More AI tools" so a
-// newly-added AI tool can never silently disappear.
-//
-// 2026-06-04: collapsible accordion + AI sub-grouping (user request). Each
-// section is an accessible disclosure (h2 > button[aria-expanded]). Default
-// is all-expanded so the SSR snapshot contains every tool card/link (good for
-// crawl + in-page find); collapsing is a client action. Typing in search
-// force-opens every matching section so results are never hidden.
+// /tools order: free categories first, then the AI sub-groups.
+const TOOLS_ORDER = [...FREE_SECTIONS, ...AI_SECTIONS];
 
-type FreeSection = { kind: "free"; key: string; label: string; group: Tool["group"] };
-type AiSection = { kind: "ai"; key: string; label: string; ids: readonly string[] };
-type SectionDef = FreeSection | AiSection;
-
-const SECTIONS: readonly SectionDef[] = [
-  { kind: "free", key: "Organize", label: "Organize", group: "Organize" },
-  { kind: "free", key: "Convert", label: "Convert", group: "Convert" },
-  { kind: "free", key: "Edit", label: "Edit & annotate", group: "Edit" },
-  { kind: "free", key: "Optimize", label: "Optimize", group: "Optimize" },
-  { kind: "free", key: "Security", label: "Security & redaction", group: "Security" },
-  {
-    kind: "ai",
-    key: "ai-understand",
-    label: "Summarize & Understand",
-    ids: [
-      "ai-summarize", "ai-tldr", "ai-key-points", "ai-study-notes", "ai-eli5",
-      "ai-faq", "ai-mindmap", "ai-flashcards", "ai-quiz", "ai-syllabus",
-      "ai-research-paper", "ai-semantic-search",
-    ],
-  },
-  {
-    kind: "ai",
-    key: "ai-write",
-    label: "Write & Rewrite",
-    ids: [
-      "ai-blog", "ai-newsletter", "ai-video-script", "ai-social-thread",
-      "ai-condense", "ai-expand", "ai-improve-writing", "ai-paraphrase",
-      "ai-rewrite", "ai-proofread", "ai-generate",
-    ],
-  },
-  {
-    kind: "ai",
-    key: "ai-analyze",
-    label: "Analyse & Extract",
-    ids: [
-      "ai-entities", "ai-tone-analyze", "ai-citations", "ai-sentiment",
-      "ai-bias", "ai-readability", "ai-detector", "ai-action-items",
-      "ai-chart-to-table", "ai-table", "ai-compare",
-    ],
-  },
-  {
-    kind: "ai",
-    key: "ai-docs",
-    label: "Documents & Convert",
-    ids: ["ai-translate", "ai-ocr", "ai-searchable-pdf", "ai-redact", "ai-sign"],
-  },
-  {
-    kind: "ai",
-    key: "ai-careers",
-    label: "Careers",
-    ids: ["ai-ats-resume", "ai-resume-parse", "ai-jd-match", "ai-cover-letter"],
-  },
-  {
-    kind: "ai",
-    key: "ai-legal-health",
-    label: "Legal & Health",
-    ids: [
-      "ai-nda", "ai-employment", "ai-partnership-deed", "ai-court-order",
-      "ai-loan-bundle", "ai-insurance", "ai-salary-slip", "ai-blood-test",
-      "ai-discharge",
-    ],
-  },
-];
-
-// id -> AI section key (built once). Used to route AI tools into sub-sections.
-const AI_SECTION_OF: Map<string, string> = (() => {
-  const m = new Map<string, string>();
-  for (const s of SECTIONS) {
-    if (s.kind === "ai") for (const id of s.ids) m.set(id, s.key);
-  }
-  return m;
-})();
-
-const AI_FALLBACK_KEY = "ai-more";
-const ALL_SECTION_KEYS: readonly string[] = [...SECTIONS.map((s) => s.key), AI_FALLBACK_KEY];
+// 2026-06-04: collapsible accordion + AI sub-grouping. Each section is an
+// accessible disclosure (h2 > button[aria-expanded]). Default all-expanded so
+// the SSR snapshot keeps every tool card/link (crawl + in-page find); collapse
+// is a client action. Typing in search force-opens matching sections. The
+// section model (incl. the 52-id AI->sub-group map) lives in lib/tool-sections.
 
 export function ToolFilter() {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
-  // Which sections are open. Default = all open (matches SSR; no persistence,
-  // so there's no hydration mismatch and no on-load layout shift).
   const [openKeys, setOpenKeys] = useState<Set<string>>(() => new Set(ALL_SECTION_KEYS));
 
   const filtered = useMemo(() => {
@@ -120,25 +40,7 @@ export function ToolFilter() {
     });
   }, [q, filter]);
 
-  // Build the ordered, non-empty sections from the filtered set.
-  const sections = useMemo(() => {
-    const byKey = new Map<string, Tool[]>();
-    for (const t of filtered) {
-      const key = t.free ? t.group : AI_SECTION_OF.get(t.id) ?? AI_FALLBACK_KEY;
-      const arr = byKey.get(key) ?? [];
-      arr.push(t);
-      byKey.set(key, arr);
-    }
-    const out: { key: string; label: string; isAI: boolean; tools: Tool[] }[] = [];
-    for (const s of SECTIONS) {
-      const tools = byKey.get(s.key) ?? [];
-      if (tools.length) out.push({ key: s.key, label: s.label, isAI: s.kind === "ai", tools });
-    }
-    // Safety net: any AI tool that wasn't mapped to a sub-group.
-    const more = byKey.get(AI_FALLBACK_KEY) ?? [];
-    if (more.length) out.push({ key: AI_FALLBACK_KEY, label: "More AI tools", isAI: true, tools: more });
-    return out;
-  }, [filtered]);
+  const sections = useMemo(() => buildSections(filtered, TOOLS_ORDER), [filtered]);
 
   const searching = q.trim().length > 0;
   // While searching, every shown section is force-open so matches aren't hidden.
