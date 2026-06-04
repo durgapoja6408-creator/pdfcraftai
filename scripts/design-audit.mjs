@@ -155,7 +155,11 @@ async function run() {
     n++;
     try {
       await spage.goto(u, { waitUntil: "domcontentloaded", timeout: 25000 });
-      await scrollToBottom(spage);
+      // Light scroll (2 screens) — structural metrics (headings/landmarks/
+      // overflow/meta) are load-time DOM facts; the full-scroll render check
+      // is the crawl's job (scrolls all 295). Full-scroll here blew the budget.
+      await spage.evaluate(() => window.scrollTo(0, window.innerHeight * 2));
+      await spage.waitForTimeout(120);
       const m = await metrics(spage);
       report.all.push({ url: u.replace(BASE, "") || "/", h1: m.h1, h2: m.h2,
         headingOrderJumps: m.headingOrderJumps, landmarks: m.landmarks, overflowX: m.overflowX,
