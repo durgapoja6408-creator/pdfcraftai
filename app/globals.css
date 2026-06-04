@@ -277,22 +277,33 @@ h4 {
   margin-bottom: 8px;
   border-bottom: 1px solid var(--border);
 }
+.tools-jumpwrap { position: relative; margin-top: 12px; }
 .tools-jumpbar {
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  margin-top: 10px;
-  padding-bottom: 4px;
-  scrollbar-width: thin;
+  padding-bottom: 1px;
+  scrollbar-width: none;            /* hide native scrollbar (still scrollable) */
+  -ms-overflow-style: none;
 }
-.tools-jumpbar::-webkit-scrollbar { height: 6px; }
+.tools-jumpbar::-webkit-scrollbar { display: none; }
+/* soft right-edge fade signals "more categories" without an ugly scrollbar */
+.tools-jumpfade {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--bg));
+  pointer-events: none;
+}
 .tools-jumpchip {
   flex: 0 0 auto;
   white-space: nowrap;
   background: var(--bg-1);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 6px 12px;
+  padding: 6px 13px;
   font-size: 12.5px;
   color: var(--fg-muted);
   cursor: pointer;
@@ -300,6 +311,20 @@ h4 {
 }
 .tools-jumpchip:hover { color: var(--fg); border-color: var(--fg-subtle); }
 .tools-jumpchip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* "Try: combine · shrink · sign" example chips under the search box */
+.tools-example-chip {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 11px;
+  font-size: 11.5px;
+  color: var(--fg-muted);
+  cursor: pointer;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  transition: color 120ms, border-color 120ms;
+}
+.tools-example-chip:hover { color: var(--fg); border-color: var(--fg-subtle); }
+.tools-example-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ---------- Layout ---------- */
 .container-x {
