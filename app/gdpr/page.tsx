@@ -80,7 +80,7 @@ const SUBPROCESSORS: Array<{ vendor: string; purpose: string; region: string }> 
 
 export default function GDPRPage() {
   return (
-    <>
+    <main>
       <MarketingHero
         eyebrow="GDPR"
         title={
@@ -290,6 +290,6 @@ export default function GDPRPage() {
           </Link>
         </div>
       </section>
-    </>
+    </main>
   );
 }

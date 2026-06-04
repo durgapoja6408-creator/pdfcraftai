@@ -59,3 +59,4 @@ next-env.d.ts
 
 # Regenerated each build by scripts/copy-pdfjs-worker.mjs
 public/pdfjs-worker.min.mjs
+_audit/

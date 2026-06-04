@@ -79,7 +79,7 @@ const TAG_STYLE: Record<Tag, { bg: string; fg: string }> = {
 
 export default function ChangelogPage() {
   return (
-    <>
+    <main>
       <MarketingHero
         eyebrow="CHANGELOG"
         title="What we shipped, sorted newest first."
@@ -172,6 +172,6 @@ export default function ChangelogPage() {
           </Link>
         </div>
       </section>
-    </>
+    </main>
   );
 }

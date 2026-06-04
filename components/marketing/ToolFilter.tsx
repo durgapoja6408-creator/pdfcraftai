@@ -30,6 +30,31 @@ export function ToolFilter() {
     });
   }, [q, filter]);
 
+  // Group the (filtered) tools by category so the catalog reads as
+  // labelled sections instead of a flat 113-card wall. Each section
+  // gets an <h2> — improves scannability + fixes the h1->h3 heading
+  // skip flagged by the 2026-06-04 design audit. Empty groups (e.g.
+  // AI when filter==="free", or no search matches) are dropped.
+  const grouped = useMemo(() => {
+    const order: { key: Tool["group"]; label: string }[] = [
+      { key: "Organize", label: "Organize" },
+      { key: "Convert", label: "Convert" },
+      { key: "Edit", label: "Edit & annotate" },
+      { key: "Optimize", label: "Optimize" },
+      { key: "Security", label: "Security & redaction" },
+      { key: "AI", label: "AI tools" },
+    ];
+    const by = new Map<string, Tool[]>();
+    for (const t of filtered) {
+      const arr = by.get(t.group) ?? [];
+      arr.push(t);
+      by.set(t.group, arr);
+    }
+    return order
+      .map((g) => ({ ...g, tools: by.get(g.key) ?? [] }))
+      .filter((g) => g.tools.length > 0);
+  }, [filtered]);
+
   return (
     <>
       {/* Search + filter pills */}
@@ -94,7 +119,7 @@ export function ToolFilter() {
         </div>
       </div>
 
-      {/* Results grid */}
+      {/* Results — grouped by category, each with an <h2> header */}
       {filtered.length === 0 ? (
         <div
           className="muted"
@@ -107,17 +132,29 @@ export function ToolFilter() {
           No tools match &ldquo;{q}&rdquo;
         </div>
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: 12,
-          }}
-        >
-          {filtered.map((t) => (
-            <ToolCard key={t.id} tool={t} />
-          ))}
-        </div>
+        grouped.map((g) => (
+          <section key={g.key} style={{ marginBottom: 44 }}>
+            <div className="row" style={{ alignItems: "baseline", gap: 10, marginBottom: 14 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 600, margin: 0, letterSpacing: "-0.01em" }}>
+                {g.label}
+              </h2>
+              <span className="mono" style={{ fontSize: 12, color: "var(--fg-subtle)" }}>
+                {g.tools.length}
+              </span>
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                gap: 12,
+              }}
+            >
+              {g.tools.map((t) => (
+                <ToolCard key={t.id} tool={t} />
+              ))}
+            </div>
+          </section>
+        ))
       )}
     </>
   );

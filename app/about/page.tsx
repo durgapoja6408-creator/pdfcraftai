@@ -30,7 +30,7 @@ const VALUES: Array<{ icon: keyof typeof I; title: string; body: string }> = [
 
 export default function AboutPage() {
   return (
-    <>
+    <main>
       <MarketingHero
         eyebrow="ABOUT"
         title={
@@ -155,6 +155,6 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
-    </>
+    </main>
   );
 }

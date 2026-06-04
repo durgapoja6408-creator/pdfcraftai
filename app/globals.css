@@ -232,6 +232,20 @@ h4 {
   margin: 0 auto;
   padding: 0 28px;
 }
+/* Footer column grid — responsive. Inline 5-col grid used to force
+   ~471px min-width → ~81px horizontal overflow on every mobile page
+   (design-audit 2026-06-04). Collapses to 2 cols < 760px, 1 col < 440px. */
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  gap: 40px;
+}
+@media (max-width: 760px) {
+  .footer-grid { grid-template-columns: 1fr 1fr; gap: 28px 24px; }
+}
+@media (max-width: 440px) {
+  .footer-grid { grid-template-columns: 1fr; }
+}
 .container-narrow {
   max-width: 900px;
   margin: 0 auto;

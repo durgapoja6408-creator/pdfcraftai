@@ -20,7 +20,7 @@ const CHANNELS: Array<{ icon: keyof typeof I; title: string; email: string; sla:
 
 export default function ContactPage() {
   return (
-    <>
+    <main>
       <MarketingHero
         eyebrow="CONTACT"
         title="We read everything."
@@ -194,6 +194,6 @@ export default function ContactPage() {
           </aside>
         </div>
       </section>
-    </>
+    </main>
   );
 }

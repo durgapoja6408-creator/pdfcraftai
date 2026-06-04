@@ -171,7 +171,7 @@ export default async function StatusPage() {
     : "degraded";
 
   return (
-    <>
+    <main>
       <MarketingHero
         eyebrow="STATUS"
         title={
@@ -325,6 +325,6 @@ export default async function StatusPage() {
           </Link>
         </div>
       </section>
-    </>
+    </main>
   );
 }

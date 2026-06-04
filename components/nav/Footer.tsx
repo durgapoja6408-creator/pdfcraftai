@@ -65,8 +65,7 @@ export function Footer() {
   return (
     <footer style={{ borderTop: "1px solid var(--border)", padding: "48px 28px 32px", marginTop: 80 }}>
       <div
-        className="container-x"
-        style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: 40 }}
+        className="container-x footer-grid"
       >
         <div>
           <div className="row" style={{ marginBottom: 12 }}>
@@ -122,7 +121,7 @@ export function Footer() {
                 <Link
                   key={label + href}
                   href={href}
-                  style={{ fontSize: 13, color: "var(--fg-muted)" }}
+                  style={{ fontSize: 13, color: "var(--fg-muted)", padding: "4px 0", display: "inline-block" }}
                 >
                   {label}
                 </Link>

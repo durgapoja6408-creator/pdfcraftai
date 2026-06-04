@@ -33,7 +33,7 @@ const OPENINGS: Array<{ title: string; team: string; location: string; link: str
 
 export default function CareersPage() {
   return (
-    <>
+    <main>
       <MarketingHero
         eyebrow="CAREERS"
         title={
@@ -212,6 +212,6 @@ export default function CareersPage() {
           </Link>
         </div>
       </section>
-    </>
+    </main>
   );
 }

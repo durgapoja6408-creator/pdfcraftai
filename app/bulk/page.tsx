@@ -84,7 +84,7 @@ const BREADCRUMB_JSONLD = {
 
 export default function BulkPage() {
   return (
-    <>
+    <main>
       <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger
@@ -176,6 +176,6 @@ export default function BulkPage() {
           </div>
         </div>
       </section>
-    </>
+    </main>
   );
 }

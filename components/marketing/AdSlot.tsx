@@ -97,7 +97,12 @@ function HouseAdSlot({ slot, context }: { slot: AdSlotName; context?: string }) 
       >
         SPONSORED · {promo.eyebrow.toUpperCase()}
       </div>
-      <h3
+      {/* Not an <h3>: this ad headline must not enter the page's
+          heading outline — when the slot renders right after the <h1>
+          (tool runner pages) an <h3> here created an h1->h3 skip
+          (design-audit 2026-06-04, WCAG 1.3.1). A styled div is
+          visually identical and keeps the outline clean. */}
+      <div
         style={{
           fontSize: 18,
           fontWeight: 600,
@@ -106,7 +111,7 @@ function HouseAdSlot({ slot, context }: { slot: AdSlotName; context?: string }) 
         }}
       >
         {promo.headline}
-      </h3>
+      </div>
       <p
         style={{
           fontSize: 14,
