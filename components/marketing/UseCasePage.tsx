@@ -147,7 +147,7 @@ export function UseCasePage({ data }: { data: UseCaseData }) {
                   >
                     {i + 1}
                   </div>
-                  <div>
+                  <div style={{ minWidth: 0, overflowWrap: "anywhere" }}>
                     <div style={{ fontSize: 17, fontWeight: 500, marginBottom: 6 }}>{step.title}</div>
                     <div className="muted" style={{ fontSize: 14, lineHeight: 1.6 }}>
                       {step.detail}

@@ -186,7 +186,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
               {post.body.map((block, i) => {
                 if (block.type === "h3") {
                   return (
-                    <h3
+                    <h2
                       key={i}
                       style={{
                         fontSize: 22,
@@ -196,7 +196,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
                       }}
                     >
                       {block.text}
-                    </h3>
+                    </h2>
                   );
                 }
                 if (block.type === "quote") {

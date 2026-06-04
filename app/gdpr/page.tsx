@@ -164,7 +164,7 @@ export default function GDPRPage() {
           </h2>
           <div
             className="card"
-            style={{ padding: 0, overflow: "hidden" }}
+            style={{ padding: 0, overflowX: "auto", maxWidth: "100%" }}
           >
             <div
               className="mono"

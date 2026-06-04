@@ -37,6 +37,7 @@ import { ResetConsentButton } from "@/components/compliance/ResetConsentButton";
 
 export const metadata: Metadata = {
   title: "Cookies",
+  alternates: { canonical: "/cookies" },
   description:
     "Every cookie we set, what it's for, and how to withdraw consent in one click.",
 };

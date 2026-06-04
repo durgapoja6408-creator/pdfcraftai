@@ -39,6 +39,7 @@ async function metrics(page) {
     const heads = q("h1,h2,h3,h4").map((h) => +h.tagName[1]);
     let orderJumps = 0;
     for (let i = 1; i < heads.length; i++) if (heads[i] - heads[i - 1] > 1) orderJumps++;
+    const headSeq = heads.join("");
     // landmarks
     const landmarks = {
       header: !!document.querySelector("header"),
@@ -89,7 +90,7 @@ async function metrics(page) {
       if (fs && fs < 12) tinyFont++;
     }
     return {
-      vw, widest, metaDesc, hasCanonical, titleLen, h1: h1.length, h2: h2.length, h3: h3.length, headingOrderJumps: orderJumps,
+      vw, widest, headSeq, metaDesc, hasCanonical, titleLen, h1: h1.length, h2: h2.length, h3: h3.length, headingOrderJumps: orderJumps,
       h1Text: (h1[0] && h1[0].textContent || "").trim().slice(0, 60),
       landmarks, toolAboveFold, overflowX, tinyTargets, tinyFont,
       scrollH: document.body.scrollHeight,
@@ -166,7 +167,9 @@ async function run() {
       report.all.push({ url: u.replace(BASE, "") || "/", h1: m.h1, h2: m.h2,
         headingOrderJumps: m.headingOrderJumps, landmarks: m.landmarks, overflowX: m.overflowX,
         tinyTargets: m.tinyTargets, toolAboveFold: m.toolAboveFold, metaDesc: m.metaDesc,
-        hasCanonical: m.hasCanonical, titleLen: m.titleLen, scrollH: m.scrollH });
+        hasCanonical: m.hasCanonical, titleLen: m.titleLen, scrollH: m.scrollH,
+        widest: m.overflowX > 2 ? m.widest.topWide : undefined,
+        headSeq: m.headingOrderJumps > 0 ? m.headSeq : undefined });
       if (n % 25 === 0) console.log(`  …${n}/${urls.length}`);
     } catch (e) { report.all.push({ url: u.replace(BASE, ""), err: (e.message || e).slice(0, 80) }); }
   }
@@ -185,9 +188,9 @@ async function run() {
   console.log(`\n===== STRUCTURE SCAN (${a.length} pages) =====`);
   console.log(`multiple <h1>: ${multiH1.length}  | missing <h1>: ${noH1.length}  | heading-order jumps: ${jumps.length}`);
   console.log(`mobile horizontal overflow (>2px): ${overflow.length}  | missing <main>: ${noMain.length}`);
-  if (overflow.length) overflow.slice(0, 25).forEach((r) => console.log(`  overflowX=${r.overflowX}px  ${r.url}`));
+  if (overflow.length) overflow.slice(0, 25).forEach((r) => console.log(`  overflowX=${r.overflowX}px  ${r.url}  widest=${JSON.stringify((r.widest||[])[0]||"-")}`));
   if (multiH1.length) multiH1.slice(0, 15).forEach((r) => console.log(`  h1=${r.h1}  ${r.url}`));
-  if (jumps.length) jumps.slice(0, 20).forEach((r) => console.log(`  jumps=${r.headingOrderJumps}  ${r.url}`));
+  if (jumps.length) jumps.slice(0, 30).forEach((r) => console.log(`  jumps=${r.headingOrderJumps} seq=${r.headSeq||"?"}  ${r.url}`));
   const noDesc = a.filter((r) => (r.metaDesc || 0) < 20 && !r.err);
   const noCanon = a.filter((r) => r.hasCanonical === false && !r.err);
   const badTitle = a.filter((r) => (r.titleLen || 0) < 10 && !r.err);
