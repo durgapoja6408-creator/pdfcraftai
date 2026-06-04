@@ -5,6 +5,24 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-04 (cont.) — Homepage showcase: same collapsible accordion + AI sub-groups
+
+Applied the /tools accordion treatment to the homepage ToolsShowcase (user request). Extracted the
+section model to `lib/tool-sections.ts` (FREE_SECTIONS, AI_SECTIONS with the 52-id AI->sub-group map,
+buildSections) so /tools and the homepage share ONE source — no drift. ToolFilter.tsx now imports it
+(no /tools behaviour change). New client component `ToolsShowcaseGroups` renders the homepage catalog
+as collapsible `<h3>` disclosures, AI-first (matches the "AI for the impossible" headline), AI groups
+keep the home "Credits" chip; ToolsShowcase stays a server wrapper (eyebrow + section h2 + container).
+Default all-expanded (SSR keeps every tool card/link for SEO); Expand/Collapse all control.
+
+Live-verified (design-audit on deployed b52483a): homepage h1=1, h2=5 (marketing sections), the catalog
+groups are now h3 (11 collapsible: 6 AI sub-groups + 5 free), heading-order jumps=0, mobile + desktop
+overflow=0. Commits: 1824e8c (feature) + b52483a (auto-pull nudge). Deploy needed the nudge + a graceful
+Passenger restart (build staged in last-source.tmp ~14 min, then runtime held old workers → touch
+nodejs/tmp/restart.txt). tsc 0, aggregator 7576/0, AI coverage 52 mapped once.
+
+---
+
 ## 2026-06-04 (cont.) — /tools collapsible accordion + AI sub-grouping
 
 User request: make each /tools category section collapsible/expandable, and sub-group the AI tools the
