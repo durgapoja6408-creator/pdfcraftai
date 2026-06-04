@@ -1,0 +1,56 @@
+# .github/workflows/option-matrix.yml
+#
+# 2026-06-04 — OPTION-MATRIX: exercise EVERY option/mode of every tool
+# (113) once per option value, verifying output each time. Manual only
+# (AI leg spends credits). Emits test-results/option-matrix/matrix.jsonl.
+#
+#   which=free → free tools only (NO auth, NO credit spend)
+#   which=all  → + AI tools (needs PROD_E2E_TEST_* + PROD_E2E_AI_BUDGET_OK
+#                + prod in TEST MODE)
+
+name: option-matrix
+
+on:
+  workflow_dispatch:
+    inputs:
+      which:
+        description: "Scope"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - free
+          - all
+      url:
+        description: "URL to test against"
+        required: false
+        default: "https://pdfcraftai.com"
+
+jobs:
+  option-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "npm" }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Generate fixtures
+        run: node tests/fixtures/generate-all.mjs
+      - name: Run option matrix
+        env:
+          PROD_E2E_URL: ${{ github.event.inputs.url || 'https://pdfcraftai.com' }}
+          PROD_E2E_TEST_EMAIL: ${{ github.event.inputs.which == 'all' && secrets.PROD_E2E_TEST_EMAIL || '' }}
+          PROD_E2E_TEST_PASSWORD: ${{ github.event.inputs.which == 'all' && secrets.PROD_E2E_TEST_PASSWORD || '' }}
+          PROD_E2E_AI_BUDGET_OK: ${{ github.event.inputs.which == 'all' && secrets.PROD_E2E_AI_BUDGET_OK || '' }}
+        run: |
+          npx playwright test --config=playwright.prod.config.ts --project=chromium \
+            option-matrix.spec.ts --reporter=github,list --workers=4 || true
+      - name: Upload matrix
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: option-matrix
+          path: test-results/option-matrix/
+          retention-days: 14
