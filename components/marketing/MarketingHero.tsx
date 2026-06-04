@@ -38,6 +38,7 @@ export function MarketingHero({
           top: "-20%",
           left: "50%",
           transform: "translateX(-50%)",
+          maxWidth: "100%",
           width: 900,
           height: 500,
           background:

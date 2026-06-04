@@ -158,11 +158,19 @@ async function run() {
     n++;
     try {
       await spage.goto(u, { waitUntil: "domcontentloaded", timeout: 25000 });
-      // Light scroll (2 screens) — structural metrics (headings/landmarks/
-      // overflow/meta) are load-time DOM facts; the full-scroll render check
-      // is the crawl's job (scrolls all 295). Full-scroll here blew the budget.
-      await spage.evaluate(() => window.scrollTo(0, window.innerHeight * 2));
-      await spage.waitForTimeout(120);
+      // Settle the layout BEFORE measuring. Measuring at ~120ms produced a
+      // consistent false ~331px horizontal overflow on ~90 pages — a
+      // flash-of-unstyled-content / pre-hydration artifact (the SETTLED
+      // screenshots of the very same templates were exactly 0px). Wait for
+      // web fonts + a short paint settle so overflow/heading/landmark metrics
+      // reflect the real, settled DOM. Scroll bottom->top to trigger any lazy
+      // headings, then measure.
+      await spage.evaluate(async () => { try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch {} });
+      await spage.waitForTimeout(500);
+      await spage.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await spage.waitForTimeout(150);
+      await spage.evaluate(() => window.scrollTo(0, 0));
+      await spage.waitForTimeout(150);
       const m = await metrics(spage);
       report.all.push({ url: u.replace(BASE, "") || "/", h1: m.h1, h2: m.h2,
         headingOrderJumps: m.headingOrderJumps, landmarks: m.landmarks, overflowX: m.overflowX,

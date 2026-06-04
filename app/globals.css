@@ -226,6 +226,22 @@ h4 {
   .hero-sub { font-size: 16px; }
 }
 
+/* Accessible visually-hidden utility — keeps content in the DOM/outline
+   (e.g. section <h2> headings for correct heading order) while hiding it
+   from sighted users. Added 2026-06-04 to fix h1->h3 heading-order jumps
+   on headless card-grid sections without altering the visual design. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ---------- Layout ---------- */
 .container-x {
   max-width: 1280px;

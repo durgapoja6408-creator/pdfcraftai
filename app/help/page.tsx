@@ -107,6 +107,7 @@ export default function HelpPage() {
       {/* Topics grid */}
       <section style={{ paddingBottom: 64 }}>
         <div className="container-x" style={{ padding: "0 28px" }}>
+          <h2 className="sr-only">Help topics</h2>
           <div
             style={{
               display: "grid",

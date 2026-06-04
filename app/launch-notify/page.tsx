@@ -228,6 +228,7 @@ export default function LaunchNotifyPage({
           className="container-x"
           style={{ padding: "0 28px", maxWidth: 780 }}
         >
+          <h2 className="sr-only">Join the launch waitlist</h2>
           <LaunchNotifySignup
             source="launch_notify_page"
             defaultCountry={defaultCountry}

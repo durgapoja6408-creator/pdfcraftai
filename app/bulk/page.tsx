@@ -113,6 +113,7 @@ export default function BulkPage() {
 
       <section style={{ padding: "80px 28px", borderTop: "1px solid var(--border)" }}>
         <div className="container-x">
+          <h2 className="sr-only">Batch processing capabilities</h2>
           <div
             style={{
               display: "grid",

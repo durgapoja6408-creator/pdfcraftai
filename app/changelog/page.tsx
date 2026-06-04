@@ -90,6 +90,7 @@ export default function ChangelogPage() {
 
       <section style={{ padding: "40px 28px 80px", borderTop: "1px solid var(--border)" }}>
         <div className="container-narrow" style={{ display: "grid", gap: 18 }}>
+          <h2 className="sr-only">Release history</h2>
           {ENTRIES.map((e) => (
             <article key={e.date + e.title} className="card" style={{ padding: 24 }}>
               <header

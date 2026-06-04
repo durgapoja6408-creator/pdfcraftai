@@ -149,6 +149,7 @@ export default function EnterprisePage() {
       {/* ===== Features grid ===== */}
       <section style={{ paddingTop: 80 }}>
         <div className="container-x" style={{ padding: "0 28px", maxWidth: 1100 }}>
+          <h2 className="sr-only">Enterprise capabilities</h2>
           <div
             style={{
               display: "grid",
