@@ -132,14 +132,17 @@ async function run() {
 
   // 2) structural scan across ALL sitemap pages (mobile, metrics only)
   let urls = [];
-  try {
-    const ctx = await browser.newContext();
-    const p = await ctx.newPage();
-    const r = await p.goto(BASE + "/sitemap.xml", { timeout: 30000 });
-    const xml = await r.text();
-    urls = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]).filter((u) => u.startsWith(BASE));
-    await ctx.close();
-  } catch (e) { console.log("sitemap fetch failed:", (e.message || e).slice(0, 100)); }
+  // Node fetch (raw XML) + retry — page.goto()+response.text() proved flaky
+  // for the XML doc (returned 0 locs intermittently).
+  for (let attempt = 0; attempt < 4 && urls.length === 0; attempt++) {
+    try {
+      const res = await fetch(BASE + "/sitemap.xml", { headers: { accept: "application/xml" } });
+      const xml = await res.text();
+      urls = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim()).filter((u) => u.startsWith(BASE));
+      if (urls.length === 0) console.log(`sitemap attempt ${attempt}: HTTP ${res.status}, ${xml.length} chars, 0 locs`);
+    } catch (e) { console.log(`sitemap fetch error (attempt ${attempt}):`, (e.message || e).slice(0, 100)); }
+    if (urls.length === 0) await new Promise((r) => setTimeout(r, 4000));
+  }
   const limit = process.env.AUDIT_MAX ? +process.env.AUDIT_MAX : urls.length;
   urls = urls.slice(0, limit);
   console.log(`\n-- structural scan of ${urls.length} pages (mobile 390, full scroll, reused context) --`);
