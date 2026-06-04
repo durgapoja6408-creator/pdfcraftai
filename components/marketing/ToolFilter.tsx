@@ -114,7 +114,7 @@ export function ToolFilter() {
         )}
 
         {/* Controls — filter group + Browse-by-task, height-matched */}
-        <div className="row" style={{ gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+        <div className="row" style={{ gap: 10, marginTop: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
           <div className="row" style={{ gap: 3, height: CTRL_H, boxSizing: "border-box", background: "var(--bg-1)", border: "1px solid var(--border)", borderRadius: 10, padding: "0 4px" }}>
             {(["all", "free", "ai"] as const).map((f) => (
               <button
@@ -131,7 +131,7 @@ export function ToolFilter() {
           <Link
             href="/compare"
             className="btn btn-outline"
-            style={{ marginLeft: "auto", height: CTRL_H, boxSizing: "border-box", display: "inline-flex", alignItems: "center", gap: 8, padding: "0 16px", whiteSpace: "nowrap", fontSize: 13.5 }}
+            style={{ height: CTRL_H, boxSizing: "border-box", display: "inline-flex", alignItems: "center", gap: 8, padding: "0 16px", whiteSpace: "nowrap", fontSize: 13.5 }}
           >
             Browse by task <I.ArrowRight size={14} />
           </Link>
@@ -139,28 +139,20 @@ export function ToolFilter() {
 
         {/* Category jump-bar — hidden scrollbar + right-edge fade (hidden while searching) */}
         {!searching && sections.length > 1 && (
-          <div className="tools-jumpwrap">
-            <nav className="tools-jumpbar" aria-label="Jump to category">
-              {sections.map((s) => (
-                <button key={s.key} type="button" className="tools-jumpchip" onClick={() => jumpTo(s.key)}>
-                  {s.label}
-                  <span className="mono" style={{ opacity: 0.55, marginLeft: 6 }}>{s.tools.length}</span>
-                </button>
-              ))}
-            </nav>
-            <span className="tools-jumpfade" aria-hidden="true" />
-          </div>
+          <nav className="tools-jumpbar" aria-label="Jump to category">
+            {sections.map((s) => (
+              <button key={s.key} type="button" className="tools-jumpchip" onClick={() => jumpTo(s.key)}>
+                {s.label}
+                <span className="mono" style={{ opacity: 0.55, marginLeft: 6 }}>{s.tools.length}</span>
+              </button>
+            ))}
+          </nav>
         )}
 
         {/* Meta row — count + credits + collapse */}
         <div className="row" style={{ justifyContent: "space-between", marginTop: 14, gap: 12 }}>
           <span className="muted" role="status" aria-live="polite" style={{ fontSize: 12 }}>{countText}</span>
           <div className="row" style={{ gap: 16 }}>
-            {filter !== "free" && (
-              <Link href="/pricing" className="row muted" style={{ gap: 6, fontSize: 12, textDecoration: "none" }}>
-                <I.Coin size={14} style={{ color: "var(--accent)" }} /> What’s a credit?
-              </Link>
-            )}
             {!searching && (
               <button type="button" onClick={() => setAll(!anyOpen)} className="tool-group-allbtn mono" style={{ background: "transparent", border: "none", color: "var(--fg-subtle)", fontSize: 12, letterSpacing: "0.04em", cursor: "pointer", padding: 0 }}>
                 {anyOpen ? "COLLAPSE ALL" : "EXPAND ALL"}

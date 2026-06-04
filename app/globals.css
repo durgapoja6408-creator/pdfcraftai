@@ -277,25 +277,11 @@ h4 {
   margin-bottom: 8px;
   border-bottom: 1px solid var(--border);
 }
-.tools-jumpwrap { position: relative; margin-top: 12px; }
 .tools-jumpbar {
   display: flex;
+  flex-wrap: wrap;                  /* wrap to next line instead of scrolling */
   gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 1px;
-  scrollbar-width: none;            /* hide native scrollbar (still scrollable) */
-  -ms-overflow-style: none;
-}
-.tools-jumpbar::-webkit-scrollbar { display: none; }
-/* soft right-edge fade signals "more categories" without an ugly scrollbar */
-.tools-jumpfade {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 40px;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, var(--bg));
-  pointer-events: none;
+  margin-top: 12px;
 }
 .tools-jumpchip {
   flex: 0 0 auto;
