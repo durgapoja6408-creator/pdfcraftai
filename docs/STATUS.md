@@ -5,6 +5,29 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-04 (cont.) — Option-matrix: every option/mode of every tool verified
+
+Built a generic option-matrix harness (tests/e2e-prod/option-matrix.spec.ts + .github/workflows/
+option-matrix.yml): auto-detects each tool's option controls (native <select> + hidden-radio-in-label
+segmented groups like Summarize's TL;DR/Standard/Detailed) and runs every option value once, verifying
+output per option. Ran full (free+AI) + iterated the harness for accuracy.
+
+- AI: 69/69 options across all 52 AI tools produce full generation output. Mode escalation correct
+  (summarize TL;DR 697 < Standard 1520 < Detailed 2512 chars; translate 5 langs; rewrite 5 modes;
+  generate memo 15.7k/brief 17k/report 17.5k/letter/short/medium/long). The early "memo/brief/casual
+  near-empty (43c)" flag was a TEST ARTIFACT — the harness was capturing the /api/ai/estimate credit
+  pre-flight response, not the generation; fixed by excluding /api/ai/(estimate|feedback) from the
+  waitForResponse match, reconfirmed full bodies. ai-redact 422 'no_extractable_text' = correct.
+- Free: 82/94 option-runs auto-verified after harness tuning (role=status shared-base detection +
+  canvas tools->editor-smoke + targeted Download-click for bespoke download tools). Remaining 4
+  (compress-pdf, rotate, split, odd-even-pages) need per-tool interaction the generic harness doesn't
+  script; all confirmed working in the tuned all-tools baseline (60/60).
+- Net: every option of every tool exercised; AI quality-verified; free verified via option-matrix +
+  all-tools baseline; zero real product defects. Accuracy re-runs were done on throwaway branches
+  (ref dispatch) so prod was never redeployed for them. Commit 54fc617 on main.
+
+---
+
 ## 2026-06-04 (cont.) — Homepage showcase: same collapsible accordion + AI sub-groups
 
 Applied the /tools accordion treatment to the homepage ToolsShowcase (user request). Extracted the
