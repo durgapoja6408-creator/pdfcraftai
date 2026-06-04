@@ -129,3 +129,53 @@ export function buildSections(tools: readonly Tool[], order: readonly SectionDef
   if (more.length) out.push({ key: AI_FALLBACK_KEY, label: "More AI tools", isAI: true, tools: more });
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// /tools catalog enhancements (2026-06-04, P0/P1/P2 improvement plan)
+// ---------------------------------------------------------------------------
+
+// "Popular / Start here" row shown above the full grid (filter=all, no search).
+// High-intent tools only; ai-chat excluded (it lives at /app/chat, not /tool/*).
+export const POPULAR_TOOL_IDS: readonly string[] = [
+  "merge", "split", "compress-pdf", "pdf-to-jpg", "jpg-to-pdf", "rotate",
+  "ai-summarize", "ai-translate",
+];
+
+// One-line intro under each section <h2> (keyword coverage + scent).
+export const SECTION_BLURBS: Record<string, string> = {
+  Organize: "Reorder, count, extract and inspect — structure your PDFs.",
+  Convert: "PDFs to and from text, images, HTML, Markdown and CSV.",
+  Edit: "Stamp, fill, overlay, number, annotate and redact.",
+  Optimize: "Shrink and tune PDFs for sharing or print.",
+  Security: "Unlock, redact and strip sensitive data from PDFs.",
+  "ai-understand": "Summaries, key points and study aids for any PDF.",
+  "ai-write": "Turn a PDF into blog posts, threads, scripts and rewrites.",
+  "ai-analyze": "Extract entities, tone, citations, tables and sentiment.",
+  "ai-docs": "Translate, OCR, redact and sign with AI.",
+  "ai-careers": "Resumes, cover letters and JD matching.",
+  "ai-legal-health": "Plain-language analysis of legal and medical PDFs.",
+  "ai-more": "More AI tools.",
+};
+
+// Synonym/alias search expansion: if the query contains a key, the mapped
+// tool ids are force-included even when the term isn't in the name/desc.
+export const SEARCH_SYNONYMS: Record<string, readonly string[]> = {
+  combine: ["merge"], join: ["merge"], concat: ["merge"],
+  shrink: ["compress-pdf"], reduce: ["compress-pdf"], smaller: ["compress-pdf"], optimise: ["compress-pdf"],
+  turn: ["rotate"], rotate: ["rotate"],
+  password: ["unlock"], unlock: ["unlock"], decrypt: ["unlock"],
+  image: ["pdf-to-jpg", "pdf-to-png", "jpg-to-pdf", "png-to-pdf", "extract-images"],
+  photo: ["jpg-to-pdf", "png-to-pdf"], picture: ["jpg-to-pdf", "png-to-pdf"],
+  word: ["pdf-to-text", "pdf-to-markdown"], text: ["pdf-to-text", "pdf-search"],
+  excel: ["csv-to-pdf"], spreadsheet: ["csv-to-pdf"], csv: ["csv-to-pdf"],
+  sign: ["sign-pdf-free", "ai-sign"], signature: ["sign-pdf-free", "ai-sign"],
+  redact: ["redact-free", "ai-redact"], hide: ["redact-free", "ai-redact"],
+  translate: ["ai-translate"], language: ["ai-translate"],
+  summary: ["ai-summarize", "ai-tldr"], summarise: ["ai-summarize", "ai-tldr"], summarize: ["ai-summarize", "ai-tldr"],
+  ocr: ["ai-ocr", "ai-searchable-pdf"], scan: ["ai-ocr", "ai-searchable-pdf"], searchable: ["ai-searchable-pdf"],
+  metadata: ["remove-metadata"], clean: ["remove-metadata"],
+};
+
+// Free tools that run server-side (NOT in-browser) — everything else free is
+// client-side, so it earns the "in-browser" privacy badge.
+export const SERVER_SIDE_IDS: ReadonlySet<string> = new Set(["compress-pdf", "pdf-a-convert"]);

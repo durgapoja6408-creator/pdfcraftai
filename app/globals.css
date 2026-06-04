@@ -266,6 +266,41 @@ h4 {
 }
 .tool-group-allbtn:hover { color: var(--fg); }
 
+/* /tools sticky search + category jump-bar (2026-06-04, findability P0/P2).
+   Sticks just below the sticky .topnav (top:0, ~58px tall, z-index 50). */
+.tools-sticky {
+  position: sticky;
+  top: 56px;
+  z-index: 30;
+  background: var(--bg);
+  padding: 12px 0 10px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.tools-jumpbar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-top: 10px;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.tools-jumpbar::-webkit-scrollbar { height: 6px; }
+.tools-jumpchip {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  cursor: pointer;
+  transition: color 120ms, border-color 120ms;
+}
+.tools-jumpchip:hover { color: var(--fg); border-color: var(--fg-subtle); }
+.tools-jumpchip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 /* ---------- Layout ---------- */
 .container-x {
   max-width: 1280px;
