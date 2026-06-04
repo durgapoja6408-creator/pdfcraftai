@@ -50,13 +50,6 @@ function ToolRunnerLoading(): ReactNode {
       className="card pulse-soft"
       style={{
         padding: 32,
-        // Fill the reserved runner slot (see app/tool/[id]/page.tsx
-        // minHeight:470) so the loading→loaded swap doesn't shift the
-        // page below it (CLS).
-        minHeight: 450,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         background: "var(--bg-1)",
         textAlign: "center",
         color: "var(--fg-muted)",
