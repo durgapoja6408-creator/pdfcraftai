@@ -1,0 +1,58 @@
+# .github/workflows/demo-one-each.yml
+#
+# 2026-06-04 — DEMONSTRATION run: one Non-AI (Merge PDFs) + one AI
+# (Summarize PDF) tool, executed end-to-end against production with input
+# AND output captured + validated. Uploads test-results/demo/ (input
+# screenshots, the merged output PDF, result screenshots, AI summary text).
+#
+#   which=free → Merge only (NO auth, NO credit spend)
+#   which=all  → + Summarize (needs PROD_E2E_TEST_* secrets + prod TEST MODE)
+
+name: demo-one-each
+
+on:
+  workflow_dispatch:
+    inputs:
+      which:
+        description: "Scope"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - free
+          - all
+      url:
+        description: "URL to test against"
+        required: false
+        default: "https://pdfcraftai.com"
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Generate fixtures
+        run: node tests/fixtures/generate-all.mjs
+      - name: Run demo (1 free + 1 AI)
+        env:
+          PROD_E2E_URL: ${{ github.event.inputs.url || 'https://pdfcraftai.com' }}
+          PROD_E2E_TEST_EMAIL: ${{ github.event.inputs.which == 'all' && secrets.PROD_E2E_TEST_EMAIL || '' }}
+          PROD_E2E_TEST_PASSWORD: ${{ github.event.inputs.which == 'all' && secrets.PROD_E2E_TEST_PASSWORD || '' }}
+          PROD_E2E_AI_BUDGET_OK: ${{ github.event.inputs.which == 'all' && secrets.PROD_E2E_AI_BUDGET_OK || '' }}
+        run: |
+          npx playwright test --config=playwright.prod.config.ts --project=chromium \
+            demo-one-each.spec.ts --reporter=github,list --workers=1 || true
+      - name: Upload demo artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-one-each
+          path: test-results/demo/
+          retention-days: 14
