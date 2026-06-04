@@ -53,6 +53,7 @@ export function PageCountTool() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
 
   useEffect(() => {
     if (!copied) return;
@@ -126,17 +127,44 @@ export function PageCountTool() {
     setResult(null);
     setStage("idle");
     setCopied(false);
+    setCopyFailed(false);
   };
 
   const copyCount = async () => {
     if (!result) return;
+    const text = String(result.pageCount);
+    // 1) Modern clipboard API (needs HTTPS + a user gesture).
     try {
-      await navigator.clipboard.writeText(String(result.pageCount));
+      await navigator.clipboard.writeText(text);
       setCopied(true);
+      setCopyFailed(false);
+      return;
     } catch {
-      // Silent fail — clipboard write needs user gesture + HTTPS,
-      // and a follow-up click usually succeeds.
+      // fall through to the legacy path
     }
+    // 2) Legacy execCommand fallback (works in non-secure contexts /
+    //    when the async clipboard API is blocked by policy).
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      if (ok) {
+        setCopied(true);
+        setCopyFailed(false);
+        return;
+      }
+    } catch {
+      // ignore — surface the manual hint below
+    }
+    // 3) Both failed — tell the user how to copy manually instead of
+    //    silently doing nothing.
+    setCopyFailed(true);
   };
 
   const truncateFilename = (name: string, max = 48) => {
@@ -311,6 +339,18 @@ export function PageCountTool() {
             )}
           </button>
         </div>
+      )}
+
+      {copyFailed && (
+        <p
+          role="status"
+          aria-live="polite"
+          className="subtle"
+          style={{ fontSize: 12, margin: 0, textAlign: "right" }}
+        >
+          Couldn&apos;t copy automatically — select the number above and press{" "}
+          <kbd>Ctrl</kbd>/<kbd>&#8984;</kbd>+<kbd>C</kbd>.
+        </p>
       )}
 
       {/* P10: scan warning (mirrors the same nudge on PDF Inspector).

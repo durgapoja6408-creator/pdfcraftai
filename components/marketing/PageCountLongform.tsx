@@ -41,8 +41,8 @@ const FAQ: Array<{ q: string; a: string }> = [
     a: "We can read the page count of a PDF with permission-only encryption (no open password). If the PDF requires a password to open, you'll need to unlock it first.",
   },
   {
-    q: "Why a separate Page Counter when PDF Inspector also shows the count?",
-    a: "Different jobs. Page Counter is for users who searched 'page count' and want one number to copy — fastest path. PDF Inspector adds page dimensions, word count, reading time, metadata, and warnings — same engine, much richer answer. Both are free; pick the one that matches your intent.",
+    q: "Why a separate Page Count tool when PDF Inspector also shows the count?",
+    a: "Different jobs. Page Count is for users who searched 'page count' and want one number to copy — fastest path. PDF Inspector adds page dimensions, word count, reading time, metadata, and warnings — same engine, much richer answer. Both are free; pick the one that matches your intent.",
   },
 ];
 
@@ -52,7 +52,7 @@ export function PageCountLongform() {
       {/* Use cases */}
       <section style={{ marginTop: 48 }}>
         <h2 style={{ fontSize: 22, fontWeight: 600, margin: "0 0 8px" }}>
-          Why people use Page Counter
+          Why people use Page Count
         </h2>
         <p className="muted" style={{ fontSize: 14, marginTop: 0, marginBottom: 24 }}>
           A page count is one of the most common PDF questions, and
@@ -135,7 +135,7 @@ export function PageCountLongform() {
       {/* How it works */}
       <section style={{ marginTop: 48 }}>
         <h2 style={{ fontSize: 22, fontWeight: 600, margin: "0 0 8px" }}>
-          How Page Counter works
+          How Page Count works
         </h2>
         <p className="muted" style={{ fontSize: 14, marginTop: 0, marginBottom: 24 }}>
           Three steps, no signup, no uploads.
@@ -208,7 +208,7 @@ export function PageCountLongform() {
             ["Same engine Chrome uses", "PDFium is Google's PDF engine — the one that powers Chrome's built-in PDF viewer. We compile it to WebAssembly so it runs in your browser at near-native speed."],
             ["100% local processing", "Most free PDF tools upload your file to a server, process it, and stream the result back. We don't. Your file lives in your browser tab and never touches our infrastructure. Verifiable in your browser's Network panel."],
             ["No watermark, no signup, no daily limit", "Count 1 PDF or 1,000. We don't gate on volume because there's nothing to gate on — the engine runs on your machine."],
-            ["One job, done well", "Page Counter does one thing: count pages. No upsell to a paid tier, no trial expiry, no feature creep. If you need more, jump to PDF Inspector — same engine, richer answer."],
+            ["One job, done well", "Page Count does one thing: count pages. No upsell to a paid tier, no trial expiry, no feature creep. If you need more, jump to PDF Inspector — same engine, richer answer."],
             ["Open standards, free engines", "PDFium is BSD/Apache licensed (free for any use). We don't pay vendor license fees and pass that savings on to you (and to ourselves) as a free, ad-supported tool with no upgrade-to-pro pressure."],
           ].map(([title, body]) => (
             <li

@@ -545,7 +545,12 @@ export default function ToolRunnerPage({ params }: Params) {
           )}
 
           {isLive ? (
-            <div style={{ marginTop: 24 }}>
+            // minHeight reserves the runner slot so the ssr:false tool
+            // swapping in over the "Loading tool…" placeholder doesn't
+            // shift the content below it (Core Web Vitals: CLS). ~470px
+            // approximates a tool's pre-upload height (how-it-works +
+            // dropzone); see ToolRunnerLoading which fills the same space.
+            <div style={{ marginTop: 24, minHeight: 470 }}>
               <ToolRunner id={tool.id} />
             </div>
           ) : (
