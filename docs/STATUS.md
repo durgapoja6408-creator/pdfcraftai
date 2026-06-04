@@ -5,6 +5,42 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-04 (cont.) — Mobile-overflow + heading-order: clean sweep across all 295 pages
+
+Closed out the design-audit punch list. Final full 295-page scan (design-audit run 26940813384,
+commit 6586558): **mobile horizontal overflow >2px = 0, heading-order jumps = 0, missing canonical = 0,
+missing `<main>` = 0, multiple-h1 = 0, missing-h1 = 0.** All 10 representative desktop+mobile shots = 0
+overflow. Desktop layout visually verified unchanged (3-col "how credits", 4+2 audience grid, 2-col
+security).
+
+Fixes this arc:
+- **Home ~81px mobile overflow** — root cause was NOT the hero glow (red herring; capping it left the
+  81px). Real cause: `components/landing/LandingSections.tsx` used non-responsive `repeat(3, 1fr)` and
+  `1fr 1fr` grids ("How credits work", "Built for", Security) that never collapsed on a 390px viewport.
+  Switched to `repeat(auto-fit, minmax(min(100%, N), 1fr))` (keeps desktop column count, stacks on
+  mobile) + nested badge grid `repeat(2, minmax(0,1fr))`. Hero glow on `app/page.tsx` + `MarketingHero`
+  also capped (`maxWidth:100%`) as defence-in-depth.
+- **/gdpr 211px** — the two data tables used `minmax(140–220px, …)` track mins summing > viewport; the
+  sub-processor `.card`s are flex items (`min-width:auto`) so they ballooned. Relaxed all data-grid
+  tracks to `minmax(0, Nfr)` + `minWidth:0` on the flex card (desktop ratios preserved, rows now fit any
+  width).
+- **h1→h3 heading jumps on 5 pages** (/help /enterprise /bulk /changelog /launch-notify) — headless
+  card-grid sections sat directly under the hero h1. Added a `.sr-only` utility (globals.css) + a
+  visually-hidden section `<h2>` to each. Zero visual change; avoids the `main h2` 26px-!important
+  mobile side-effect that promoting card h3→h2 would have caused.
+- **design-audit.mjs trustworthiness** — the structural scan measured at ~120ms and produced a
+  consistent FALSE ~331px overflow on ~90 pages (FOUC/pre-hydration; settled screenshots of the same
+  templates were 0px). Now waits for `document.fonts.ready` + paint settle + scroll before measuring,
+  and the "widest" probe records right-edge overflow (left/right/position), not just width>vw, so
+  positioned/shifted offenders are named.
+
+tsc 0 + aggregator 7575/0 on every commit. Commits: 626b21a (use-case/blog/cookies/gdpr-v1 + widest
+capture), 9398354 (glow cap + sr-only h2s + settle fix), 6586558 (LandingSections + gdpr responsive
+grids + right-edge capture). Deploy of 6586558 needed a graceful Passenger restart (touch
+nodejs/tmp/restart.txt) — build pipeline had the SHA but the runtime held the old workers.
+
+---
+
 ## 2026-06-04 (cont.) — Design/structure improvements (Playwright design-audit driven)
 
 Built `scripts/design-audit.mjs` + `.github/workflows/design-audit.yml` (full-scroll desktop+mobile
