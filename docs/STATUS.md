@@ -5,6 +5,18 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-04 (cont.) — /tools header round 2 (prototype-approved)
+
+Commit 8421102, mocked via the visualize widget + approved: (1) ALL/FREE/AI filter group + "Browse by
+task" now a right-aligned cluster (dropped margin-left:auto, row justify-content:flex-end); (2) category
+jump-bar chips WRAP to multiple lines (.tools-jumpbar flex-wrap:wrap) instead of horizontal scroll — the
+hidden-scrollbar, .tools-jumpwrap and .tools-jumpfade edge-gradient were removed as no longer needed;
+(3) "What's a credit?" link removed entirely from the meta row (redundant — AI cards show "3 credits per
+doc" + Pricing is in the top nav). Live design-audit (8421102): h1=1, h2=12, jumps=0, overflow=0
+desktop+mobile. tsc 0, aggregator 7576/0.
+
+---
+
 ## 2026-06-04 (cont.) — /tools header polish (prototype-approved, 5 fixes)
 
 Per user visual feedback, refined the /tools header (commit 2c4bf1e; mocked via the visualize widget +
