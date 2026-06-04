@@ -5,6 +5,26 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-04 (cont.) — /tools findability upgrade (P0/P1/P2) shipped + verified
+
+Implemented the /tools improvement plan in ToolFilter.tsx + lib/tool-sections.ts (commit ac43b5e):
+- P0: sticky search header + horizontal category jump-bar (chips smooth-scroll to #cat-<key> section
+  anchors, auto-expanding the target), "Popular / start here" row of 8 high-intent tools
+  (POPULAR_TOOL_IDS), live result count (role=status aria-live) + "no match -> /compare" empty state.
+- P1: synonym/alias search (SEARCH_SYNONYMS: combine->merge, shrink->compress, turn->rotate, sign,
+  redact, ocr, image, word, …), "Browse by task" + "What's a credit?" links, IN-BROWSER badge on
+  client-side free tools (SERVER_SIDE_IDS = compress-pdf, pdf-a-convert excluded).
+- P2: one-line blurb under each category h2 (SECTION_BLURBS), section #cat- anchors (deep links),
+  sticky search bar (top:56 under the sticky .topnav).
+Live design-audit (ac43b5e): /tools h1=1, h2=12 (11 sections + Popular), heading jumps=0, mobile+
+desktop overflow=0. tsc 0, aggregator 7576/0. Deferred (with rationale): file-type badges (no reliable
+per-tool data), mobile-collapse-default (jump-bar supersedes; would strip SSR cards), grid
+virtualization (hurts SEO/ItemList). NOTE: rapid pushes created a slow Hostinger build backlog this
+session (140cb17->b70f4e0->ac43b5e built sequentially ~6-8 min each); ac43b5e needed a graceful
+restart (touch nodejs/tmp/restart.txt) after its build swapped.
+
+---
+
 ## 2026-06-04 (cont.) — Option-matrix: every option/mode of every tool verified
 
 Built a generic option-matrix harness (tests/e2e-prod/option-matrix.spec.ts + .github/workflows/
