@@ -120,8 +120,13 @@ test.describe("AI summarize", () => {
     let loggedIn = false;
     for (let attempt = 0; attempt < 2 && !loggedIn; attempt++) {
       await page.goto("/login");
-      await page.locator('input[type="email"]').fill(EMAIL!);
-      await page.locator('input[type="password"]').fill(PASSWORD!);
+      // The test-env cookie banner overlays the form and can intercept fills
+      // (locator.fill actionability timeout). Dismiss it first.
+      await page.getByRole("button", { name: /reject all|accept all|accept/i }).first().click({ timeout: 4000 }).catch(() => {});
+      const email = page.locator('input[type="email"]');
+      await email.waitFor({ state: "visible", timeout: 15_000 });
+      await email.fill(EMAIL!, { timeout: 15_000 });
+      await page.locator('input[type="password"]').fill(PASSWORD!, { timeout: 15_000 });
       await page.getByRole("button", { name: /sign in|log in/i }).click();
       loggedIn = await page.waitForURL(/\/app\//, { timeout: 25_000 }).then(() => true).catch(() => false);
     }
