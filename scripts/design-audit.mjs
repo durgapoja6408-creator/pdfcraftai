@@ -55,18 +55,22 @@ async function metrics(page) {
     // horizontal overflow (mobile layout breakage)
     const docW = document.documentElement.scrollWidth;
     const overflowX = Math.max(0, docW - vw);
-    // identify the element(s) extending past the viewport right edge
-    let widest = null;
+    // Find elements WIDER than the viewport (true overflow causes).
+    const wide = [];
     for (const el of q("body *")) {
       const r = el.getBoundingClientRect();
-      if (r.right > vw + 1 && r.width <= docW + 1) {
-        if (!widest || r.right > widest.right) {
-          widest = { right: Math.round(r.right), w: Math.round(r.width),
-            tag: el.tagName, cls: (el.className || "").toString().slice(0, 50),
-            txt: (el.textContent || "").trim().slice(0, 30) };
-        }
+      if (r.width > vw + 1) {
+        const cs = getComputedStyle(el);
+        wide.push({ w: Math.round(r.width), tag: el.tagName,
+          cls: (el.className || "").toString().slice(0, 40),
+          mw: cs.minWidth, ws: cs.whiteSpace,
+          txt: (el.textContent || "").trim().slice(0, 26) });
       }
     }
+    wide.sort((a, b) => b.w - a.w);
+    const footerEl = document.querySelector(".footer-grid");
+    const footerCols = footerEl ? getComputedStyle(footerEl).gridTemplateColumns : "n/a";
+    const widest = { topWide: wide.slice(0, 4), footerCols };
     // tiny tap targets (interactive elements < 40px in the smaller dimension)
     let tinyTargets = 0;
     for (const el of q("a, button, input, [role=button]")) {
