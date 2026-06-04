@@ -121,7 +121,11 @@ export function CookieConsent({ initialLevel }: Props) {
       // Defer focus by one frame so the browser's own focus
       // restoration (after page load) doesn't steal it back.
       const raf = requestAnimationFrame(() => {
-        acceptButtonRef.current?.focus();
+        // preventScroll: focusing the button inside this fixed banner
+        // must NOT scroll the page — that programmatic scroll was being
+        // recorded as a ~0.18 layout shift (CLS) sitewide. Focus still
+        // moves for keyboard/SR users; only the scroll is suppressed.
+        acceptButtonRef.current?.focus({ preventScroll: true });
       });
       return () => cancelAnimationFrame(raf);
     }
