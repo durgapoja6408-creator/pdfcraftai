@@ -5,6 +5,27 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-04 (cont.) — Try-row removal shipped (9619707) + transient build-failure recovery
+
+Per user ("Can we remove it? Its not looking good?"), removed the "Try: combine · shrink · sign"
+synonym-hint example-chip row from the /tools header — commit 9619707 (24 deletions, pure removals:
+the example-chip JSX block + `const EXAMPLES` in ToolFilter.tsx, and the `.tools-example-chip` rules in
+globals.css). Pre-push gate clean: tsc --noEmit 0, aggregator 7576/0, globals.css brace-balanced
+144/144, zero leftover refs.
+
+**Build-pipeline note:** the FIRST Hostinger auto-deploy of 9619707 failed at the webpack compile step
+("ERROR: Failed to build the application" — the Hostinger wrapper's generic mask, no real compiler
+error in the deploy log). Root cause = environmental resource pressure during this session's build
+backlog, NOT a code defect: (a) the diff is 24 pure deletions off 5ad1cf7, which had built fine on the
+same box hours earlier; (b) a local `next build` compiled cleanly PAST the exact point the server died,
+emitting only the pre-existing/benign `pdfjs-dist` ESM warnings (present when 5ad1cf7 built); (c) the
+deploy log ended abruptly with no compile error = killed process (OOM/thread-cap class), the family of
+failures documented in CLAUDE.md §5. Runtime correctly stayed on the good commit 5ad1cf7 throughout.
+Recovery: re-triggered the build with this doc commit. (If a server build ever fails this way again,
+re-trigger — do NOT assume a code bug when tsc + aggregator + a local next-build all pass.)
+
+---
+
 ## 2026-06-04 (cont.) — /tools header round 2 (prototype-approved)
 
 Commit 8421102, mocked via the visualize widget + approved: (1) ALL/FREE/AI filter group + "Browse by
