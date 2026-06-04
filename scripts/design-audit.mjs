@@ -143,7 +143,9 @@ async function run() {
     } catch (e) { console.log(`sitemap fetch error (attempt ${attempt}):`, (e.message || e).slice(0, 100)); }
     if (urls.length === 0) await new Promise((r) => setTimeout(r, 4000));
   }
-  const limit = process.env.AUDIT_MAX ? +process.env.AUDIT_MAX : urls.length;
+  // NOTE: AUDIT_MAX="0" means "all" — but "0" is a truthy string, so guard >0
+  // (this bug sliced every full-scan run to 0 pages).
+  const limit = process.env.AUDIT_MAX && +process.env.AUDIT_MAX > 0 ? +process.env.AUDIT_MAX : urls.length;
   urls = urls.slice(0, limit);
   console.log(`\n-- structural scan of ${urls.length} pages (mobile 390, full scroll, reused context) --`);
   // Reuse ONE context + page across all URLs (per-URL newContext was the
