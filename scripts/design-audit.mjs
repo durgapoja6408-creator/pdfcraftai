@@ -55,6 +55,18 @@ async function metrics(page) {
     // horizontal overflow (mobile layout breakage)
     const docW = document.documentElement.scrollWidth;
     const overflowX = Math.max(0, docW - vw);
+    // identify the element(s) extending past the viewport right edge
+    let widest = null;
+    for (const el of q("body *")) {
+      const r = el.getBoundingClientRect();
+      if (r.right > vw + 1 && r.width <= docW + 1) {
+        if (!widest || r.right > widest.right) {
+          widest = { right: Math.round(r.right), w: Math.round(r.width),
+            tag: el.tagName, cls: (el.className || "").toString().slice(0, 50),
+            txt: (el.textContent || "").trim().slice(0, 30) };
+        }
+      }
+    }
     // tiny tap targets (interactive elements < 40px in the smaller dimension)
     let tinyTargets = 0;
     for (const el of q("a, button, input, [role=button]")) {
@@ -71,7 +83,7 @@ async function metrics(page) {
       if (fs && fs < 12) tinyFont++;
     }
     return {
-      vw, h1: h1.length, h2: h2.length, h3: h3.length, headingOrderJumps: orderJumps,
+      vw, widest, h1: h1.length, h2: h2.length, h3: h3.length, headingOrderJumps: orderJumps,
       h1Text: (h1[0] && h1[0].textContent || "").trim().slice(0, 60),
       landmarks, toolAboveFold, overflowX, tinyTargets, tinyFont,
       scrollH: document.body.scrollHeight,
@@ -106,7 +118,7 @@ async function run() {
         const file = `${OUT}/${name}.${mode}.png`;
         await page.screenshot({ path: file, fullPage: true });
         report.shots.push({ name, path, mode, ...m });
-        console.log(`shot ${name}.${mode}  vw=${m.vw} h1=${m.h1} h2=${m.h2} aboveFold=${m.toolAboveFold} overflowX=${m.overflowX} tiny=${m.tinyTargets} scrollH=${m.scrollH}`);
+        console.log(`shot ${name}.${mode}  vw=${m.vw} h1=${m.h1} h2=${m.h2} overflowX=${m.overflowX} widest=${m.widest?JSON.stringify(m.widest):"-"} scrollH=${m.scrollH}`);
       } catch (e) { console.log(`FAIL ${name}.${mode}: ${(e.message || e).slice(0, 120)}`); }
       await ctx.close();
     }
