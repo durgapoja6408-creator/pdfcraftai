@@ -5,6 +5,30 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-04 (cont.) — /tools collapsible accordion + AI sub-grouping
+
+User request: make each /tools category section collapsible/expandable, and sub-group the AI tools the
+same way the free side is grouped. Shipped in `components/marketing/ToolFilter.tsx` (commit ae95f36):
+
+- Every category section is now an accessible disclosure: `<h2><button aria-expanded aria-controls>` +
+  a ChevronDown that rotates, `.tool-group-toggle` (globals.css) for hover/focus-visible. Default
+  all-expanded (SSR keeps every card/link → crawl + Ctrl-F friendly; no on-load CLS, no persistence).
+  Typing in search force-opens matching sections. Added an Expand all / Collapse all control.
+- The 52 catalog AI tools (one flat `group:"AI"` in the data) are sub-grouped IN THE UI by id into 6
+  themed sections: Summarize & Understand (12), Write & Rewrite (11), Analyse & Extract (11),
+  Documents & Convert (5), Careers (4), Legal & Health (9). `tool.group` is untouched (keeps
+  test-tool-id-conventions green); a "More AI tools" fallback bucket catches any unmapped AI tool so a
+  new one can never vanish. Coverage asserted: all 52 mapped exactly once, no dupes/typos.
+- Live-verified (design-audit on the deployed build): /tools now has **h2 = 11** (was 6: 5 free + 1
+  AI), heading-order jumps = 0, mobile overflow = 0, desktop + mobile both clean. Screenshots confirm
+  chevrons + "AI" chips on each AI sub-group header.
+
+tsc 0, aggregator 7575/0 (incl. spelling-uk-in — the AI section label is "Analyse & Extract", UK/IN
+spelling). Deploy of ae95f36 needed an empty-commit nudge (c93b05f) — Hostinger auto-pull had stalled
+~7 min with the build pipeline behind.
+
+---
+
 ## 2026-06-04 (cont.) — Mobile-overflow + heading-order: clean sweep across all 295 pages
 
 Closed out the design-audit punch list. Final full 295-page scan (design-audit run 26940813384,
