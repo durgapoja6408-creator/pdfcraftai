@@ -170,7 +170,7 @@ export default function GDPRPage() {
               className="mono"
               style={{
                 display: "grid",
-                gridTemplateColumns: "minmax(220px, 2fr) minmax(180px, 1fr) minmax(160px, 1fr)",
+                gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr)",
                 padding: "12px 18px",
                 background: "var(--bg-2)",
                 borderBottom: "1px solid var(--border)",
@@ -188,7 +188,7 @@ export default function GDPRPage() {
                 key={d.name}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "minmax(220px, 2fr) minmax(180px, 1fr) minmax(160px, 1fr)",
+                  gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr)",
                   padding: "14px 18px",
                   borderTop: i === 0 ? "none" : "1px solid var(--border)",
                   fontSize: 13,
@@ -226,7 +226,8 @@ export default function GDPRPage() {
                 style={{
                   padding: 16,
                   display: "grid",
-                  gridTemplateColumns: "minmax(140px, 1fr) minmax(220px, 2fr) minmax(140px, 1fr)",
+                  gridTemplateColumns: "minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr)",
+                  minWidth: 0,
                   gap: 14,
                   alignItems: "center",
                 }}

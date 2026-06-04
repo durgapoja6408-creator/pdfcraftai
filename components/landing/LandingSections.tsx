@@ -47,7 +47,7 @@ export function HowItWorks() {
           </div>
           <h2 style={{ fontSize: 40 }}>Predictable. Transferable. Fair.</h2>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: 16 }}>
           {items.map((s) => (
             <div key={s.n} className="card" style={{ padding: 28 }}>
               <div className="mono subtle" style={{ marginBottom: 24 }}>
@@ -111,7 +111,7 @@ export function Audience() {
           </div>
           <h2 style={{ fontSize: 40 }}>From students to legal teams</h2>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: 12 }}>
           {items.map((a) => {
             const Ic = I[a.i];
             return (
@@ -169,7 +169,7 @@ export function Security() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))",
               gap: 48,
               alignItems: "center",
             }}
@@ -194,7 +194,7 @@ export function Security() {
                 ))}
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
               {badges.map((b) => (
                 <div
                   key={b}

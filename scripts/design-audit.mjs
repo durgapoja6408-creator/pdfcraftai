@@ -60,16 +60,23 @@ async function metrics(page) {
     const wide = [];
     for (const el of q("body *")) {
       const r = el.getBoundingClientRect();
-      if (r.width > vw + 1) {
+      // Capture elements that actually push past the right edge — whether by
+      // being WIDER than the viewport OR by being positioned/shifted so their
+      // right edge exceeds vw (e.g. fixed-px grid tracks, translateX, negative
+      // margins). Records left/right/position so shifted offenders are
+      // identifiable, not just over-wide ones.
+      if (r.right > vw + 1 && r.width > 24 && r.height > 4) {
         const cs = getComputedStyle(el);
-        wide.push({ w: Math.round(r.width), tag: el.tagName,
+        wide.push({ w: Math.round(r.width), right: Math.round(r.right), left: Math.round(r.left),
+          tag: el.tagName, pos: cs.position,
           cls: (el.className || "").toString().slice(0, 40),
           mw: cs.minWidth, ws: cs.whiteSpace,
-          txt: (el.textContent || "").trim().slice(0, 26) });
+          txt: (el.textContent || "").trim().slice(0, 24) });
       }
     }
-    wide.sort((a, b) => b.w - a.w);
-    const widest = { topWide: wide.slice(0, 3) };
+    // Furthest-right first; that's the element defining the document overflow.
+    wide.sort((a, b) => (b.right - a.right) || (a.w - b.w));
+    const widest = { topWide: wide.slice(0, 6) };
     // SEO structural signals
     const metaDesc = (document.querySelector('meta[name="description"]')?.getAttribute("content") || "").length;
     const hasCanonical = !!document.querySelector('link[rel="canonical"]');
