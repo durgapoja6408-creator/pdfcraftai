@@ -5,6 +5,30 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-04 (cont.) — page-count review → sitewide fixes (CLS + clipboard)
+
+Triggered by a review of `/tool/page-count`; applied the recurring findings across the whole surface
+(user directive: "if found across all tools, always fix"):
+- **Tool-load CLS, fixed sitewide.** The `ssr:false` runner swapped a small "Loading tool…" card for the
+  taller dropzone, shifting content below it. Reserved the slot: `minHeight:470` on the runner wrapper in
+  `app/tool/[id]/page.tsx` + matching fill on `ToolRunnerLoading`. `<ToolRunner>` renders ONLY there, so this
+  covers all 113 `/tool/*` pages. **Verified: `/tool/page-count` CLS 0.109 → 0** (Lighthouse, commit bd357d9).
+- **Robust clipboard, fixed sitewide.** 15 "Copy" buttons inlined `navigator.clipboard.writeText` with no
+  fallback (silent no-op when the async API is blocked / non-secure context). New `lib/client/copy-text.ts`
+  (`copyText()`: Clipboard API → execCommand fallback → throws only if both fail) adopted across all 15
+  (11 tools + PdfReadOpsTool + AiOutputActions + ApiKeyManager + ReferralCopyButtons). CI guard
+  `scripts/test-clipboard-helper.mjs` forbids direct `writeText`. PageCount also shows a manual-copy hint on
+  total failure.
+- **page-count naming aligned** — longform said "Page Counter" (6×) vs the canonical "Page Count" (H1/title/
+  nav/config); reworded to "Page Count". (pdf-inspector longform checked — already consistent.)
+
+Aggregator 7575/0 (132 suites; +the clipboard guard). Commits bd357d9 (CLS+naming+pagecount-copy) +
+4739894 (sitewide clipboard). NOTE: a residual ~0.11–0.18 CLS remains on some marketing/blog pages
+(`/blog`, `/extract-emails-from-pdf`) — a SEPARATE, noisy cause (NOT the runner; those pages don't embed it —
+likely font-swap / a late element). Needs its own clean measurement before fixing; do not guess.
+
+---
+
 ## 2026-06-04 — COMPREHENSIVE per-tool execution (all 113 tools) + backend/security/SEO
 
 Built a manifest-driven Playwright suite that runs EVERY tool in the catalog once
