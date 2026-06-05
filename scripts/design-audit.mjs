@@ -36,6 +36,12 @@ const SHOT_PAGES = [
 // log in once per viewport and screenshot. 2026-06-05.
 const AUTH_SHOT_PAGES = [
   ["app-dashboard", "/app/dashboard"],
+  ["app-files", "/app/files"],
+  ["app-chat", "/app/chat"],
+  ["app-ai-history", "/app/ai-history"],
+  ["app-usage", "/app/usage"],
+  ["app-billing", "/app/billing"],
+  ["app-settings", "/app/settings"],
 ];
 
 async function metrics(page) {

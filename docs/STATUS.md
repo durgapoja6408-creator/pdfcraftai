@@ -5,6 +5,35 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-05 — /app pages UX pass (files / usage / chat / settings)
+
+Acted on the cross-page audit. The mature pages (ai-history, billing, settings core) were left alone; the
+real gaps were in findability + scannability:
+- **/app/files (P0) — findability.** Was a flat ≤100-row list with no search/sort and a silent cap. New
+  client `components/app/files/FilesList.tsx`: search-by-name, sort (newest/oldest/name/size), source
+  filter (all/uploads/tool outputs), and an honest "{shown} of {total}" + "showing the N most recent —
+  search to find older" when the true `COUNT(*)` exceeds the load cap (raised 100→200). Per-row
+  preview/open-in-chat/delete preserved. Rows serialized (Date→ISO) across the RSC boundary.
+- **/app/usage (P1) — labels + chart + responsive.** Raw `operation` strings now render via a friendly
+  `OP_LABEL` map (title-case fallback); both tables wrapped in `overflow-x:auto` (mobile); added a
+  dependency-free `DailyBars` inline bar chart for the daily-spend trend (the table can be 90 rows).
+- **/app/chat (P1) — title search.** New client `components/app/chat/ChatList.tsx` adds a title search box
+  (shown when > 5 sessions); `providerLabel` moved with it (added to the supply-chain guard's documented
+  chat-provenance exemption, same as ChatClient/the chat page).
+- **/app/settings (P2) — sign-in transparency.** New read-only "Sign-in" card: auth method(s)
+  (Email & password / linked OAuth providers — `accounts.provider` only, never tokens) + email-verified
+  badge.
+
+Deferred (too big/risky for one tested batch, flagged to the user): files **bulk-delete** (needs a batch
+action), and the **Billing/Credits/Receipts → tabs** IA consolidation (3 routes + redirects + nav).
+
+**Testing:** new `scripts/test-app-pages-ux.mjs` (24 assertions) pins all four; `test-user-dashboard-v2`
+(usage/settings/files contracts + cost wall) stays green (113/0); supply-chain guard updated for the chat
+exemption. tsc 0; aggregator **7894/0 across 143 suites**. design-audit `AUTH_SHOT_PAGES` extended to all
+six pages for the verification capture.
+
+---
+
 ## 2026-06-05 — Tidy-up: ai-history control-byte regex + dead local-favourites helpers
 
 Two small hygiene fixes:

@@ -144,6 +144,7 @@ export default async function UsagePage({
       <section>
         <h2 style={sectionTitleStyle}>By operation</h2>
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          <div style={{ overflowX: "auto" }}>
           <table style={tableStyle}>
             <thead>
               <tr>
@@ -164,7 +165,7 @@ export default async function UsagePage({
               ) : (
                 rollup.data.map((row) => (
                   <tr key={row.operation}>
-                    <Td mono>{row.operation}</Td>
+                    <Td>{opLabel(row.operation)}</Td>
                     <Td mono align="right">
                       {formatCount(row.calls)}
                     </Td>
@@ -182,13 +183,16 @@ export default async function UsagePage({
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </section>
 
       {/* Daily spend timeline */}
       <section>
         <h2 style={sectionTitleStyle}>By day</h2>
+        {daily.data.length > 0 ? <DailyBars data={daily.data} /> : null}
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          <div style={{ overflowX: "auto" }}>
           <table style={tableStyle}>
             <thead>
               <tr>
@@ -219,6 +223,7 @@ export default async function UsagePage({
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </section>
 
@@ -328,6 +333,79 @@ function Stat({
           {hint}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+// Friendly labels for the raw ai_usage.operation enum (2026-06-05). Unknown
+// ops title-case as a fallback so a new op never renders blank/cryptic.
+const OP_LABEL: Record<string, string> = {
+  summarize: "Summarize",
+  translate: "Translate",
+  ocr: "OCR",
+  compare: "Compare",
+  rewrite: "Rewrite",
+  redact: "Redact",
+  sign: "Sign",
+  generate: "Generate",
+  table: "Table extraction",
+  entities: "Entities",
+  sentiment: "Sentiment",
+  bias: "Bias check",
+  readability: "Readability",
+  "action-items": "Action items",
+  paraphrase: "Paraphrase",
+  proofread: "Proofread",
+  condense: "Condense",
+  expand: "Expand",
+  chat: "Chat",
+  breakage: "Expired credits",
+};
+function opLabel(op: string): string {
+  return (
+    OP_LABEL[op] ??
+    op.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  );
+}
+
+// Dependency-free daily-spend bar chart (2026-06-05). The "By day" table can be
+// up to 90 rows — a tiny bar row makes the trend scannable at a glance. Sorted
+// oldest→newest so the x-axis reads left-to-right; zero-spend days render a
+// faint baseline tick so gaps are visible.
+function DailyBars({
+  data,
+}: {
+  data: { day: string; calls: number; creditsSpent: number }[];
+}) {
+  const rows = [...data].sort((a, b) => a.day.localeCompare(b.day));
+  const max = Math.max(1, ...rows.map((r) => r.creditsSpent));
+  return (
+    <div className="card" style={{ padding: 16, marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 80 }} aria-hidden="true">
+        {rows.map((r) => {
+          const pct = Math.round((r.creditsSpent / max) * 100);
+          return (
+            <div
+              key={r.day}
+              title={`${r.day}: ${r.creditsSpent} credits · ${r.calls} calls`}
+              style={{ flex: 1, minWidth: 2, height: "100%", display: "flex", alignItems: "flex-end" }}
+            >
+              <div
+                style={{
+                  width: "100%",
+                  height: `${r.creditsSpent > 0 ? Math.max(pct, 4) : 2}%`,
+                  background: r.creditsSpent > 0 ? "var(--accent)" : "var(--border)",
+                  borderRadius: "2px 2px 0 0",
+                }}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <div className="row" style={{ justifyContent: "space-between", marginTop: 8 }}>
+        <span className="subtle" style={{ fontSize: 11 }}>{rows[0]?.day}</span>
+        <span className="subtle" style={{ fontSize: 11 }}>{rows[rows.length - 1]?.day}</span>
+      </div>
     </div>
   );
 }

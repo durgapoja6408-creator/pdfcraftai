@@ -26,6 +26,7 @@ export default async function SettingsPage() {
       id: schema.users.id,
       name: schema.users.name,
       email: schema.users.email,
+      emailVerified: schema.users.emailVerified,
       passwordHash: schema.users.passwordHash,
       gstin: schema.users.gstin,
       billingName: schema.users.billingName,
@@ -41,6 +42,13 @@ export default async function SettingsPage() {
     .limit(1);
 
   if (!user) redirect("/login?callbackUrl=%2Fapp%2Fsettings");
+
+  // Linked OAuth providers — SELECT provider only (never the stored tokens).
+  const accountRows = await db
+    .select({ provider: schema.accounts.provider })
+    .from(schema.accounts)
+    .where(eq(schema.accounts.userId, userId));
+  const providers = [...new Set(accountRows.map((a) => a.provider))];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28, maxWidth: 680 }}>
@@ -60,6 +68,31 @@ export default async function SettingsPage() {
       <section className="card" style={{ padding: 24 }}>
         <h2 style={sectionHeading}>Password</h2>
         <PasswordForm hasPassword={Boolean(user.passwordHash)} />
+      </section>
+
+      {/* Sign-in — how this account authenticates + email-verification state.
+          Read-only; helps OAuth-only users understand why the Password card
+          offers to *set* (not change) a password. (2026-06-05) */}
+      <section className="card" style={{ padding: 24 }}>
+        <h2 style={sectionHeading}>Sign-in</h2>
+        <div className="row" style={{ gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+          {Boolean(user.passwordHash) && <span className="chip">Email &amp; password</span>}
+          {providers.map((p) => (
+            <span key={p} className="chip">{providerLabel(p)}</span>
+          ))}
+          {!user.passwordHash && providers.length === 0 && (
+            <span className="muted" style={{ fontSize: 13 }}>No sign-in method on file.</span>
+          )}
+        </div>
+        <div className="row" style={{ gap: 8, fontSize: 13, flexWrap: "wrap", alignItems: "center" }}>
+          <span className="muted">Email</span>
+          <strong style={{ fontWeight: 500 }}>{user.email}</strong>
+          {user.emailVerified ? (
+            <span className="chip" style={{ background: "var(--green-soft)", color: "var(--green)", borderColor: "var(--green)" }}>Verified</span>
+          ) : (
+            <span className="chip" style={{ background: "color-mix(in oklab, var(--yellow) 16%, transparent)", color: "var(--yellow)", borderColor: "var(--yellow)" }}>Unverified</span>
+          )}
+        </div>
       </section>
 
       {/*
@@ -111,6 +144,12 @@ export default async function SettingsPage() {
       </section>
     </div>
   );
+}
+
+function providerLabel(id: string): string {
+  if (id === "google") return "Google";
+  if (id === "github") return "GitHub";
+  return id.charAt(0).toUpperCase() + id.slice(1);
 }
 
 const sectionHeading: React.CSSProperties = {

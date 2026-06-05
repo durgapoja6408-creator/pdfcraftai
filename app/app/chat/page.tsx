@@ -2,8 +2,8 @@
 //
 // Lists all non-archived chat sessions newest-first, with a primary
 // "New chat" button that creates a session and redirects. Archived
-// sessions surface behind a query-param toggle (?archived=1) so users
-// can find them without clogging the main view.
+// sessions surface behind a query-param toggle (?archived=1). The
+// populated list + title search live in the client ChatList component.
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -12,9 +12,8 @@ import { and, desc, eq, isNull, isNotNull } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db, schema } from "@/db/client";
-import { I } from "@/components/icons/Icons";
 import { NewChatButton } from "@/components/app/chat/NewChatButton";
-import { ChatRowActions } from "@/components/app/chat/ChatRowActions";
+import { ChatList, type ChatRow } from "@/components/app/chat/ChatList";
 
 export const metadata: Metadata = {
   title: "Chat",
@@ -40,9 +39,7 @@ export default async function ChatListPage({
       title: schema.chatSessions.title,
       fileId: schema.chatSessions.fileId,
       providerId: schema.chatSessions.providerId,
-      model: schema.chatSessions.model,
       archivedAt: schema.chatSessions.archivedAt,
-      createdAt: schema.chatSessions.createdAt,
       updatedAt: schema.chatSessions.updatedAt,
     })
     .from(schema.chatSessions)
@@ -56,6 +53,15 @@ export default async function ChatListPage({
     )
     .orderBy(desc(schema.chatSessions.updatedAt))
     .limit(200);
+
+  const chatRows: ChatRow[] = rows.map((r) => ({
+    id: r.id,
+    title: r.title ?? null,
+    fileId: r.fileId ?? null,
+    providerId: r.providerId ?? null,
+    archived: Boolean(r.archivedAt),
+    updatedAt: new Date(r.updatedAt).toISOString(),
+  }));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 960 }}>
@@ -75,15 +81,8 @@ export default async function ChatListPage({
       </header>
 
       <section>
-        {rows.length === 0 ? (
-          <div
-            className="card"
-            style={{
-              padding: 32,
-              textAlign: "center",
-              borderStyle: "dashed",
-            }}
-          >
+        {chatRows.length === 0 ? (
+          <div className="card" style={{ padding: 32, textAlign: "center", borderStyle: "dashed" }}>
             <p className="muted" style={{ fontSize: 14, margin: 0 }}>
               {showArchived
                 ? "No archived chats."
@@ -91,51 +90,7 @@ export default async function ChatListPage({
             </p>
           </div>
         ) : (
-          <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-            {rows.map((r, i) => (
-              <div
-                key={r.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "14px 16px",
-                  borderTop: i === 0 ? "none" : "1px solid var(--border)",
-                }}
-              >
-                <span style={{ color: "var(--fg-subtle)" }}>
-                  <I.Chat size={16} />
-                </span>
-                <div style={{ flex: 1, overflow: "hidden" }}>
-                  <Link
-                    href={`/app/chat/${r.id}`}
-                    style={{
-                      fontSize: 14,
-                      display: "block",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      color: "var(--fg)",
-                      textDecoration: "none",
-                    }}
-                    title={r.title}
-                  >
-                    {r.title || "Untitled chat"}
-                  </Link>
-                  <div className="subtle" style={{ fontSize: 12 }}>
-                    {new Date(r.updatedAt).toLocaleString()}
-                    {r.providerId ? ` · ${providerLabel(r.providerId)}` : ""}
-                    {r.fileId ? " · attached document" : ""}
-                  </div>
-                </div>
-                <ChatRowActions
-                  id={r.id}
-                  title={r.title}
-                  archived={Boolean(r.archivedAt)}
-                />
-              </div>
-            ))}
-          </div>
+          <ChatList rows={chatRows} />
         )}
       </section>
 
@@ -150,10 +105,4 @@ export default async function ChatListPage({
       </footer>
     </div>
   );
-}
-
-function providerLabel(id: string): string {
-  if (id === "anthropic") return "Anthropic";
-  if (id === "openai") return "OpenAI";
-  return id;
 }

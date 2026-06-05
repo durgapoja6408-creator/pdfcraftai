@@ -108,6 +108,10 @@ const EXEMPT_PATHS = new Set([
   // commit (chat-specific UX needs its own design pass — Day 7+).
   // Document the deferral in plan §4.1 follow-up.
   path.join("components", "app", "chat", "ChatClient.tsx"),
+  // ChatList renders the same per-session provider provenance label
+  // (2026-06-05 — extracted from the chat page for title search; same
+  // documented exception as the page it came from).
+  path.join("components", "app", "chat", "ChatList.tsx"),
   path.join("app", "app", "chat", "page.tsx"),
   path.join("app", "app", "chat", "[id]", "page.tsx"),
 ]);
