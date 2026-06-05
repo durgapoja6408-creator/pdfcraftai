@@ -5,6 +5,37 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-05 — /app/dashboard rebuild (P0/P1/P2): launchpad, real stats, actionable recent
+
+The logged-in dashboard was a read-only summary with **no path to the product's core action** once a
+user had files — and two of its five "stat cards" (Receipts, Refer) rendered `value="→"` (a big arrow as
+the headline number), while "Recent activity" listed raw uploaded files in **non-clickable** rows.
+
+Rebuilt `app/app/dashboard/page.tsx`:
+- **P0 — Quick start launcher.** New one-click tool grid at the top (the curated `POPULAR_TOOL_IDS`,
+  resolved via `toolById`) + "Browse all N tools" → /tools. The dashboard is now a launchpad, not a
+  dead end.
+- **P0 — Recent activity is actionable.** Now shows recent **AI results** (`ai_outputs`, the revisitable
+  work product) — kind label + source + relative time, each row a link to `/app/ai-history` — with a
+  clickable recent-**files** fallback (→ /app/files) for users with no AI runs yet, and the existing
+  empty state untouched. The AI-outputs query is tenancy-scoped via the `ai_outputs.file_id → files.user_id`
+  join (same rail as /app/ai-history) and wrapped in try/catch so a query hiccup degrades to "no recent
+  runs" instead of 500-ing the page.
+- **P1 — real metrics only.** Stat grid trimmed to the 3 genuine numbers (Balance / 7d / 30d). The
+  fake-`→` Receipts + Refer cards moved to a slim **Manage** row (Receipts / Billing / Refer & earn).
+- **P1 — Top-up CTA + low-balance state.** Balance card now carries an accent **Top up** (→ /pricing) +
+  History link, and flips its hint to "running low" below `LOW_BALANCE` (10).
+- **P2 — copy.** Welcome subline aligned to the new launchpad.
+
+**Testing:** new `scripts/test-dashboard-improvements.mjs` (28 assertions) pins quick-start, the 3 real
+stat cards + no `value="→"`, the Top-up CTA + low-balance threshold, the Manage row (keeps the
+guard-required /app/receipts link), and the AI-outputs-with-files-fallback recent list. The existing
+`test-user-dashboard-v2.mjs` PII/cost wall stays green (113/0) — no forbidden columns, links + imports
+intact. tsc 0; aggregator **7850/0 across 141 suites**. (Auth-gated page: standard logged-out Playwright
+audit can't reach it; verified via an authenticated capture.)
+
+---
+
 ## 2026-06-05 — /tools information-architecture rebalance (P0) + whitespace (P1)
 
 Fresh re-audit of /tools (full-page Playwright capture + live logged-in view) found the interaction
