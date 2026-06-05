@@ -30,6 +30,14 @@ const SHOT_PAGES = [
   ["pricing", "/pricing"],
 ];
 
+// Auth-gated pages to screenshot ONLY when AUDIT_EMAIL/AUDIT_PASSWORD are set
+// (the design-audit.yml workflow passes the prod-e2e test account). The
+// logged-out audit can't reach these — they 307 to /login. Read-only: we just
+// log in once per viewport and screenshot. 2026-06-05.
+const AUTH_SHOT_PAGES = [
+  ["app-dashboard", "/app/dashboard"],
+];
+
 async function metrics(page) {
   return page.evaluate(() => {
     const vw = window.innerWidth;
@@ -115,6 +123,17 @@ async function scrollToBottom(page) {
   await page.waitForTimeout(150);
 }
 
+// Credentials login (mirrors the prod-e2e helper). /login has no Turnstile,
+// so this works against the live env. Establishes the session cookie on the
+// page's context; subsequent navigations in that context are authenticated.
+async function login(page) {
+  await page.goto(BASE + "/login", { waitUntil: "domcontentloaded", timeout: 30000 });
+  await page.locator('input[type="email"]').fill(process.env.AUDIT_EMAIL);
+  await page.locator('input[type="password"]').fill(process.env.AUDIT_PASSWORD);
+  await page.getByRole("button", { name: /sign in|log in/i }).click();
+  await page.waitForURL(/\/app\//, { timeout: 25000 });
+}
+
 async function run() {
   const browser = await chromium.launch();
   const report = { shots: [], all: [] };
@@ -136,6 +155,33 @@ async function run() {
       } catch (e) { console.log(`FAIL ${name}.${mode}: ${(e.message || e).slice(0, 120)}`); }
       await ctx.close();
     }
+  }
+
+  // 1b) AUTHENTICATED pages (opt-in): log in once per viewport, then full-page
+  // screenshot the auth-gated surfaces. Skipped (no-op) when creds are absent
+  // so logged-out local/CI runs are unaffected. Wrapped so a login hiccup never
+  // aborts the structural scan below.
+  if (process.env.AUDIT_EMAIL && process.env.AUDIT_PASSWORD) {
+    for (const [mode, vp] of [["desktop", { width: 1280, height: 900 }], ["mobile", { width: 390, height: 844 }]]) {
+      const ctx = await browser.newContext({ viewport: vp, deviceScaleFactor: 1 });
+      const page = await ctx.newPage();
+      try {
+        await login(page);
+        for (const [name, path] of AUTH_SHOT_PAGES) {
+          await page.goto(BASE + path, { waitUntil: "domcontentloaded", timeout: 30000 });
+          await page.waitForTimeout(1000);
+          await scrollToBottom(page);
+          const m = await metrics(page);
+          const file = `${OUT}/${name}.${mode}.png`;
+          await page.screenshot({ path: file, fullPage: true });
+          report.shots.push({ name, path, mode, auth: true, ...m });
+          console.log(`shot ${name}.${mode} (auth)  vw=${m.vw} h1=${m.h1} h2=${m.h2} overflowX=${m.overflowX} scrollH=${m.scrollH}`);
+        }
+      } catch (e) { console.log(`FAIL auth.${mode}: ${(e.message || e).slice(0, 160)}`); }
+      await ctx.close();
+    }
+  } else {
+    console.log("(auth capture skipped — AUDIT_EMAIL/AUDIT_PASSWORD unset)");
   }
 
   // 2) structural scan across ALL sitemap pages (mobile, metrics only)

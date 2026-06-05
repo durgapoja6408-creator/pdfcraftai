@@ -27,6 +27,10 @@ jobs:
         env:
           AUDIT_URL: ${{ github.event.inputs.url || 'https://pdfcraftai.com' }}
           AUDIT_MAX: ${{ github.event.inputs.max || '0' }}
+          # Auth-gated captures (e.g. /app/dashboard). Read-only login as the
+          # prod-e2e test account; /login has no Turnstile so this works on live.
+          AUDIT_EMAIL: ${{ secrets.PROD_E2E_TEST_EMAIL }}
+          AUDIT_PASSWORD: ${{ secrets.PROD_E2E_TEST_PASSWORD }}
         run: node scripts/design-audit.mjs
       - name: Upload audit artifact
         if: always()
