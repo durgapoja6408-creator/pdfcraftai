@@ -5,6 +5,21 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-05 — /tools fix: remove condense-on-scroll header (scroll flicker)
+
+The v3 "condense sticky header on scroll" behaviour caused a visible flicker/jump while scrolling
+(reported via screen recording). Root cause: an IntersectionObserver hid the jump-bar + meta row the
+instant the user scrolled past a 1px top sentinel, shrinking the sticky header ~100px; that mid-scroll
+height change fought the browser's scroll-anchoring, so the header oscillated expanded⇄condensed near
+the threshold (frame-diff of the clip showed a repeating ~constant change, not smooth scrolling).
+Fix: removed the feature entirely (condensed state + sentinel + observer + `.tools-sticky--condensed`
+CSS) — the header is now full and stable, as it was pre-v3. The mobile collapse-by-default already
+delivers the scroll-length win, so this was a marginal feature not worth the jank. Locked with a new
+Playwright assertion (jump-bar stays visible after a 600px scroll; no condensed class). tsc 0;
+aggregator 7657/0.
+
+---
+
 ## 2026-06-05 — /tools findability v3 (Recently-used, Favourites, URL state, smarter search, mobile collapse)
 
 Implemented the approved P0/P1/P2 plan on /tools (prototype-mocked + approved first). NEW modules:

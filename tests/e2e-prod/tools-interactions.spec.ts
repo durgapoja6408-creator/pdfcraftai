@@ -44,6 +44,19 @@ test.describe("tools catalog interactions", () => {
     await expect(page.locator('input[aria-label="Search tools"]')).toBeFocused();
   });
 
+  test("the category jump-bar stays visible while scrolling (no condense flicker)", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/tools");
+    const jumpbar = page.locator("nav.tools-jumpbar");
+    await expect(jumpbar).toBeVisible();
+    // Scroll down past the header; the jump-bar must remain visible (not condensed away).
+    await page.mouse.wheel(0, 600);
+    await page.waitForTimeout(400);
+    await expect(jumpbar).toBeVisible();
+    // And no condensed-state class should exist anywhere.
+    await expect(page.locator(".tools-sticky--condensed")).toHaveCount(0);
+  });
+
   test("categories collapse by default on a narrow viewport", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/tools");

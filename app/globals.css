@@ -947,9 +947,7 @@ h4 {
 }
 
 /* /tools findability v3 — Recently-used, Favourites, sort, scroll-spy,
-   condensed sticky header, card polish (2026-06-05, P0/P1/P2 plan). */
-.tools-sticky--condensed .tools-jumpbar,
-.tools-sticky--condensed .tools-meta { display: none; }
+   card polish (2026-06-05, P0/P1/P2 plan). */
 .tools-jumpchip.is-active {
   color: var(--fg);
   border-color: var(--accent);

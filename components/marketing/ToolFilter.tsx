@@ -76,11 +76,9 @@ export function ToolFilter() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [recent, setRecent] = useState<string[]>([]);
   const [mounted, setMounted] = useState(false);
-  const [condensed, setCondensed] = useState(false);
   const [activeKey, setActiveKey] = useState<string>("");
   const [cat, setCat] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Client-only state after mount (avoids hydration mismatch): favourites +
   // recent from localStorage, filter/search from the URL, mobile collapse,
@@ -220,16 +218,6 @@ export function ToolFilter() {
     return () => spy.disconnect();
   }, [mounted, sections, searching]);
 
-  // Condense the sticky header once the user scrolls past the top sentinel.
-  useEffect(() => {
-    if (!mounted) return;
-    const el = sentinelRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => setCondensed(!e.isIntersecting), { threshold: 0 });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [mounted]);
-
   const count = filtered.length;
   const countText = searching
     ? `${count} ${count === 1 ? "match" : "matches"} for “${q.trim()}”`
@@ -238,8 +226,7 @@ export function ToolFilter() {
 
   return (
     <>
-      <div ref={sentinelRef} aria-hidden="true" style={{ height: 1 }} />
-      <div className={`tools-sticky${condensed ? " tools-sticky--condensed" : ""}`}>
+      <div className="tools-sticky">
         {/* Search — full width */}
         <div
           className="row"
