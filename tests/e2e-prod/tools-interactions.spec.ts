@@ -27,14 +27,12 @@ test.describe("tools catalog interactions", () => {
     await expect(page.locator('a[href="/tool/rotate"]').first()).toBeVisible();
   });
 
-  test("favouriting a tool persists across reload", async ({ page }) => {
+  test("anonymous users get no favourites UI (registered-only feature)", async ({ page }) => {
     await page.goto("/tools");
-    const star = page.locator("button.tool-star").first();
-    await expect(star).toBeVisible();
-    await star.click();
-    await expect(star).toHaveClass(/is-on/);
-    await page.reload();
-    await expect(page.locator("h2", { hasText: "Favourites" })).toBeVisible();
+    // Wait for the client grid to render, then assert no star / Favourites UI.
+    await expect(page.locator('a[href="/tool/merge"]').first()).toBeVisible();
+    await expect(page.locator("button.tool-star")).toHaveCount(0);
+    await expect(page.locator("h2", { hasText: "Favourites" })).toHaveCount(0);
   });
 
   test("slash key focuses the search box", async ({ page }) => {

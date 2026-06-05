@@ -18,12 +18,8 @@ import {
 } from "@/lib/tool-sections";
 import { matchesQuery, highlightSegments } from "@/lib/client/tools-search";
 import { parseToolsQuery, buildToolsQuery } from "@/lib/client/tools-url";
-import {
-  getFavorites,
-  getRecent,
-  toggleFavorite,
-  PREFS_EVENT,
-} from "@/lib/client/tool-prefs";
+import { getRecent, PREFS_EVENT } from "@/lib/client/tool-prefs";
+import { useSession } from "next-auth/react";
 
 type Filter = "all" | "free" | "ai";
 
@@ -79,13 +75,14 @@ export function ToolFilter() {
   const [activeKey, setActiveKey] = useState<string>("");
   const [cat, setCat] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const { status } = useSession();
+  const authed = status === "authenticated";
 
   // Client-only state after mount (avoids hydration mismatch): favourites +
   // recent from localStorage, filter/search from the URL, mobile collapse,
   // keyboard shortcuts, cross-tab prefs sync.
   useEffect(() => {
     setMounted(true);
-    setFavorites(getFavorites());
     setRecent(getRecent());
 
     const parsed = parseToolsQuery(window.location.search);
@@ -107,7 +104,6 @@ export function ToolFilter() {
     }
 
     const onPrefs = () => {
-      setFavorites(getFavorites());
       setRecent(getRecent());
     };
     window.addEventListener(PREFS_EVENT, onPrefs);
@@ -132,6 +128,25 @@ export function ToolFilter() {
       window.removeEventListener("keydown", onKey);
     };
   }, []);
+
+  // Favourites are a REGISTERED-user feature: load them from the account (DB)
+  // when signed in; anonymous visitors get no favourites at all.
+  useEffect(() => {
+    if (status !== "authenticated") {
+      setFavorites([]);
+      return;
+    }
+    let alive = true;
+    fetch("/api/favorites")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (alive && d && Array.isArray(d.ids)) setFavorites(d.ids);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [status]);
 
   // state -> URL (replaceState: shareable + reload-safe, no history spam).
   useEffect(() => {
@@ -174,7 +189,7 @@ export function ToolFilter() {
 
   const searching = q.trim().length > 0;
   const showPopular = filter === "all" && !searching;
-  const showFav = mounted && showPopular && favTools.length > 0;
+  const showFav = authed && showPopular && favTools.length > 0;
   const showRecent = mounted && showPopular && recentTools.length > 0;
 
   const isOpen = (key: string) => searching || openKeys.has(key);
@@ -196,7 +211,21 @@ export function ToolFilter() {
     });
   };
 
-  const onToggleFav = (id: string) => setFavorites(toggleFavorite(id));
+  const onToggleFav = (id: string) => {
+    const wasFav = favorites.includes(id);
+    const prev = favorites;
+    setFavorites(wasFav ? favorites.filter((x) => x !== id) : [id, ...favorites]);
+    fetch("/api/favorites", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ toolId: id, favorite: !wasFav }),
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d) => {
+        if (d && Array.isArray(d.ids)) setFavorites(d.ids);
+      })
+      .catch(() => setFavorites(prev));
+  };
 
   // Scroll-spy: highlight the jump chip for the section nearest the top.
   useEffect(() => {
@@ -326,7 +355,7 @@ export function ToolFilter() {
           </h2>
           <div className="tools-grid">
             {favTools.map((t) => (
-              <ToolCard key={t.id} tool={t} fav onFav={onToggleFav} q="" />
+              <ToolCard key={t.id} tool={t} fav onFav={onToggleFav} q="" showStar />
             ))}
           </div>
         </section>
@@ -361,7 +390,7 @@ export function ToolFilter() {
           </h2>
           <div className="tools-grid">
             {POPULAR.map((t) => (
-              <ToolCard key={t.id} tool={t} fav={favorites.includes(t.id)} onFav={onToggleFav} q="" />
+              <ToolCard key={t.id} tool={t} fav={favorites.includes(t.id)} onFav={onToggleFav} q="" showStar={authed} />
             ))}
           </div>
         </section>
@@ -396,7 +425,7 @@ export function ToolFilter() {
                   {blurb && <p className="muted" style={{ fontSize: 13, margin: "0 0 14px", maxWidth: 720 }}>{blurb}</p>}
                   <div className="tools-grid">
                     {s.tools.map((t) => (
-                      <ToolCard key={t.id} tool={t} fav={favorites.includes(t.id)} onFav={onToggleFav} q={q.trim()} />
+                      <ToolCard key={t.id} tool={t} fav={favorites.includes(t.id)} onFav={onToggleFav} q={q.trim()} showStar={authed} />
                     ))}
                   </div>
                 </div>
@@ -409,7 +438,7 @@ export function ToolFilter() {
   );
 }
 
-function ToolCard({ tool: t, fav, onFav, q }: { tool: Tool; fav: boolean; onFav: (id: string) => void; q: string }) {
+function ToolCard({ tool: t, fav, onFav, q, showStar }: { tool: Tool; fav: boolean; onFav: (id: string) => void; q: string; showStar: boolean }) {
   const Ic = I[t.icon];
   const isNew = NEW_TOOL_IDS.has(t.id);
   const footer = t.free
@@ -420,15 +449,17 @@ function ToolCard({ tool: t, fav, onFav, q }: { tool: Tool; fav: boolean; onFav:
   const nameSegs = q ? highlightSegments(t.name, q) : null;
   return (
     <div className="card card-hover" style={{ position: "relative", padding: 18 }}>
-      <button
-        type="button"
-        className={`tool-star${fav ? " is-on" : ""}`}
-        aria-pressed={fav}
-        aria-label={fav ? `Remove ${t.name} from favourites` : `Add ${t.name} to favourites`}
-        onClick={() => onFav(t.id)}
-      >
-        <I.Star size={16} />
-      </button>
+      {showStar && (
+        <button
+          type="button"
+          className={`tool-star${fav ? " is-on" : ""}`}
+          aria-pressed={fav}
+          aria-label={fav ? `Remove ${t.name} from favourites` : `Add ${t.name} to favourites`}
+          onClick={() => onFav(t.id)}
+        >
+          <I.Star size={16} />
+        </button>
+      )}
       <Link href={`/tool/${t.id}`} prefetch={false} style={{ display: "block", color: "inherit", textDecoration: "none" }}>
         <div style={{ width: 36, height: 36, borderRadius: 8, background: t.free ? "var(--blue-soft)" : "var(--accent-soft)", color: t.free ? "var(--blue)" : "var(--accent)", display: "grid", placeItems: "center" }}>
           <Ic size={18} />

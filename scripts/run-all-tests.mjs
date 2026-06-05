@@ -758,6 +758,7 @@ const SUITES = [
   { name: "tools-search", file: "test-tools-search.mjs" },
   { name: "tools-url", file: "test-tools-url.mjs" },
   { name: "tools-catalog-extras", file: "test-tools-catalog-extras.mjs" },
+  { name: "user-favorites-foundation", file: "test-user-favorites-foundation.mjs" },
   // M18 (2026-05-02): every AI tool that accepts a PDF input must
   // render UploadedFilePreview on its upload card. Caught the gap
   // earlier today's audit surfaced (ai-court-order shipping without

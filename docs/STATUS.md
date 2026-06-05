@@ -5,6 +5,28 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-05 — Favourites = registered-users-only, account-backed (DB)
+
+Per user: favourites should be a registered-user feature backed by the DB (not localStorage, not shown
+to anonymous visitors). Implemented:
+- Migration 0030 `user_favorites` (user_id varchar(255) FK->users ON DELETE CASCADE, tool_id varchar(64),
+  created_at; composite PK (user_id, tool_id) -> idempotent toggle + index-covered per-user list).
+  Applied to prod MariaDB via SSH (verified: table + composite PK present). Drizzle schema in
+  db/schema/app.ts (primaryKey import added).
+- `/api/favorites` route: GET (user's favourite ids) + POST {toolId, favorite} (add/remove). auth() ->
+  401 for anonymous; zod-validated; toolId validated against TOOLS (ai-chat rejected); add is idempotent
+  (onDuplicateKeyUpdate); per-user write throttle.
+- ToolFilter rewired: useSession — signed-in users load favourites from /api/favorites on mount and
+  toggle via POST (optimistic, revert on failure); anonymous visitors see NO star buttons and NO
+  Favourites section (showStar={authed}, showFav gated on authed). Recently-used stays localStorage for
+  everyone. (The old localStorage favourites helpers in tool-prefs are now unused — left in place, still
+  unit-tested.)
+- Tests: tools-interactions spec updated (anon asserts zero .tool-star + no Favourites heading); new
+  scripts/test-user-favorites-foundation.mjs (19 assertions: migration shape, schema, route auth-gate,
+  client gating) wired into the aggregator. tsc 0; aggregator 7677/0 across 137 suites.
+
+---
+
 ## 2026-06-05 — Homepage Security copy: make the retention/encryption claims accurate
 
 Audited the homepage Security section against the actual product (the "zero retention" claim looked like

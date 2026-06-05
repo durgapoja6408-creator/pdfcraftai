@@ -40,6 +40,7 @@ import {
   decimal,
   index,
   uniqueIndex,
+  primaryKey,
   mysqlEnum,
   json,
 } from "drizzle-orm/mysql-core";
@@ -1872,5 +1873,25 @@ export const agentRunSteps = mysqlTable(
     runIdxIdx: uniqueIndex("agent_run_steps_run_idx_idx").on(t.runId, t.idx),
     // Admin: find stuck steps.
     statusIdx: index("agent_run_steps_status_idx").on(t.status),
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// userFavorites — per-user starred tools (2026-06-05). REGISTERED users only:
+// the /api/favorites route 401s for anonymous visitors and the /tools UI hides
+// the star for them. One row per (user, tool); composite PK keeps toggles
+// idempotent and covers the per-user list query. FK cascades on user delete.
+// ---------------------------------------------------------------------------
+export const userFavorites = mysqlTable(
+  "user_favorites",
+  {
+    userId: varchar("user_id", { length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    toolId: varchar("tool_id", { length: 64 }).notNull(),
+    createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.userId, t.toolId] }),
   }),
 );
