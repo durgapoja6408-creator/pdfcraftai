@@ -31,8 +31,10 @@ Rebuilt `app/app/dashboard/page.tsx`:
 stat cards + no `value="→"`, the Top-up CTA + low-balance threshold, the Manage row (keeps the
 guard-required /app/receipts link), and the AI-outputs-with-files-fallback recent list. The existing
 `test-user-dashboard-v2.mjs` PII/cost wall stays green (113/0) — no forbidden columns, links + imports
-intact. tsc 0; aggregator **7850/0 across 141 suites**. (Auth-gated page: standard logged-out Playwright
-audit can't reach it; verified via an authenticated capture.)
+intact. tsc 0; aggregator **7850/0 across 141 suites**. Deployed `b30be2a`; verified healthy (db ok) and the
+rebuilt route 307-redirects anon to `/login?callbackUrl=…` (no 500). Auth-gated, so the standard
+logged-out Playwright audit can't reach the rendered page — an authenticated full-page capture is the
+outstanding visual check (offered to the user).
 
 ---
 
