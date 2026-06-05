@@ -92,7 +92,7 @@ export function Audience() {
     },
     {
       t: "Developers",
-      d: "REST API + webhooks. Bring your own key. 99.9% SLA.",
+      d: "Bring your own OpenAI, Anthropic or Google key. Flat 15% infra fee — we handle RAG, caching and retries.",
       i: "Code",
     },
     {

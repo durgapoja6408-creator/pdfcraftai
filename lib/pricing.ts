@@ -483,6 +483,6 @@ export const PRICING_FAQ: ReadonlyArray<{ q: string; a: string }> = [
   },
   {
     q: "Do you have an API?",
-    a: "REST + webhooks, SDKs for JS/Python/Go. Free tier: 200 calls/month. Paid usage metered in credits, same rates as the web app.",
+    a: "Not yet — a public REST API is on our roadmap. Today, Pro+ users can bring their own OpenAI, Anthropic or Google key (BYOK) to run on their own model quotas at a flat 15% infra fee.",
   },
 ];

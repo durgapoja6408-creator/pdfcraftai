@@ -3,20 +3,21 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { I } from "@/components/icons/Icons";
-import { TOOLS, type Tool } from "@/lib/tools";
+import { TOOLS, TOOL_STATS, type Tool } from "@/lib/tools";
 import { AI_SECTIONS, FREE_SECTIONS, ALL_SECTION_KEYS, buildSections } from "@/lib/tool-sections";
 
 // Homepage showcase = collapsible category accordion, AI-first (matches the
 // "AI for the impossible" headline + the page's long-standing AI-first order).
 // Shares the section model with /tools (lib/tool-sections) so the 52-tool AI
-// sub-grouping can't drift. Default all-expanded (parity with /tools; SSR keeps
-// every tool card/link in the homepage HTML for SEO). Section headers are <h3>
+// sub-grouping can't drift. Default: only the first group open (the homepage is
+// a landing page, not the full catalogue — "Browse all" + /tools carry the rest;
+// keeps the page short instead of dumping all 112 cards). Section headers are <h3>
 // (they sit under this section's <h2> in ToolsShowcase). Collapse is a client
 // action; cards stay rendered via React state, just hidden when closed.
 const HOME_ORDER = [...AI_SECTIONS, ...FREE_SECTIONS];
 
 export function ToolsShowcaseGroups() {
-  const [openKeys, setOpenKeys] = useState<Set<string>>(() => new Set(ALL_SECTION_KEYS));
+  const [openKeys, setOpenKeys] = useState<Set<string>>(() => new Set([AI_SECTIONS[0].key]));
 
   const sections = useMemo(
     () => buildSections(TOOLS.filter((t) => t.id !== "ai-chat"), HOME_ORDER),
@@ -114,6 +115,16 @@ export function ToolsShowcaseGroups() {
           </div>
         );
       })}
+
+      <div className="row" style={{ justifyContent: "center", marginTop: 20 }}>
+        <Link
+          href="/tools"
+          className="btn btn-lg btn-primary"
+          style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+        >
+          Browse all {TOOL_STATS.total} tools <I.ArrowRight size={16} />
+        </Link>
+      </div>
     </>
   );
 }

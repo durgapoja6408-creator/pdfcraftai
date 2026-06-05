@@ -5,6 +5,24 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-05 — Homepage UI/UX pass (P0/P1/P2, approved, no mock)
+
+P0: the homepage ToolsShowcase was rendering the FULL 112-tool catalogue with every accordion group
+expanded by default (page was 12,583px desktop / 31,283px mobile — a second copy of /tools that buried
+the conversion sections ~9k px down). Changed ToolsShowcaseGroups default openKeys to the first group
+only + added a "Browse all 113 tools →" CTA to /tools below the accordion. P1: fixed the stale eyebrow
+"SIXTEEN TOOLS · ONE WORKSPACE" -> data-driven "{free} FREE + {ai} AI TOOLS · ONE WORKSPACE" (60+53);
+reworded the Audience "Developers" card (was "REST API + webhooks · 99.9% SLA" — the API product was
+removed in tasks #7-10) to a truthful BYOK angle, and fixed the matching /pricing FAQ ("Do you have an
+API?") to "Not yet — on the roadmap; BYOK available today". P2: modest hero top-padding trim
+(120->96px) to lift content; Security claims left as-is (cert badges are honestly asterisked "on the
+roadmap"; flagged the hard "zero retention" claim for a separate backend-retention verification — not
+changed speculatively). Tests: new tests/e2e-prod/home-interactions.spec.ts (showcase collapsed by
+default, Browse-all CTA -> /tools, no "SIXTEEN"/"REST API"); tools-e2e.yml widened to run both
+*interactions* specs. tsc 0; aggregator 7657/0.
+
+---
+
 ## 2026-06-05 — /tools fix: remove condense-on-scroll header (scroll flicker)
 
 The v3 "condense sticky header on scroll" behaviour caused a visible flicker/jump while scrolling

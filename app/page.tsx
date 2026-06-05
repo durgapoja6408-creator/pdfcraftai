@@ -57,7 +57,7 @@ export default async function HomePage() {
 
         <div
           className="container-x"
-          style={{ position: "relative", padding: "120px 28px 80px", textAlign: "center" }}
+          style={{ position: "relative", padding: "96px 28px 72px", textAlign: "center" }}
         >
           <div className="row" style={{ justifyContent: "center", marginBottom: 28 }}>
             <span className="chip chip-new">

@@ -1,4 +1,5 @@
 import { ToolsShowcaseGroups } from "@/components/landing/ToolsShowcaseGroups";
+import { TOOL_STATS } from "@/lib/tools";
 
 export function ToolsShowcase() {
   // Server wrapper: renders the section heading + container, then the
@@ -11,7 +12,7 @@ export function ToolsShowcase() {
       <div className="container-x">
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <div className="eyebrow" style={{ marginBottom: 8 }}>
-            SIXTEEN TOOLS · ONE WORKSPACE
+            {TOOL_STATS.free} FREE + {TOOL_STATS.ai} AI TOOLS · ONE WORKSPACE
           </div>
           <h2 style={{ fontSize: 44, maxWidth: 680, margin: "0 auto" }}>
             Free for the everyday. AI for the impossible.
