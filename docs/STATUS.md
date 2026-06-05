@@ -7,6 +7,18 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ## 2026-06-05 — /app pages UX pass (files / usage / chat / settings)
 
+**Mobile-overflow fix (found via the authenticated capture).** The 6-page auth design-audit showed
+horizontal overflow at 390px on files (183px), ai-history (119px), usage (102px), billing (17px) —
+desktop all clean. Root cause: the AppShell mobile grid used `grid-template-columns: 1fr`
+(= `minmax(auto,1fr)`), so the single track **blew out to its widest child's min-content** (a long
+filename in a `white-space:nowrap` flex cell, a wide table) — stretching `app-shell-main` (and the topbar)
+to 400–573px. Pre-existing content overflow the AppShell drawer fix didn't address. Fix: the classic
+grid-blowout guard — mobile `grid-template-columns: minmax(0, 1fr)` + `.app-shell-main { min-width: 0 }`
+(globals.css), plus `min-width:0` on the FilesList row name cell so the filename ellipsizes instead of
+forcing width. Usage tables already wrapped in `overflow-x:auto`. Re-captured: all six pages overflowX=0
+at 390px, desktop unchanged.
+
+
 Acted on the cross-page audit. The mature pages (ai-history, billing, settings core) were left alone; the
 real gaps were in findability + scannability:
 - **/app/files (P0) — findability.** Was a flat ≤100-row list with no search/sort and a silent cap. New

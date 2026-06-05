@@ -139,7 +139,7 @@ export function FilesList({ rows, total }: { rows: FileRow[]; total: number }) {
           {view.map((f, i) => (
             <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
               <span style={{ color: "var(--fg-subtle)" }}><I.File size={16} /></span>
-              <div style={{ flex: 1, overflow: "hidden" }}>
+              <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
                 <div style={{ fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={f.name}>{f.name}</div>
                 <div className="subtle" style={{ fontSize: 12 }}>{humanSize(f.sizeBytes)} · {new Date(f.createdAt).toLocaleString()}</div>
               </div>

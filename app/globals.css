@@ -1114,13 +1114,14 @@ h4 {
 .app-shell-main {
   padding: 32px 40px;
   max-width: 1200px;
+  min-width: 0; /* allow the grid item to shrink below child min-content */
 }
 .app-shell-topbar { display: none; }
 .app-shell-backdrop { display: none; }
 .app-shell-close { display: none; }
 
 @media (max-width: 768px) {
-  .app-shell { grid-template-columns: 1fr; }
+  .app-shell { grid-template-columns: minmax(0, 1fr); }
   .app-shell-topbar {
     display: flex;
     align-items: center;

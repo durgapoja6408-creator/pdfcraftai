@@ -23,7 +23,7 @@ assert(/\.app-shell-main\s*\{/.test(css), ".app-shell-main rule present");
 assert(/@media\s*\(max-width:\s*768px\)/.test(css), "768px mobile breakpoint present");
 // mobile rules (uniquely named, so assert against the whole sheet — the base
 // .app-shell uses "240px 1fr" / "display:none", only the @media block uses these)
-assert(/\.app-shell\s*\{\s*grid-template-columns:\s*1fr/.test(css), "mobile drops to a single column (1fr)");
+assert(/\.app-shell\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)/.test(css), "mobile drops to a single column minmax(0,1fr) — grid-blowout guard");
 assert(/\.app-shell-sidebar\s*\{[\s\S]*?transform:\s*translateX\(-100%\)/.test(css), "mobile sidebar is an off-canvas drawer (translateX -100%)");
 assert(/\.app-shell-sidebar\[data-open="true"\]\s*\{[\s\S]*?translateX\(0\)/.test(css), "drawer slides in when data-open");
 assert(/\.app-shell-topbar\s*\{[\s\S]*?display:\s*flex/.test(css), "mobile top bar shown");
