@@ -150,11 +150,11 @@ export const COMPETITORS: Record<CompetitorSlug, CompetitorData> = {
       {
         category: "API & integrations",
         rows: [
-          { feature: "REST API", us: true, them: true },
-          { feature: "Official SDKs", us: "TypeScript, Python, Go, Ruby, PHP", them: "PHP, Java, Python, .NET, Ruby" },
+          { feature: "REST API", us: false, them: true },
+          { feature: "Official SDKs", us: false, them: "PHP, Java, Python, .NET, Ruby" },
           { feature: "WordPress plugin", us: "Roadmap", them: true },
           { feature: "Zapier integration", us: "Roadmap", them: true },
-          { feature: "Batch endpoint", us: true, them: true },
+          { feature: "Batch endpoint", us: false, them: true },
         ],
       },
       {
@@ -221,7 +221,7 @@ export const COMPETITORS: Record<CompetitorSlug, CompetitorData> = {
       },
       {
         q: "Is iLovePDF's API better?",
-        a: "Their API is more mature — it's been in market longer and has more language SDKs. Ours is newer but covers the same operations plus AI ops they don't have. If you're API-first and already have iLovePDF integrations working, the migration cost is real; if you're starting fresh, ours is likely cheaper at the same volume.",
+        a: "We don't offer a public REST API today — a developer API is on our roadmap. If you're API-first and need programmatic access now, iLovePDF is the better fit. What we do offer is BYOK (bring your own OpenAI/Anthropic/Google key) on Pro+ and bulk processing in the app, plus AI operations they don't have.",
       },
       {
         q: "Are pdfcraft ai's free tools really truly free?",
@@ -302,7 +302,7 @@ export const COMPETITORS: Record<CompetitorSlug, CompetitorData> = {
           { feature: "Dropbox", us: "Roadmap", them: true },
           { feature: "OneDrive", us: "Roadmap", them: true },
           { feature: "Microsoft Word add-in", us: false, them: true },
-          { feature: "REST API", us: true, them: true },
+          { feature: "REST API", us: false, them: true },
           { feature: "Macros (chain steps)", us: true, them: false },
         ],
       },

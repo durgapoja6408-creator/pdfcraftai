@@ -471,7 +471,7 @@ export const PRICING_FAQ: ReadonlyArray<{ q: string; a: string }> = [
   },
   {
     q: "What happens to my files?",
-    a: "Encrypted in transit and at rest, auto-deleted within 60 minutes. Zero-retention AI endpoints — nothing you send is ever used for training.",
+    a: "Free tools run entirely in your browser — files never leave your device. With AI tools, uploads are encrypted in transit and the document itself is never stored (only metadata); the results you generate are saved to your history and deletable anytime. Nothing you send is ever used for training.",
   },
   {
     q: "Do you offer refunds?",

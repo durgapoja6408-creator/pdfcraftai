@@ -267,7 +267,7 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
                       <I.Check size={14} /> No signup
                     </span>
                     <span className="row" style={{ gap: 6 }}>
-                      <I.Check size={14} /> Zero retention
+                      <I.Check size={14} /> Stays on your device
                     </span>
                   </>
                 ) : (
@@ -280,7 +280,7 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
                       <I.Check size={14} /> 5 free credits
                     </span>
                     <span className="row" style={{ gap: 6 }}>
-                      <I.Check size={14} /> Zero retention
+                      <I.Check size={14} /> Encrypted in transit
                     </span>
                   </>
                 )}
@@ -435,8 +435,8 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
               body={`Every PDF task in one place. ${TOOL_STATS.free} free forever, ${TOOL_STATS.ai} AI.`}
             />
             <WhyCard icon="Flow" title="Macros" body="Chain steps. Schedule them. Never do the same job twice." />
-            <WhyCard icon="Code" title="API + SDKs" body="TypeScript, Python, Go, Ruby, PHP. Batch endpoint for scale." />
-            <WhyCard icon="Shield" title="Secure by default" body="Encrypted in transit and at rest. 60-min auto-delete. Zero-retention AI." />
+            <WhyCard icon="Layers" title="Bulk mode" body="Run any tool on up to 500 files at once — drop a zip, get a zip back." />
+            <WhyCard icon="Shield" title="Private by default" body="Free tools run in your browser. AI uploads are encrypted in transit and never stored — metadata only. Never used for training." />
           </div>
         </div>
       </section>
@@ -646,7 +646,7 @@ export function SeoLandingPage({ data }: { data: SeoPageData }) {
             {tool.free
               ? "No signup. No watermarks. Your file stays private."
               : // 2026-05-02 plan §2 path D — was "25 free credits".
-                "5 free credits on signup, valid 7 days. No card required. Zero retention."}
+                "5 free credits on signup, valid 7 days. No card required."}
           </p>
           <Link href={primaryHref} className="btn btn-lg btn-primary">
             Open {tool.name} <I.ArrowRight size={16} />
