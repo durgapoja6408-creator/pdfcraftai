@@ -1,8 +1,12 @@
-// Client-only tool preferences (favourites + recently-used) persisted in
-// the existing `pdfcraft_state` localStorage object (shared with theme —
-// see components/nav/ThemeToggle.tsx). Pure list helpers (addToFront,
-// toggleId) are import-free and unit-tested by scripts/test-tool-prefs.mjs;
-// the localStorage wrappers are thin and degrade gracefully (private mode).
+// Client-only tool preferences (recently-used) persisted in the existing
+// `pdfcraft_state` localStorage object (shared with theme — see
+// components/nav/ThemeToggle.tsx). The pure list helper (addToFront) is
+// import-free and unit-tested by scripts/test-tool-prefs.mjs; the localStorage
+// wrappers are thin and degrade gracefully (private mode).
+//
+// NOTE (2026-06-05): favourites moved to the account (DB, registered-only) —
+// see app/app + /api/favorites + components/marketing/ToolFilter.tsx. The old
+// browser-local favourites helpers were removed here as dead code then.
 
 export const PREFS_KEY = "pdfcraft_state";
 export const RECENT_CAP = 8;
@@ -15,11 +19,6 @@ export function addToFront(list: readonly string[], id: string, cap: number) {
     if (x !== id && next.length < cap) next.push(x);
   }
   return next;
-}
-
-// Pure: toggle membership of id.
-export function toggleId(list: readonly string[], id: string) {
-  return list.includes(id) ? list.filter((x) => x !== id) : [id, ...list];
 }
 
 function readState(): Record<string, unknown> {
@@ -46,18 +45,8 @@ function asIds(v: unknown) {
   return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
 }
 
-export function getFavorites() {
-  return asIds(readState().favorites);
-}
-
 export function getRecent() {
   return asIds(readState().recent);
-}
-
-export function toggleFavorite(id: string) {
-  const next = toggleId(getFavorites(), id);
-  writeState({ favorites: next });
-  return next;
 }
 
 export function recordRecent(id: string) {

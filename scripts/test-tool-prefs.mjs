@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Unit tests for lib/client/tool-prefs.ts pure helpers (addToFront, toggleId).
+// Unit tests for lib/client/tool-prefs.ts pure helper (addToFront).
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,7 +13,7 @@ const stripped = src
   .replace(/: Record<string, unknown>/g, "").replace(/: readonly string\[\]/g, "")
   .replace(/: unknown/g, "").replace(/: string/g, "").replace(/: number/g, "")
   .replace(/export function/g, "function").replace(/export const/g, "const");
-const { addToFront, toggleId, RECENT_CAP } = new Function(`${stripped}\nreturn { addToFront, toggleId, RECENT_CAP };`)();
+const { addToFront, RECENT_CAP } = new Function(`${stripped}\nreturn { addToFront, RECENT_CAP };`)();
 
 console.log("addToFront:");
 assert(eq(addToFront([], "a", 8), ["a"]), "into empty");
@@ -22,11 +22,6 @@ assert(eq(addToFront(["a", "b", "c"], "c", 8), ["c", "a", "b"]), "moves existing
 assert(eq(addToFront(["a", "b", "c"], "d", 3), ["d", "a", "b"]), "caps length, drops oldest");
 assert(addToFront(["a", "b", "c", "d", "e", "f", "g", "h", "i"], "x", RECENT_CAP).length === RECENT_CAP, "respects RECENT_CAP");
 
-console.log("toggleId:");
-assert(eq(toggleId([], "a"), ["a"]), "adds when absent");
-assert(eq(toggleId(["a"], "a"), []), "removes when present");
-assert(eq(toggleId(["a", "b"], "c"), ["c", "a", "b"]), "adds to front when absent");
-assert(eq(toggleId(["a", "b", "c"], "b"), ["a", "c"]), "removes middle, preserves order");
 
 console.log("");
 if (failed === 0) { console.log(`PASS — ${passed} assertions`); console.log(`${passed} passed, 0 failed`); process.exit(0); }

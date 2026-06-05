@@ -5,6 +5,25 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-05 — Tidy-up: ai-history control-byte regex + dead local-favourites helpers
+
+Two small hygiene fixes:
+- **`app/app/ai-history/page.tsx`** carried three RAW control bytes (`0x00`, `0x1f`, `0x7f`) inside a
+  source-name sanitizer regex char class — `/[<NUL>-<0x1f><0x7f>"\\]/` — written with literal control
+  characters instead of escapes (which made the file read as "binary" and is poor hygiene). Replaced the
+  raw bytes with `\x00`/`\x1f`/`\x7f` escapes → `/[\x00-\x1f\x7f"\\]/`. **Behaviour is identical**
+  (same code points rejected); the file is now plain ASCII.
+- **`lib/client/tool-prefs.ts`** still exported the old browser-local favourites helpers
+  (`getFavorites` / `toggleFavorite` / `toggleId`) that went dead when favourites moved to the account
+  (DB, registered-only). Removed all three (0 remaining callers — verified word-boundary across the tree);
+  `getRecent` / `recordRecent` / `addToFront` / `PREFS_EVENT` stay (recently-used is still local).
+  `scripts/test-tool-prefs.mjs` updated to drop the `toggleId` unit tests; the favourites-foundation guard
+  (which only asserts the helpers are absent from ToolFilter) stays green.
+
+tsc 0; aggregator **7868/0 across 142 suites** (−4 = removed toggleId assertions).
+
+---
+
 ## 2026-06-05 — AppShell responsive: mobile sidebar → off-canvas drawer (fixes /app/* overflow)
 
 Fixes the ~199px horizontal overflow the authenticated dashboard capture surfaced on phones. Root cause:
