@@ -77,7 +77,7 @@ const NEW_TOOLS = [
   // Inspector / extractor tools.
   { id: "page-count", component: "PageCountTool", group: "Organize" },
   { id: "extract-images", component: "ExtractImagesTool", group: "Convert" },
-  { id: "pdf-attachments", component: "PdfAttachmentsTool", group: "Organize" },
+  { id: "pdf-attachments", component: "PdfAttachmentsTool", group: "Inspect" }, // 2026-06-05 IA rebalance: Organize -> Inspect
   // Tier 5 / page-editor consumers.
   { id: "resize-pdf", component: "PdfResizeTool", group: "Edit" },
   { id: "image-watermark", component: "PdfImageWatermarkTool", group: "Edit" },

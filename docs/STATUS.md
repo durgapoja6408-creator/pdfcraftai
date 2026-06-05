@@ -5,6 +5,40 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-05 — /tools information-architecture rebalance (P0) + whitespace (P1)
+
+Fresh re-audit of /tools (full-page Playwright capture + live logged-in view) found the interaction
+layer solid but the **category taxonomy** unbalanced — a real findability issue:
+- **Optimize held a single tool** (PDF to Grayscale), and the marquee **Compress PDF was mis-filed under
+  Convert** — so a user jumping to "Optimize" to shrink a PDF couldn't find it.
+- **Organize was a 24-tool catch-all** mixing page operations (merge/split/reorder) with read-only
+  inspectors (fonts/links/forms/JS/compliance/extractors) — the longest scroll on the page, burying the
+  audit/inspector tools that are a genuine differentiator vs Smallpdf/iLovePDF.
+
+**P0 fix (taxonomy):** added a new `Inspect` ToolGroup and rebalanced `lib/tools.ts`:
+`compress-pdf` Convert→**Optimize**; `pdf-a-convert` Organize→**Convert**; 16 inspectors/extractors
+Organize→**Inspect**. Result: 6 balanced free sections instead of one 24-tool monster + one 1-tool stub —
+Organize & pages (7), Convert (12), Compress & optimize (2), Edit & annotate (20), Inspect & audit (16),
+Security & redaction (3) = 60 free. `FREE_SECTIONS` reordered by user intent + relabelled; `SECTION_BLURBS`
+updated (+Inspect). Both consumers (the /tools index AND the homepage showcase) pick this up automatically
+via `buildSections`. Analytics category labels in the tool components (`useTrackToolView`) were left
+untouched on purpose — keeping the GA funnel dimension stable preserves each tool's historical timeline
+(catalog taxonomy and the analytics dimension are allowed to differ).
+
+**P1:** tightened the loose gap above the search bar (Bulk-mode promo `marginBottom` 32→20).
+
+**P1b / P2 turned out to be non-issues on code inspection** (reported honestly, not changed): the
+`?cat=` param is a scroll-anchor, not a filter, so there's nothing to "clear"; and the cookie-consent
+banner is correctly `position:fixed; bottom` — the apparent overlap in the full-page screenshot was a
+Playwright fixed-element stitching artifact, not a real overlap.
+
+**Testing:** new `scripts/test-tools-ia.mjs` (56 assertions) pins every re-home, the 6-section
+order/labels, the `key===group` invariant, and blurb coverage; `VALID_GROUPS` in
+`test-tool-id-conventions.mjs` gained `Inspect`; `test-tier1-expansion.mjs` updated for
+`pdf-attachments`→Inspect. tsc 0; aggregator **7822/0 across 140 suites**.
+
+---
+
 ## 2026-06-05 — Unify tool loading to a shared Skeleton primitive
 
 Item #3 (design system), loading-state slice. Empty + error states were already standardized

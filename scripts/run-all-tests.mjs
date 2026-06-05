@@ -758,6 +758,7 @@ const SUITES = [
   { name: "tools-search", file: "test-tools-search.mjs" },
   { name: "tools-url", file: "test-tools-url.mjs" },
   { name: "tools-catalog-extras", file: "test-tools-catalog-extras.mjs" },
+  { name: "tools-ia", file: "test-tools-ia.mjs" },
   { name: "user-favorites-foundation", file: "test-user-favorites-foundation.mjs" },
   { name: "design-system", file: "test-design-system.mjs" },
   { name: "skeleton", file: "test-skeleton.mjs" },

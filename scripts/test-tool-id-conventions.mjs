@@ -28,7 +28,7 @@
 //   4. Every tool with `free: true` does NOT have an `ai-` prefix.
 //      Same expectation from the user side, just enforced both ways.
 //   5. Every tool's `group` value is in the canonical 6-group enum
-//      ("AI" | "Organize" | "Convert" | "Optimize" | "Edit" |
+//      ("AI" | "Organize" | "Inspect" | "Convert" | "Optimize" | "Edit" |
 //      "Security"). The TS union enforces this at compile-time, but
 //      a wrong literal can slip past the typechecker if it matches
 //      one of the union strings. The guard adds belt-and-suspenders.
@@ -61,6 +61,7 @@ const TOOLS_SRC = readFileSync(TOOLS_PATH, "utf8");
 const VALID_GROUPS = new Set([
   "AI",
   "Organize",
+  "Inspect", // 2026-06-05 IA rebalance: read-only inspectors/extractors
   "Convert",
   "Optimize",
   "Edit",

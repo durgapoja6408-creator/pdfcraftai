@@ -119,7 +119,8 @@ export default function ToolsPage() {
               alignItems: "center",
               gap: 20,
               padding: 24,
-              marginBottom: 32,
+              // 2026-06-05: tightened 32->20 to reduce the loose gap above the search bar.
+              marginBottom: 20,
               borderColor: "var(--accent-soft)",
             }}
           >

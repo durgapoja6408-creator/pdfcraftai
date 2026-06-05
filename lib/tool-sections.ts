@@ -21,10 +21,17 @@ export type AiSectionDef = { kind: "ai"; key: string; label: string; ids: readon
 export type SectionDef = FreeSectionDef | AiSectionDef;
 
 export const FREE_SECTIONS: readonly FreeSectionDef[] = [
-  { kind: "free", key: "Organize", label: "Organize", group: "Organize" },
+  // 2026-06-05 IA rebalance: "Organize" was a 24-tool catch-all that mixed
+  // page operations with read-only inspectors, while "Optimize" held a single
+  // tool and the marquee Compress lived (wrongly) under Convert. Split into
+  // page-ops vs. inspect/audit, gave Compress its proper home, and ordered by
+  // user intent. `key` MUST equal `group` (buildSections routes free tools by
+  // tool.group and looks up byKey.get(section.key)).
+  { kind: "free", key: "Organize", label: "Organize & pages", group: "Organize" },
   { kind: "free", key: "Convert", label: "Convert", group: "Convert" },
+  { kind: "free", key: "Optimize", label: "Compress & optimize", group: "Optimize" },
   { kind: "free", key: "Edit", label: "Edit & annotate", group: "Edit" },
-  { kind: "free", key: "Optimize", label: "Optimize", group: "Optimize" },
+  { kind: "free", key: "Inspect", label: "Inspect & audit", group: "Inspect" },
   { kind: "free", key: "Security", label: "Security & redaction", group: "Security" },
 ];
 
@@ -143,10 +150,11 @@ export const POPULAR_TOOL_IDS: readonly string[] = [
 
 // One-line intro under each section <h2> (keyword coverage + scent).
 export const SECTION_BLURBS: Record<string, string> = {
-  Organize: "Reorder, count, extract and inspect — structure your PDFs.",
-  Convert: "PDFs to and from text, images, HTML, Markdown and CSV.",
+  Organize: "Merge, split, reorder, extract and count pages.",
+  Convert: "PDFs to and from text, images, HTML, Markdown, CSV and PDF/A.",
+  Optimize: "Shrink file size and tune PDFs for sharing or print.",
   Edit: "Stamp, fill, overlay, number, annotate and redact.",
-  Optimize: "Shrink and tune PDFs for sharing or print.",
+  Inspect: "Inspect fonts, links, forms, metadata, attachments and compliance — read-only.",
   Security: "Unlock, redact and strip sensitive data from PDFs.",
   "ai-understand": "Summaries, key points and study aids for any PDF.",
   "ai-write": "Turn a PDF into blog posts, threads, scripts and rewrites.",

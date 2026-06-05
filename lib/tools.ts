@@ -3,7 +3,7 @@
 
 import type { IconName } from "@/components/icons/Icons";
 
-export type ToolGroup = "AI" | "Organize" | "Convert" | "Optimize" | "Edit" | "Security";
+export type ToolGroup = "AI" | "Organize" | "Inspect" | "Convert" | "Optimize" | "Edit" | "Security";
 
 export type Tool = {
   id: string;
@@ -42,7 +42,7 @@ export const TOOLS: readonly Tool[] = [
   // competitor convention (iLovePDF, Smallpdf both maintain strict
   // slug↔name alignment). No URL change, zero SEO cost.
   { id: "page-count", name: "Page Count", desc: "Count pages in any PDF — fast, free, in-browser. One number, one click to copy.", icon: "Pages", free: true, cost: "free", group: "Organize" },
-  { id: "pdf-inspector", name: "PDF Inspector", desc: "See everything inside a PDF — pages, dimensions, word count, reading time + mixed-size warnings. Free, in-browser.", icon: "Search", free: true, cost: "free", group: "Organize" },
+  { id: "pdf-inspector", name: "PDF Inspector", desc: "See everything inside a PDF — pages, dimensions, word count, reading time + mixed-size warnings. Free, in-browser.", icon: "Search", free: true, cost: "free", group: "Inspect" },
 
   // Build 2 (2026-04-27): PDFium-backed text-export trio. All three
   // share lib/pdf/ops/text-export.ts — same single PDFium parse,
@@ -89,7 +89,7 @@ export const TOOLS: readonly Tool[] = [
   // flip lands on a graceful 404 instead of a runtime crash).
   // Replaces the long-standing "no compress" gap that motivated the
   // T1-1 bait-and-switch removal.
-  { id: "compress-pdf", name: "Compress PDF", desc: "Shrink PDF file size with adjustable quality (Light, Balanced, Strong). Server-side via Ghostscript — keeps text searchable, embeds web-optimized linearization. Falls back to your original if compression doesn't actually help.", icon: "Compress", free: true, cost: "free", group: "Convert" },
+  { id: "compress-pdf", name: "Compress PDF", desc: "Shrink PDF file size with adjustable quality (Light, Balanced, Strong). Server-side via Ghostscript — keeps text searchable, embeds web-optimized linearization. Falls back to your original if compression doesn't actually help.", icon: "Compress", free: true, cost: "free", group: "Optimize" },
   // PENDING §5b Phase B (2026-05-05): server-side Ghostscript-backed
   // PDF/A-2b converter. Different tool id from /tool/pdf-a-check
   // (read-only validator) — separate intents = separate tools.
@@ -97,7 +97,7 @@ export const TOOLS: readonly Tool[] = [
   // with embedded fonts + sRGB output intent + dPDFACompatibilityPolicy=1
   // policy (gs fails honestly on un-PDF/A-able content rather than
   // silently producing files that LIE about conformance).
-  { id: "pdf-a-convert", name: "Convert to PDF/A", desc: "Convert any PDF to PDF/A-2b for archival storage. Embeds all fonts, declares sRGB output intent, ensures long-term renderability. Pairs with PDF/A Compliance Check — run check first to see if conversion is needed; run convert to make it conformant.", icon: "Shield", free: true, cost: "free", group: "Organize" },
+  { id: "pdf-a-convert", name: "Convert to PDF/A", desc: "Convert any PDF to PDF/A-2b for archival storage. Embeds all fonts, declares sRGB output intent, ensures long-term renderability. Pairs with PDF/A Compliance Check — run check first to see if conversion is needed; run convert to make it conformant.", icon: "Shield", free: true, cost: "free", group: "Convert" },
   // 2026-05-12 — renamed from "Compare PDFs" to "Visual Diff" to
   // eliminate display-name collision with ai-compare ("Compare PDFs"
   // for AI content diff). Caught by test-tool-id-conventions.mjs §G1.
@@ -106,50 +106,50 @@ export const TOOLS: readonly Tool[] = [
   // (pixel-level visual vs redline content). Users browsing the
   // catalog couldn't distinguish them. New name is honest about
   // what the tool actually does — pixel-level visual diff.
-  { id: "pdf-diff", name: "Visual Diff", desc: "Pixel-level visual diff between two PDFs — output a comparison PDF with red highlighting on regions that differ + per-page diff percentage. Pairs with AI Compare for content-level diffs.", icon: "Search", free: true, cost: "free", group: "Organize" },
+  { id: "pdf-diff", name: "Visual Diff", desc: "Pixel-level visual diff between two PDFs — output a comparison PDF with red highlighting on regions that differ + per-page diff percentage. Pairs with AI Compare for content-level diffs.", icon: "Search", free: true, cost: "free", group: "Inspect" },
 
   // Build 2 Wave 3 (2026-04-27): Search + Extract Images. Both
   // PDFium-backed read-only ops.
-  { id: "pdf-search", name: "Search in PDF", desc: "Find any word or phrase across every page of a PDF. Case-sensitive and whole-word options, with surrounding context. Free, in-browser.", icon: "Search", free: true, cost: "free", group: "Organize" },
+  { id: "pdf-search", name: "Search in PDF", desc: "Find any word or phrase across every page of a PDF. Case-sensitive and whole-word options, with surrounding context. Free, in-browser.", icon: "Search", free: true, cost: "free", group: "Inspect" },
   { id: "extract-images", name: "Extract Images from PDF", desc: "Pull every embedded image out of a PDF as PNG, at native resolution. Single download or zip bundle. Free, in-browser.", icon: "Image", free: true, cost: "free", group: "Convert" },
 
   // Build 2 Wave 4 (2026-04-27): byte-parser tool — no PDFium needed.
   // Reads the outline (bookmark) tree from the raw PDF bytes,
   // resolves destinations to page numbers via the page tree.
-  { id: "pdf-outline", name: "PDF Outline Viewer", desc: "View the bookmark / table-of-contents tree of any PDF, with page references. Useful for previewing long docs before reading. Free, in-browser.", icon: "Pages", free: true, cost: "free", group: "Organize" },
+  { id: "pdf-outline", name: "PDF Outline Viewer", desc: "View the bookmark / table-of-contents tree of any PDF, with page references. Useful for previewing long docs before reading. Free, in-browser.", icon: "Pages", free: true, cost: "free", group: "Inspect" },
   // Build 2 Wave 4 (continued) — Form Fields + Attachments byte parsers.
-  { id: "pdf-forms", name: "PDF Form Inspector", desc: "List every AcroForm field in a PDF — name, type, value, required/read-only flags. Export as CSV or JSON. Free, in-browser.", icon: "Pen", free: true, cost: "free", group: "Organize" },
-  { id: "pdf-attachments", name: "PDF Attachments Lister", desc: "List every embedded file in a PDF — filename, description, MIME type, size. Useful for compliance audits and security review. Free, in-browser.", icon: "Shield", free: true, cost: "free", group: "Organize" },
+  { id: "pdf-forms", name: "PDF Form Inspector", desc: "List every AcroForm field in a PDF — name, type, value, required/read-only flags. Export as CSV or JSON. Free, in-browser.", icon: "Pen", free: true, cost: "free", group: "Inspect" },
+  { id: "pdf-attachments", name: "PDF Attachments Lister", desc: "List every embedded file in a PDF — filename, description, MIME type, size. Useful for compliance audits and security review. Free, in-browser.", icon: "Shield", free: true, cost: "free", group: "Inspect" },
   // 2026-05-01 — Extract Contacts: regex-based emails + phone numbers
   // from PDF text. Closes the /extract-emails-from-pdf SEO landing
   // that was seeded ahead of the tool. Indian phone formats
   // (+91 XXXXX XXXXX, 0XX-XXXXXXXX, bare 10-digit mobiles) are primary
   // supported variants alongside US/Canadian and generic international
   // (+CC) patterns. Runs entirely client-side.
-  { id: "extract-contacts", name: "Extract Emails & Phones", desc: "Pull every email address and phone number out of a PDF as a deduped table. Indian + international phone formats, page references, CSV export. Free, in-browser.", icon: "Search", free: true, cost: "free", group: "Organize" },
+  { id: "extract-contacts", name: "Extract Emails & Phones", desc: "Pull every email address and phone number out of a PDF as a deduped table. Indian + international phone formats, page references, CSV export. Free, in-browser.", icon: "Search", free: true, cost: "free", group: "Inspect" },
   // 2026-05-01 — Extract Dates: regex-based date extraction with .ics
   // calendar export. Closes the /pdf-to-ics-calendar SEO landing
   // (was a placeholder pre-today). Day-first default for ambiguous
   // numeric formats (Indian/EU convention); month-first interpretation
   // surfaced as an alt column for ambiguous matches.
-  { id: "extract-dates", name: "Extract Dates → ICS", desc: "Find every date in a PDF and download an .ics file importable into Google Calendar / Apple Calendar / Outlook. Day-first default with ambiguity flagging. Free, in-browser.", icon: "Convert", free: true, cost: "free", group: "Organize" },
+  { id: "extract-dates", name: "Extract Dates → ICS", desc: "Find every date in a PDF and download an .ics file importable into Google Calendar / Apple Calendar / Outlook. Day-first default with ambiguity flagging. Free, in-browser.", icon: "Convert", free: true, cost: "free", group: "Inspect" },
   // 2026-05-01 — Extract Attachments: pulls actual file bytes from
   // embedded files (vs the existing pdf-attachments tool which just
   // LISTS them). Per-file download + ZIP bundle for multi-attachment
   // PDFs. Closes the long-standing FAQ in pdf-attachments and the
   // /extract-pdf-attachments SEO landing.
-  { id: "extract-attachments", name: "Extract PDF Attachments", desc: "Download embedded files from a PDF — research datasets, regulatory supporting docs, PDF/A archive sources. Per-file download or ZIP bundle. FlateDecode + ASCIIHex + ASCII85 supported. Free, in-browser.", icon: "Convert", free: true, cost: "free", group: "Organize" },
+  { id: "extract-attachments", name: "Extract PDF Attachments", desc: "Download embedded files from a PDF — research datasets, regulatory supporting docs, PDF/A archive sources. Per-file download or ZIP bundle. FlateDecode + ASCIIHex + ASCII85 supported. Free, in-browser.", icon: "Convert", free: true, cost: "free", group: "Inspect" },
   // Build 2 Wave 4 (final): font inventory — completes the 11-tool list.
-  { id: "pdf-fonts", name: "PDF Font Inspector", desc: "List every font in a PDF, flag embedded vs not, see which pages use each. Critical for print prep. Free, in-browser.", icon: "Edit", free: true, cost: "free", group: "Organize" },
+  { id: "pdf-fonts", name: "PDF Font Inspector", desc: "List every font in a PDF, flag embedded vs not, see which pages use each. Critical for print prep. Free, in-browser.", icon: "Edit", free: true, cost: "free", group: "Inspect" },
 
   // Build 2 Wave 8 (2026-04-27): 6 byte-parser tools — links,
   // annotations, JS detector, accessibility, PDF/A, PDF/X.
-  { id: "pdf-links", name: "Extract Links from PDF", desc: "Find every hyperlink (internal + external) in a PDF, with the page where each appears. CSV / JSON export.", icon: "Search", free: true, cost: "free", group: "Organize" },
-  { id: "pdf-annotations", name: "PDF Annotations Export", desc: "Export every comment, highlight, sticky note from a PDF — author, date, color, content, page. Free, in-browser.", icon: "Edit", free: true, cost: "free", group: "Organize" },
-  { id: "pdf-javascript", name: "PDF JavaScript Detector", desc: "Find every JavaScript handler embedded in a PDF — security review for phishing, exfil, malware. Free, in-browser.", icon: "Shield", free: true, cost: "free", group: "Organize" },
-  { id: "pdf-accessibility", name: "PDF Accessibility Checker", desc: "Audit a PDF against WCAG / PDF/UA accessibility heuristics. Tagged status, structure tree, language, alt text. Free, in-browser.", icon: "Shield", free: true, cost: "free", group: "Organize" },
-  { id: "pdf-a-check", name: "PDF/A Compliance Check", desc: "Heuristic check whether a PDF meets PDF/A archive standards. Flags unembedded fonts, encryption, JavaScript, missing metadata.", icon: "Shield", free: true, cost: "free", group: "Organize" },
-  { id: "pdf-x-check", name: "PDF/X Compliance Check", desc: "Heuristic check whether a PDF meets PDF/X print-production standards. Flags unembedded fonts, missing output intent, no trim box.", icon: "Edit", free: true, cost: "free", group: "Organize" },
+  { id: "pdf-links", name: "Extract Links from PDF", desc: "Find every hyperlink (internal + external) in a PDF, with the page where each appears. CSV / JSON export.", icon: "Search", free: true, cost: "free", group: "Inspect" },
+  { id: "pdf-annotations", name: "PDF Annotations Export", desc: "Export every comment, highlight, sticky note from a PDF — author, date, color, content, page. Free, in-browser.", icon: "Edit", free: true, cost: "free", group: "Inspect" },
+  { id: "pdf-javascript", name: "PDF JavaScript Detector", desc: "Find every JavaScript handler embedded in a PDF — security review for phishing, exfil, malware. Free, in-browser.", icon: "Shield", free: true, cost: "free", group: "Inspect" },
+  { id: "pdf-accessibility", name: "PDF Accessibility Checker", desc: "Audit a PDF against WCAG / PDF/UA accessibility heuristics. Tagged status, structure tree, language, alt text. Free, in-browser.", icon: "Shield", free: true, cost: "free", group: "Inspect" },
+  { id: "pdf-a-check", name: "PDF/A Compliance Check", desc: "Heuristic check whether a PDF meets PDF/A archive standards. Flags unembedded fonts, encryption, JavaScript, missing metadata.", icon: "Shield", free: true, cost: "free", group: "Inspect" },
+  { id: "pdf-x-check", name: "PDF/X Compliance Check", desc: "Heuristic check whether a PDF meets PDF/X print-production standards. Flags unembedded fonts, missing output intent, no trim box.", icon: "Edit", free: true, cost: "free", group: "Inspect" },
 
   // Build 2 Wave 9 (2026-04-27): 4 pdf-lib-backed writable tools.
   // First Wave to use a writable engine (pdf-lib v1.17) instead of
@@ -274,7 +274,7 @@ export const TOOLS: readonly Tool[] = [
   { id: "ai-compare", name: "Compare PDFs", desc: "Redline diff with AI severity analysis.", icon: "Compare", free: false, cost: "15 credits per diff", group: "AI" },
 ] as const;
 
-export const GROUP_ORDER: readonly ToolGroup[] = ["AI", "Organize", "Convert", "Optimize", "Edit", "Security"] as const;
+export const GROUP_ORDER: readonly ToolGroup[] = ["AI", "Organize", "Convert", "Optimize", "Edit", "Inspect", "Security"] as const;
 
 export const toolById = (id: string): Tool | undefined => TOOLS.find((t) => t.id === id);
 
