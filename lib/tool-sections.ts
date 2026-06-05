@@ -179,3 +179,19 @@ export const SEARCH_SYNONYMS: Record<string, readonly string[]> = {
 // Free tools that run server-side (NOT in-browser) — everything else free is
 // client-side, so it earns the "in-browser" privacy badge.
 export const SERVER_SIDE_IDS: ReadonlySet<string> = new Set(["compress-pdf", "pdf-a-convert"]);
+
+// Recently-shipped tools that earn a "NEW" badge on their /tools card.
+// Curated (not date-derived) so the badge is a deliberate editorial signal;
+// trim this list as tools age. Validated against the catalog by
+// scripts/test-tools-catalog-extras.mjs (every id must exist in TOOLS).
+export const NEW_TOOL_IDS: ReadonlySet<string> = new Set([
+  "extract-contacts",
+  "extract-dates",
+  "extract-attachments",
+  "ai-court-order",
+]);
+
+// Sort options for the /tools catalog. "curated" = catalog order (default),
+// "az" = alphabetical, "popular" = high-intent tools first.
+export const TOOL_SORTS = ["curated", "az", "popular"] as const;
+export type ToolSort = (typeof TOOL_SORTS)[number];

@@ -752,6 +752,12 @@ const SUITES = [
   // but the pure-logic portions M25 added — the FNV-1a-style sample
   // hash and the LRU eviction order — are testable in pure node.
   { name: "first-page-preview-cache", file: "test-first-page-preview-cache.mjs" },
+  // /tools findability v3 (2026-06-05): pure helpers behind Recently-used,
+  // Favourites, typo-tolerant search, URL state, and catalog-id guards.
+  { name: "tool-prefs", file: "test-tool-prefs.mjs" },
+  { name: "tools-search", file: "test-tools-search.mjs" },
+  { name: "tools-url", file: "test-tools-url.mjs" },
+  { name: "tools-catalog-extras", file: "test-tools-catalog-extras.mjs" },
   // M18 (2026-05-02): every AI tool that accepts a PDF input must
   // render UploadedFilePreview on its upload card. Caught the gap
   // earlier today's audit surfaced (ai-court-order shipping without

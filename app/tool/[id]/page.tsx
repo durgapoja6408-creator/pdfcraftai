@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { I } from "@/components/icons/Icons";
 import { ToolRunner } from "@/components/tools/ToolRunner";
+import { RecordRecentTool } from "@/components/tools/RecordRecentTool";
 // Build 2 Wave 9 (2026-04-27): pdf-lib-backed writable tools.
 // Tier 2 (2026-04-27): Extract / Delete Pages on shared PageGridTool base.
 // Tier 2 (continued): Sort Pages — drag-to-reorder thumbnail grid.
@@ -446,6 +447,7 @@ export default function ToolRunnerPage({ params }: Params) {
 
   return (
     <main>
+      <RecordRecentTool id={tool.id} />
       {usesPdfium && (
         // 2026-04-30: was href="/pdfium.wasm" — but lib/pdf/library.ts
         // now loads via /api/pdfium-wasm (the static path serves with

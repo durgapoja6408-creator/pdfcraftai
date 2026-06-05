@@ -5,6 +5,34 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-05 — /tools findability v3 (Recently-used, Favourites, URL state, smarter search, mobile collapse)
+
+Implemented the approved P0/P1/P2 plan on /tools (prototype-mocked + approved first). NEW modules:
+`lib/client/tool-prefs.ts` (favourites + recently-used in the existing `pdfcraft_state` localStorage
+object — local-first, works for anon + logged-in, no DB/migration), `lib/client/tools-search.ts`
+(typo-tolerant fuzzy match + bold highlight), `lib/client/tools-url.ts` (?q/?filter/?cat parse+build),
+`components/tools/RecordRecentTool.tsx` (records the visited tool on /tool/[id]).
+
+ToolFilter.tsx rewrite adds: a Favourites section + Recently-used pill row + star-to-pin on every card;
+NEW badge (NEW_TOOL_IDS: extract-contacts/extract-dates/extract-attachments/ai-court-order); a sort
+control (curated/A–Z/popular); typo-tolerant search with matched-text highlighting; 2-line description
+clamp (`.tool-card-desc`); '/'-to-focus + Esc-to-clear; URL state via `window.location` +
+`history.replaceState` (deliberately NOT useSearchParams — keeps the full card grid server-rendered for
+SEO, no Suspense needed); mobile collapse-by-default (≤640px: only the first section + Popular open);
+condensed sticky header on scroll; and scroll-spy highlight on the jump-bar. Cookie-banner item DROPPED
+— it's already a compliant fixed bottom banner (the earlier "overlap" was a full-page-screenshot
+artifact of position:fixed).
+
+Testing: 4 new unit harnesses wired into the aggregator (`tool-prefs`, `tools-search`, `tools-url`,
+`tools-catalog-extras` — the last guards that NEW/POPULAR/synonym ids all exist in the catalog) +
+a Playwright interaction spec (`tests/e2e-prod/tools-interactions.spec.ts`: search→URL, filter→URL,
+shareable URL restore, favourite-persists-across-reload, '/'-focus, mobile-collapse). tsc 0; aggregator
+**7657 passed / 0 failed across 136 suites**. Storage decision (per discussion): local-first for
+everyone; a DB-sync-of-favourites-for-logged-in-users phase is deferred (recently-used stays local
+because free tools run 100% in-browser and leave no server record).
+
+---
+
 ## 2026-06-04 (cont.) — Try-row removal shipped (9619707) + transient build-failure recovery
 
 Per user ("Can we remove it? Its not looking good?"), removed the "Try: combine · shrink · sign"
