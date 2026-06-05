@@ -1,0 +1,36 @@
+# .github/workflows/tools-e2e.yml
+#
+# Fast, focused Playwright run of the /tools client-interaction spec
+# (tests/e2e-prod/tools-interactions.spec.ts) against the LIVE site.
+# Isolated from the full prod-e2e suite so the slow free-tool-execution
+# phase can't time it out — this is ~12 tests, ~2 min. Read-only
+# (localStorage + URL only; no secrets, no DB writes, no credit spend).
+name: tools-e2e
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Base URL"
+        required: false
+        default: "https://pdfcraftai.com"
+jobs:
+  tools-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "npm" }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run /tools interaction spec
+        env:
+          PROD_E2E_URL: ${{ github.event.inputs.url || 'https://pdfcraftai.com' }}
+        run: npx playwright test --config=playwright.prod.config.ts tools-interactions
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tools-e2e-report
+          path: playwright-report-prod/
+          retention-days: 7
