@@ -5,6 +5,28 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-05 — AppShell responsive: mobile sidebar → off-canvas drawer (fixes /app/* overflow)
+
+Fixes the ~199px horizontal overflow the authenticated dashboard capture surfaced on phones. Root cause:
+`components/app/AppShell.tsx` hard-coded `gridTemplateColumns: "240px 1fr"` inline with no breakpoint, so
+the 240px sidebar stayed full-width at 390px and pushed `<main>` off-screen on every logged-in page.
+
+Fix (desktop visually unchanged — still a 240px sticky-sidebar grid):
+- Positioning moved from inline styles into `app/globals.css` (`.app-shell` / `.app-shell-sidebar` /
+  `.app-shell-main` / `.app-shell-topbar` / `.app-shell-backdrop`) so a `@media (max-width: 768px)` block
+  can override it (inline styles beat media queries — the whole reason the old layout couldn't respond).
+- Below 768px: grid collapses to a single column; the sidebar becomes a `translateX(-100%)` off-canvas
+  drawer (`box-shadow` + `data-open` slide-in), opened from a new sticky top bar with a hamburger
+  (`I.Menu`), closed by a backdrop tap, an `I.X` close button, any nav-link tap, or a route change
+  (`useEffect` on pathname). New `navOpen` state is separate from the existing account-popover `menuOpen`.
+- New `scripts/test-app-shell-responsive.mjs` (22 assertions) pins the breakpoint, the drawer transform,
+  the topbar/backdrop, and all the wiring. `test-user-dashboard-v2` AppShell-NAV check stays green.
+
+tsc 0; aggregator **7872/0 across 142 suites**. Verified via the authenticated design-audit re-run
+(mobile overflowX 199 → 0; desktop unchanged).
+
+---
+
 ## 2026-06-05 — /app/dashboard rebuild (P0/P1/P2): launchpad, real stats, actionable recent
 
 The logged-in dashboard was a read-only summary with **no path to the product's core action** once a
@@ -42,7 +64,7 @@ authenticated capture at 390px showed ~199px overflow on the dashboard — root-
 hard-coding `gridTemplateColumns: "240px 1fr"` with **no breakpoint**, so the 240px sidebar stays put on
 phones and pushes `<main>` off-screen (affects every logged-in page; there's an unused `menuOpen` state
 hinting a mobile drawer was intended). The dashboard content itself fits (desktop clean). Fix = collapse
-the AppShell sidebar to a drawer below ~768px — deferred unless prioritized.
+the AppShell sidebar to a drawer below ~768px — **DONE 2026-06-05** (see the entry above).
 
 ---
 

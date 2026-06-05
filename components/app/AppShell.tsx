@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
 import { I } from "@/components/icons/Icons";
 
@@ -26,31 +26,67 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname() ?? "";
+  // menuOpen = the account popover (settings / sign out). navOpen = the mobile
+  // sidebar drawer (only visible < 768px; see .app-shell-* in globals.css).
   const [menuOpen, setMenuOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const initial = (user.name?.[0] ?? user.email?.[0] ?? "?").toUpperCase();
 
+  // Close the mobile drawer on route change (tapping a nav link navigates,
+  // and the drawer should not linger over the new page).
+  useEffect(() => {
+    setNavOpen(false);
+  }, [pathname]);
+
   return (
-    <div style={{ minHeight: "100dvh", display: "grid", gridTemplateColumns: "240px 1fr" }}>
-      <aside
-        style={{
-          borderRight: "1px solid var(--border)",
-          background: "var(--bg-1)",
-          padding: "20px 14px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 4,
-          position: "sticky",
-          top: 0,
-          height: "100dvh",
-          overflow: "auto",
-        }}
-      >
-        <Link href="/" className="logo" style={{ marginBottom: 24, paddingLeft: 6 }}>
+    <div className="app-shell">
+      {/* Mobile-only top bar (hidden >=768px via CSS). */}
+      <header className="app-shell-topbar">
+        <button
+          type="button"
+          onClick={() => setNavOpen(true)}
+          aria-label="Open navigation menu"
+          aria-expanded={navOpen}
+          aria-controls="app-sidebar"
+          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: "var(--radius-sm)", background: "transparent", border: "1px solid var(--border)", color: "var(--fg)", cursor: "pointer", flexShrink: 0 }}
+        >
+          <I.Menu size={18} />
+        </button>
+        <Link href="/" className="logo" style={{ fontSize: 15 }}>
           <span className="logo-mark">P</span>
           <span>
             pdfcraft<span style={{ color: "var(--accent)" }}>ai</span>
           </span>
         </Link>
+      </header>
+
+      {/* Backdrop — only rendered/visible on mobile while the drawer is open. */}
+      <div
+        className="app-shell-backdrop"
+        data-open={navOpen ? "true" : "false"}
+        aria-hidden="true"
+        onClick={() => setNavOpen(false)}
+      />
+
+      <aside id="app-sidebar" className="app-shell-sidebar" data-open={navOpen ? "true" : "false"}>
+        <div className="row" style={{ justifyContent: "space-between", marginBottom: 24, paddingLeft: 6 }}>
+          <Link href="/" className="logo" onClick={() => setNavOpen(false)}>
+            <span className="logo-mark">P</span>
+            <span>
+              pdfcraft<span style={{ color: "var(--accent)" }}>ai</span>
+            </span>
+          </Link>
+          {/* Close button — mobile-only (display:none >=768px via CSS). */}
+          <button
+            type="button"
+            className="app-shell-close"
+            onClick={() => setNavOpen(false)}
+            aria-label="Close navigation menu"
+            style={{ alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: "var(--radius-sm)", background: "transparent", border: "none", color: "var(--fg-subtle)", cursor: "pointer" }}
+          >
+            <I.X size={18} />
+          </button>
+        </div>
 
         <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {NAV.map((item) => {
@@ -61,6 +97,7 @@ export function AppShell({
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setNavOpen(false)}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -148,7 +185,7 @@ export function AppShell({
             >
               <Link
                 href="/app/settings"
-                onClick={() => setMenuOpen(false)}
+                onClick={() => { setMenuOpen(false); setNavOpen(false); }}
                 role="menuitem"
                 style={menuItem}
               >
@@ -156,7 +193,7 @@ export function AppShell({
               </Link>
               <Link
                 href="/"
-                onClick={() => setMenuOpen(false)}
+                onClick={() => { setMenuOpen(false); setNavOpen(false); }}
                 role="menuitem"
                 style={menuItem}
               >
@@ -175,7 +212,7 @@ export function AppShell({
         </div>
       </aside>
 
-      <main style={{ padding: "32px 40px", maxWidth: 1200 }}>
+      <main className="app-shell-main">
         {children}
       </main>
     </div>

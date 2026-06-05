@@ -308,6 +308,7 @@ const SUITES = [
   // projection touches both.
   { name: "user-dashboard-v2", file: "test-user-dashboard-v2.mjs" },
   { name: "dashboard-improvements", file: "test-dashboard-improvements.mjs" },
+  { name: "app-shell-responsive", file: "test-app-shell-responsive.mjs" },
   // prompt-safety pins Task #26 / PLAN_GAP_ANALYSIS SEV-0 — the
   // defense-in-depth layer against prompt injection on PDF→AI flows.
   // Covers: the lib/ai/prompt-safety.ts module contract (exports,
