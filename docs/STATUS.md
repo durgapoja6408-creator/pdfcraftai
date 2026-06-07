@@ -5,6 +5,51 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-08 — One-click post-deploy live verification (no prod weakening)
+
+Goal: after every deploy, verify the full LIVE site with one click — without the
+old `test.env` swap that weakened prod. Decisions (all owner-approved): keep the
+two scoped test identities (NOT one god-mode user), one-click trigger + weekly AI
+cron, AI leg on cadence, auto-refill credits.
+
+**Per-user AI cap (kills the swap for logged-in tests).** Both test identities now
+carry a permanent `user_rate_limits` row (`daily_cost_cap_micros=100000000` = $100/day):
+`durgapoja6408` (non-admin, already had it; bal ~5491) + `rajasekarjavaee+5` (admin,
+`4e20c284-…`, added this session). The rate limiter reads the per-user override BEFORE
+the global env, so the global `$0.50/day` cap stays intact for real users. Net: smoke +
+60 free tools + authenticated pages + admin-READ + the 53 AI tools all run against
+**fully-hardened prod** (login has no Turnstile; admin uses the permanent ADMIN_EMAILS;
+AI is permitted by the per-user cap). Only signup + payment MUTATIONS still need the
+deliberate `test.env` window — they stay in `prod-e2e.yml`.
+
+**`post-deploy-verify.yml` (one-click + weekly).** `workflow_dispatch` (button) +
+weekly Mon 07:00 UTC. It FIRST waits for the new build to go live and settle — polls
+`/api/health` until `commit` == the dispatched SHA, `db.ok`, and `uptimeSec ≥ 20`
+across **two consecutive reads** (directly fixes the deploy-window false-failure that
+bit the db-backup re-run earlier today), failing loudly if the deploy never lands
+(useful OOM signal). THEN runs the prod-E2E suite; the AI leg is gated (`include_ai`
+tick, or the weekly cron); signup/payment secrets are never injected. Slack-on-failure
+(optional) + Playwright report artifact.
+
+**Free credit auto-refill.** `app/api/cron/refill-test-credits` — `x-cron-secret`-gated
+(header-only, fail-closed), refills ONLY the user-IDs in `E2E_REFILL_USER_IDS` (no-op if
+unset; can never grant to an arbitrary user) to a floor/target via the idempotent
+`grantCredits()` with a per-UTC-day key (≤ 1 refill/user/day). Wire to cron-job.org like
+the other crons — no GitHub secret needed.
+
+**Tests:** `test-post-deploy-verify.mjs` (35 assertions) wired into the aggregator →
+**8092 passed / 0 failed across 149 suites**; `tsc` clean.
+
+**OWNER ACTIONS (optional, to fully enable):**
+1. `E2E_REFILL_USER_IDS=6b303c3b-ddfd-48fc-9162-2556d077fece` (+ the admin id if you
+   want it topped up too) in Hostinger env, and a cron-job.org GET to
+   `/api/cron/refill-test-credits` with `x-cron-secret`. (Until then, the test account's
+   5491 balance lasts ~80+ AI runs.)
+2. Nothing else — the verify button + weekly run work now with the existing
+   `PROD_E2E_*` + `SLACK_WEBHOOK_URL` secrets.
+
+---
+
 ## 2026-06-08 — In-house error tracker + free DB backups (production-readiness)
 
 Two gaps from the production-readiness audit, both built FREE (no paid SaaS — owner directive

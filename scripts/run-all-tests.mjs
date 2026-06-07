@@ -325,6 +325,11 @@ const SUITES = [
   // integrity gates (size/gzip/marker), finite artifact retention, key
   // scrubbed after use.
   { name: "db-backup-workflow", file: "test-db-backup-workflow.mjs" },
+  // post-deploy-verify pins #147/#148 — the one-click, health-gated live
+  // verification + the free test-credit refill route. Covers: wait-for-SHA
+  // health gate, AI-leg cost gating, NO signup/payment mutation, Slack
+  // alert, and the cron-secret-gated/env-scoped/idempotent refill route.
+  { name: "post-deploy-verify", file: "test-post-deploy-verify.mjs" },
   // prompt-safety pins Task #26 / PLAN_GAP_ANALYSIS SEV-0 — the
   // defense-in-depth layer against prompt injection on PDF→AI flows.
   // Covers: the lib/ai/prompt-safety.ts module contract (exports,

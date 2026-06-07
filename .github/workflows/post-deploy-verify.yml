@@ -1,0 +1,175 @@
+# post-deploy-verify — one-click "is the live site healthy after my deploy?"
+# (#147, 2026-06-08).
+#
+# WHY THIS EXISTS (separate from prod-e2e.yml):
+#   prod-e2e.yml is cadence-based regression. THIS is the button you press
+#   right after pushing a feature: it FIRST waits for the new build to
+#   actually go live and settle (Hostinger auto-pulls on push and the
+#   restart window briefly 503s / flaps — the documented "never test in the
+#   deploy window" trap), THEN runs the full logged-in surface and gives one
+#   PASS/FAIL.
+#
+# WHAT IT RUNS (no prod-security weakening — see below):
+#   anon smoke + 60 free tools + authenticated pages + admin READ-ONLY checks,
+#   and — only when asked — the AI-tool leg. It does NOT run signup or payment
+#   MUTATIONS: those are the only legs that need the global `test.env` window
+#   (Turnstile test keys / relaxed rate limits), so they stay on the deliberate
+#   manual window in prod-e2e.yml. Everything here works against fully-hardened
+#   prod because login has no Turnstile, admin uses the permanent ADMIN_EMAILS
+#   allowlist, and the two test identities carry a permanent per-user AI cap
+#   (user_rate_limits) so the global $0.50/day cap is untouched for real users.
+#
+# TRIGGERS:
+#   - workflow_dispatch — the one-click button. `include_ai` defaults OFF
+#     (fast + free); flip it on to also exercise the AI tools.
+#   - weekly Monday 07:00 UTC — runs WITH the AI leg so the 53 AI tools get
+#     exercised regularly without adding cost to every deploy.
+#
+# SECRETS (all optional; a leg whose secret is absent SKIPS, never fails):
+#   PROD_E2E_TEST_EMAIL / PROD_E2E_TEST_PASSWORD  — authenticated + AI legs
+#   PROD_E2E_AI_BUDGET_OK=yes                     — AI leg ack
+#   PROD_E2E_ADMIN_EMAIL / PROD_E2E_ADMIN_PASSWORD / PROD_E2E_ADMIN_OK — admin read
+#   SLACK_WEBHOOK_URL                             — failure alert (optional)
+name: post-deploy-verify
+
+on:
+  workflow_dispatch:
+    inputs:
+      include_ai:
+        description: "Also run the AI-tool leg (~65 test credits, ~$0.025-0.10 real AI spend)"
+        type: boolean
+        default: false
+      sha:
+        description: "Commit SHA to wait for going live (default: this ref's HEAD)"
+        required: false
+        default: ""
+      url:
+        description: "Base URL to verify"
+        required: false
+        default: "https://pdfcraftai.com"
+  schedule:
+    # Weekly Monday 07:00 UTC (12:30 IST) — includes the AI leg.
+    - cron: "0 7 * * 1"
+
+# One verification at a time; a manual run shouldn't collide with the weekly.
+concurrency:
+  group: post-deploy-verify
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Job-level env so the failure-alert step's `if:` can read the secret.
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Resolve scope (expected SHA + whether AI runs)
+        id: scope
+        run: |
+          # Expected SHA: explicit input wins, else the dispatched ref's HEAD.
+          sha="${{ github.event.inputs.sha }}"
+          [ -z "$sha" ] && sha="${{ github.sha }}"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          # AI leg: on for the weekly schedule, or when the box is ticked.
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.include_ai }}" = "true" ]; then
+            echo "ai=on" >> "$GITHUB_OUTPUT"
+          else
+            echo "ai=off" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Expected SHA: $sha"
+
+      - name: Wait for the new build to go live + settle
+        # THE point of this workflow. Polls /api/health until the deployed
+        # commit matches the expected SHA, the DB is reachable, AND the
+        # process has a stable, growing uptime across two consecutive reads
+        # (so we never test a half-restarted worker mid-flap). Fails loudly
+        # if the deploy doesn't land within the window — which is itself a
+        # useful signal that the Hostinger build OOM'd or stalled.
+        env:
+          BASE_URL: ${{ github.event.inputs.url || 'https://pdfcraftai.com' }}
+          EXPECT_SHA: ${{ steps.scope.outputs.sha }}
+        run: |
+          set -uo pipefail
+          short="${EXPECT_SHA:0:7}"
+          echo "Waiting for $short to be live + stable at $BASE_URL …"
+          deadline=$(( $(date +%s) + 720 ))   # 12 minutes
+          stable=0
+          while [ "$(date +%s)" -lt "$deadline" ]; do
+            body=$(curl -fsS --max-time 15 "$BASE_URL/api/health" 2>/dev/null || echo '{}')
+            commit=$(printf '%s' "$body" | sed -n 's/.*"commit":"\([^"]*\)".*/\1/p')
+            uptime=$(printf '%s' "$body" | sed -n 's/.*"uptimeSec":\([0-9]*\).*/\1/p')
+            dbok=$(printf '%s' "$body" | grep -o '"ok":true' | head -1 || true)
+            echo "  health: commit=${commit:-?} uptime=${uptime:-?} db=${dbok:+ok}"
+            if [ "${commit:0:7}" = "$short" ] && [ -n "$dbok" ] && [ "${uptime:-0}" -ge 20 ]; then
+              stable=$((stable + 1))
+              echo "    match #$stable (need 2 consecutive)"
+              if [ "$stable" -ge 2 ]; then
+                echo "✓ $short is live, DB ok, uptime ${uptime}s — proceeding."
+                exit 0
+              fi
+            else
+              stable=0
+            fi
+            sleep 20
+          done
+          echo "::error::$short did not go live + stable within 12 min — deploy likely OOM'd or stalled (check Hostinger)."
+          exit 1
+
+      - name: Run verification suite
+        env:
+          PROD_E2E_URL: ${{ github.event.inputs.url || 'https://pdfcraftai.com' }}
+          # Authenticated + admin-read legs always run (no test.env needed:
+          # login has no Turnstile, admin uses the permanent ADMIN_EMAILS).
+          PROD_E2E_TEST_EMAIL: ${{ secrets.PROD_E2E_TEST_EMAIL }}
+          PROD_E2E_TEST_PASSWORD: ${{ secrets.PROD_E2E_TEST_PASSWORD }}
+          PROD_E2E_ADMIN_EMAIL: ${{ secrets.PROD_E2E_ADMIN_EMAIL }}
+          PROD_E2E_ADMIN_PASSWORD: ${{ secrets.PROD_E2E_ADMIN_PASSWORD }}
+          PROD_E2E_ADMIN_OK: ${{ secrets.PROD_E2E_ADMIN_OK }}
+          # AI leg only when scope says so (manual tick or weekly cron).
+          PROD_E2E_AI_BUDGET_OK: ${{ steps.scope.outputs.ai == 'on' && secrets.PROD_E2E_AI_BUDGET_OK || '' }}
+          # Signup + payment MUTATIONS deliberately NOT injected here — those
+          # need the global test.env window and live in prod-e2e.yml.
+        run: npm run test:prod-e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: post-deploy-verify-report
+          path: playwright-report-prod/
+          retention-days: 14
+
+      - name: Alert on failure (Slack, optional)
+        # Fires only when the verification failed AND a Slack webhook is
+        # configured. Skipped (not failed) when the secret is unset.
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        run: |
+          payload=$(cat <<EOF
+          {
+            "text": ":rotating_light: pdfcraftai.com post-deploy verification FAILED",
+            "blocks": [
+              {"type": "header", "text": {"type": "plain_text", "text": "🚨 Post-deploy verify failed"}},
+              {"type": "section", "text": {"type": "mrkdwn", "text": "Live-site verification did not pass after a deploy.\nRun: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|view logs + report>\nTime: $(date -u +%FT%TZ)"}},
+              {"type": "context", "elements": [{"type": "mrkdwn", "text": "If the wait-for-live step failed, the deploy likely OOM'd (check Hostinger). Otherwise open the Playwright report artifact."}]}
+            ]
+          }
+          EOF
+          )
+          curl -sS -X POST -H "Content-Type: application/json" \
+            --data "$payload" "$SLACK_WEBHOOK_URL" || true

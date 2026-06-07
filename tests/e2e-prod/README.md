@@ -182,3 +182,31 @@ After setting Phase 2 + 3b secrets, the next weekly Sunday run automatically exp
 For deploy-gate-grade testing, see `playwright.config.ts` (dev
 server, full triple-browser) which CAN gate deploys via GitHub
 Actions on PRs.
+
+---
+
+## Post-deploy verification (2026-06-08) — the one-click "is my deploy healthy?" button
+
+`.github/workflows/post-deploy-verify.yml` is separate from the cadence-based
+`prod-e2e.yml`. Press it (Actions → post-deploy-verify → Run workflow) right after
+pushing a feature. It:
+
+1. **Waits for the new build to go live + settle** — polls `/api/health` until the
+   deployed `commit` matches the dispatched SHA, the DB is reachable, and uptime is
+   stable across two consecutive reads. Fails loudly if the deploy never lands
+   (an OOM/stall signal). This is the fix for the "never test in the deploy window"
+   trap — the gate does the waiting for you.
+2. **Runs smoke + free + authenticated + admin-READ** with **no prod weakening**.
+   Tick `include_ai` to also run the AI leg (~65 test credits). The weekly Monday
+   07:00 UTC run includes AI automatically.
+3. **Alerts on failure** (Slack, optional) and uploads the Playwright report.
+
+**Why no `test.env` swap is needed here:** login has no Turnstile, admin uses the
+permanent `ADMIN_EMAILS`, and both test identities carry a permanent per-user
+`user_rate_limits` cap so AI tools run without raising the global $0.50/day cap for
+real users. Only **signup + payment mutations** need the global `test.env` window —
+those stay in `prod-e2e.yml` (the deliberate, reverted-after window).
+
+**Keeping the AI account funded:** `/api/cron/refill-test-credits` (x-cron-secret
+gated) tops up the user-IDs in `E2E_REFILL_USER_IDS` to a floor, idempotent per day.
+Wire it to cron-job.org alongside the other crons.
