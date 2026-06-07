@@ -1895,3 +1895,28 @@ export const userFavorites = mysqlTable(
     pk: primaryKey({ columns: [t.userId, t.toolId] }),
   }),
 );
+
+// In-house error tracking (2026-06-07, migration 0031). Client + server errors
+// land here; /admin/errors groups them by `fingerprint`. `userId` is a loose
+// varchar (no FK) so logging never fails on a deleted user.
+export const errorEvents = mysqlTable(
+  "error_events",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    fingerprint: varchar("fingerprint", { length: 64 }).notNull(),
+    kind: varchar("kind", { length: 16 }).notNull(),
+    message: varchar("message", { length: 1024 }).notNull(),
+    stack: mediumtext("stack"),
+    path: varchar("path", { length: 512 }),
+    method: varchar("method", { length: 8 }),
+    statusCode: int("status_code"),
+    digest: varchar("digest", { length: 64 }),
+    userId: varchar("user_id", { length: 255 }),
+    userAgent: varchar("user_agent", { length: 512 }),
+    createdAt: timestamp("created_at", { fsp: 3 }).notNull().defaultNow(),
+  },
+  (t) => ({
+    fingerprintIdx: index("error_events_fingerprint_idx").on(t.fingerprint),
+    createdIdx: index("error_events_created_idx").on(t.createdAt),
+  }),
+);

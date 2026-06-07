@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 export default function GlobalError({
   error,
   reset,
@@ -7,6 +9,24 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    try {
+      fetch("/api/errors", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        keepalive: true,
+        body: JSON.stringify({
+          kind: "client",
+          message: error?.message || "global error",
+          stack: error?.stack,
+          digest: error?.digest,
+          path: typeof location !== "undefined" ? location.pathname : undefined,
+        }),
+      }).catch(() => {});
+    } catch {
+      /* noop */
+    }
+  }, [error]);
   return (
     <html lang="en">
       <body style={{ margin: 0, minHeight: "100vh", display: "grid", placeItems: "center", fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif", background: "#0b0b0f", color: "#e5e7eb", padding: "48px 20px", textAlign: "center" }}>

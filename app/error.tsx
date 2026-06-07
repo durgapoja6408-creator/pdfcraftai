@@ -12,6 +12,23 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error(error);
+    // In-house error tracking (free): report this render error to /api/errors.
+    try {
+      fetch("/api/errors", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        keepalive: true,
+        body: JSON.stringify({
+          kind: "client",
+          message: error?.message || "render error",
+          stack: error?.stack,
+          digest: error?.digest,
+          path: typeof location !== "undefined" ? location.pathname : undefined,
+        }),
+      }).catch(() => {});
+    } catch {
+      /* never let reporting break the error page */
+    }
   }, [error]);
 
   return (

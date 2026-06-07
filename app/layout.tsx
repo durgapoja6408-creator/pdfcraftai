@@ -8,6 +8,7 @@ import { SessionProviderWrapper } from "@/components/providers/SessionProviderWr
 import { CookieConsent } from "@/components/compliance/CookieConsent";
 import { WebVitalsReporter } from "@/components/analytics/WebVitalsReporter";
 import { PdfiumServiceWorker } from "@/components/PdfiumServiceWorker";
+import { ClientErrorReporter } from "@/components/observability/ClientErrorReporter";
 import {
   CONSENT_COOKIE_NAME,
   analyticsAllowed,
@@ -295,6 +296,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             outside the consent gate because it's not analytics — it
             doesn't observe or report user activity. */}
         <PdfiumServiceWorker />
+        <ClientErrorReporter />
       </body>
     </html>
   );

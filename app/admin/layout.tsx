@@ -116,6 +116,7 @@ const NAV: NavItem[] = [
   // alongside migration 0023 + persist helpers in
   // lib/payments/dunning.ts so Phase E webhook wiring is a 1-file diff.
   { section: "Ops", href: "/admin/dunning", label: "Dunning" },
+  { section: "Ops", href: "/admin/errors", label: "Errors" },
   { section: "Ops", href: "/admin/ops", label: "Operations" },
   { section: "Ops", href: "/admin/providers", label: "Providers" },
   { section: "Ops", href: "/admin/router", label: "Router" },

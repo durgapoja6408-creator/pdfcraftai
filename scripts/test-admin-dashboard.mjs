@@ -465,7 +465,7 @@ assert(
 
 assert(
   "H1 admin-dashboard still runs before dev-hooks",
-  /"admin-dashboard"[\s\S]{0,8000}"dev-hooks"/.test(AGG_SRC),
+  /"admin-dashboard"[\s\S]{0,20000}"dev-hooks"/.test(AGG_SRC),
   "dev-hooks must remain last — it's the tooling gate, not a subsystem gate"
 );
 

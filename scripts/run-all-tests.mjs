@@ -313,6 +313,12 @@ const SUITES = [
   { name: "ai-upsell", file: "test-ai-upsell.mjs" },
   { name: "app-depth", file: "test-app-depth.mjs" },
   { name: "perf-budget", file: "test-perf-budget.mjs" },
+  // error-tracker pins #142 — the in-house, DB-backed error tracker (free
+  // alternative to a paid SaaS). Covers migration 0031 (additive), the
+  // errorEvents schema, capture.ts (never-throws + clamps + fingerprint),
+  // the rate-limited /api/errors ingest route, the error.tsx/global-error
+  // /ClientErrorReporter reporting layer, and the /admin/errors viewer.
+  { name: "error-tracker", file: "test-error-tracker.mjs" },
   // prompt-safety pins Task #26 / PLAN_GAP_ANALYSIS SEV-0 — the
   // defense-in-depth layer against prompt injection on PDF→AI flows.
   // Covers: the lib/ai/prompt-safety.ts module contract (exports,
