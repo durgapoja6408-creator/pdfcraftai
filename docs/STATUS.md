@@ -91,6 +91,15 @@ sequential clean+tested commits:
   (comparison/use-case/head-term prose), which auto-generated thin would *hurt* the strong footprint —
   so it's flagged as a deliberate content effort, not shipped as filler.
 
+  **#8 follow-up (done 2026-06-07):** authored **3 genuine new `/use-cases/[slug]` landings** —
+  `compress-pdf-for-email`, `fill-and-sign-pdf-form`, `tailor-resume-for-ats` — high-intent, evergreen
+  workflows about OUR tools (no competitor-accuracy/maintenance burden), each with the full template depth
+  (h1/sub/audience, 3 tool-linked steps, ~200-word whyItMatters, 3 pitfalls, 3 tips, 4 FAQ, related). Found
+  the real gap: tool landings (111) AND competitor pages (5: iLovePDF/Smallpdf/Adobe/PDF24/Sejda) AND
+  redact/OCR use-cases already existed — these 3 fill genuine workflow gaps. Auto-wired into the
+  `/use-cases` index + sitemap via `USE_CASE_SLUGS`; all internal-link/route-coverage/JSON-LD guards green.
+  This is the real content increment (not filler).
+
 New guards: `test-ai-upsell.mjs` (9), dashboard-improvements +7 onboarding (35), `test-app-depth.mjs`
 (16), `test-perf-budget.mjs` (10). dashboard-v2 + supply-chain + credit-hardcode guards stay green.
 tsc 0; aggregator **7939/0 across 146 suites**. (Deferred upgrade items #1/#2/#3/#7/#10/#11/#12 moved to

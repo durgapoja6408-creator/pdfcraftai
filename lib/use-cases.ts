@@ -23,7 +23,10 @@ export type UseCaseSlug =
   | "ocr-old-archive"
   | "redact-pdf-before-sharing"
   | "extract-tables-from-financial-report"
-  | "convert-research-papers-to-study-notes";
+  | "convert-research-papers-to-study-notes"
+  | "compress-pdf-for-email"
+  | "fill-and-sign-pdf-form"
+  | "tailor-resume-for-ats";
 
 export type UseCaseStep = {
   /** The specific pdfcraft ai tool ID this step uses. */
@@ -843,6 +846,264 @@ export const USE_CASES: Record<UseCaseSlug, UseCaseData> = {
       },
     ],
     related: ["thesis-combine-and-format", "extract-tables-from-financial-report", "translate-handbook-to-multiple-languages"],
+  },
+
+  // -------------------------------------------------------------
+  // Shrink a PDF to fit an email attachment limit (compress)
+  // -------------------------------------------------------------
+  "compress-pdf-for-email": {
+    slug: "compress-pdf-for-email",
+    h1: "How to shrink a PDF to fit an email attachment limit",
+    sub: "Get a 40 MB scan under Gmail's 25 MB or Outlook's ~20 MB cap — without it turning to mush.",
+    audience: "Anyone bouncing off a 'file too large' error sending invoices, scans, decks, or contracts by email",
+    totalTime: "2 minutes",
+    steps: [
+      {
+        tool: "page-count",
+        title: "Check what you're actually dealing with",
+        detail:
+          "Run PDF Inspector first. If the file is huge because it's a 300-page scan, you'll compress differently than if it's a 6-page deck with one enormous embedded image. Know the page count and where the weight is.",
+      },
+      {
+        tool: "compress-pdf",
+        title: "Compress at the right quality level",
+        detail:
+          "Start with Balanced. Most scanned and image-heavy PDFs drop 60-80% with no visible difference at screen and normal print sizes. If it's still over the limit, step up to Strong; if the text must stay razor-sharp for print, use Light and pair it with the next step.",
+      },
+      {
+        tool: "split",
+        title: "If it's still too big, split instead of crushing",
+        detail:
+          "A 250-page contract won't fit any cap at readable quality. Split it into 'Part 1 / Part 2' by page range and send two clean emails — far better than a single unreadable file. Recipients prefer two legible halves to one blurry whole.",
+      },
+    ],
+    whyItMatters:
+      "Email size limits are the single most common reason a PDF won't send: Gmail caps attachments at 25 MB, Outlook.com at about 20 MB, and many corporate mail servers at 10 MB or less. The instinct is to crush quality until it fits, but over-compression makes text fuzzy and tables unreadable — which defeats the purpose of sending the document at all. The right move is to compress intelligently (most of a PDF's weight is rescaleable images, not text) and, only when a file is genuinely too large at acceptable quality, to split it. Compress PDF runs server-side with Ghostscript, keeps text selectable and searchable, and falls back to your original if compression wouldn't actually help — so you never ship a 'compressed' file that's somehow bigger. Doing this in two minutes beats uploading to a sketchy 'free' site that watermarks your invoice or emails you forever after.",
+    pitfalls: [
+      {
+        title: "Going straight to maximum compression",
+        detail:
+          "Strong compression on a text-only PDF gains you almost nothing and can soften the type. Balanced is the right default; only escalate if you're still over the cap.",
+      },
+      {
+        title: "Compressing a file that's mostly text",
+        detail:
+          "If the weight is text and vectors, compression has little to work with — you need to split, not crush. PDF Inspector tells you which case you're in before you waste a pass.",
+      },
+      {
+        title: "Forgetting the recipient's limit, not yours",
+        detail:
+          "Your provider may allow 25 MB but a corporate recipient's gateway may reject anything over 10 MB silently. When in doubt, aim under 10 MB or use a shared link.",
+      },
+    ],
+    tips: [
+      {
+        title: "Name the output so you can tell versions apart",
+        detail:
+          "invoice-2026-03-compressed.pdf keeps the email-ready copy distinct from your full-resolution master.",
+      },
+      {
+        title: "Compress AFTER merging, not before",
+        detail:
+          "If you're combining several scans, merge first and compress the single result once — compressing each part then merging re-bloats the file.",
+      },
+      {
+        title: "Everything runs in your browser or our server, watermark-free",
+        detail:
+          "Compress PDF is free and unlimited, adds no watermark, and never stores your file — important when the attachment is a contract or an invoice.",
+      },
+    ],
+    faq: [
+      {
+        q: "Will compressing make the text blurry?",
+        a: "Text stays vector-sharp at Balanced and Light — only embedded images are downsampled. Strong can soften scanned (image-based) text, so use it only when you must fit a hard cap.",
+      },
+      {
+        q: "What's the most I can realistically save?",
+        a: "Image-heavy and scanned PDFs commonly drop 60-90%. Text-and-vector PDFs are already small, so expect little — for those, split instead.",
+      },
+      {
+        q: "Is my file uploaded anywhere?",
+        a: "Compress runs server-side (Ghostscript) but the file is processed in memory and not retained. If it doesn't actually get smaller, you get your original back unchanged.",
+      },
+      {
+        q: "What if even Strong isn't enough?",
+        a: "The PDF is genuinely too large for the cap at readable quality — split it by page range and send in parts, or share a link instead of an attachment.",
+      },
+    ],
+    related: ["merge-bank-statements-for-accountant", "combine-receipts-for-expense-report", "fill-and-sign-pdf-form"],
+  },
+
+  // -------------------------------------------------------------
+  // Fill out and sign a PDF form without printing
+  // -------------------------------------------------------------
+  "fill-and-sign-pdf-form": {
+    slug: "fill-and-sign-pdf-form",
+    h1: "How to fill out and sign a PDF form without printing it",
+    sub: "Type into the fields, drop in your signature, lock it so it can't be edited — no printer, no scanner.",
+    audience: "Anyone sent a PDF form to 'print, sign, and scan back' — onboarding paperwork, consent forms, applications, NDAs",
+    totalTime: "3 minutes",
+    steps: [
+      {
+        tool: "pdf-form-fill",
+        title: "Type directly into the form fields",
+        detail:
+          "If the PDF has real AcroForm fields, Fill PDF Form shows them as editable inputs — text boxes, checkboxes, radio buttons, dropdowns. Tab through and type. No printing, no handwriting.",
+      },
+      {
+        tool: "sign-pdf-free",
+        title: "Add your signature",
+        detail:
+          "Draw, type, or upload a signature image and place it on the signature line. Resize and position it exactly; add the date next to it the same way.",
+      },
+      {
+        tool: "pdf-form-fill",
+        title: "Flatten so it can't be changed",
+        detail:
+          "Toggle 'flatten' before exporting. This bakes your typed values and signature into the page so the recipient gets a final, non-editable document — not a form they could alter after you signed it.",
+      },
+    ],
+    whyItMatters:
+      "The 'print, sign, scan' loop is a relic. It wastes paper, needs hardware most people don't have at home anymore, and produces a crooked, low-contrast scan of a document that started as a crisp digital file. Filling and signing in place keeps the output sharp, legible, and small, and it's faster — three minutes versus the printer hunt. The one thing people get wrong is leaving the form editable: a filled-but-not-flattened PDF still has live fields, so anyone downstream can change your answers or move your signature. Flattening solves that by merging everything into the page image. For documents that need legal-grade signatures with an audit trail you'd use a dedicated e-signature service, but for the everyday 'sign here and send it back' form, filling and flattening in the browser is exactly right — and your file never leaves your device for the free tools.",
+    pitfalls: [
+      {
+        title: "The PDF has no real form fields",
+        detail:
+          "Some 'forms' are just flat scans with lines drawn on them — there are no fields to type into. In that case, skip straight to placing text and signature boxes manually with the editor instead of the form filler.",
+      },
+      {
+        title: "Sending it unflattened",
+        detail:
+          "If you don't flatten, the recipient receives live, editable fields — they can change your answers or your signature. Always flatten before exporting a signed form.",
+      },
+      {
+        title: "A signature image with a white box around it",
+        detail:
+          "Upload a PNG with a transparent background, not a JPG photo of paper. A white rectangle around your signature looks pasted-on and unprofessional.",
+      },
+    ],
+    tips: [
+      {
+        title: "Save your signature once",
+        detail:
+          "Create a clean transparent-PNG signature one time and reuse it. You'll sign the next form in under a minute.",
+      },
+      {
+        title: "Check checkboxes are really checked",
+        detail:
+          "Radio groups only allow one selection — make sure the right option registered before flattening, since you can't change it afterward.",
+      },
+      {
+        title: "Keep an editable copy if you'll reuse the form",
+        detail:
+          "Flatten the version you send, but keep the un-flattened one if it's a form you fill out repeatedly (timesheets, weekly reports).",
+      },
+    ],
+    faq: [
+      {
+        q: "Do I need to print anything?",
+        a: "No. You type into the fields, add a signature, and export a finished PDF entirely on-screen. No printer or scanner involved.",
+      },
+      {
+        q: "Is a flattened signature legally binding?",
+        a: "A typed/drawn signature on a flattened PDF is fine for most everyday agreements. For documents that require a verifiable audit trail (real-estate, regulated finance), use a dedicated e-signature provider — this is for the common 'sign and return' case.",
+      },
+      {
+        q: "What if the form isn't fillable?",
+        a: "If there are no AcroForm fields, use the editor to place text and a signature image directly on the page, then export — same result, slightly more manual.",
+      },
+      {
+        q: "Does my form get uploaded?",
+        a: "Fill PDF Form and Sign run in your browser — the document never touches our servers, which matters for HR and legal paperwork.",
+      },
+    ],
+    related: ["redact-pdf-before-sharing", "compress-pdf-for-email", "redline-contract-revisions"],
+  },
+
+  // -------------------------------------------------------------
+  // Format a resume PDF to pass an ATS
+  // -------------------------------------------------------------
+  "tailor-resume-for-ats": {
+    slug: "tailor-resume-for-ats",
+    h1: "How to format your resume PDF so an ATS can actually read it",
+    sub: "Check what the parser sees, match it to the job description, and fix the formatting that gets resumes auto-rejected.",
+    audience: "Job seekers applying through Workday, Greenhouse, Lever, Taleo, or any online application portal",
+    totalTime: "10 minutes",
+    steps: [
+      {
+        tool: "ai-ats-resume",
+        title: "See your resume the way the ATS sees it",
+        detail:
+          "ATS Resume Check extracts your resume the way an applicant-tracking system would — as plain text — and flags what breaks: multi-column layouts that scramble reading order, text trapped inside images, tables the parser can't follow, and contact details stuck in headers it ignores.",
+      },
+      {
+        tool: "ai-jd-match",
+        title: "Match it against the actual job description",
+        detail:
+          "Paste the job posting. JD Match compares your resume to it and shows which required skills and keywords are missing, so you can add the ones you genuinely have in the wording the screener expects.",
+      },
+      {
+        tool: "pdf-to-text",
+        title: "Confirm the final export is clean",
+        detail:
+          "Export your fixed resume and run PDF to Text on it. If the plain-text output reads top-to-bottom in the right order with your name, titles, and dates intact, the ATS will parse it correctly too.",
+      },
+    ],
+    whyItMatters:
+      "Most mid-to-large companies run every applied resume through an applicant-tracking system before a human sees it, and a resume that looks beautiful to you can be unreadable to the parser. The usual culprits are design choices: two-column layouts (the parser reads across columns and scrambles your history), skills shown as graphics or icons (invisible as text), important details in the header or footer (often skipped), and tables for layout (read out of order). The fix isn't to dumb your resume down — it's to keep a single-column, text-based structure with standard section headings, then verify by reading the extracted text. The second half is relevance: ATS screens rank resumes by how well they match the job description's keywords, so a resume that's readable but doesn't reflect the posting's language still ranks low. Check both — parseability and match — and you clear the gate that auto-rejects the majority of applicants before any recruiter opens the file.",
+    pitfalls: [
+      {
+        title: "Two-column 'designer' templates",
+        detail:
+          "They look modern but parsers read straight across, interleaving your job titles with your skills. Use a single-column layout for anything submitted through a portal.",
+      },
+      {
+        title: "Skills or contact info as images/icons",
+        detail:
+          "A graphic skills bar or an icon-only phone number is invisible to the ATS. Everything that must be searchable has to be real text.",
+      },
+      {
+        title: "Keyword-stuffing to game the match",
+        detail:
+          "Pasting the whole job description in white text fools nothing modern and reads terribly to the human who gets you next. Add only the keywords you can honestly back up.",
+      },
+    ],
+    tips: [
+      {
+        title: "Keep two versions",
+        detail:
+          "An ATS-clean single-column PDF for portal applications, and a designed version for when you email a human directly or hand one over in person.",
+      },
+      {
+        title: "Use standard section headings",
+        detail:
+          "'Experience', 'Education', 'Skills' — parsers map these reliably. Clever headings like 'Where I've Made Impact' confuse them.",
+      },
+      {
+        title: "Re-run the match per role",
+        detail:
+          "Each posting weights different keywords. A 60-second JD Match per application is the highest-leverage tailoring you can do.",
+      },
+    ],
+    faq: [
+      {
+        q: "Does the ATS really reject resumes automatically?",
+        a: "It ranks and filters them. A resume the parser can't read, or that misses the role's key requirements, usually never reaches a recruiter — so a clean parse plus a strong keyword match is what gets you seen.",
+      },
+      {
+        q: "Is a PDF or a Word doc better for an ATS?",
+        a: "Modern ATSs parse both fine; the format matters less than the structure. A single-column, text-based PDF parses reliably — the check confirms it before you submit.",
+      },
+      {
+        q: "What exactly does the ATS check flag?",
+        a: "Reading-order problems from columns and tables, text trapped in images, contact details in headers/footers, non-standard section names, and unsupported fonts — the things that scramble or drop your information.",
+      },
+      {
+        q: "Will JD Match write my resume for me?",
+        a: "No — it surfaces the gaps between your resume and the posting so you can add what's genuinely true. You stay in control of the wording.",
+      },
+    ],
+    related: ["convert-research-papers-to-study-notes", "fill-and-sign-pdf-form", "translate-handbook-to-multiple-languages"],
   },
 };
 
