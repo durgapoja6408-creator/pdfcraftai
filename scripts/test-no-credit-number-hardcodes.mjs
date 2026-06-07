@@ -93,6 +93,12 @@ const EXEMPT_PATHS = new Set([
   // CTAs are legitimately allowed to quote the plan size.
   path.join("components", "upsell", "OutOfCreditsAlert.tsx"),
 
+  // 2026-06-07 (upgrade plan #4) — the anon AI-tool upsell banner quotes
+  // the SIGNUP GRANT ("5 credits"), the same canonical marketing fact as
+  // SeoLandingPage.tsx (already exempt). Not a per-call billing number —
+  // the guard targets hardcoded per-CALL costs in tool runners.
+  path.join("components", "upsell", "AiFreeCreditsUpsell.tsx"),
+
   // 2026-05-04 (Plan T1-6 ext) — /enterprise marketing page quotes
   // "1,000 credits/month" as a volume-pricing threshold for sales
   // qualification ("beyond 1k credits/mo, talk to us about volume

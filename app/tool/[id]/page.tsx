@@ -30,6 +30,7 @@ import { TOOLS, toolById } from "@/lib/tools";
 import { TOOL_INTROS } from "@/lib/tool-intros";
 import { findSeoForTool } from "@/lib/seo-pages";
 import { AdSlot } from "@/components/marketing/AdSlot";
+import { AiFreeCreditsUpsell } from "@/components/upsell/AiFreeCreditsUpsell";
 
 type Params = { params: { id: string } };
 
@@ -523,6 +524,12 @@ export default function ToolRunnerPage({ params }: Params) {
               </div>
             </div>
           </div>
+
+          {/* Anon -> signup funnel (upgrade plan #4): AI tools only, shown
+              only to logged-out visitors (the component self-gates on
+              session). Surfaces the 5-free-credits value before the user
+              meets the per-tool Sign-in wall. */}
+          {!tool.free && <AiFreeCreditsUpsell toolId={tool.id} />}
 
           {/* Bundle E (2026-04-26): single, standardized "what you'll get"
               panel placement. Renders at the TOP of the action area —
