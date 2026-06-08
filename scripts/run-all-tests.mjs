@@ -337,6 +337,7 @@ const SUITES = [
   { name: "conversion-trust", file: "test-conversion-trust.mjs" },
   { name: "batch1-trust-seo", file: "test-batch1-trust-seo.mjs" },
   { name: "toast-system", file: "test-toast-system.mjs" },
+  { name: "usage-export", file: "test-usage-export.mjs" },
   // prompt-safety pins Task #26 / PLAN_GAP_ANALYSIS SEV-0 — the
   // defense-in-depth layer against prompt injection on PDF→AI flows.
   // Covers: the lib/ai/prompt-safety.ts module contract (exports,

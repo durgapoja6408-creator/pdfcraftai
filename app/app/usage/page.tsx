@@ -40,6 +40,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+import { UsageExportButton } from "@/components/app/usage/UsageExportButton";
+
 export default async function UsagePage({
   searchParams,
 }: {
@@ -59,7 +61,8 @@ export default async function UsagePage({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 960 }}>
-      <header>
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+        <div>
         <div className="eyebrow" style={{ marginBottom: 6 }}>USAGE</div>
         <h1 style={{ fontSize: 28, letterSpacing: "-0.02em", margin: 0 }}>
           Your usage
@@ -68,6 +71,8 @@ export default async function UsagePage({
           Credits spent by operation across the last {days} day
           {days === 1 ? "" : "s"}.
         </p>
+        </div>
+        <UsageExportButton rollup={rollup.data} daily={daily.data} days={days} />
       </header>
 
       {/* Error surfacing — each failing query renders its own inline banner
