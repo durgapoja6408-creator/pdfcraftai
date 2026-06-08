@@ -5,6 +5,33 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-08 — Build-check CI gate + i18n (next-intl) foundation
+
+**Build-check gate (new):** `.github/workflows/build-check.yml` runs a real
+`next build` against stubbed env on workflow_dispatch + non-main branch pushes.
+Closes the gap where `ci.yml` ran typecheck+test but NOT build, so runtime-only
+build errors only surfaced at Hostinger (live). Now structural changes are
+build-validated BEFORE main. (Gotcha learned: do NOT set NODE_ENV=production at
+the job level — `npm ci` then omits devDeps and the build fails.) Baseline green.
+
+**i18n foundation (next-intl) — phase 1:** Done the SAFE way, behind the gate.
+Pushed to `feat/i18n` → build-check green → fast-forward merged to main → live
+verified. Setup: `next-intl@3.26.5`, `createNextIntlPlugin` wrapping
+`next.config.mjs` (request module `i18n/request.ts`), single locale `"en"`, **NO
+i18n routing** (URLs unchanged — no /en/ prefix, no SEO churn, no middleware).
+`NextIntlClientProvider` in the root layout (`lang={locale}`), `messages/en.json`,
+and the TopNav nav labels externalized via `useTranslations("nav")` as the proven
+pattern. Live check: homepage renders real nav labels from the catalog, zero
+raw-key leakage, all pages 200, health stable.
+
+**Remaining (owner-involved):** bulk string externalization across the rest of the
+UI is now mechanical (the infra + pattern + build gate exist) and can proceed
+incrementally; **Hindi (`messages/hi.json` + a locale switcher) needs your
+translation review** — that's the part that delivers user-visible value and is
+deliberately deferred to you.
+
+---
+
 ## 2026-06-08 — M87/V129: thin-tool-page longform coverage enforced (cap → 0)
 
 Investigated the backlog's "32 thin tool pages" (M87) and found they were a STALE
