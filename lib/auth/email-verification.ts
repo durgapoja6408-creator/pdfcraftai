@@ -28,7 +28,7 @@
 import "server-only";
 
 import { randomBytes, createHash } from "crypto";
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 
 import { db, schema } from "@/db/client";
 import { sendEmail } from "@/lib/auth/smtp";
@@ -106,7 +106,10 @@ export async function createVerificationToken(userId: string): Promise<string> {
  */
 export async function consumeVerificationToken(
   raw: string,
-): Promise<{ ok: true; userId: string } | { ok: false; reason: string }> {
+): Promise<
+  | { ok: true; userId: string; firstVerification: boolean }
+  | { ok: false; reason: string }
+> {
   if (!raw || typeof raw !== "string" || raw.length < 32) {
     return { ok: false, reason: "invalid_token" };
   }
@@ -138,17 +141,33 @@ export async function consumeVerificationToken(
   // Atomically: delete the token + mark email verified. We do
   // these in one transaction so a partial failure can't leave a
   // consumed-but-not-marked state.
+  // Scope the emailVerified UPDATE to `emailVerified IS NULL` so the
+  // ORIGINAL verification timestamp is preserved on any re-verify, and
+  // so `affectedRows` reports whether THIS call is the genuine
+  // NULL→verified transition — the once-only signal the welcome email
+  // keys on. The token is deleted unconditionally (it's spent either
+  // way); only the flag flip is guarded.
+  let firstVerification = false;
   await db.transaction(async (tx) => {
     await tx
       .delete(schema.verificationTokens)
       .where(eq(schema.verificationTokens.token, hashed));
-    await tx
+    const upd = await tx
       .update(schema.users)
       .set({ emailVerified: now })
-      .where(eq(schema.users.id, row.identifier));
+      .where(
+        and(
+          eq(schema.users.id, row.identifier),
+          isNull(schema.users.emailVerified),
+        ),
+      );
+    const header = Array.isArray(upd) ? upd[0] : upd;
+    firstVerification =
+      ((header as { affectedRows?: number } | undefined)?.affectedRows ?? 0) >
+      0;
   });
 
-  return { ok: true, userId: row.identifier };
+  return { ok: true, userId: row.identifier, firstVerification };
 }
 
 // ---------------------------------------------------------------------------
@@ -235,7 +254,7 @@ export async function consumeVerificationCode(
   userId: string,
   rawCode: string,
 ): Promise<
-  | { ok: true; userId: string }
+  | { ok: true; userId: string; firstVerification: boolean }
   | { ok: false; reason: "invalid" }
   | { ok: false; reason: "expired" }
   | { ok: false; reason: "locked_out"; retryAfterSeconds: number }
@@ -299,18 +318,29 @@ export async function consumeVerificationCode(
     return { ok: false, reason: "invalid" };
   }
 
-  // Hit. Delete the code row + mark email verified atomically.
+  // Hit. Delete the code row + mark email verified atomically. The
+  // emailVerified UPDATE is scoped to `emailVerified IS NULL` so a
+  // re-verify preserves the original timestamp and `affectedRows`
+  // reports the genuine NULL→verified transition (the once-only signal
+  // the welcome email keys on). The code row is deleted regardless.
+  let firstVerification = false;
   await db.transaction(async (tx) => {
     await tx
       .delete(schema.verificationCodes)
       .where(eq(schema.verificationCodes.id, row.id));
-    await tx
+    const upd = await tx
       .update(schema.users)
       .set({ emailVerified: now })
-      .where(eq(schema.users.id, userId));
+      .where(
+        and(eq(schema.users.id, userId), isNull(schema.users.emailVerified)),
+      );
+    const header = Array.isArray(upd) ? upd[0] : upd;
+    firstVerification =
+      ((header as { affectedRows?: number } | undefined)?.affectedRows ?? 0) >
+      0;
   });
 
-  return { ok: true, userId };
+  return { ok: true, userId, firstVerification };
 }
 
 /**

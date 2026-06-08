@@ -26,6 +26,8 @@ import { grantSignupBonus } from "@/lib/payments/signup-bonus";
 // reward when they verify their email. Idempotent + flag-gated;
 // no-op when REFERRALS_ENABLED is off.
 import { triggerReferredReward } from "@/lib/referrals/rewards";
+// Lifecycle: welcome email on the first email-verification transition.
+import { sendWelcomeEmail } from "@/lib/email/transactional";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -153,6 +155,25 @@ export default async function VerifyEmailPage({
           ts: new Date().toISOString(),
         }),
       );
+    }
+
+    // Welcome email — fire ONCE, on the genuine NULL→verified
+    // transition (consumeVerificationToken reports firstVerification).
+    // Swallow-on-failure like the grants above: a mail hiccup must
+    // never break the verify UX. sendWelcomeEmail is itself fail-soft.
+    if (result.firstVerification) {
+      try {
+        await sendWelcomeEmail(result.userId);
+      } catch (err) {
+        console.error(
+          JSON.stringify({
+            event: "verify_email_welcome_failed",
+            userId: result.userId,
+            error: err instanceof Error ? err.message : String(err),
+            ts: new Date().toISOString(),
+          }),
+        );
+      }
     }
   }
 

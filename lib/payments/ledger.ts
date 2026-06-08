@@ -458,6 +458,42 @@ async function handleCaptured(
       );
     }
 
+    // Receipt email — fire ONLY on the first-time credit grant
+    // (baseResult.applied === true). A replayed webhook re-runs
+    // grantCredits as an idempotent no-op (applied: false), so this
+    // guard guarantees exactly-one receipt per purchase. Dynamic
+    // import + swallow-on-failure mirror the referral reward above:
+    // an email hiccup must never 500 the webhook (which would make
+    // the provider retry the capture). sendReceiptEmail is itself
+    // fail-soft on unconfigured SMTP.
+    if (baseResult.applied) {
+      try {
+        const { sendReceiptEmail } = await import("@/lib/email/transactional");
+        const packName =
+          CREDIT_PACKS.find((p) => p.id === payment.packId)?.name ??
+          String(payment.packId);
+        await sendReceiptEmail({
+          userId: payment.userId,
+          packName,
+          credits: pack.base,
+          bonusCredits: pack.bonus,
+          amountMinor: event.amount.amountMinor,
+          currency: String(event.amount.currency),
+          newBalance: baseResult.newBalance,
+        });
+      } catch (err) {
+        console.error(
+          JSON.stringify({
+            event: "payment_captured_receipt_email_failed",
+            paymentId: payment.id,
+            userId: payment.userId,
+            error: err instanceof Error ? err.message : String(err),
+            ts: new Date().toISOString(),
+          }),
+        );
+      }
+    }
+
     return { status: "processed", grant: baseResult };
   }
 

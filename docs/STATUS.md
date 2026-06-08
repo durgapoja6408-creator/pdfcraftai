@@ -5,6 +5,38 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-08 — Lifecycle emails: welcome + receipt (backlog D31/D32)
+
+Auto-mode batch 7. The SMTP transport (`lib/auth/smtp.ts`) already powered verification +
+password-reset and **SMTP_PASS is live in prod** (verified via /proc env), so the
+highest-value lifecycle gap — no welcome, no purchase receipt — was buildable now on the
+existing mailer (fail-soft if SMTP ever unset). Two new transactional types:
+
+- **Welcome email (D31)** — fires ONCE, on the genuine NULL→verified transition. Both
+  `consumeVerificationToken` + `consumeVerificationCode` now scope their `emailVerified`
+  UPDATE to `AND emailVerified IS NULL` (preserves the original verify timestamp) and
+  return `firstVerification` from `affectedRows`. Wired at BOTH success paths
+  (`app/verify-email/page.tsx` link path + `app/api/auth/verify-code/route.ts` OTP path)
+  as a third side-effect beside the signup-bonus + referral grants, same swallow-on-failure.
+- **Receipt email (D32)** — fires ONCE per purchase from `handleCaptured` in
+  `lib/payments/ledger.ts`, gated on `baseResult.applied === true` so a replayed webhook
+  (idempotent no-op grant) never double-sends. Summary table (pack, credits+bonus, amount,
+  date, new balance) + link to `/app/billing` for the tax invoice.
+
+**Architecture:** pure body builders in `lib/email/templates.ts` (no server-only/db — unit-
+testable, all user text HTML-escaped) + I/O senders in `lib/email/transactional.ts`
+(server-only; `sendWelcomeEmail`/`sendReceiptEmail` never throw — try/catch + structured log).
+
+**Tests:** `scripts/test-transactional-email.mjs` (39 static guards: template purity, never-
+throw senders, the two once-only gates, wiring at all 4 sites) + 16 new runtime assertions in
+`test-behavioral-units.mjs` (builder shape, HTML-escaping of malicious pack/name, formatAmount).
+Aggregator **8274/0 across 155 suites**; tsc clean.
+
+**Not in this batch:** low-credit nudge (D33) needs a `notified_at` guard column (migration) —
+deferred. Dunning emails (D34) ride on `lib/payments/dunning.ts` which is still scaffold-only.
+
+---
+
 ## 2026-06-08 — P1 conversion/trust + P2 cookie polish (P0 payments = out of scope)
 
 Fresh full-page audit confirmed the site is structurally clean (overflowX=0, no heading

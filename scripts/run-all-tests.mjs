@@ -343,6 +343,12 @@ const SUITES = [
   // the actual TS, not static-parse, with zero new deps (no Vitest weight
   // on the fragile deploy pipeline).
   { name: "behavioral-units", file: "test-behavioral-units.mjs" },
+  // transactional-email pins D31/D32 — the welcome + receipt lifecycle
+  // emails on the existing SMTP transport. Guards purity of the template
+  // layer, the never-throw senders, the once-only firstVerification +
+  // baseResult.applied gates. Behaviour of the pure builders is covered
+  // by test-behavioral-units.mjs.
+  { name: "transactional-email", file: "test-transactional-email.mjs" },
   // prompt-safety pins Task #26 / PLAN_GAP_ANALYSIS SEV-0 — the
   // defense-in-depth layer against prompt injection on PDF→AI flows.
   // Covers: the lib/ai/prompt-safety.ts module contract (exports,

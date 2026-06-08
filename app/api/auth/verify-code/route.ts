@@ -20,6 +20,7 @@
 
 import { auth } from "@/auth";
 import { consumeVerificationCode } from "@/lib/auth/email-verification";
+import { sendWelcomeEmail } from "@/lib/email/transactional";
 import { grantSignupBonus } from "@/lib/payments/signup-bonus";
 import { triggerReferredReward } from "@/lib/referrals/rewards";
 
@@ -121,6 +122,24 @@ export async function POST(req: Request): Promise<Response> {
         ts: new Date().toISOString(),
       }),
     );
+  }
+
+  // Welcome email — fire ONCE on the genuine NULL→verified transition
+  // (consumeVerificationCode reports firstVerification). Swallow-on-
+  // failure; sendWelcomeEmail is itself fail-soft.
+  if (result.firstVerification) {
+    try {
+      await sendWelcomeEmail(result.userId);
+    } catch (err) {
+      console.error(
+        JSON.stringify({
+          event: "verify_code_welcome_failed",
+          userId: result.userId,
+          error: err instanceof Error ? err.message : String(err),
+          ts: new Date().toISOString(),
+        }),
+      );
+    }
   }
 
   return json(200, {
