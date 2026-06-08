@@ -5,6 +5,17 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-08 — Content: use-cases 20 → 24
+
+Four more distinct persona/job use-case pages (no overlap with the existing 20):
+rotate-and-straighten-a-scanned-pdf, make-a-pdf-grayscale-for-printing,
+make-a-pdf-accessible-for-screen-readers, convert-markdown-notes-to-pdf. Full
+UseCaseData each, verified free-tool IDs, honest about tool limits (e.g. Rotate is
+90° steps not arbitrary deskew; a scan needs OCR before accessibility). Routes +
+sitemap auto-generate. tsc clean; aggregator 8317/0.
+
+---
+
 ## 2026-06-08 — Build-check CI gate + i18n (next-intl) foundation
 
 **Build-check gate (new):** `.github/workflows/build-check.yml` runs a real

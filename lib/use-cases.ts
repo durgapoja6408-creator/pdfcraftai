@@ -34,7 +34,11 @@ export type UseCaseSlug =
   | "convert-deck-to-handout"
   | "remove-metadata-before-publishing"
   | "extract-images-from-a-pdf"
-  | "add-a-watermark-before-sharing-a-draft";
+  | "add-a-watermark-before-sharing-a-draft"
+  | "rotate-and-straighten-a-scanned-pdf"
+  | "make-a-pdf-grayscale-for-printing"
+  | "make-a-pdf-accessible-for-screen-readers"
+  | "convert-markdown-notes-to-pdf";
 
 export type UseCaseStep = {
   /** The specific pdfcraft ai tool ID this step uses. */
@@ -1754,6 +1758,310 @@ export const USE_CASES: Record<UseCaseSlug, UseCaseData> = {
       },
     ],
     related: ["redact-pdf-before-sharing", "redline-contract-revisions", "remove-metadata-before-publishing"],
+  },
+
+  // ============================================================
+  // 21. Rotate and straighten a scanned PDF
+  // ============================================================
+  "rotate-and-straighten-a-scanned-pdf": {
+    slug: "rotate-and-straighten-a-scanned-pdf",
+    h1: "How to rotate and straighten a scanned PDF",
+    sub: "Fix sideways or upside-down scans and trim the messy edges — in your browser, nothing uploaded.",
+    audience: "Anyone with sideways, upside-down, or untidy scans from a scanner or phone",
+    totalTime: "3 minutes",
+    steps: [
+      {
+        tool: "rotate",
+        title: "Rotate pages to the right orientation",
+        detail:
+          "Open Rotate, turn pages 90°, 180°, or 270° until they read upright. You can rotate every page at once or just the few that came in sideways.",
+      },
+      {
+        tool: "crop-pdf",
+        title: "Crop away the scanner margins",
+        detail:
+          "Scans often carry a black border or a strip of the platen. Crop trims each page to the document edge so the result looks clean on screen and in print.",
+      },
+      {
+        tool: "compress-pdf",
+        title: "Compress the cleaned-up file (optional)",
+        detail:
+          "Image-heavy scans are large. Run Compress to get the tidied PDF under a mailbox or upload-portal limit without a visible quality drop.",
+      },
+    ],
+    whyItMatters:
+      "A scan that opens sideways is the small annoyance that makes a document look unprofessional and forces every reader to crane their neck or rotate it in their own viewer. Fixing it once, at the source, saves everyone that friction. Rotate corrects 90° orientation problems (the common case when a page goes through the feeder the wrong way), and Crop removes the dark scanner border so the page is just the document. Note the honest limit: Rotate works in 90° steps — it squares up a sideways page, but it doesn't deskew a page scanned at a slight 2° tilt; for that you'd re-scan straight. Because Rotate, Crop, and Compress all run in your browser, sensitive scans — IDs, contracts, statements — never leave your device.",
+    pitfalls: [
+      {
+        title: "Rotating the whole file when only some pages are wrong",
+        detail:
+          "Mixed-orientation scans are common. Rotate the specific pages that are sideways rather than spinning every page, or you'll just move the problem around.",
+      },
+      {
+        title: "Expecting Rotate to fix a slight tilt",
+        detail:
+          "Rotate turns in 90° steps. A page scanned at a small angle needs re-scanning straight — there's no pixel-level deskew here.",
+      },
+    ],
+    tips: [
+      {
+        title: "Crop after rotating, not before",
+        detail:
+          "Rotate first so the page is upright, then crop — otherwise the crop box is oriented to the wrong edges.",
+      },
+      {
+        title: "Keep the original until you're happy",
+        detail:
+          "Rotate and crop write a new file; keep the source scan until you've confirmed the cleaned-up version reads correctly end to end.",
+      },
+    ],
+    faq: [
+      {
+        q: "Does rotating reduce quality?",
+        a: "No. Rotation re-orients the existing page content without re-encoding it, so the pages are identical to the source, just turned.",
+      },
+      {
+        q: "Can it auto-straighten a tilted scan?",
+        a: "No — Rotate works in 90° steps to fix orientation. A few-degree skew from a crooked feed needs a fresh, straight scan.",
+      },
+      {
+        q: "Is my scan uploaded?",
+        a: "No. Rotate, Crop, and Compress run in your browser, so the file never leaves your device — which matters for IDs, contracts, and statements.",
+      },
+      {
+        q: "Can I rotate just one page?",
+        a: "Yes. Pick the specific pages to turn; you don't have to rotate the whole document.",
+      },
+    ],
+    related: ["ocr-old-archive", "split-pdf-into-separate-documents", "combine-receipts-for-expense-report"],
+  },
+
+  // ============================================================
+  // 22. Make a PDF grayscale for cheaper printing
+  // ============================================================
+  "make-a-pdf-grayscale-for-printing": {
+    slug: "make-a-pdf-grayscale-for-printing",
+    h1: "How to convert a PDF to grayscale for cheaper printing",
+    sub: "Strip the colour so a print run uses black toner instead of expensive colour ink.",
+    audience: "Anyone printing in volume — offices, students, print shops — who wants to cut ink cost",
+    totalTime: "3 minutes",
+    steps: [
+      {
+        tool: "grayscale-pdf",
+        title: "Convert the PDF to grayscale",
+        detail:
+          "Open Grayscale and drop in the file. Every page is converted to shades of grey, so the printer pulls from the black cartridge rather than the colour ones.",
+      },
+      {
+        tool: "n-up-pdf",
+        title: "Fit more per page to save paper (optional)",
+        detail:
+          "If it's a reference doc or slides, run N-up to place 2 or 4 pages per sheet — fewer sheets on top of cheaper ink.",
+      },
+      {
+        tool: "compress-pdf",
+        title: "Compress before sending to the printer",
+        detail:
+          "Grayscale plus Compress makes a light file that spools fast at a shared or shop printer and emails cleanly to whoever's doing the printing.",
+      },
+    ],
+    whyItMatters:
+      "Colour pages cost several times more to print than black-and-white, and most documents — reports, drafts, reference material — don't need colour to be useful. Converting to grayscale up front guarantees the printer uses only black toner, instead of relying on a printer driver's \"print in greyscale\" checkbox that colleagues forget to tick. It also makes the file render predictably: a chart that used colour to distinguish series will now use shades of grey, so it's worth a glance to confirm it's still readable. Pair it with N-up to cut paper too, and Compress so the file moves fast to a shared printer. Everything runs in your browser, so the document stays on your device.",
+    pitfalls: [
+      {
+        title: "Grayscale can flatten colour-coded charts",
+        detail:
+          "If a figure relies on colour alone to tell series apart, greys may look similar. Check colour-coded charts after converting, and prefer ones with labels or patterns.",
+      },
+      {
+        title: "Relying on the printer driver instead",
+        detail:
+          "The driver's \"greyscale\" toggle is per-print and easy to forget. Converting the file itself makes black-and-white the default for everyone who prints it.",
+      },
+    ],
+    tips: [
+      {
+        title: "Grayscale, then N-up, then Compress",
+        detail:
+          "That order gives you the cheapest print: black toner, fewer sheets, and a small file that spools quickly.",
+      },
+      {
+        title: "Keep a colour master",
+        detail:
+          "Convert a copy for printing and keep the colour original for on-screen sharing, where colour still helps.",
+      },
+    ],
+    faq: [
+      {
+        q: "Does grayscale shrink the file?",
+        a: "Often a little, since colour data is dropped — but run Compress as well if you need a meaningfully smaller file.",
+      },
+      {
+        q: "Will the text get worse?",
+        a: "No. Text stays crisp; only colour is removed. Photos and colour charts become grey-toned.",
+      },
+      {
+        q: "Is the file uploaded?",
+        a: "No. Grayscale, N-up, and Compress all run in your browser, so the document never leaves your device.",
+      },
+      {
+        q: "Can I undo it?",
+        a: "Grayscale writes a new file; your original keeps its colour. Keep the original and you can always go back.",
+      },
+    ],
+    related: ["convert-deck-to-handout", "compress-pdf-for-email", "remove-metadata-before-publishing"],
+  },
+
+  // ============================================================
+  // 23. Make a PDF accessible for screen readers
+  // ============================================================
+  "make-a-pdf-accessible-for-screen-readers": {
+    slug: "make-a-pdf-accessible-for-screen-readers",
+    h1: "How to make a PDF accessible for screen readers",
+    sub: "Check tagging, reading order, and language so the document works for assistive tech — and for compliance.",
+    audience: "Teams meeting ADA / Section 508 / WCAG / EN 301 549, and anyone publishing a public PDF",
+    totalTime: "10 minutes",
+    steps: [
+      {
+        tool: "pdf-accessibility",
+        title: "Run the accessibility check",
+        detail:
+          "Open the Accessibility Checker to see where the PDF falls short — missing tags, no document language, image alt-text gaps, and uncertain reading order are the usual culprits.",
+      },
+      {
+        tool: "pdf-a-convert",
+        title: "Convert to PDF/A for a stable, structured base",
+        detail:
+          "PDF/A embeds fonts and locks the structure, which gives assistive tech a predictable, self-contained document to read and keeps it rendering the same over time.",
+      },
+      {
+        tool: "compress-pdf",
+        title: "Keep the file light (optional)",
+        detail:
+          "Accessible PDFs are still shared by email and portals. Compress trims size without touching the text layer assistive tech depends on.",
+      },
+    ],
+    whyItMatters:
+      "An inaccessible PDF is invisible to someone using a screen reader — and increasingly a legal exposure, with ADA, Section 508, WCAG, and the EU's EN 301 549 all pointing at public documents. Accessibility comes down to a few things: the document has tags that convey structure (headings, lists, tables), a defined reading order, a language set so the reader pronounces words correctly, and alt-text on meaningful images. The checker surfaces which of these are missing so you can fix the document at the source rather than guess. One honest caveat: a scanned PDF is just an image — there's no text for a screen reader to read at all until it's been OCR'd, so make scans searchable first. Everything here runs in your browser, so the document stays on your device.",
+    pitfalls: [
+      {
+        title: "Trying to make a scan accessible without OCR",
+        detail:
+          "A scanned page is an image. Until it's OCR'd (made searchable), a screen reader has nothing to read. OCR first, then check accessibility.",
+      },
+      {
+        title: "Treating a passing check as full compliance",
+        detail:
+          "Automated checks catch the mechanical gaps (tags, language, alt-text presence) but can't judge whether alt-text is meaningful or the reading order makes sense. A human pass is still needed for real compliance.",
+      },
+    ],
+    tips: [
+      {
+        title: "Set the document language",
+        detail:
+          "A missing language is one of the most common and most impactful gaps — it's what tells the screen reader how to pronounce the text.",
+      },
+      {
+        title: "Write alt-text that conveys meaning",
+        detail:
+          "\"Chart\" helps no one; \"Bar chart: Q3 revenue up 12%\" does. Describe what the image communicates, not just that it exists.",
+      },
+    ],
+    faq: [
+      {
+        q: "What makes a PDF accessible?",
+        a: "Tags that convey structure, a logical reading order, a set document language, and meaningful alt-text on images — so assistive tech can navigate and announce the content.",
+      },
+      {
+        q: "Does this guarantee Section 508 / WCAG compliance?",
+        a: "It gets you the mechanical essentials and flags the gaps, but real compliance needs a human to confirm alt-text is meaningful and the reading order is correct.",
+      },
+      {
+        q: "My PDF is a scan — will the checker help?",
+        a: "Make it searchable with OCR first. A raw scan is an image with no text for a screen reader; OCR adds the text layer the checker (and the reader) needs.",
+      },
+      {
+        q: "Is the document uploaded?",
+        a: "No. The accessibility check and PDF/A conversion run in your browser, so the file stays on your device.",
+      },
+    ],
+    related: ["remove-metadata-before-publishing", "prepare-exhibits-for-court-filing", "convert-deck-to-handout"],
+  },
+
+  // ============================================================
+  // 24. Convert Markdown notes to a clean PDF
+  // ============================================================
+  "convert-markdown-notes-to-pdf": {
+    slug: "convert-markdown-notes-to-pdf",
+    h1: "How to convert Markdown notes into a clean PDF",
+    sub: "Turn .md files into a formatted, page-numbered PDF you can share or print.",
+    audience: "Developers, technical writers, and students who keep notes and docs in Markdown",
+    totalTime: "3 minutes",
+    steps: [
+      {
+        tool: "markdown-to-pdf",
+        title: "Render the Markdown to PDF",
+        detail:
+          "Open Markdown to PDF and drop in your .md. Headings, lists, code blocks, tables, and links render as a clean, formatted document.",
+      },
+      {
+        tool: "merge",
+        title: "Combine multiple note files (optional)",
+        detail:
+          "If your notes span several .md files — one per topic or chapter — convert each and Merge them into one document in the order you want.",
+      },
+      {
+        tool: "page-numbers",
+        title: "Add page numbers",
+        detail:
+          "Run Page Numbers so the finished PDF is easy to reference and reads like a proper handout rather than a raw export.",
+      },
+    ],
+    whyItMatters:
+      "Markdown is perfect for writing — plain text, version-controllable, fast — but it's not what you hand to a reviewer, a professor, or a teammate who just wants to read it. Rendering it to PDF gives you the best of both: you keep authoring in Markdown, and you produce a formatted, portable document on demand, with headings, code blocks, and tables laid out properly. Combine several note files into one and add page numbers, and a folder of scattered .md files becomes a single shareable doc. Because the conversion runs in your browser, notes that might contain unreleased or internal content never leave your device. Keep the .md as your source of truth and regenerate the PDF whenever the notes change.",
+    pitfalls: [
+      {
+        title: "Expecting exotic Markdown extensions to render",
+        detail:
+          "Standard Markdown — headings, lists, code, tables, links, images — renders cleanly. Highly tool-specific extensions (some diagram or admonition syntaxes) may not; check the output if you rely on them.",
+      },
+      {
+        title: "Merging before fixing the order",
+        detail:
+          "Convert each note, then arrange the files in reading order before merging — otherwise chapter 3 can land before chapter 1.",
+      },
+    ],
+    tips: [
+      {
+        title: "Keep the .md as the source",
+        detail:
+          "Author in Markdown and treat the PDF as a build output — regenerate it when notes change rather than editing the PDF directly.",
+      },
+      {
+        title: "One file per section, then merge",
+        detail:
+          "Splitting long notes into per-section .md files keeps them easy to edit; Merge stitches them into one clean PDF at the end.",
+      },
+    ],
+    faq: [
+      {
+        q: "What Markdown features are supported?",
+        a: "The common ones — headings, bold/italic, lists, code blocks, tables, links, and images. Very tool-specific extensions may not render, so check the output if you depend on them.",
+      },
+      {
+        q: "Can I convert several files at once?",
+        a: "Convert each .md to PDF, then use Merge to combine them in order into a single document.",
+      },
+      {
+        q: "Are my notes uploaded?",
+        a: "No. Markdown to PDF, Merge, and Page Numbers run in your browser, so internal or unreleased notes never leave your device.",
+      },
+      {
+        q: "Will my code blocks keep their formatting?",
+        a: "Yes — fenced code blocks render in a monospace block so snippets stay readable in the PDF.",
+      },
+    ],
+    related: ["convert-research-papers-to-study-notes", "thesis-combine-and-format", "summarize-a-long-report-with-ai"],
   },
 };
 
