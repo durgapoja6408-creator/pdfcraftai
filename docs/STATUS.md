@@ -5,6 +5,31 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-08 — Content: use-case expansion 12 → 16 (backlog M86)
+
+Auto-mode batch 9. The use-case ("job to be done") surface was the thinnest content area
+(12 pages vs 113 tools). Added 4 genuinely distinct, high-intent persona/job pages to
+`lib/use-cases.ts` — NOT near-duplicate tool variants (which risk thin-content penalties),
+but separate audiences with separate workflows:
+
+- **`/use-cases/split-pdf-into-separate-documents`** — split a scanned stack into named files
+  (split → extract-pages → compress).
+- **`/use-cases/summarize-a-long-report-with-ai`** — 50-page report → summary + key points +
+  chat (ai-summarize → ai-key-points → ai-chat). Showcases the monetised AI path honestly
+  (notes credits vs the free tools).
+- **`/use-cases/prepare-exhibits-for-court-filing`** — legal exhibit bundle (merge →
+  bates-numbers → page-numbers → pdf-a-convert); carries a "not legal advice" disclaimer.
+- **`/use-cases/create-an-onboarding-pack-for-new-hires`** — HR onboarding pack (merge →
+  page-numbers → pdf-form-fill → compress).
+
+Each has the full UseCaseData shape (steps→**verified** canonical tool IDs only, ~180-word
+context, pitfalls, tips, 4-5 FAQ, internal-link related[]). Routes + sitemap auto-generate
+from `USE_CASE_SLUGS = Object.keys(USE_CASES)`. tsc clean (the union↔record key match is
+type-enforced); aggregator 8317/0 across 155 suites (internal-links + sitemap +
+use-cases-index-jsonld guards confirm no broken refs).
+
+---
+
 ## 2026-06-08 — Lifecycle emails 2: low-credit nudge + payment-failed recovery (D33/D34)
 
 Auto-mode batch 8, completing the lifecycle-email set. Both on the existing SMTP transport.

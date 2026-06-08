@@ -26,7 +26,11 @@ export type UseCaseSlug =
   | "convert-research-papers-to-study-notes"
   | "compress-pdf-for-email"
   | "fill-and-sign-pdf-form"
-  | "tailor-resume-for-ats";
+  | "tailor-resume-for-ats"
+  | "split-pdf-into-separate-documents"
+  | "summarize-a-long-report-with-ai"
+  | "prepare-exhibits-for-court-filing"
+  | "create-an-onboarding-pack-for-new-hires";
 
 export type UseCaseStep = {
   /** The specific pdfcraft ai tool ID this step uses. */
@@ -1104,6 +1108,335 @@ export const USE_CASES: Record<UseCaseSlug, UseCaseData> = {
       },
     ],
     related: ["convert-research-papers-to-study-notes", "fill-and-sign-pdf-form", "translate-handbook-to-multiple-languages"],
+  },
+
+  // ============================================================
+  // 13. Split a PDF into separate documents
+  // ============================================================
+  "split-pdf-into-separate-documents": {
+    slug: "split-pdf-into-separate-documents",
+    h1: "How to split one big PDF into separate documents",
+    sub: "Turn a single scanned stack into clean, individually-named files — in your browser, nothing uploaded.",
+    audience: "Anyone who scanned a pile of documents as one PDF, or needs to send just part of a file",
+    totalTime: "3 minutes",
+    steps: [
+      {
+        tool: "split",
+        title: "Split by page range or fixed interval",
+        detail:
+          "Open Split and choose how to break the file up — by page range (1-4, 5-9, …) or every N pages. Each range becomes its own PDF. It runs locally, so the file never leaves your device.",
+      },
+      {
+        tool: "extract-pages",
+        title: "Or pull out just the pages you need",
+        detail:
+          "If you only want a few specific pages — a single signed form buried in a 40-page scan — use Extract Pages to lift them into a fresh PDF instead of splitting everything.",
+      },
+      {
+        tool: "compress-pdf",
+        title: "Shrink the pieces before sending (optional)",
+        detail:
+          "Scanned pages are heavy. Run each split file through Compress to get it under a mailbox or upload-portal size limit without visible quality loss.",
+      },
+    ],
+    whyItMatters:
+      "Scanners and phone apps capture everything as one long PDF, but the way you actually use documents is one at a time — emailing a single bank statement rather than all twelve, uploading one form to a portal that wants one document per field, or filing scans by type. Splitting turns an undifferentiated stack into the discrete files your workflow expects. Because Split and Extract Pages copy the original pages without re-encoding, the output is identical to the source — no quality loss, no compression artefacts on text or signatures. And because the work happens entirely in your browser, sensitive scans like IDs, statements, and contracts never leave your device. The result: the right pages, in the right files, named the way you need, in a couple of minutes.",
+    pitfalls: [
+      {
+        title: "Splitting before you know the page boundaries",
+        detail:
+          "Skim the PDF and note where each document starts. Splitting 'every 2 pages' only works if every document is exactly 2 pages — mixed-length documents need explicit ranges.",
+      },
+      {
+        title: "Losing track of which file is which",
+        detail:
+          "Split tools name outputs file-1, file-2, and so on. Rename them right away (or plan the order first) so 'pages 5-8' doesn't become an anonymous file-2.pdf you can't identify later.",
+      },
+    ],
+    tips: [
+      {
+        title: "Use page ranges for mixed-length documents",
+        detail:
+          "Fixed intervals are fastest for uniform files; explicit ranges give you control when each document is a different length.",
+      },
+      {
+        title: "Extract beats split for one-off pulls",
+        detail:
+          "If you only need one section, Extract Pages is cleaner than splitting the whole file and deleting the rest.",
+      },
+    ],
+    faq: [
+      {
+        q: "Does splitting reduce quality?",
+        a: "No. Splitting copies the original pages byte-for-byte into new files — there's no re-encoding, so the pages are identical to the source.",
+      },
+      {
+        q: "Will my file be uploaded to split it?",
+        a: "No. Split runs entirely in your browser. The PDF never leaves your device, which matters for scanned IDs, statements, or contracts.",
+      },
+      {
+        q: "Can I split a password-protected PDF?",
+        a: "Unlock it first — with the password you own — using the Unlock tool, then split. A file we can't open is a file we can't split.",
+      },
+      {
+        q: "How many pieces can I split into?",
+        a: "As many as the file has pages — one document per page if you want. Large files split smoothly because the work happens locally.",
+      },
+    ],
+    related: ["combine-receipts-for-expense-report", "merge-bank-statements-for-accountant", "create-an-onboarding-pack-for-new-hires"],
+  },
+
+  // ============================================================
+  // 14. Summarize a long report with AI
+  // ============================================================
+  "summarize-a-long-report-with-ai": {
+    slug: "summarize-a-long-report-with-ai",
+    h1: "How to summarize a long PDF report in seconds",
+    sub: "Turn a 50-page report into a one-paragraph summary and a bullet list of key points before your meeting.",
+    audience: "Managers, analysts, consultants, and students who have to absorb a long report fast",
+    totalTime: "2 minutes",
+    steps: [
+      {
+        tool: "ai-summarize",
+        title: "Generate a plain-language summary",
+        detail:
+          "Upload the report and run Summarize. You get a concise, readable overview of the whole document — the gist, not a page-by-page rehash.",
+      },
+      {
+        tool: "ai-key-points",
+        title: "Pull the key points as a bullet list",
+        detail:
+          "Run Key Points to extract the decisions, figures, and takeaways as a scannable list you can paste straight into your notes or an email.",
+      },
+      {
+        tool: "ai-chat",
+        title: "Ask follow-up questions",
+        detail:
+          "Open Chat with the same PDF to drill in — 'what's the Q3 revenue figure?', 'what risks are flagged?' — and get answers grounded in the document.",
+      },
+    ],
+    whyItMatters:
+      "A long report landing in your inbox the night before a meeting is a familiar kind of dread. Reading all 50 pages isn't realistic; skimming means you miss the figure that matters. An AI summary is triage: it tells you the gist in a paragraph so you can decide what actually deserves a careful read. The three tools form a funnel — Summarize for the overview, Key Points for the scannable takeaways, and Chat to interrogate the specific numbers or claims you care about, each answer drawn from the document itself. It won't replace reading the sections you'll act on, but it gets you oriented in two minutes instead of two hours. Note that these AI tools run on credits — the 60 non-AI tools stay free — and new accounts get free credits to try them.",
+    pitfalls: [
+      {
+        title: "Treating the summary as the source of truth",
+        detail:
+          "A summary is a fast read, not a citation. For anything you'll quote or act on financially or legally, confirm it against the page in the original.",
+      },
+      {
+        title: "Summarizing a scanned (image-only) report",
+        detail:
+          "If the PDF is scanned, make it searchable first so the AI reads real text rather than seeing blank images.",
+      },
+    ],
+    tips: [
+      {
+        title: "Chain summary, then key points, then chat",
+        detail:
+          "Each step zooms in further. Start broad, then ask targeted questions only about the parts that matter to you.",
+      },
+      {
+        title: "Paste the key points into your meeting notes",
+        detail:
+          "The bullet output is meeting-ready — drop it into the agenda so everyone starts from the same takeaways.",
+      },
+    ],
+    faq: [
+      {
+        q: "How long can the report be?",
+        a: "Long reports are fine — the tool chunks the document, so length isn't a hard wall. Very large files just take a little longer to process.",
+      },
+      {
+        q: "Do the AI tools cost credits?",
+        a: "Yes — Summarize, Key Points, and Chat run on credits. The 60 non-AI tools stay free, and new accounts get free credits to try the AI ones.",
+      },
+      {
+        q: "Is my report used to train a model?",
+        a: "No. Your file is processed for the summary you asked for and isn't used to train any model.",
+      },
+      {
+        q: "How accurate is the summary?",
+        a: "Good for triage and gist. For figures or claims you'll rely on, verify against the original — that's true of any summary, human or AI.",
+      },
+      {
+        q: "Can I get the summary in another language?",
+        a: "Yes — pair Summarize with the Translate tool to read the gist in the language you prefer.",
+      },
+    ],
+    related: ["convert-research-papers-to-study-notes", "extract-tables-from-financial-report", "redline-contract-revisions"],
+  },
+
+  // ============================================================
+  // 15. Prepare exhibits for a court filing
+  // ============================================================
+  "prepare-exhibits-for-court-filing": {
+    slug: "prepare-exhibits-for-court-filing",
+    h1: "How to prepare exhibits for a court filing",
+    sub: "Combine, Bates-number, and archive your exhibits into one court-ready PDF.",
+    audience: "Paralegals, litigators, and self-represented filers assembling an exhibit bundle",
+    totalTime: "10 minutes",
+    steps: [
+      {
+        tool: "merge",
+        title: "Combine the exhibits in order",
+        detail:
+          "Merge each exhibit into one file in the order they're referenced. Drag the thumbnails to lock the sequence before you combine.",
+      },
+      {
+        tool: "bates-numbers",
+        title: "Apply Bates numbering",
+        detail:
+          "Run Bates Numbers to stamp sequential identifiers (e.g. ABC-000001) across every page — the standard way courts and opposing counsel cite a specific page.",
+      },
+      {
+        tool: "page-numbers",
+        title: "Add a page-number footer (optional)",
+        detail:
+          "If your jurisdiction wants plain page numbers in addition to Bates stamps, add them as a footer positioned so it won't collide with the Bates field.",
+      },
+      {
+        tool: "pdf-a-convert",
+        title: "Convert to PDF/A for filing",
+        detail:
+          "Many e-filing systems require PDF/A for archival integrity. Convert as the final step so fonts and layout are embedded and locked.",
+      },
+    ],
+    whyItMatters:
+      "An exhibit bundle only works if every page can be cited unambiguously and rendered identically by the court, opposing counsel, and the record years later. That's what this workflow delivers: a single merged file in the referenced order, Bates numbering as the citation backbone so 'ABC-000142' always points to the same page, and PDF/A output that embeds fonts and locks layout the way most e-filing systems require. Getting the order and the numbering right before you file matters — a late re-order shifts every Bates number and breaks your references. Because merging and the page tools run in your browser, privileged and sealed material stays on your device. This is a document-preparation workflow, not legal advice: confirm page-size, numbering, and format requirements against your court's local rules before filing.",
+    pitfalls: [
+      {
+        title: "Bates-numbering before the order is final",
+        detail:
+          "Stamp last. If you re-order or add an exhibit after Bates numbering, every downstream number shifts and your citations break.",
+      },
+      {
+        title: "Letting Bates stamps overlap content",
+        detail:
+          "Place the Bates field in a clear margin — bottom-right is conventional — so it never covers exhibit text or a signature.",
+      },
+      {
+        title: "Ignoring the court's format rules",
+        detail:
+          "Page-size, PDF/A, and numbering conventions vary by court. Check the local rules first — the tools handle the mechanics, not the jurisdiction's requirements.",
+      },
+    ],
+    tips: [
+      {
+        title: "Keep an un-stamped master",
+        detail:
+          "Bates-number a copy, not your only file, so you can re-stamp cleanly if the exhibit list changes.",
+      },
+      {
+        title: "Make scanned exhibits searchable first",
+        detail:
+          "If exhibits are scans, OCR them so the whole bundle is text-searchable for everyone working the case.",
+      },
+    ],
+    faq: [
+      {
+        q: "What is Bates numbering?",
+        a: "A sequential page identifier — usually a prefix plus a zero-padded number — stamped on every page so any page can be cited unambiguously across a case.",
+      },
+      {
+        q: "Are my case files uploaded?",
+        a: "Merge and the page tools run in your browser, so exhibit files stay on your device — which matters for privileged or sealed material.",
+      },
+      {
+        q: "Why PDF/A for filing?",
+        a: "PDF/A embeds fonts and forbids external dependencies, so the filed document renders identically years later. That's why many e-filing systems require it.",
+      },
+      {
+        q: "Can I restart Bates numbers per exhibit?",
+        a: "Most filings use one continuous sequence across the whole bundle. Check your court's rule; the tool supports a fixed prefix plus a continuous counter.",
+      },
+      {
+        q: "Is this legal advice?",
+        a: "No. This is a document-preparation workflow. Confirm filing requirements with the court's rules or your attorney.",
+      },
+    ],
+    related: ["redline-contract-revisions", "redact-pdf-before-sharing", "merge-bank-statements-for-accountant"],
+  },
+
+  // ============================================================
+  // 16. Create an onboarding pack for new hires
+  // ============================================================
+  "create-an-onboarding-pack-for-new-hires": {
+    slug: "create-an-onboarding-pack-for-new-hires",
+    h1: "How to build a new-hire onboarding pack as one PDF",
+    sub: "Combine your handbook, policies, and forms into one clean, fillable onboarding PDF.",
+    audience: "HR, people-ops, and small-business owners putting together a new-hire packet",
+    totalTime: "8 minutes",
+    steps: [
+      {
+        tool: "merge",
+        title: "Combine handbook, policies, and forms",
+        detail:
+          "Merge the employee handbook, policy documents, and any forms into a single file in reading order. Drag the thumbnails so the welcome letter lands first.",
+      },
+      {
+        tool: "page-numbers",
+        title: "Add page numbers and a footer",
+        detail:
+          "Run Page Numbers so the pack reads like one coherent document and a new hire can be pointed to 'page 12' during onboarding.",
+      },
+      {
+        tool: "pdf-form-fill",
+        title: "Make the forms fillable",
+        detail:
+          "Use Form Fill so tax, direct-deposit, and acknowledgment forms can be completed and signed digitally instead of printed and re-scanned.",
+      },
+      {
+        tool: "compress-pdf",
+        title: "Compress for easy sending",
+        detail:
+          "Shrink the finished pack so it sends cleanly over email or fits your HRIS upload limit.",
+      },
+    ],
+    whyItMatters:
+      "Onboarding is a first impression, and a stack of separate attachments — handbook here, tax form there, policy PDF somewhere else — makes that impression a confusing one. Combining everything into a single, page-numbered, fillable pack turns it into a guided experience: the new hire opens one file, sees a welcome up front, and completes the forms digitally without printing anything. It's also consistency insurance — build the pack once and every hire gets the same complete set, instead of whatever you remembered to attach that day. Because the merge, page-numbering, and compression steps run in your browser, the personal data on those onboarding forms stays on your device. Keep the finished pack as a master and swap only the role-specific pages for the next hire.",
+    pitfalls: [
+      {
+        title: "Burying the welcome and the to-dos",
+        detail:
+          "Lead with a one-page welcome and a checklist of what to complete. A 40-page pack with the action items on page 30 doesn't get finished.",
+      },
+      {
+        title: "Shipping flat (non-fillable) forms",
+        detail:
+          "A form a new hire has to print, sign, and re-scan kills momentum. Make forms fillable so the whole pack is digital.",
+      },
+    ],
+    tips: [
+      {
+        title: "Keep a template pack",
+        detail:
+          "Build the pack once, then swap only the role-specific pages for each hire instead of rebuilding from scratch.",
+      },
+      {
+        title: "Add a checklist page up front",
+        detail:
+          "A simple 'Day 1 / Week 1' checklist turns a document into a guided onboarding.",
+      },
+    ],
+    faq: [
+      {
+        q: "Can new hires fill the forms without buying software?",
+        a: "Yes — once you make the forms fillable, they complete them in any PDF viewer or right in the browser.",
+      },
+      {
+        q: "Is employee data uploaded anywhere?",
+        a: "Merge, page numbers, and compress run in your browser, so the onboarding documents stay on your device.",
+      },
+      {
+        q: "Can I reuse the pack for every hire?",
+        a: "Yes — keep it as a master and swap the role-specific pages. That's the fastest way to keep onboarding consistent.",
+      },
+      {
+        q: "How do I keep the file size down?",
+        a: "Run the finished pack through Compress — it trims embedded images and fonts so it sends over email without hitting size limits.",
+      },
+    ],
+    related: ["combine-receipts-for-expense-report", "fill-and-sign-pdf-form", "split-pdf-into-separate-documents"],
   },
 };
 
