@@ -41,7 +41,9 @@ jobs:
     name: next build (stub env)
     runs-on: ubuntu-latest
     env:
-      NODE_ENV: production
+      # NB: do NOT set NODE_ENV=production here — `npm ci` would then
+      # omit devDependencies (tailwindcss, typescript, postcss...) and the
+      # build fails. `next build` sets production mode internally anyway.
       NEXT_TELEMETRY_DISABLED: "1"
       # --- stub build-time env (dummies, NOT secrets) ---
       NEXTAUTH_SECRET: ci-stub-secret-00000000000000000000000000000000
