@@ -1,0 +1,78 @@
+# .github/workflows/build-check.yml
+#
+# The missing build-validation gate. ci.yml runs typecheck + the offline
+# test suite but deliberately NOT `next build` (it needs the full env
+# surface). That left a gap: runtime-only build errors — a bad
+# next.config plugin, an SSR provider mistake, a build-time data fetch —
+# only surfaced when Hostinger built the new commit, i.e. on the LIVE
+# site. This workflow closes that gap.
+#
+# What it does: a real `next build` against STUBBED build-time env so
+# structural changes (i18n infra, layout/provider changes, config
+# tweaks) are proven to compile + statically generate BEFORE they reach
+# main (Hostinger auto-deploys main).
+#
+# Triggers:
+#   - workflow_dispatch: run a baseline build on any ref on demand.
+#   - push to any branch EXCEPT main: validates feature branches (e.g.
+#     feat/i18n) so a structural change is build-checked before merge.
+#     main is excluded on purpose — Hostinger is already the build for
+#     main, and we don't want a second heavy build racing every push.
+#
+# The stub env values are DUMMIES — never real secrets. The build must
+# not actually connect to the DB/providers at build time (force-dynamic
+# pages skip build-time fetch; static pages need no DB). If a page does
+# build-time data fetching, this build fails loudly here instead of on
+# prod — which is exactly the signal we want.
+
+name: build-check
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore: [main]
+
+concurrency:
+  group: build-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: next build (stub env)
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      # --- stub build-time env (dummies, NOT secrets) ---
+      NEXTAUTH_SECRET: ci-stub-secret-00000000000000000000000000000000
+      AUTH_SECRET: ci-stub-secret-00000000000000000000000000000000
+      NEXTAUTH_URL: https://pdfcraftai.com
+      NEXT_PUBLIC_SITE_URL: https://pdfcraftai.com
+      GOOGLE_CLIENT_ID: ci-stub.apps.googleusercontent.com
+      GOOGLE_CLIENT_SECRET: ci-stub-google-secret
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: "3306"
+      MYSQL_USER: ci
+      MYSQL_PASSWORD: ci
+      MYSQL_DATABASE: ci
+      MYSQL_URL: mysql://ci:ci@127.0.0.1:3306/ci
+      CRON_SECRET: ci-stub-cron
+      NEXT_PUBLIC_GA4_MEASUREMENT_ID: G-CISTUB000
+      NEXT_PUBLIC_CLARITY_PROJECT_ID: cistub
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
+      TURNSTILE_SECRET_KEY: 1x0000000000000000000000000000000AA
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies (npm ci)
+        run: npm ci
+
+      - name: Build (next build)
+        run: npm run build
