@@ -5,6 +5,42 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-08 — P1 conversion/trust + P2 cookie polish (P0 payments = out of scope)
+
+Fresh full-page audit confirmed the site is structurally clean (overflowX=0, no heading
+jumps, h1=1 across all 34 shots) — so the real gaps are business, not craft. Owner scoped:
+do **P1 (conversion/trust) + P2 (cookie)**; **P0 (payments live-keys/international) is OUT
+OF SCOPE** (owner-gated; removed from tracking).
+
+**P1c — funnel conversion events now fire (the revenue end was uninstrumented).**
+`credits_purchased` + `subscription_started` were defined in `lib/analytics.ts` but NEVER
+fired. Wired into `components/billing/CheckoutButton.tsx`: `credits_purchased`
+(package_id + price_inr from the client `CREDIT_PACKS` catalog) fires in the Razorpay
+success `handler`; `subscription_started` on the redirect path. Consent-gated by `track()`.
+
+**P1a — honest, floor-gated public usage stats.** `lib/public-stats.ts` `getPublicStats()`
+(`unstable_cache`, revalidate 1h, never-throws) counts files + ai_usage EXCLUDING the
+prod-e2e test identities, and only reports `showLive` once both clear `PUBLIC_STATS_FLOOR`
+(1000). DELIBERATELY conservative: free tools run in-browser (not in the DB) and at this
+scale the rows are test-dominated, so showing a raw count would be misleading. At current
+scale `showLive=false` → marketing shows product facts, not a number.
+
+**P1b — "Built in the open" trust section.** `components/landing/TrustSection.tsx` (async
+server component) — honest solo/transparency framing + verifiable product-fact tiles
+(113 tools, 60 free, 0 docs stored) + changelog/about links; live usage tiles appear only
+when `showLive`. Mounted on the homepage between "Built for" and "Security".
+
+**P2 — cookie banner collapses on scroll.** `components/compliance/CookieConsent.tsx`: once
+the visitor scrolls past 600px the full bottom-right card shrinks to a small "Cookie
+settings" pill (re-opens on click) so it stops overlapping pricing/dashboard CTAs.
+NO auto-consent (analytics stay off until explicit Accept); the Accept/Reject equal-
+prominence styling is untouched (existing prominence guard still green).
+
+Tests: `test-conversion-trust.mjs` (32 assertions) wired into the aggregator →
+**8128 passed / 0 failed across 150 suites**; `tsc` clean.
+
+---
+
 ## 2026-06-08 — One-click post-deploy live verification (no prod weakening)
 
 Goal: after every deploy, verify the full LIVE site with one click — without the

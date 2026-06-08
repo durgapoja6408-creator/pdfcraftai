@@ -5,6 +5,7 @@ import { I } from "@/components/icons/Icons";
 import { TOOL_STATS } from "@/lib/tools";
 import { isFeatureEnabled, FEATURE_FLAGS } from "@/lib/flags";
 import { HeroDemo } from "@/components/landing/HeroDemo";
+import { TrustSection } from "@/components/landing/TrustSection";
 import { ToolsShowcase } from "@/components/landing/ToolsShowcase";
 import {
   HowItWorks,
@@ -147,6 +148,9 @@ export default async function HomePage() {
 
       {/* ===== Built for ===== */}
       <Audience />
+
+      {/* ===== Built in the open (trust) ===== */}
+      <TrustSection />
 
       {/* ===== Security ===== */}
       <Security />

@@ -330,6 +330,11 @@ const SUITES = [
   // health gate, AI-leg cost gating, NO signup/payment mutation, Slack
   // alert, and the cron-secret-gated/env-scoped/idempotent refill route.
   { name: "post-deploy-verify", file: "test-post-deploy-verify.mjs" },
+  // conversion-trust pins #155-158 — the P1 conversion/trust + P2 cookie
+  // work: checkout funnel events (credits_purchased/subscription_started),
+  // the cached/floor-gated/test-excluded public-stats helper, the honest
+  // TrustSection, and the collapse-on-scroll cookie pill (no auto-consent).
+  { name: "conversion-trust", file: "test-conversion-trust.mjs" },
   // prompt-safety pins Task #26 / PLAN_GAP_ANALYSIS SEV-0 — the
   // defense-in-depth layer against prompt injection on PDF→AI flows.
   // Covers: the lib/ai/prompt-safety.ts module contract (exports,

@@ -31,6 +31,8 @@ import { useRouter } from "next/navigation";
 import { I } from "@/components/icons/Icons";
 import type { CreditPackId, PackVariant } from "@/lib/pricing";
 import type { CheckoutSession, ProviderId } from "@/lib/payments/types";
+import { track } from "@/lib/analytics";
+import { CREDIT_PACKS, USD_TO_INR_RATE } from "@/lib/pricing";
 import { createCheckoutAction } from "@/lib/payments/checkout-actions";
 
 type Variant = "accent" | "outline";
@@ -104,7 +106,12 @@ export function CheckoutButton({
         setError(result.message);
         return;
       }
-      await launchCheckout(result.session);
+      // Funnel conversion event (#157): the user authorised payment.
+      // package_id + price_inr come from the client pack catalog so the
+      // GA4 conversion is measurable. Gated on consent inside track().
+      const pack = CREDIT_PACKS.find((x) => x.id === packId);
+      const priceInr = pack?.inrPrice ?? Math.round((pack?.price ?? 0) * USD_TO_INR_RATE);
+      await launchCheckout(result.session, { packageId: packId, priceInr });
     } catch (err) {
       console.error("[checkout-button]", err);
       setError(
@@ -260,9 +267,14 @@ function loadScript(src: string, key: string): Promise<void> {
   });
 }
 
-async function launchCheckout(session: CheckoutSession): Promise<void> {
+async function launchCheckout(
+  session: CheckoutSession,
+  analytics: { packageId: string; priceInr: number },
+): Promise<void> {
   if (session.kind === "redirect") {
-    // Full-page redirect — used by some subscription flows.
+    // Full-page redirect — used by some subscription flows. Fire the
+    // subscription funnel event before we hand off to the processor.
+    track({ event: "subscription_started", plan_id: analytics.packageId });
     window.location.href = session.url;
     return;
   }
@@ -286,6 +298,14 @@ async function launchCheckout(session: CheckoutSession): Promise<void> {
       // do anything here — the webhook is what grants credits. But we
       // redirect the user to /app/billing so they see "processing".
       handler: () => {
+        // Razorpay authorised the payment (the webhook does the real
+        // grant). Fire the conversion event here — the one reliable
+        // client-side success signal — then send the user to billing.
+        track({
+          event: "credits_purchased",
+          package_id: analytics.packageId,
+          price_inr: analytics.priceInr,
+        });
         window.location.href = "/app/billing?status=processing";
       },
       modal: {

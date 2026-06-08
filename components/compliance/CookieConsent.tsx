@@ -110,6 +110,11 @@ function writeConsentCookie(level: ConsentLevel): void {
 export function CookieConsent({ initialLevel }: Props) {
   // Hide immediately if the server already saw a choice.
   const [level, setLevel] = useState<ConsentLevel>(initialLevel);
+  // 2026-06-08 (P2): once the visitor scrolls into the content, collapse
+  // the full card to a small pill so it stops overlapping page CTAs. The
+  // choice stays one tap away and no consent is auto-set (analytics remain
+  // off until an explicit "Accept all").
+  const [minimized, setMinimized] = useState(false);
   const acceptButtonRef = useRef<HTMLButtonElement>(null);
 
   // Move focus to the first actionable button on mount so keyboard
@@ -130,6 +135,18 @@ export function CookieConsent({ initialLevel }: Props) {
       return () => cancelAnimationFrame(raf);
     }
   }, [level]);
+
+  // Collapse to the pill the first time the user scrolls past the fold.
+  // One-way (stays collapsed until they re-open) so it never flickers.
+  useEffect(() => {
+    if (level !== "none" || minimized) return;
+    if (typeof window === "undefined") return;
+    const onScroll = () => {
+      if (window.scrollY > 600) setMinimized(true);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [level, minimized]);
 
   const onChoose = (choice: "all" | "essential") => {
     writeConsentCookie(choice);
@@ -157,6 +174,34 @@ export function CookieConsent({ initialLevel }: Props) {
   };
 
   if (level !== "none") return null;
+
+  // Collapsed pill — compact, unobtrusive, re-opens the full banner.
+  if (minimized) {
+    return (
+      <button
+        type="button"
+        aria-label="Open cookie settings"
+        onClick={() => setMinimized(false)}
+        style={{
+          position: "fixed",
+          right: 16,
+          bottom: 16,
+          zIndex: 100,
+          padding: "8px 14px",
+          borderRadius: 999,
+          border: "1px solid var(--border, #2e313c)",
+          background: "var(--bg-2, #1e2029)",
+          color: "var(--fg-subtle, #a8acb8)",
+          fontSize: 12,
+          fontWeight: 500,
+          cursor: "pointer",
+          boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
+        }}
+      >
+        Cookie settings
+      </button>
+    );
+  }
 
   return (
     <div
