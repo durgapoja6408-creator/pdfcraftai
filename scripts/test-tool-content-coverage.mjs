@@ -151,56 +151,19 @@ const PER_TOOL_LONGFORM_TOOLS = new Set(["pdf-inspector", "page-count"]);
 //   ["foo", ["intro"]]              → only skip the intro check
 //   ["bar", ["intro", "longform"]]  → skip both checks
 const GRANDFATHERED_NO_CONTENT = new Map([
-  // Inspector tools — their entire UI IS the inspection result;
-  // adding generic marketing longform would duplicate the inline
-  // content the inspector already shows. Skip longform check; intro
-  // line is still helpful and most are already covered.
-  ["pdf-outline", ["longform"]],
-  ["pdf-attachments", ["longform"]],
-  ["pdf-fonts", ["longform"]],
-  ["pdf-links", ["longform"]],
-  ["pdf-annotations", ["longform"]],
-  ["pdf-javascript", ["longform"]],
-  ["pdf-accessibility", ["longform"]],
-  ["pdf-a-check", ["longform"]],
-  ["pdf-x-check", ["longform"]],
-  ["pdf-forms", ["longform"]],
-  // pdf-search results UI is the content surface — no marketing
-  // longform fits.
-  ["pdf-search", ["longform"]],
-  // Pre-2026-05-01 free tools that shipped without longform entries.
-  // Each is a migration TODO; the list should shrink over time.
-  ["sort-pages", ["longform"]],
-  ["stamp-pdf", ["longform"]],
-  ["strip-links", ["longform"]],
-  ["free-draw-pdf", ["longform"]],
-  ["add-links", ["longform"]],
-  ["sign-pdf-free", ["longform"]],
-  ["redact-free", ["longform"]],
-  ["highlight-pdf", ["longform"]],
-  ["add-text-box", ["longform"]],
-  ["repair-pdf", ["longform"]],
-  ["remove-metadata", ["longform"]],
-  ["resize-pdf", ["longform"]],
-  ["flatten-pdf", ["longform"]],
-  ["crop-pdf", ["longform"]],
-  ["image-watermark", ["longform"]],
-  ["n-up-pdf", ["longform"]],
-  ["pdf-to-markdown", ["longform"]],
-  ["pdf-to-html", ["longform"]],
-  ["extract-pages", ["longform"]],
-  ["delete-pages", ["longform"]],
-  ["extract-images", ["longform"]],
-  // 2026-05-01: merge, split, rotate, page-numbers, unlock REMOVED.
-  // Audit found these were CI-guard false positives — all 5 ALREADY
-  // had full ToolLongformData entries in lib/tool-longforms.ts but
-  // used unquoted JS object keys (`merge: {` not `"merge": {`),
-  // which the test's record-key regex initially missed. The
-  // earlier-this-session fix to parseRecordIds() (accepting both
-  // quoted and unquoted forms) resolves the parser bug so the
-  // grandfather entries are now stale.
-  // Grandfather list shrinks 5 entries (35 → 30); cap-on-grandfather
-  // forces this to keep shrinking over time.
+  // 2026-06-08 — EMPTIED (backlog M87 + V129 "caps to zero").
+  // All 32 previously-grandfathered free tools (the inspector family +
+  // the pre-2026-05-01 page / annotate / transform tools) now ship full
+  // ToolLongformData entries in lib/tool-longforms.ts — verified present
+  // with real use-cases / how-it-works / FAQ / CTA content, already
+  // rendering live on each /tool/* page. The skip-list was STALE:
+  // longforms were authored over time but never removed from here, so
+  // this guard kept skipping a check that now passes. With the list
+  // empty, EVERY free tool is enforced to have BOTH an intro and a
+  // longform — locking the coverage in and preventing regression. Same
+  // cleanup the merge/split/rotate/page-numbers/unlock entries received
+  // earlier this year; this finishes it. Do NOT re-add a tool here just
+  // to dodge writing its longform — author the longform instead.
 ]);
 
 // 2026-05-01 — AI standardization parity, Phase 1.
@@ -340,14 +303,15 @@ for (const id of PER_TOOL_LONGFORM_TOOLS) {
   );
 }
 
-// Cap on grandfathered list to force shrinkage over time. Cap is
-// generous (40) to start — currently 36 — but the list should
-// only get smaller as tools migrate.
+// Cap is now ZERO (2026-06-08): every free tool has a longform, so the
+// grandfather list must stay empty. If you genuinely need to defer a new
+// tool's longform, that's a deliberate decision — author the longform
+// instead, or raise this cap WITH a rationale comment and a follow-up.
 assert(
-  "GRANDFATHERED_NO_CONTENT stays bounded (≤ 40 entries)",
-  GRANDFATHERED_NO_CONTENT.size <= 40,
-  `GRANDFATHERED_NO_CONTENT has ${GRANDFATHERED_NO_CONTENT.size} entries; cap is 40. ` +
-    `Migrate a tool off the list before adding new ones.`,
+  "GRANDFATHERED_NO_CONTENT stays empty (every free tool has a longform)",
+  GRANDFATHERED_NO_CONTENT.size === 0,
+  `GRANDFATHERED_NO_CONTENT has ${GRANDFATHERED_NO_CONTENT.size} entries; it must be 0. ` +
+    `Author the missing longform in lib/tool-longforms.ts rather than grandfathering.`,
 );
 
 // 2026-05-01 — KNOWN_AI_LONGFORM_PENDING orphan check + cap.

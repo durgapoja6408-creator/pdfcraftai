@@ -5,6 +5,22 @@ _Future Claude sessions: read this AFTER `CLAUDE.md` and BEFORE starting new wor
 
 ---
 
+## 2026-06-08 — M87/V129: thin-tool-page longform coverage enforced (cap → 0)
+
+Investigated the backlog's "32 thin tool pages" (M87) and found they were a STALE
+guard artifact, not a real content gap: all 32 `GRANDFATHERED_NO_CONTENT` tools
+(inspector family + pre-2026-05-01 page/annotate/transform tools) already ship full
+`ToolLongformData` (verified: 5-6 use-cases, 5-7 FAQs, 3-4 how-it-works each, already
+rendering live). The longforms were authored over time but never removed from the
+skip-list, so `test-tool-content-coverage.mjs` kept skipping a check that now passes.
+
+Fix: emptied `GRANDFATHERED_NO_CONTENT` and tightened the cap from `<=40` to `===0`.
+Now EVERY free tool is enforced to have both an intro and a longform — locking the
+coverage in and preventing regression. Zero runtime change (pure guard hardening +
+honest KPI). Aggregator 8317/0 across 155 suites.
+
+---
+
 ## 2026-06-08 — Content: use-case expansion 12 → 20 (backlog M86)
 
 Auto-mode batch 9. The use-case ("job to be done") surface was the thinnest content area
