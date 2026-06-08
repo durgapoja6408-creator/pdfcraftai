@@ -4,6 +4,16 @@
     "pricing": "Pricing",
     "blog": "Blog",
     "help": "Help",
-    "chat": "Chat"
+    "chat": "Chat",
+    "account": "Account",
+    "dashboard": "Dashboard",
+    "files": "Files",
+    "billing": "Billing & credits",
+    "settings": "Settings",
+    "signOut": "Sign out",
+    "logIn": "Log in",
+    "getStarted": "Get started",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
   }
 }

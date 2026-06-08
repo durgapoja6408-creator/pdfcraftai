@@ -165,7 +165,7 @@ export function TopNav() {
             >
               <AvatarCircle user={user} initial={initial} size={24} />
               <span style={{ fontSize: 13 }}>
-                {user?.name?.split(" ")[0] ?? "Account"}
+                {user?.name?.split(" ")[0] ?? t("account")}
               </span>
               <I.ChevronDown size={12} />
             </button>
@@ -208,7 +208,7 @@ export function TopNav() {
                         textOverflow: "ellipsis",
                       }}
                     >
-                      {user?.name ?? "Account"}
+                      {user?.name ?? t("account")}
                     </div>
                     <div
                       className="subtle"
@@ -226,16 +226,16 @@ export function TopNav() {
                   </div>
                 </div>
                 <Link href="/app/dashboard" role="menuitem" style={menuItem}>
-                  <I.Layers size={14} /> Dashboard
+                  <I.Layers size={14} /> {t("dashboard")}
                 </Link>
                 <Link href="/app/files" role="menuitem" style={menuItem}>
-                  <I.File size={14} /> Files
+                  <I.File size={14} /> {t("files")}
                 </Link>
                 <Link href="/app/billing" role="menuitem" style={menuItem}>
-                  <I.Receipt size={14} /> Billing &amp; credits
+                  <I.Receipt size={14} /> {t("billing")}
                 </Link>
                 <Link href="/app/settings" role="menuitem" style={menuItem}>
-                  <I.Settings size={14} /> Settings
+                  <I.Settings size={14} /> {t("settings")}
                 </Link>
                 <div
                   style={{
@@ -259,7 +259,7 @@ export function TopNav() {
                     color: "var(--danger, #ef4444)",
                   }}
                 >
-                  <I.LogOut size={14} /> Sign out
+                  <I.LogOut size={14} /> {t("signOut")}
                 </button>
               </div>
             )}
@@ -267,10 +267,10 @@ export function TopNav() {
         ) : (
           <div className="auth-ctas">
             <Link href="/login" className="btn btn-sm btn-ghost">
-              Log in
+              {t("logIn")}
             </Link>
             <Link href="/register" className="btn btn-sm btn-primary">
-              Get started
+              {t("getStarted")}
             </Link>
           </div>
         )}
@@ -278,7 +278,7 @@ export function TopNav() {
         <button
           type="button"
           className="topnav-hamburger btn btn-sm btn-ghost"
-          aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          aria-label={mobileOpen ? t("closeMenu") : t("openMenu")}
           aria-controls="mobile-menu"
           aria-expanded={mobileOpen}
           onClick={() => setMobileOpen((v) => !v)}
@@ -319,7 +319,7 @@ export function TopNav() {
             {loggedIn ? (
               <>
                 <Link href="/app/dashboard" className="btn btn-sm btn-primary" style={{ flex: 1, justifyContent: "center" }}>
-                  Dashboard
+                  {t("dashboard")}
                 </Link>
                 <button
                   type="button"
@@ -327,16 +327,16 @@ export function TopNav() {
                   onClick={() => signOut({ callbackUrl: "/" })}
                   style={{ flex: 1, justifyContent: "center" }}
                 >
-                  Sign out
+                  {t("signOut")}
                 </button>
               </>
             ) : (
               <>
                 <Link href="/login" className="btn btn-sm btn-ghost" style={{ flex: 1, justifyContent: "center" }}>
-                  Log in
+                  {t("logIn")}
                 </Link>
                 <Link href="/register" className="btn btn-sm btn-primary" style={{ flex: 1, justifyContent: "center" }}>
-                  Get started
+                  {t("getStarted")}
                 </Link>
               </>
             )}
