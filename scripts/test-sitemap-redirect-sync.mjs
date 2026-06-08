@@ -100,7 +100,7 @@ while ((r = REDIRECT_RE.exec(NEXT_SRC)) !== null) {
 // real SEO landing pages now, so the redirects were intercepting
 // canonical URLs.
 assert(
-  seoRedirectSources.size >= 30,
+  seoRedirectSources.size >= 6,
   `next.config.mjs SEO redirects parse: expected >= 30 single-segment redirects whose source is in SEO_SLUGS, got ${seoRedirectSources.size}`,
 );
 

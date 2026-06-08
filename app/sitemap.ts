@@ -105,32 +105,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // destinations that go dead, but doesn't catch this side. Check
   // both files when adding/removing slugs.
   const REDIRECTED_SEO_SLUGS = new Set([
+    "excel-to-pdf", "powerpoint-to-pdf",
     // First-pass redirects (commit 89cd1e8) — slugs without
     // app/<slug>/page.tsx, redirect to /tool/<id> or /tools.
     // 2026-05-04 SEO landing removed (see TOOL_IMPROVEMENT_PLAN T1-1).
     "merge-pdf", "split-pdf", "word-to-pdf",
-    "excel-to-pdf", "powerpoint-to-pdf", "jpg-to-pdf", "png-to-pdf",
-    "extract-pdf-pages", "delete-pdf-pages", "pdf-page-count",
-    "resize-pdf", "remove-pdf-metadata", "add-logo-to-pdf",
-    "add-text-to-pdf", "highlight-pdf", "redact-pdf-free",
     // 2026-05-02: extract-pdf-attachments + edit-pdf REMOVED — real
     // SEO landings shipped today. Slugs now render via app/<slug>/
-    // page.tsx and belong in sitemap as canonical URLs.
-    "sign-pdf-free",
-    "repair-pdf", "flatten-pdf",
     // 2026-05-02: markdown-to-pdf REMOVED — real landing shipped
     // (the previous /markdown-to-pdf → /tool/pdf-to-markdown
-    // redirect was pointing at the OPPOSITE direction tool).
-    "text-to-pdf",
-    "extract-pdf-form-data", "reorder-pdf-pages",
     // 2026-05-02: extract-emails-from-pdf REMOVED — real landing
-    // shipped today (extract-contacts tool wired through SEO landing).
-    "extract-entities-from-pdf",
-    "stamp-pdf", "n-up-pdf",
     // 2026-05-02: grayscale-pdf REMOVED — real landing shipped today.
-    "strip-links",
-    // 2026-05-02: booklet-pdf REMOVED — real landing shipped today.
-    "free-draw-pdf", "add-links",
     // Second-pass redirects (commit cadf27c) — slugs with
     // app/<slug>/page.tsx but broken-render via dead tool: ref.
     "pdf-to-word", "pdf-to-excel", "pdf-to-powerpoint",

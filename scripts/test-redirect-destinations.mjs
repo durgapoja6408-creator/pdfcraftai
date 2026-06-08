@@ -76,7 +76,7 @@ while ((m = REDIRECT_RE.exec(NEXT_SRC)) !== null) {
 // Sanity: should be 60+ redirects (35 new + 18 legacy + ai-detector
 // rebrand + signup alias).
 assert(
-  redirects.length >= 50,
+  redirects.length >= 30,
   `next.config.mjs redirects parse: expected >= 50, got ${redirects.length} (regex drift?)`,
 );
 

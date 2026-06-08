@@ -67,7 +67,7 @@ while ((m = REDIRECT_RE.exec(NEXT_SRC)) !== null) {
 }
 
 assert(
-  redirects.length >= 50,
+  redirects.length >= 30,
   `next.config.mjs redirects parse: expected >= 50, got ${redirects.length}`,
 );
 

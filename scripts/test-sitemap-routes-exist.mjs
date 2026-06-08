@@ -116,40 +116,17 @@ const KNOWN_MISSING_SEO_ROUTES = new Set([
   "word-to-pdf",
   "excel-to-pdf",
   "powerpoint-to-pdf",
-  "jpg-to-pdf",
-  "png-to-pdf",
-  "extract-pdf-pages",
-  "delete-pdf-pages",
-  "pdf-page-count",
-  "resize-pdf",
-  "remove-pdf-metadata",
-  "add-logo-to-pdf",
-  "add-text-to-pdf",
-  "highlight-pdf",
-  "redact-pdf-free",
   // 2026-05-02 — extract-pdf-attachments + edit-pdf landings shipped
   // (real tools wired, app/<slug>/page.tsx files now exist).
-  "sign-pdf-free",
-  "repair-pdf",
-  "flatten-pdf",
   // 2026-05-02 — markdown-to-pdf landing shipped (real tool wired,
   // app/markdown-to-pdf/page.tsx exists; previous redirect was
   // pointing at the OPPOSITE direction tool /tool/pdf-to-markdown).
-  "text-to-pdf",
-  "extract-pdf-form-data",
-  "reorder-pdf-pages",
   // 2026-05-02 — extract-emails-from-pdf landing shipped (extract-
   // contacts tool wired, app/extract-emails-from-pdf/page.tsx exists).
-  "extract-entities-from-pdf",
-  "stamp-pdf",
-  "n-up-pdf",
   // 2026-05-02 — grayscale-pdf landing shipped (real tool wired,
   // app/grayscale-pdf/page.tsx exists).
-  "strip-links",
   // 2026-05-02 — booklet-pdf landing shipped (real tool wired,
   // app/booklet-pdf/page.tsx exists).
-  "free-draw-pdf",
-  "add-links",
 ]);
 
 const missingRoutes = [];

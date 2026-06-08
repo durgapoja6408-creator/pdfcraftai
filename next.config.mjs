@@ -445,17 +445,6 @@ const nextConfig = {
       { source: "/powerpoint-to-pdf", destination: "/tools", permanent: true },
       // 2026-05-01: real tools shipped — redirect to the canonical
       // /tool/<id> instead of /tools index.
-      { source: "/jpg-to-pdf", destination: "/tool/jpg-to-pdf", permanent: true },
-      { source: "/png-to-pdf", destination: "/tool/png-to-pdf", permanent: true },
-      { source: "/extract-pdf-pages", destination: "/tool/extract-pages", permanent: true },
-      { source: "/delete-pdf-pages", destination: "/tool/delete-pages", permanent: true },
-      { source: "/pdf-page-count", destination: "/tool/page-count", permanent: true },
-      { source: "/resize-pdf", destination: "/tool/resize-pdf", permanent: true },
-      { source: "/remove-pdf-metadata", destination: "/tool/remove-metadata", permanent: true },
-      { source: "/add-logo-to-pdf", destination: "/tool/image-watermark", permanent: true },
-      { source: "/add-text-to-pdf", destination: "/tool/add-text-box", permanent: true },
-      { source: "/highlight-pdf", destination: "/tool/highlight-pdf", permanent: true },
-      { source: "/redact-pdf-free", destination: "/tool/redact-free", permanent: true },
       // 2026-05-02: /extract-pdf-attachments REDIRECT REMOVED — real
       // tool (extract-attachments) shipped today (commit 4bb60f7) and
       // app/extract-pdf-attachments/page.tsx now renders the SEO
@@ -463,9 +452,6 @@ const nextConfig = {
       // 2026-05-02: /edit-pdf REDIRECT REMOVED — SEO landing repointed
       // today (commit 205697c) at add-text-box with honest copy
       // downgrade and app/edit-pdf/page.tsx now renders the landing.
-      { source: "/sign-pdf-free", destination: "/tool/sign-pdf-free", permanent: true },
-      { source: "/repair-pdf", destination: "/tool/repair-pdf", permanent: true },
-      { source: "/flatten-pdf", destination: "/tool/flatten-pdf", permanent: true },
       // 2026-05-02: /markdown-to-pdf REDIRECT REMOVED — same bug
       // pattern as text-to-pdf below (caught earlier). Was pointing
       // at /tool/pdf-to-markdown which is the OPPOSITE direction
@@ -478,25 +464,16 @@ const nextConfig = {
       // of bouncing through the wrong-direction redirect.
       // 2026-05-01: text-to-pdf is its own tool now (was redirected
       // to /tool/pdf-to-text — the OPPOSITE direction. Bad pre-fix.)
-      { source: "/text-to-pdf", destination: "/tool/text-to-pdf", permanent: true },
-      { source: "/extract-pdf-form-data", destination: "/tool/pdf-forms", permanent: true },
-      { source: "/reorder-pdf-pages", destination: "/tool/sort-pages", permanent: true },
       // 2026-05-02: /extract-emails-from-pdf REDIRECT REMOVED — real
       // tool (extract-contacts) shipped today (commit c56705e) and
       // app/extract-emails-from-pdf/page.tsx now renders the SEO
       // landing.
-      { source: "/extract-entities-from-pdf", destination: "/tool/ai-entities", permanent: true },
-      { source: "/stamp-pdf", destination: "/tool/stamp-pdf", permanent: true },
-      { source: "/n-up-pdf", destination: "/tool/n-up-pdf", permanent: true },
       // 2026-05-02: /grayscale-pdf REDIRECT REMOVED — real tool
       // shipped earlier in this commit-arc and app/grayscale-pdf/
       // page.tsx now renders the SEO landing.
-      { source: "/strip-links", destination: "/tool/strip-links", permanent: true },
       // 2026-05-02: /booklet-pdf REDIRECT REMOVED — real tool shipped
       // earlier in this commit-arc and app/booklet-pdf/page.tsx now
       // renders the SEO landing.
-      { source: "/free-draw-pdf", destination: "/tool/free-draw-pdf", permanent: true },
-      { source: "/add-links", destination: "/tool/add-links", permanent: true },
       //
       // 2026-04-30 second-pass — close out the 5 "broken-render"
       // landings (originally surfaced by the SEO smoke spec). These
