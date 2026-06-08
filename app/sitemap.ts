@@ -109,7 +109,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // First-pass redirects (commit 89cd1e8) — slugs without
     // app/<slug>/page.tsx, redirect to /tool/<id> or /tools.
     // 2026-05-04 SEO landing removed (see TOOL_IMPROVEMENT_PLAN T1-1).
-    "merge-pdf", "split-pdf", "word-to-pdf",
+ "word-to-pdf",
     // 2026-05-02: extract-pdf-attachments + edit-pdf REMOVED — real
     // SEO landings shipped today. Slugs now render via app/<slug>/
     // 2026-05-02: markdown-to-pdf REMOVED — real landing shipped

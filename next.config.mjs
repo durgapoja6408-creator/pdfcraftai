@@ -437,8 +437,6 @@ const nextConfig = {
       // authority on the destination. 307 is for temporary aliases
       // (like /signup → /register) where we want to keep the option
       // to reclaim the URL.
-      { source: "/merge-pdf", destination: "/tool/merge", permanent: true },
-      { source: "/split-pdf", destination: "/tool/split", permanent: true },
       { source: "/compress-pdf", destination: "/tools", permanent: true },
       { source: "/word-to-pdf", destination: "/tools", permanent: true },
       { source: "/excel-to-pdf", destination: "/tools", permanent: true },

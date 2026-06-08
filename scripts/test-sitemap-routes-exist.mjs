@@ -110,8 +110,6 @@ const KNOWN_MISSING_SEO_ROUTES = new Set([
   // The 308 is a stopgap. When a real landing lands, remove the
   // slug from this list AND drop the matching redirect from
   // next.config.mjs.
-  "merge-pdf",
-  "split-pdf",
   "compress-pdf",
   "word-to-pdf",
   "excel-to-pdf",

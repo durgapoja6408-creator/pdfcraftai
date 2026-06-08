@@ -221,17 +221,17 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       },
       {
         t: "Click Merge",
-        d: "Done in seconds. Download or send to the next step in a macro.",
+        d: "Done in seconds. Download instantly, or open the result in another tool.",
       },
     ],
     faq: [
       {
         q: "Is it really free?",
-        a: "Yes. Merge is one of our eight free forever tools — no signup, no watermarks, no per-file or per-day limits. The whole free tier runs unlimited.",
+        a: "Yes. Merge is one of our 60 free-forever tools — no signup, no watermarks, no per-file or per-day limits. The whole free tier runs unlimited.",
       },
       {
         q: "What's the size limit?",
-        a: "Each file up to 100MB, up to 50 files per merge. If you need more, the API runs batch jobs with no cap.",
+        a: "Each file up to 100MB, up to 50 files per merge — plenty for combining a stack of documents in one pass.",
       },
       {
         q: "Are my files kept?",
@@ -239,7 +239,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       },
       {
         q: "Can I merge password-protected PDFs?",
-        a: "Yes — if you enter the password. Otherwise use the Unlock tool first, or chain both steps together in a macro.",
+        a: "Yes — if you enter the password. Otherwise run the Unlock tool first, then merge.",
       },
       {
         q: "Can I rearrange pages between files?",
@@ -286,7 +286,7 @@ export const SEO_PAGES: Record<SeoPageSlug, SeoPageData> = {
       },
       {
         q: "Is there a page limit?",
-        a: "No limit on the free web tool. The API's batch endpoint handles 10k-page PDFs with streaming output.",
+        a: "No limit on the free web tool. Large PDFs — even thousands of pages — split smoothly; everything runs locally in your browser, so there's no upload size ceiling.",
       },
     ],
     related: ["merge", "rotate", "pdf-to-office"],

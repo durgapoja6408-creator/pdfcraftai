@@ -88,7 +88,7 @@ while ((m = REDIRECT_RE.exec(NEXT_SRC)) !== null) {
 }
 
 assert(
-  redirects.length >= 4,
+  redirects.length >= 2,
   `next.config.mjs parse: expected >= 20 single-segment /<slug> → /tool/<id> redirects, got ${redirects.length}`,
 );
 
