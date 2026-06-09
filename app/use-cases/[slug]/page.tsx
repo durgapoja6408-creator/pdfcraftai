@@ -13,6 +13,7 @@ export function generateMetadata({ params }: Props): Metadata {
   const slug = params.slug as UseCaseSlug;
   const data = USE_CASES[slug];
   if (!data) return {};
+  const ogImage = `/og?title=${encodeURIComponent(data.h1)}&subtitle=${encodeURIComponent(data.sub)}`;
   return {
     title: data.h1,
     description: data.sub,
@@ -22,6 +23,11 @@ export function generateMetadata({ params }: Props): Metadata {
       description: data.sub,
       url: `/use-cases/${slug}`,
       type: "article",
+      images: [ogImage],
+    },
+    twitter: {
+      card: "summary_large_image",
+      images: [ogImage],
     },
   };
 }
