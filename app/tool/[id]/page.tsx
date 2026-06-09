@@ -245,6 +245,10 @@ export function generateMetadata({ params }: Params): Metadata {
   const tool = toolById(params.id);
   if (!tool) return { title: "Tool not found" };
   const title = tool.name;
+  // L83 — per-tool dynamic OG card (app/og/route.tsx) instead of the
+  // shared static /og.png, so a shared /tool/<id> link shows the tool's
+  // own name on Slack / X / LinkedIn / iMessage.
+  const ogImage = `/og?title=${encodeURIComponent(tool.name)}&subtitle=${encodeURIComponent(tool.desc)}`;
   return {
     title,
     description: tool.desc,
@@ -260,13 +264,13 @@ export function generateMetadata({ params }: Params): Metadata {
       // layout's openGraph.images is overridden whenever an inner route
       // declares its own openGraph block, so we have to repeat the
       // reference here. /og.png is the canonical brand share card.
-      images: ["/og.png"],
+      images: [ogImage],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description: tool.desc,
-      images: ["/og.png"],
+      images: [ogImage],
     },
   };
 }
